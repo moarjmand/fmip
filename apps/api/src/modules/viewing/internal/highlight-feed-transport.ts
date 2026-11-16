@@ -34,10 +34,22 @@ export class FetchJsonTransport implements Transport {
  * over budget it answers 429 rather than throwing, so the client reports a
  * `quota` refusal and the run stops where it is. The day is UTC, when the
  * provider's own count resets.
+ *
+ * It also remembers when the provider itself began to refuse (T-1855, D-440):
+ * a 429 from the network, not this ceiling's own, sets `refusedSince`; an
+ * answer under 400 clears it; anything else (a 403, a 5xx, a thrown timeout)
+ * says nothing about the plan and leaves it as it was. `heard` is false until
+ * the first 429 or answer under 400 since the process started. Both feeds stop
+ * at their first refusal, so without this a plan the provider no longer
+ * serves looks like a quiet day: from 2026-11-09 the box scores fell from
+ * dozens a day to none while our count read 2 of 5000 and every condition
+ * stayed `ok`.
  */
 export class DailyBudgetTransport implements Transport {
   private day: string;
   private spent = 0;
+  private refusingSince: Date | null = null;
+  private heardFrom = false;
 
   constructor(
     private readonly inner: Transport,
@@ -63,7 +75,33 @@ export class DailyBudgetTransport implements Transport {
       };
     }
     this.spent += 1;
-    return this.inner.request(url, init);
+    const response = await this.inner.request(url, init);
+    if (response.status === 429) {
+      this.refusingSince ??= this.now();
+      this.heardFrom = true;
+    } else if (response.status < 400) {
+      this.refusingSince = null;
+      this.heardFrom = true;
+    }
+    return response;
+  }
+
+  /**
+   * Whether the provider has said yet, since this process started, if it
+   * serves us: false after a restart until the first feed run reaches it, so
+   * the watchdog does not read a rollout as the refusal ending.
+   */
+  get heard(): boolean {
+    return this.heardFrom;
+  }
+
+  /**
+   * When the provider's own refusals began, or `null` while it answers. Not
+   * reset at midnight: a refusal that lasts past the provider's daily reset
+   * is the one worth seeing. This process's memory, like the count.
+   */
+  get refusedSince(): Date | null {
+    return this.refusingSince;
   }
 
   private today(): string {

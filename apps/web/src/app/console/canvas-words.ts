@@ -8,10 +8,10 @@ import type {
 import { CONSOLE_CANVAS_BLOCKS } from '@fmip/contracts/console';
 
 /**
- * The business model canvas's words (T-1855, D-440), shared by the
+ * The business model canvas's words (T-1856, D-441), shared by the
  * server-drawn page and its one client part: the nine blocks with their fill
  * order and guiding question, the tags and their tones, the page's own words
- * in Persian and in English (`?lang=en`, D-440's exception to D-352), what a
+ * in Persian and in English (`?lang=en`, D-441's exception to D-352), what a
  * history row says, a card's text in the shown language with its fallback,
  * and the JSON a download holds. No React, no server.
  */

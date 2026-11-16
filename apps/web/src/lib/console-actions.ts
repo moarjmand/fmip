@@ -567,7 +567,7 @@ export async function removeChecklistItem(id: string, reason: string): Promise<C
   return checklistCall(checklistItem(id), 'DELETE', { reason }, 'مورد حذف نشد.');
 }
 
-// --- The business model canvas (T-1855, D-440) ----------------------------------
+// --- The business model canvas (T-1856, D-441) ----------------------------------
 
 /** What a canvas control hears back: the card's id, or the error in Persian (the console's messages stay Persian). */
 export interface CanvasResult {

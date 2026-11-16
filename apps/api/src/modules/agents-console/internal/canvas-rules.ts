@@ -15,7 +15,7 @@ import {
 } from '@fmip/contracts/console';
 
 /**
- * The business model canvas's pure part (T-1855, D-440): what a person may
+ * The business model canvas's pure part (T-1856, D-441): what a person may
  * write -- a new card, a change, a move up or down -- with its lengths; where
  * a new card goes in its block; and which changes a patch really makes, as
  * the history records them. Nothing here touches the database.

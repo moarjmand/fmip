@@ -18,7 +18,7 @@ import {
 } from './canvas-words';
 
 /**
- * The business model canvas's server-drawn pieces (T-1855, D-440): the sheet
+ * The business model canvas's server-drawn pieces (T-1856, D-441): the sheet
  * with its nine numbered cells and their cards (`canvas.css` lays them out),
  * the bin of removed cards with their restore, and the canvas's history.
  */

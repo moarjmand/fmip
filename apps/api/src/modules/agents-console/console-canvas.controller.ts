@@ -25,7 +25,7 @@ const NO_CARD: ApiError = { error: 'not_found', message: 'No such canvas card.' 
 const LIMIT = 'That is the most canvas changes an hour allows.';
 
 /**
- * The console's business model canvas (T-1855, D-440), under
+ * The console's business model canvas (T-1856, D-441), under
  * `/console/canvas`: the nine blocks' cards, the bin and the history. Every
  * route needs a console session (no guest, no member); every change is
  * written by the store with its event row(s) and its `console_audit` row

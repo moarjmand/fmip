@@ -1,7 +1,7 @@
 import type { ConsoleCanvas, ConsoleCanvasCard, ConsoleCanvasEvent } from '@fmip/contracts';
 
 /**
- * The business model canvas's answer (T-1855, D-440) as the API sends it:
+ * The business model canvas's answer (T-1856, D-441) as the API sends it:
  * a few of the seed's cards (one of every tag, in four blocks, verbatim), a
  * card written in English only, one a person changed, a removed card in the
  * bin, and a history with every kind of change; for `canvas.spec.tsx` and

@@ -234,7 +234,7 @@ export const CEILINGS: readonly CeilingDefinition[] = [
       'DELETE /console/checklist/items/:id',
     ],
   },
-  // T-1855 (D-440): the business model canvas. Counted from the person's own
+  // T-1856 (D-441): the business model canvas. Counted from the person's own
   // `console_canvas_event` rows this hour, before the write.
   {
     action: 'console_canvas',

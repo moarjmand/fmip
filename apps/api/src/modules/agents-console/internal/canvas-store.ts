@@ -1,5 +1,5 @@
 /**
- * The business model canvas's Postgres store (T-1855, D-440): cards and the
+ * The business model canvas's Postgres store (T-1856, D-441): cards and the
  * canvas's history, every change a person makes with its event row(s) and
  * its `console_audit` row carrying the whole card before and after, in the
  * same transaction (rule 10). Nothing deletes a row: removal is

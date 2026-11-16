@@ -1,7 +1,7 @@
 -- Up Migration
 
 -- ---------------------------------------------------------------------------
--- The agents console's business model canvas (T-1855, D-440): nine fixed
+-- The agents console's business model canvas (T-1856, D-441): nine fixed
 -- blocks, each with its cards in order; every card in Persian and English,
 -- with a tag, a note in each language and the source it came from, kept by
 -- the two console accounts.
@@ -68,7 +68,7 @@ CREATE TRIGGER console_canvas_card_updated_at
   BEFORE UPDATE ON console_canvas_card FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 COMMENT ON TABLE console_canvas_card IS
-  'A card of the agents console''s business model canvas (T-1855, D-440): block, place, tag, Persian and English text and note, source; removal kept and restorable; every change audited in console_audit.';
+  'A card of the agents console''s business model canvas (T-1856, D-441): block, place, tag, Persian and English text and note, source; removal kept and restorable; every change audited in console_audit.';
 
 CREATE TABLE console_canvas_event (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -105,7 +105,7 @@ CREATE TRIGGER console_canvas_event_immutable
   BEFORE UPDATE OR DELETE ON console_canvas_event FOR EACH ROW EXECUTE FUNCTION refuse_change();
 
 COMMENT ON TABLE console_canvas_event IS
-  'Who changed what on a business model canvas card and when, before and after (T-1855, D-440). Immutable.';
+  'Who changed what on a business model canvas card and when, before and after (T-1856, D-441). Immutable.';
 
 -- The ceiling (D-103's inventory): 300 canvas changes an hour per console
 -- account, counted by the API from the person's own events in the clock

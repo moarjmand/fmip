@@ -1,5 +1,5 @@
 /**
- * The agents console's business model canvas (T-1855, D-440): nine fixed
+ * The agents console's business model canvas (T-1856, D-441): nine fixed
  * blocks, each with its cards in order; every card in Persian and English,
  * with a tag, a note in each language and its source; soft removal with a
  * bin, and the canvas's history. Runtime values live on the console's own

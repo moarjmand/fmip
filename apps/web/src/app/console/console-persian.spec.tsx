@@ -114,7 +114,7 @@ vi.mock('@/lib/console-api', () => {
     consoleSocial: () => ok(fixtures.social),
     // T-1840: the pre-launch checklist, the seed's Persian text.
     consoleChecklist: () => ok(CHECKLIST),
-    // T-1855: the business model canvas in its Persian view, with a card written in English only.
+    // T-1856: the business model canvas in its Persian view, with a card written in English only.
     consoleCanvas: () => ok(CANVAS),
     consoleCommands: () =>
       ok({
@@ -684,7 +684,7 @@ const TECHNICAL_TERMS = new Set([
   'KYC',
   // T-1836: the social posts' publisher, named as the teammate's account is.
   'Buffer',
-  // T-1855: the canvas's download and print buttons name the file kinds.
+  // T-1856: the canvas's download and print buttons name the file kinds.
   'JSON',
   'PDF',
 ]);

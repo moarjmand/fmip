@@ -29,9 +29,9 @@ const CHIP_OFF = 'border-default bg-surface text-muted hover:text-fg';
 const BUTTON = `inline-flex min-h-touch items-center justify-center whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised ${FOCUS}`;
 
 /**
- * The business model canvas (T-1855, D-440): the nine blocks in the classic
+ * The business model canvas (T-1856, D-441): the nine blocks in the classic
  * layout (`canvas.css`), every card in Persian by default and in English
- * with `?lang=en` (D-440's exception to D-352: only this page's own
+ * with `?lang=en` (D-441's exception to D-352: only this page's own
  * container turns English and left to right; the console's frame stays
  * Persian), tag filters with counts (`?tag=`), the bin and the canvas's
  * history, a JSON download and a print layout. Server-rendered; the card

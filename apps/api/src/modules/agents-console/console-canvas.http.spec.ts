@@ -12,7 +12,7 @@ import { consoleTokenText } from './internal/console-rules';
 import { PostgresConsoleStore } from './internal/console-store';
 
 /**
- * T-1855 (D-440) against the real schema: the business model canvas's routes
+ * T-1856 (D-441) against the real schema: the business model canvas's routes
  * refuse without a console session; the seed is the artifact's 55 cards in
  * the nine blocks, with no history; a card is added, edited in both
  * languages, tagged, moved to another block and inside one, removed into the
@@ -207,7 +207,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console canv
     const added = await call<ConsoleCanvasCard>('POST', '/cards', {
       block: 'channels',
       text_fa: `  کارت آزمایشی ${RUN}  `,
-      source: 'T-1855',
+      source: 'T-1856',
     });
     expect(added.status).toBe(201);
     const id = added.body.id;
@@ -314,7 +314,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console canv
       text_en: '',
       note_fa: '',
       note_en: '',
-      source: 'T-1855',
+      source: 'T-1856',
       position: added.body.position,
       removed: false,
     });

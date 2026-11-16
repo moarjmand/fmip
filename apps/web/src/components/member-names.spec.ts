@@ -50,7 +50,7 @@ const FIELDS: Record<string, Rule> = {
   // accounts an item can be given to; shown only in the agents console.
   'console-checklist.ts:ConsoleChecklistNote.author': { exempt: CONSOLE },
   'console-checklist.ts:ConsoleChecklistPerson.display_name': { exempt: CONSOLE },
-  // The business model canvas (T-1855): the console accounts that change it, shown
+  // The business model canvas (T-1856): the console accounts that change it, shown
   // only in the agents console; a card's source is a document or a decision, never a person.
   'console-canvas.ts:ConsoleCanvasPerson.display_name': { exempt: CONSOLE },
   'console-canvas.ts:ConsoleCanvasCard.source': {

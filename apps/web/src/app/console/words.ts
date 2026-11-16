@@ -30,7 +30,7 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
     /^That is the most checklist changes an hour allows/,
     () => 'به سقف تغییرهای یک ساعت فهرست رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
   ],
-  // The business model canvas (T-1855, D-440).
+  // The business model canvas (T-1856, D-441).
   [
     /^A card needs its text in Persian or English\.$/,
     () => 'متن کارت را دست‌کم به یکی از دو زبان بنویسید.',
@@ -368,7 +368,7 @@ const CHANGE_WORDS: Record<string, string> = {
   assigned: 'مسئول',
 };
 
-/** A canvas card's fields (T-1855), as `changed tag, text_en` names them. */
+/** A canvas card's fields (T-1856), as `changed tag, text_en` names them. */
 const CANVAS_FIELD_WORDS: Record<string, string> = {
   block: 'بخش',
   tag: 'برچسب',

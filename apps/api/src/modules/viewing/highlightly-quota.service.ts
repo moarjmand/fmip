@@ -6,9 +6,19 @@ import {
   HIGHLIGHT_FEED_TRANSPORT,
 } from './internal/highlight-feed-transport';
 
-/** What the watchdog reads of the shared ceiling (T-1432). */
+/**
+ * What the watchdog reads of the shared ceiling (T-1432) and of the
+ * provider's own refusals (T-1855, D-440).
+ */
 export type HighlightlyQuotaReading =
-  { configured: false } | { configured: true; requestsToday: number; budget: number };
+  | { configured: false }
+  | {
+      configured: true;
+      requestsToday: number;
+      budget: number;
+      heard: boolean;
+      refusedSince: Date | null;
+    };
 
 /**
  * The one daily ceiling every Highlightly caller of this boundary draws on
@@ -36,6 +46,8 @@ export class HighlightlyQuota {
       configured: true,
       requestsToday: this.transport.used,
       budget: this.transport.perDay,
+      heard: this.transport.heard,
+      refusedSince: this.transport.refusedSince,
     };
   }
 }

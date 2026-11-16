@@ -16,7 +16,7 @@ import {
   reordered,
 } from './canvas-rules';
 
-/** T-1855 (D-440): what a person may write to the business model canvas. */
+/** T-1856 (D-441): what a person may write to the business model canvas. */
 
 const CARD: CardState = {
   block: 'channels',

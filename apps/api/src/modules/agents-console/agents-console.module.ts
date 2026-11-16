@@ -44,7 +44,7 @@ import {
     ConsoleCalendarService,
     // T-1840 (D-428): the pre-launch checklist.
     PostgresChecklistStore,
-    // T-1855 (D-440): the business model canvas.
+    // T-1856 (D-441): the business model canvas.
     PostgresCanvasStore,
     // T-1729: the session check, for the model page another module serves.
     ConsoleSessions,

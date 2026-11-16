@@ -106,7 +106,7 @@ export {
   CONSOLE_CHECKLIST_STATUSES,
   CONSOLE_CHECKLIST_TITLE_MAX,
 } from './console-checklist';
-// The business model canvas (T-1855, D-440).
+// The business model canvas (T-1856, D-441).
 export {
   CONSOLE_CANVAS_BLOCKS,
   CONSOLE_CANVAS_FIELDS,

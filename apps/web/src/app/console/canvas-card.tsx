@@ -40,7 +40,7 @@ import {
 } from './canvas-words';
 
 /**
- * The business model canvas's one client part (T-1855, D-440): a card with
+ * The business model canvas's one client part (T-1856, D-441): a card with
  * its controls (edit in place in both languages with its tag and block, up,
  * down, remove with an undo), the add button of a block, a removed card's
  * restore, the JSON download and the print button, and the toast that

@@ -15,6 +15,7 @@ import {
   type LiveMatchSeen,
   modelService,
   highlightlyBudget,
+  highlightlyRefused,
   queueFailures,
   requestBudget,
   restoreDrill,
@@ -92,12 +93,19 @@ export interface Observations {
    */
   cloudflare?: CloudflareRangesSeen;
   /**
-   * Highlightly's shared daily ceiling and today's count (T-1432). Optional
-   * like `elo`; absent reads as no key.
+   * Highlightly's shared daily ceiling and today's count (T-1432), and since
+   * when the provider itself has refused (T-1855). Optional like `elo`;
+   * absent reads as no key.
    */
   highlightly?:
     | { configured: false }
-    | { configured: true; requestsToday: number; budget: number }
+    | {
+        configured: true;
+        requestsToday: number;
+        budget: number;
+        heard?: boolean;
+        refusedSince?: Date | null;
+      }
     | Unreadable;
 }
 
@@ -150,6 +158,15 @@ export function readingsOf(
           note: highlightly.unreadable,
         }
       : highlightlyBudget(highlightly),
+  );
+  out.push(
+    unreadable(highlightly)
+      ? {
+          ...highlightlyRefused({ configured: false }, now),
+          level: 'unknown',
+          note: highlightly.unreadable,
+        }
+      : highlightlyRefused(highlightly, now, previous.get('highlightly_refused') ?? null),
   );
 
   for (const q of seen.queues) {

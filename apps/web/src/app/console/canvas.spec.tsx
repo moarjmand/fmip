@@ -8,7 +8,7 @@ import { CardEditor } from './canvas-card';
 import { canvasJson, cardText, historyWords, tagCounts } from './canvas-words';
 
 /**
- * The business model canvas's page (T-1855, D-440): the nine cells in the
+ * The business model canvas's page (T-1856, D-441): the nine cells in the
  * fill order with their numbers and guiding questions, the classic layout
  * and the print sheet, cards tinted by tag with their controls and who
  * changed them, the tag filters with counts, the bin with restore, the

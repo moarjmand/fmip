@@ -376,7 +376,7 @@ export type {
   ConsoleChecklistSection,
   ConsoleChecklistStatus,
 } from './console-checklist';
-// The agents console's business model canvas (T-1855, D-440); its runtime constants are in './console'.
+// The agents console's business model canvas (T-1856, D-441); its runtime constants are in './console'.
 export type {
   ConsoleCanvas,
   ConsoleCanvasBlock,
