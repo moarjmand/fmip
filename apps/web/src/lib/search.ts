@@ -52,14 +52,20 @@ export function resultHref(locale: string, result: Pick<SearchResult, 'type' | '
   return `/${locale}/${path[result.type]}/${encodeURIComponent(result.id)}`;
 }
 
-/** "also known as The Zebras" when an alias matched, else null. */
+/**
+ * "also known as The Zebras" when an alias matched, else null -- and null
+ * when the alias is the very name the row shows (T-1850, the designer's
+ * finding des-03: on the Persian page the matched Persian name is the row's
+ * own name, and "also known as منچستریونایتد" under منچستریونایتد says nothing).
+ */
 export function matchNote(
   locale: string,
-  result: Pick<SearchResult, 'matched_on' | 'alias'>,
+  result: Pick<SearchResult, 'matched_on' | 'alias' | 'name'>,
 ): string | null {
-  return result.matched_on === 'alias' && result.alias !== null
-    ? say(locale, 'searchPage.alias', { alias: result.alias })
-    : null;
+  if (result.matched_on !== 'alias' || result.alias === null) return null;
+  const same = (a: string) => a.normalize('NFC').trim().toLocaleLowerCase();
+  if (same(result.alias) === same(result.name)) return null;
+  return say(locale, 'searchPage.alias', { alias: result.alias });
 }
 
 // ---------------------------------------------------------------------------

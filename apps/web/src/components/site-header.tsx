@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from '@/components/ui/link';
-import { cache } from 'react';
+import { Suspense, cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { CompetitionsMenu } from '@/components/competitions-menu';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
@@ -8,6 +8,7 @@ import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
+import { HeaderSearchField } from '@/components/header-search-field';
 import { SearchCombobox } from '@/components/search-combobox';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
@@ -246,7 +247,7 @@ export async function SiteHeader({
                 className="site-search relative hidden xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64"
                 data-testid="nav-search-form"
               >
-                <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-default bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
+                <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-strong bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
                   <Icon>
                     <circle cx="11" cy="11" r="7" />
                     <path d="m20 20-4-4" />
@@ -255,14 +256,26 @@ export async function SiteHeader({
                     {search.text}
                   </span>
                   {/* Suggestions while typing (T-1844, D-435); the list hangs from the form. */}
-                  <SearchCombobox
-                    variant="header"
-                    locale={locale}
-                    words={suggestWords(locale)}
-                    placeholder={placeholder.text}
-                    inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
-                    testId="nav-search-input"
-                  />
+                  <Suspense
+                    fallback={
+                      <SearchCombobox
+                        variant="header"
+                        locale={locale}
+                        words={suggestWords(locale)}
+                        placeholder={placeholder.text}
+                        inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
+                        testId="nav-search-input"
+                      />
+                    }
+                  >
+                    <HeaderSearchField
+                      locale={locale}
+                      words={suggestWords(locale)}
+                      placeholder={placeholder.text}
+                      inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
+                      testId="nav-search-input"
+                    />
+                  </Suspense>
                 </label>
               </form>
               {/* The globe (D-281): nothing until a second language is finished (T-306) and not held back (T-1163). */}

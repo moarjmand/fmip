@@ -15720,6 +15720,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "searchPage.resultsFor": {
+    "source": "Results for “{term}”",
+    "text": "",
+    "status": "untranslated"
+  },
   "searchPage.tryThese": {
     "source": "Try a team or competition name, or one of these.",
     "text": "",
