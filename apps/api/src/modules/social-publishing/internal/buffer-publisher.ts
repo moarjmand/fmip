@@ -174,8 +174,14 @@ export class BufferPublisher implements SocialPublisher {
   private lastRequestAt = Number.NEGATIVE_INFINITY;
   private pausedTill: number | null = null;
   private channels: { fingerprint: string; at: number; list: BufferChannel[] } | null = null;
-  /** When the channels last failed to be read: not asked again before `BUFFER_LOOKUP_RETRY_MS`. */
-  private lookupFailed: { at: number; message: string } | null = null;
+  /**
+   * When the channels last failed to be read with a key: not asked again
+   * before `BUFFER_LOOKUP_RETRY_MS` with that key; another key, or
+   * `keyChanged`, asks at once (T-1836).
+   */
+  private lookupFailed: { at: number; message: string; fingerprint: string } | null = null;
+  /** A key Buffer answered 401 to (by its fingerprint): not used again until another is entered (T-1836). */
+  private rejectedKey: string | null = null;
 
   constructor(
     private readonly credentials: SocialCredentialReader,
@@ -199,7 +205,15 @@ export class BufferPublisher implements SocialPublisher {
 
   async keyState(): Promise<SocialKeyState> {
     const opened = await this.readKey();
+    if (opened.state === 'set' && this.rejectedKey === fingerprintOf(opened.key)) return 'rejected';
     return opened.state;
+  }
+
+  /** The key was entered or cleared: the channels, a failed lookup's wait and a rejection are forgotten. */
+  keyChanged(): void {
+    this.channels = null;
+    this.lookupFailed = null;
+    this.rejectedKey = null;
   }
 
   async readiness(
@@ -210,6 +224,7 @@ export class BufferPublisher implements SocialPublisher {
     if (until !== null) return { ready: false, reason: 'paused', until };
     const opened = await this.readKey();
     if (opened.state !== 'set') return { ready: false, reason: opened.state };
+    if (this.rejectedKey === fingerprintOf(opened.key)) return { ready: false, reason: 'rejected' };
     if (network === undefined) return { ready: true };
     // The channel, before anything is claimed (T-1839): cached for an hour, so
     // this costs Buffer two requests an hour at most.
@@ -261,6 +276,9 @@ export class BufferPublisher implements SocialPublisher {
       );
     }
     const key = opened.key;
+    if (this.rejectedKey === fingerprintOf(key)) {
+      throw SocialRefusal.beforeSend('buffer rejected the key: enter it again');
+    }
     const channelId = await this.channelFor(post.network, key);
 
     let answer: GraphAnswer;
@@ -291,6 +309,7 @@ export class BufferPublisher implements SocialPublisher {
   /** What `createPost`'s answer means: a reference, a refusal (thrown), or unknown (thrown). */
   private outcome(answer: GraphAnswer, key: string): { providerRef: string } {
     this.refuseOnRateLimit(answer);
+    this.refuseOnBadKey(answer, key);
     const { status, body } = answer;
     if (status >= 500 || status === 408) {
       throw new Error(`buffer answered ${status}: ${this.messageOf(answer, key)}`);
@@ -333,7 +352,7 @@ export class BufferPublisher implements SocialPublisher {
    * failure here is before sending, so it is a refusal.
    */
   private async channelFor(network: SocialNetwork, key: string): Promise<string> {
-    const fingerprint = createHash('sha256').update(key).digest('hex');
+    const fingerprint = fingerprintOf(key);
     const now = this.clock();
     if (
       this.channels === null ||
@@ -341,7 +360,11 @@ export class BufferPublisher implements SocialPublisher {
       now - this.channels.at >= this.channelsTtlMs
     ) {
       const failed = this.lookupFailed;
-      if (failed !== null && now - failed.at < BUFFER_LOOKUP_RETRY_MS) {
+      if (
+        failed !== null &&
+        failed.fingerprint === fingerprint &&
+        now - failed.at < BUFFER_LOOKUP_RETRY_MS
+      ) {
         throw SocialRefusal.beforeSend(failed.message);
       }
       try {
@@ -355,8 +378,8 @@ export class BufferPublisher implements SocialPublisher {
                 `before posting, the Buffer channels could not be read: ${this.scrub(describe(error), key)}`,
               );
         // A rate limit has its own pause; anything else waits out the retry window.
-        if (refusal.retryAfterMs === null)
-          this.lookupFailed = { at: now, message: refusal.message };
+        if (refusal.retryAfterMs === null && this.rejectedKey !== fingerprint)
+          this.lookupFailed = { at: now, message: refusal.message, fingerprint };
         throw refusal;
       }
     }
@@ -406,6 +429,7 @@ export class BufferPublisher implements SocialPublisher {
 
   private lookupData(answer: GraphAnswer, key: string): Record<string, unknown> {
     this.refuseOnRateLimit(answer);
+    this.refuseOnBadKey(answer, key);
     const data = answer.body?.data ?? null;
     if (answer.status !== 200 || data === null || (answer.body?.errors?.length ?? 0) > 0) {
       throw SocialRefusal.beforeSend(
@@ -427,6 +451,27 @@ export class BufferPublisher implements SocialPublisher {
     throw SocialRefusal.beforeSend(
       `buffer rate limit: paused for ${Math.round(pause / 1000)} s`,
       pause,
+    );
+  }
+
+  /**
+   * A 401, or GraphQL's `UNAUTHORIZED`: Buffer refused the key, not the post
+   * (T-1836). Whenever it comes -- the channel lookup or `createPost` -- the
+   * key is marked rejected (the console says "re-enter it") and the call is a
+   * refusal before sending: the slot goes back and the kind's run is kept,
+   * since no post of ours was judged. Nothing is claimed until a key is
+   * entered again (`keyChanged`, or another key read from the database).
+   */
+  private refuseOnBadKey(answer: GraphAnswer, key: string): void {
+    const rejected =
+      answer.status === 401 ||
+      (answer.body?.errors ?? []).some((e) => e.extensions?.code === 'UNAUTHORIZED');
+    if (!rejected) return;
+    this.rejectedKey = fingerprintOf(key);
+    this.channels = null;
+    this.lookupFailed = null;
+    throw SocialRefusal.beforeSend(
+      `buffer rejected the key (${answer.status}): ${this.messageOf(answer, key)}`,
     );
   }
 
@@ -489,6 +534,9 @@ export function pauseOf(headers: Headers, now: number = Date.now()): number {
   if (t !== null && t !== undefined) return Number(t[1]) * 1000;
   return BUFFER_DEFAULT_PAUSE_MS;
 }
+
+/** A key's fingerprint, to tell keys apart without keeping one. */
+const fingerprintOf = (key: string): string => createHash('sha256').update(key).digest('hex');
 
 /** Connection failures that happen before a byte of the request is sent. */
 const NEVER_SENT = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED']);

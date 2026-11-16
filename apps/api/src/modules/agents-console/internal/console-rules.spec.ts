@@ -263,6 +263,12 @@ describe('the command line', () => {
       as: 'mostafa',
     });
     expect(parseConsoleArgs(['import-board']).kind).toBe('error');
+    // T-1836: the console's owner, only from the server's command line, always with a reason.
+    expect(
+      parseConsoleArgs(['set-owner', '--username', 'Mostafa', '--reason', 'the maintainer']),
+    ).toEqual({ kind: 'set-owner', username: 'mostafa', reason: 'the maintainer' });
+    expect(parseConsoleArgs(['set-owner', '--username', 'mostafa']).kind).toBe('error');
+    expect(parseConsoleArgs(['set-owner', '--reason', 'why']).kind).toBe('error');
     expect(parseConsoleArgs(['invite']).kind).toBe('error');
     expect(
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,

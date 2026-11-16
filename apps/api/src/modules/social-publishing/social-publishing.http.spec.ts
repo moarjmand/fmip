@@ -1,16 +1,24 @@
 import { randomUUID } from 'node:crypto';
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { ModelProbabilities, SocialVerdictPayload } from '@fmip/contracts';
+import type { ModelProbabilities, SocialConsoleView, SocialVerdictPayload } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
 import { CONSOLE_OPTIONS } from '../agents-console/agents-console.controller';
+import { consoleTokenText } from '../agents-console/internal/console-rules';
+import { PostgresConsoleStore } from '../agents-console/internal/console-store';
 import { EvaluationService } from '../forecast/evaluation.service';
 import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
 import { PostgresEvaluationStore } from '../forecast/internal/evaluation-store';
 import { PostgresForecastStore } from '../forecast/internal/forecast-store';
-import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import {
+  DEFAULT_IDENTITY_OPTIONS,
+  IDENTITY_OPTIONS,
+  hashToken,
+  newToken,
+} from '../identity/identity.service';
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
 import { INGESTION_SOURCES } from '../ingestion/internal/sources';
 import { NewsHeadlines } from '../news/news-headlines.service';
@@ -28,6 +36,8 @@ import {
   SOCIAL_OPTIONS,
   SocialPublishingService,
   calledFrom,
+  consoleAuditRow,
+  consolePost,
   goalsOf,
   sitePercent,
 } from './social-publishing.service';
@@ -53,6 +63,8 @@ const MODEL = `sp-${RUN}@1.0.0`;
 const NOW = new Date('2046-06-10T13:00:00Z'); // 14:00 London
 const at = (hhmm: string): string => `2046-06-10T${hhmm}:00Z`;
 const RUNS_PROVIDER = 'highlightly';
+/** The console's session secret here: T-1836's routes are called with real console sessions. */
+const CONSOLE_SECRET = 'social-secret-'.repeat(3);
 
 // The publisher (T-1837) against a stubbed Buffer: no real call, no real key.
 const BOX = new SecretBox('social-publishing-spec-secret-'.repeat(2));
@@ -162,6 +174,86 @@ describe('the card fields the job freezes', () => {
     // One goal missing, or one without its scorer: no list at all.
     expect(goalsOf(card([goal('home', 'A. One', 12)], { home: 2, away: 0 }))).toBeNull();
     expect(goalsOf(card([goal('home', null, 12)], { home: 1, away: 0 }))).toBeNull();
+  });
+});
+
+describe("the console tab's answer (T-1836)", () => {
+  it("shows a post's text, card and decisions, never its stored inputs or the publisher's reference", () => {
+    const at = new Date('2026-11-16T10:00:00Z');
+    const row = {
+      id: 'p1',
+      fixture_id: 'f1',
+      kind: 'result',
+      network: 'x',
+      state: 'published',
+      origin: 'template',
+      template_version: 'result@1',
+      body: 'Full time: A 1-0 B',
+      payload: { kind: 'result' },
+      inputs: { fixture: { round: 'Regular Season - 11' } },
+      gates: { checked_at: at.toISOString(), passed: false, failed: ['freshness'] },
+      forecast_id: null,
+      model_version: null,
+      sensitive: true,
+      sensitive_reason: 'betting',
+      edited_from: null,
+      expires_at: at,
+      approved_by: 'u1',
+      approved_by_name: 'maryam',
+      approved_at: at,
+      decided_by: null,
+      decided_by_name: null,
+      decided_at: null,
+      decided_reason: null,
+      post_day: '2026-11-16',
+      slot: 2,
+      claimed_at: at,
+      provider_ref: 'buf-secret-ref',
+      published_at: at,
+      last_error: null,
+      created_at: at,
+      updated_at: at,
+    } as unknown as Parameters<typeof consolePost>[0];
+    const shown = consolePost(row);
+    expect(shown).toMatchObject({
+      id: 'p1',
+      body: 'Full time: A 1-0 B',
+      failed_gates: ['freshness'],
+      sensitive: 'betting',
+      approved_by: 'maryam',
+      slot: 2,
+    });
+    const text = JSON.stringify(shown);
+    expect(text).not.toContain('Regular Season');
+    expect(text).not.toContain('buf-secret-ref');
+    expect(text).not.toContain('"inputs"');
+  });
+
+  it("keeps an audit row's plain previous fields and drops nested or secret ones", () => {
+    const base = {
+      created_at: new Date('2026-11-16T10:00:00Z'),
+      actor_name: 'maryam',
+      action: 'social.approve',
+      target_type: 'social_post',
+      target_id: 'p1',
+      reason: 'ok',
+    };
+    expect(
+      consoleAuditRow({
+        ...base,
+        previous: {
+          state: 'pending_approval',
+          clean_run: 3,
+          gates: { failed: [] },
+          ciphertext: 'x',
+        },
+      }).previous,
+    ).toEqual({ state: 'pending_approval', clean_run: 3 });
+    expect(consoleAuditRow({ ...base, previous: 'set on 2026 by maryam' })).toMatchObject({
+      target: 'social_post:p1',
+      previous: { value: 'set on 2026 by maryam' },
+    });
+    expect(consoleAuditRow({ ...base, previous: null }).previous).toBeNull();
   });
 });
 
@@ -352,7 +444,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           cookieSecure: false,
         })
         .overrideProvider(CONSOLE_OPTIONS)
-        .useValue({ secret: 'social-secret-'.repeat(3), cookieSecure: false })
+        .useValue({ secret: CONSOLE_SECRET, cookieSecure: false })
         .overrideProvider(MODEL_CLIENT)
         .useValue(
           new ModelClient({
@@ -1337,6 +1429,202 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           [owner.id, owner.name, last],
         ),
       ).rejects.toThrow(/reason of its own/);
+    });
+
+    // T-1836: the console's tab, through its routes, as the two console people.
+    it("serves the console's social tab: a session on every route, the owner's level and key, reasons, the failing gate named, never the key", async () => {
+      const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
+      await app.init();
+      await app.getHttpAdapter().getInstance().ready();
+      // Not closed here: it shares the testing module, which `afterAll` closes.
+      const sessions = moduleRef.get(PostgresConsoleStore);
+      const sessionOf = async (person: SocialActor): Promise<string> => {
+        const token = newToken();
+        await sessions.createSession(person.id, hashToken(consoleTokenText(token), CONSOLE_SECRET));
+        return token;
+      };
+      const cookies = { owner: await sessionOf(owner), mate: await sessionOf(teammate) };
+      const seen: string[] = [];
+      const call = async (
+        method: 'GET' | 'POST',
+        url: string,
+        who: keyof typeof cookies | null,
+        payload?: Record<string, unknown>,
+      ) => {
+        const response = await app.inject({
+          method,
+          url,
+          headers: who === null ? {} : { cookie: `fmip_console=${cookies[who]}` },
+          ...(payload === undefined ? {} : { payload }),
+        });
+        seen.push(response.body);
+        return response;
+      };
+
+      // A waiting post whose gate fails now: a copy of a result post on the postponed match.
+      const source = (await posts(f.finished)).find((p) => p.kind === 'result')!;
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO social_post (fixture_id, kind, network, template_version, body, payload, inputs, gates, expires_at)
+           SELECT $2::uuid, kind, 'x', template_version, body, jsonb_set(payload, '{fixture_id}', to_jsonb($2::uuid::text)),
+                  inputs, gates, now() + interval '1 day'
+             FROM social_post WHERE id = $1 RETURNING id`,
+        [source.id, f.postponed],
+      );
+      const waiting = rows[0]!.id;
+      const id = '00000000-0000-4000-8000-000000000000';
+
+      // Every route refuses without a console session.
+      for (const [method, url] of [
+        ['GET', '/console/social'],
+        ['POST', `/console/social/posts/${id}/approve`],
+        ['POST', `/console/social/posts/${id}/reject`],
+        ['POST', `/console/social/posts/${id}/edit`],
+        ['POST', `/console/social/posts/${id}/settle`],
+        ['POST', '/console/social/switch'],
+        ['POST', '/console/social/levels/result'],
+        ['POST', '/console/social/key'],
+        ['POST', '/console/social/key/clear'],
+      ] as const) {
+        const response = await call(method, url, null, method === 'POST' ? {} : undefined);
+        expect(response.statusCode, url).toBe(401);
+        expect(JSON.parse(response.body)).toMatchObject({ error: 'unauthenticated' });
+      }
+
+      // The tab: who reads it and whether they own the console; no stored inputs, no reference.
+      const view = await call('GET', '/console/social', 'mate');
+      expect(view.statusCode).toBe(200);
+      const tab = JSON.parse(view.body) as SocialConsoleView;
+      expect(tab.viewer).toEqual({ name: 'Teammate', owner: false });
+      expect((await call('GET', '/console/social', 'owner')).json()).toMatchObject({
+        viewer: { name: 'Owner', owner: true },
+      });
+      const queued = tab.queue.find((p) => p.id === waiting)!;
+      expect(queued).toMatchObject({ state: 'pending_approval', kind: 'result', network: 'x' });
+      expect(queued).not.toHaveProperty('inputs');
+      expect(view.body).not.toContain('"inputs"');
+      expect(view.body).not.toContain('provider_ref');
+      expect(view.body).not.toContain('Social test'); // the fixture's raw round label
+      expect(tab.today.networks.map((n) => n.cap)).toEqual([5, 5]);
+      expect(tab.automation.map((a) => a.kind).sort()).toEqual(
+        ['forecast_pre_match', 'model_verdict', 'result'].sort(),
+      );
+
+      // An approval whose gate fails now is refused, naming the gate.
+      const approved = await call('POST', `/console/social/posts/${waiting}/approve`, 'mate', {});
+      expect(approved.statusCode).toBe(409);
+      expect(approved.json<{ message: string }>().message).toMatch(
+        /^A gate fails now: .*fixture_status/,
+      );
+
+      // A rejection needs a reason; with one, one audit row: actor, reason, previous value.
+      const blank = await call('POST', `/console/social/posts/${waiting}/reject`, 'mate', {
+        reason: '  ',
+      });
+      expect(blank.statusCode).toBe(400);
+      expect(await audits(waiting)).toEqual([]);
+      expect(
+        (
+          await call('POST', `/console/social/posts/${waiting}/reject`, 'mate', {
+            reason: 'not ours',
+          })
+        ).statusCode,
+      ).toBe(204);
+      expect(await audits(waiting)).toMatchObject([
+        {
+          actor_id: teammate.id,
+          actor_name: teammate.name,
+          action: 'social.reject',
+          reason: 'not ours',
+          previous: { state: 'pending_approval' },
+        },
+      ]);
+      expect(
+        (
+          await call('POST', `/console/social/posts/${waiting}/settle`, 'mate', {
+            state: 'gone',
+            reason: 'x',
+          })
+        ).statusCode,
+      ).toBe(400);
+
+      // The kill switch: either account, each with a reason, each audited.
+      expect(
+        (await call('POST', '/console/social/switch', 'mate', { stop: true })).statusCode,
+      ).toBe(400);
+      expect(
+        (await call('POST', '/console/social/switch', 'mate', { stop: true, reason: 'check' }))
+          .statusCode,
+      ).toBe(204);
+      expect(
+        (await call('POST', '/console/social/switch', 'owner', { stop: false, reason: 'checked' }))
+          .statusCode,
+      ).toBe(204);
+      const kills = await audits('switch');
+      expect(kills.slice(-2)).toMatchObject([
+        { actor_name: teammate.name, action: 'social.kill', previous: { stopped: false } },
+        { actor_name: owner.name, action: 'social.kill', previous: { stopped: true } },
+      ]);
+
+      // A level: the owner's only (403 for the teammate, whatever the page shows); a reason;
+      // a raise before 14 refused (409).
+      await setVerdictRun(3);
+      const raise = { level: 'automatic', reason: `raise ${RUN}` };
+      const byMate = await call('POST', '/console/social/levels/model_verdict', 'mate', raise);
+      expect(byMate.statusCode).toBe(403);
+      expect(byMate.json()).toMatchObject({ error: 'forbidden' });
+      expect(
+        (
+          await call('POST', '/console/social/levels/model_verdict', 'owner', {
+            level: 'automatic',
+          })
+        ).statusCode,
+      ).toBe(400);
+      const early = await call('POST', '/console/social/levels/model_verdict', 'owner', raise);
+      expect(early.statusCode).toBe(409);
+      expect(early.json<{ message: string }>().message).toMatch(/14 clean posts/);
+      expect((await verdictRun()).level).toBe('approval');
+
+      // The key: either console person enters or clears it (the maintainer,
+      // 2026-11-16: the teammate owns the Buffer account); taken, never given
+      // back, never in an audit row.
+      const NEW_KEY = `bf-console-${RUN}-9876543210`;
+      // Entering or clearing it makes the publisher forget the old key's channels and waits.
+      const forgets = vi.spyOn(
+        moduleRef.get<{ keyChanged(): void }>(SOCIAL_PUBLISHER),
+        'keyChanged',
+      );
+      const set = await call('POST', '/console/social/key', 'mate', { key: NEW_KEY });
+      expect(set.statusCode).toBe(204);
+      expect(set.body).toBe('');
+      expect(forgets).toHaveBeenCalledTimes(1);
+      const after = (await call('GET', '/console/social', 'owner')).json<SocialConsoleView>();
+      expect(after.key).toMatchObject({ state: 'set', set_by: teammate.name });
+      expect(
+        (await call('POST', '/console/social/key/clear', 'owner', { reason: ' ' })).statusCode,
+      ).toBe(400);
+      expect(forgets).toHaveBeenCalledTimes(1);
+      expect(
+        (await call('POST', '/console/social/key/clear', 'owner', { reason: 'rotated' }))
+          .statusCode,
+      ).toBe(204);
+      expect(forgets).toHaveBeenCalledTimes(2);
+      forgets.mockRestore();
+      expect((await call('GET', '/console/social', 'owner')).json()).toMatchObject({
+        key: { state: 'not_set' },
+      });
+      const keyRows = await pool.query<{ row: string }>(
+        `SELECT row_to_json(a)::text AS row FROM console_audit a
+            WHERE action = 'social.credential' AND actor_id = ANY($1::uuid[])`,
+        [[owner.id, teammate.id]],
+      );
+      expect(keyRows.rows.length).toBeGreaterThanOrEqual(2);
+      // The level stays the owner's alone.
+      expect(
+        (await call('POST', '/console/social/levels/model_verdict', 'mate', raise)).statusCode,
+      ).toBe(403);
+      for (const text of [...seen, ...keyRows.rows.map((r) => r.row)]) {
+        expect(text).not.toContain(NEW_KEY);
+      }
     });
   },
 );

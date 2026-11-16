@@ -466,8 +466,22 @@ export function buildBody(
  * a time, the model's version), the model's name, the verdict, the link.
  */
 const PROTECTED_LINE = /\d|%|https?:\/\/|Stadiomind model|^(Yes|No):/i;
-/** Another prediction product named in a caption (rule 6: never blended or relabelled). */
-const OTHER_PRODUCT = /\b(founder|founder's|community|consensus|tipsters?)\b/i;
+/**
+ * Another prediction named in a caption (rule 6: never blended or
+ * relabelled): another product, or a person's own pick or tip beside the
+ * model's -- "My pick: Chelsea", "Our analyst says" (review of PR #895, round
+ * 2). Counted, since the verdict's own template says "pick" once.
+ */
+const OTHER_PRODUCT =
+  /\b(founder|founder's|community|consensus|tipsters?|tips?|picks?|predict\w*|analysts?|pundits?|experts?|my|our|we|bet|backing)\b/gi;
+const otherProductCount = (text: string): number => text.match(OTHER_PRODUCT)?.length ?? 0;
+
+/** A name as a whole word, letters of any script around it not counting as a boundary. */
+const nameIn = (name: string): RegExp =>
+  new RegExp(
+    `(?<![\\p{L}\\p{N}])${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`,
+    'iu',
+  );
 
 export type CaptionRefusal =
   'text_blank' | 'too_long' | 'figures_changed' | 'other_product' | 'sensitive_text';
@@ -487,24 +501,28 @@ export function checkCaptionEdit(
 ): Refusal<CaptionRefusal> {
   if (edited.trim() === '') return { ok: false, refusal: 'text_blank' };
   if (!fitsNetwork(edited, post.network)) return { ok: false, refusal: 'too_long' };
+  const { payload } = post;
+  const names = [payload.home, payload.away]
+    .flatMap((t) => [t.name, t.short_name, t.code])
+    .concat(payload.competition.name)
+    .filter((n): n is string => n !== null && n.trim() !== '');
+  const namePatterns = names.map(nameIn);
+  // A line naming a team or the competition is held as drafted too, so the
+  // headline's teams cannot be swapped and no line about a side is added
+  // (review of PR #895, round 2).
   const guarded = (text: string): string[] =>
     text
       .split('\n')
       .map((l) => l.trim())
-      .filter((l) => PROTECTED_LINE.test(l));
+      .filter((l) => PROTECTED_LINE.test(l) || namePatterns.some((p) => p.test(l)));
   const before = guarded(post.body);
   const after = guarded(edited);
   if (before.length !== after.length || before.some((line, i) => line !== after[i])) {
     return { ok: false, refusal: 'figures_changed' };
   }
-  if (OTHER_PRODUCT.test(edited) && !OTHER_PRODUCT.test(post.body)) {
+  if (otherProductCount(edited) > otherProductCount(post.body)) {
     return { ok: false, refusal: 'other_product' };
   }
-  const { payload } = post;
-  const names = [payload.home, payload.away]
-    .flatMap((t) => [t.name, t.short_name, t.code])
-    .concat(payload.competition.name)
-    .filter((n): n is string => n !== null);
   if (sensitiveTopicsIn(withoutOwnNames(edited, { names })).length > 0) {
     return { ok: false, refusal: 'sensitive_text' };
   }

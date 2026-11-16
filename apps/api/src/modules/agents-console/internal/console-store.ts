@@ -218,6 +218,45 @@ export class PostgresConsoleStore {
     );
   }
 
+  /**
+   * Makes one enabled account the console's owner (D-427 point 6: the
+   * maintainer, who alone changes a social post kind's level and the
+   * publisher's key), taking it from any other in the same transaction (at
+   * most one, `console_user_one_owner`), with an audit row naming the server's
+   * command as actor and the previous owner. Only the CLI's `set-owner` calls
+   * it; no route does (T-1836).
+   */
+  async setOwner(
+    username: string,
+    reason: string,
+  ): Promise<{ kind: 'ok'; previous: string | null } | { kind: 'missing' } | { kind: 'already' }> {
+    return this.transaction(async (client) => {
+      const target = await client.query<{ id: string; owner: boolean }>(
+        `SELECT id, owner FROM console_user WHERE username = $1 AND disabled_at IS NULL FOR UPDATE`,
+        [username],
+      );
+      const user = target.rows[0];
+      if (user === undefined) return { kind: 'missing' as const };
+      if (user.owner) return { kind: 'already' as const };
+      const before = await client.query<{ username: string }>(
+        `UPDATE console_user SET owner = false WHERE owner RETURNING username`,
+      );
+      await client.query(`UPDATE console_user SET owner = true WHERE id = $1`, [user.id]);
+      const previous = before.rows[0]?.username ?? null;
+      await this.audit(client, {
+        actorId: null,
+        actorName: 'set-owner (server)',
+        action: 'console.owner_set',
+        targetType: 'console_user',
+        targetId: user.id,
+        reason,
+        previous: { owner: previous },
+        next: { owner: username },
+      });
+      return { kind: 'ok' as const, previous };
+    });
+  }
+
   async openInvitation(
     tokenHash: string,
   ): Promise<{ display_name: string; expires_at: Date } | null> {

@@ -251,13 +251,14 @@ export interface SocialAutomation {
 /**
  * `GET /health/social` (T-1837): whether the publisher could post, never the
  * key. `key` is `unreadable` when the stored key no longer opens (another
- * `SESSION_SECRET`); then, as with `not_set` or `stopped`, nothing is published.
+ * `SESSION_SECRET`), and `rejected` when the provider answered 401 to it (T-1836);
+ * then, as with `not_set` or `stopped`, nothing is published.
  */
 export interface SocialPublishingHealth {
   checked_at: string;
   /** The publisher behind the port (`buffer`). */
   publisher: string;
-  key: 'set' | 'not_set' | 'unreadable';
+  key: 'set' | 'not_set' | 'unreadable' | 'rejected';
   /** The kill switch: true while publishing is stopped. */
   stopped: boolean;
   /** Whether this instance runs the job (`INGESTION_SCHEDULE=on` and Redis). */
@@ -273,4 +274,83 @@ export interface SocialNetworkHealth {
   last_published_at: string | null;
   /** The newest attempt (a claim or its outcome), or null. */
   last_attempt: { state: SocialPostState; at: string } | null;
+}
+
+// --- The agents console's social tab (T-1836) --------------------------------
+
+/** The publisher's key as the console shows it (D-427 point 9): who set it and when, never the key. */
+export type SocialKeyStatus =
+  | { state: 'not_set' }
+  | { state: 'set' | 'unreadable' | 'rejected'; set_at: string; set_by: string };
+
+/** The kill switch as the console shows it (D-427 point 7). */
+export interface SocialSwitchState {
+  stopped: boolean;
+  changed_at: string | null;
+  changed_by: string | null;
+  reason: string | null;
+}
+
+/**
+ * A post as the console shows it: its frozen text and card, its state and
+ * who decided what. Never its stored inputs (the provider's raw labels live
+ * there; review of PR #895, round 2) nor the publisher's reference to it.
+ */
+export interface SocialConsolePost {
+  id: string;
+  fixture_id: string;
+  kind: SocialPostKind;
+  network: SocialNetwork;
+  state: SocialPostState;
+  origin: SocialPostOrigin;
+  body: string;
+  payload: SocialCardPayload;
+  /** The gates that failed when last checked (empty when they passed). */
+  failed_gates: SocialGate[];
+  sensitive: SocialSensitiveReason | null;
+  /** The post this one was edited from, when a person changed the caption. */
+  edited_from: string | null;
+  created_at: string;
+  expires_at: string;
+  approved_by: string | null;
+  approved_at: string | null;
+  decided_by: string | null;
+  decided_at: string | null;
+  decided_reason: string | null;
+  /** `YYYY-MM-DD`, Europe/London, and the slot 1-5, while it holds one. */
+  post_day: string | null;
+  slot: number | null;
+  published_at: string | null;
+  /** The publisher's last error, the key scrubbed from it. */
+  last_error: string | null;
+  updated_at: string;
+}
+
+/** One `social.*` row of the console's audit trail (rule 10). */
+export interface SocialConsoleAuditRow {
+  at: string;
+  actor: string;
+  action: string;
+  target: string;
+  reason: string;
+  /** The previous value's plain fields (state, level, clean run, the key's "set on/by"); never the key. */
+  previous: Record<string, string | number | boolean | null> | null;
+}
+
+/** `GET /console/social`: the whole tab in one read (T-1836). */
+export interface SocialConsoleView {
+  checked_at: string;
+  /** The person reading it, and whether they are the console's owner (D-427 point 6). */
+  viewer: { name: string; owner: boolean };
+  switch: SocialSwitchState;
+  key: SocialKeyStatus;
+  health: SocialPublishingHealth;
+  /** Today's London day and, per network, the slots held of the daily cap. */
+  today: { day: string; networks: { network: SocialNetwork; used: number; cap: number }[] };
+  automation: SocialAutomation[];
+  /** Waiting, approved, publishing, refused or unknown: oldest first. */
+  queue: SocialConsolePost[];
+  /** Published, rejected, expired or superseded: newest first. */
+  history: SocialConsolePost[];
+  audit: SocialConsoleAuditRow[];
 }

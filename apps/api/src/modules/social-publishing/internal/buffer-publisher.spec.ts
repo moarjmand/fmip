@@ -418,6 +418,82 @@ describe('the Buffer publisher', () => {
     });
   });
 
+  describe('the key entered again, and a key Buffer rejects (T-1836)', () => {
+    it('asks for the channels at once after the key is entered or cleared, not after the 15-minute wait', async () => {
+      const down = stubBuffer({ organizations: json({}, 500) });
+      const { buffer } = publisher(down.fetch);
+      expect(await buffer.readiness(undefined, 'x')).toMatchObject({ reason: 'channel' });
+      expect(await buffer.readiness(undefined, 'x')).toMatchObject({ reason: 'channel' });
+      expect(down.seen).toHaveLength(1);
+      buffer.keyChanged();
+      await buffer.readiness(undefined, 'x');
+      expect(down.seen).toHaveLength(2);
+    });
+
+    it('waits only for the key that failed: another key from the database is asked at once', async () => {
+      const down = stubBuffer({ organizations: json({}, 500) });
+      let credential = stored();
+      const time = fakeClock();
+      const buffer = new BufferPublisher({ credential: async () => credential }, box, down.fetch, {
+        clock: time.clock,
+        sleep: time.sleep,
+      });
+      await buffer.readiness(undefined, 'x');
+      expect(down.seen).toHaveLength(1);
+      credential = stored(`${KEY}-new`);
+      await buffer.readiness(undefined, 'x');
+      expect(down.seen).toHaveLength(2);
+    });
+
+    const rejections: [string, Parameters<typeof stubBuffer>[0]][] = [
+      ['an HTTP 401 to the post', { create: [json({ errors: [{ message: 'bad key' }] }, 401)] }],
+      [
+        "GraphQL's UNAUTHORIZED to the post",
+        {
+          create: [
+            json({
+              data: null,
+              errors: [{ message: 'Not authorized', extensions: { code: 'UNAUTHORIZED' } }],
+            }),
+          ],
+        },
+      ],
+      ['an HTTP 401 to the channel lookup', { organizations: json({}, 401) }],
+    ];
+    for (const [name, replies] of rejections) {
+      it(`treats ${name} as the key's fault: refused before sending, and the key rejected until entered again`, async () => {
+        const stub = stubBuffer(replies);
+        const { buffer } = publisher(stub.fetch);
+        const error = (await failureOf(buffer.publish(X))) as SocialRefusal;
+        expect(error).toBeInstanceOf(SocialRefusal);
+        expect(error.beforeSend).toBe(true);
+        expect(error.message).toContain('rejected the key');
+        expect(error.message).not.toContain(KEY);
+        expect(await buffer.keyState()).toBe('rejected');
+        expect(await buffer.readiness()).toEqual({ ready: false, reason: 'rejected' });
+        // Nothing more is asked of Buffer with that key.
+        const asked = stub.seen.length;
+        expect(((await failureOf(buffer.publish(X))) as SocialRefusal).beforeSend).toBe(true);
+        expect(stub.seen).toHaveLength(asked);
+        // Entered again: used at once.
+        buffer.keyChanged();
+        expect(await buffer.keyState()).toBe('set');
+        expect(await buffer.readiness()).toEqual({ ready: true });
+      });
+    }
+
+    it("keeps Buffer's typed refusal of the post a refusal of the post, not of the key", async () => {
+      const stub = stubBuffer({
+        create: [
+          json({ data: { createPost: { __typename: 'UnauthorizedError', message: 'no access' } } }),
+        ],
+      });
+      const { buffer } = publisher(stub.fetch);
+      expect(((await failureOf(buffer.publish(X))) as SocialRefusal).beforeSend).toBe(false);
+      expect(await buffer.keyState()).toBe('set');
+    });
+  });
+
   describe('an unknown outcome (perhaps posted: never a refusal)', () => {
     const unknowns: [string, Reply][] = [
       ['a 500', json({ errors: [{ message: 'boom' }] }, 500)],

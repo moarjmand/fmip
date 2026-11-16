@@ -26,12 +26,16 @@ export interface SocialPublication {
   imageUrl: string;
 }
 
-/** Whether the stored key opens: never the key itself. */
-export type SocialKeyState = 'set' | 'not_set' | 'unreadable';
+/**
+ * Whether the stored key opens: never the key itself. `rejected`: it opens,
+ * but the provider answered 401 to it -- a bad key, not a bad post (T-1836);
+ * nothing is claimed until a person enters it again.
+ */
+export type SocialKeyState = 'set' | 'not_set' | 'unreadable' | 'rejected';
 
 export type SocialPublisherReadiness =
   | { ready: true }
-  | { ready: false; reason: 'not_set' | 'unreadable' }
+  | { ready: false; reason: 'not_set' | 'unreadable' | 'rejected' }
   | { ready: false; reason: 'paused'; until: Date }
   /** The network has no usable channel at the provider, or it could not be looked up. */
   | { ready: false; reason: 'channel'; detail: string };
@@ -50,17 +54,24 @@ export interface SocialPublisher {
   pausedUntil(now?: Date): Date | null;
   /** Posts one publication. Throws `SocialRefusal` when nothing was posted; anything else is unknown. */
   publish(post: SocialPublication): Promise<{ providerRef: string }>;
+  /**
+   * The stored key was entered or cleared (T-1836): forget everything learnt
+   * with the old one -- the channels, a failed lookup's wait, a rejection --
+   * so a key entered again is used at once.
+   */
+  keyChanged(): void;
 }
 
 /**
  * Nothing was posted: the one failure after which trying again cannot post
  * twice. Two kinds (T-1839, D-427 point 6 as amended):
  * - the provider refused **the post itself** (`new SocialRefusal(...)`): a
- *   refused input, a picture it could not fetch, a key refused for the post
+ *   refused input, a picture it could not fetch, a permission refused for the post
  *   -- a publishing error, which breaks the kind's clean run;
  * - nothing was **sent** (`SocialRefusal.beforeSend(...)`): no usable
  *   channel, the provider unreachable before the request left, a rate limit
- *   (with the pause it named), a text over the limit, no readable key -- not
+ *   (with the pause it named), a text over the limit, no readable key, or a
+ *   401 to the key (T-1836: the key's fault, whenever it is answered) -- not
  *   the post's fault: the slot is given back and the run kept.
  */
 export class SocialRefusal extends Error {

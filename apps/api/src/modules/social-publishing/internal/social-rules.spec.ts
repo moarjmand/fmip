@@ -612,6 +612,47 @@ describe('buildBody, the fixed templates', () => {
     ).toEqual({ ok: false, refusal: 'too_long' });
   });
 
+  it("holds a caption's team lines and refuses a person's own pick beside the model's (T-1836)", () => {
+    const post = {
+      network: 'instagram' as const,
+      body: buildBody(payloads.forecast_pre_match, 'instagram', LINK)!.body,
+      payload: payloads.forecast_pre_match,
+    };
+    const verdict = {
+      network: 'instagram' as const,
+      body: buildBody(payloads.model_verdict, 'instagram', LINK)!.body,
+      payload: payloads.model_verdict,
+    };
+    // The review's probes (PR #895, round 2): the headline's teams swapped, a pick without figures.
+    expect(
+      checkCaptionEdit(post, post.body.replace('Arsenal v Chelsea', 'Chelsea v Arsenal')),
+    ).toEqual({ ok: false, refusal: 'figures_changed' });
+    expect(checkCaptionEdit(post, `${post.body}\nMy pick: Chelsea to win, easy`)).toEqual({
+      ok: false,
+      refusal: 'figures_changed',
+    });
+    expect(checkCaptionEdit(post, `${post.body}\nOur analyst disagrees.`)).toEqual({
+      ok: false,
+      refusal: 'other_product',
+    });
+    expect(checkCaptionEdit(post, `${post.body}\nMy tip: back the away side.`)).toEqual({
+      ok: false,
+      refusal: 'other_product',
+    });
+    // The verdict's own "pick" is the model's; a second is not.
+    expect(checkCaptionEdit(verdict, `${verdict.body}\nAnother pick tomorrow.`)).toEqual({
+      ok: false,
+      refusal: 'other_product',
+    });
+    // A team's name inside another word is not the team; plain words around the lines still change.
+    expect(checkCaptionEdit(post, `Big night ahead.\n${post.body}\nFollow for more.`)).toEqual({
+      ok: true,
+    });
+    expect(checkCaptionEdit(verdict, `${verdict.body}\nThe model goes again next week.`)).toEqual({
+      ok: true,
+    });
+  });
+
   it('carries no image address in any payload', () => {
     for (const payload of Object.values(payloads)) {
       const text = JSON.stringify(payload);

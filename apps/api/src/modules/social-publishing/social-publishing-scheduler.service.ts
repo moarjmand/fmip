@@ -40,7 +40,7 @@ export const SOCIAL_CHECKS_PER_TICK = 5;
 /** What one tick did on one network, for the log and for a test that must know. */
 export type PublishOutcome =
   | { kind: 'stopped' }
-  | { kind: 'not_ready'; reason: 'not_set' | 'unreadable' | 'paused' | 'channel' }
+  | { kind: 'not_ready'; reason: 'not_set' | 'unreadable' | 'rejected' | 'paused' | 'channel' }
   | { kind: 'no_slot' }
   | { kind: 'nothing' }
   /** Another scheduler took the slot first; it publishes, this one does not. */
