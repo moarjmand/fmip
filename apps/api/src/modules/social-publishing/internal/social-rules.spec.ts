@@ -13,6 +13,7 @@ import {
   type SocialCandidate,
   type SocialFacts,
   FORECAST_FRESH_MS,
+  INSTAGRAM_MAX_LENGTH,
   RESULT_SETTLED_MS,
   X_MAX_LENGTH,
   afterEvent,
@@ -20,6 +21,7 @@ import {
   backToPerson,
   buildBody,
   canMove,
+  checkCaptionEdit,
   checkGates,
   checkLevelChange,
   checkPersonApproval,
@@ -27,6 +29,8 @@ import {
   checkSwitch,
   dueSlot,
   expiresAt,
+  fitsNetwork,
+  instagramLength,
   isEligible,
   londonDay,
   nextToPublish,
@@ -53,6 +57,7 @@ function facts(kind: SocialPostKind, change: Partial<SocialFacts> = {}): SocialF
       kick_off: finished ? ago(150 * MINUTE) : new Date(NOW.getTime() + 2 * 3600_000).toISOString(),
       coverage: 'available',
       last_updated_at: finished ? ago(45 * MINUTE) : ago(10 * MINUTE),
+      read_at: ago(20 * MINUTE),
       score_dispute: false,
     },
     forecast: kind === 'result' ? null : { id: 'f-1', version: 'v3.2', status: 'available' },
@@ -113,21 +118,32 @@ describe('checkGates (T-1834, D-427 point 3)', () => {
     expect(checkGates(settled, NOW).passed).toBe(true);
   });
 
-  it('refuses a forecast post whose fixture was read more than six hours ago', () => {
-    const stale = withFixture('forecast_pre_match', {
-      last_updated_at: ago(FORECAST_FRESH_MS + MINUTE),
-    });
+  it('refuses a forecast post whose fixtures list was read more than six hours ago', () => {
+    const stale = withFixture('forecast_pre_match', { read_at: ago(FORECAST_FRESH_MS + MINUTE) });
     expect(checkGates(stale, NOW).failed).toEqual(['freshness']);
+    const fresh = withFixture('forecast_pre_match', { read_at: ago(FORECAST_FRESH_MS) });
+    expect(checkGates(fresh, NOW).passed).toBe(true);
   });
 
-  it('refuses a missing or future last_updated_at as not fresh', () => {
+  it("does not need a forecast post's fixture itself to have changed lately (2026-11-16)", () => {
+    const unchanged = withFixture('forecast_pre_match', { last_updated_at: ago(72 * 3600_000) });
+    expect(checkGates(unchanged, NOW).passed).toBe(true);
+    // ...nor does the list's read settle a result.
+    const result = withFixture('result', { read_at: null });
+    expect(checkGates(result, NOW).passed).toBe(true);
+  });
+
+  it('refuses a missing or future clock as not fresh (no fixtures run: fail closed)', () => {
     expect(checkGates(withFixture('result', { last_updated_at: null }), NOW).failed).toEqual([
       'freshness',
     ]);
+    expect(checkGates(withFixture('forecast_pre_match', { read_at: null }), NOW).failed).toEqual([
+      'freshness',
+    ]);
     const future = new Date(NOW.getTime() + MINUTE).toISOString();
-    expect(
-      checkGates(withFixture('forecast_pre_match', { last_updated_at: future }), NOW).failed,
-    ).toEqual(['freshness']);
+    expect(checkGates(withFixture('forecast_pre_match', { read_at: future }), NOW).failed).toEqual([
+      'freshness',
+    ]);
   });
 
   it('refuses a score dispute alone', () => {
@@ -550,6 +566,50 @@ describe('buildBody, the fixed templates', () => {
     const hopeless = { ...tight, home: team(long, long), away: team(long, long) };
     expect(buildBody(hopeless, 'x', LINK)).toBeNull();
     expect(buildBody(hopeless, 'instagram', LINK)).not.toBeNull();
+  });
+
+  it('counts Instagram as Buffer does: UTF-16 units, a line break 2, at most 2,196 (review of PR #896)', () => {
+    expect(INSTAGRAM_MAX_LENGTH).toBe(2196);
+    expect(instagramLength('ab')).toBe(2);
+    expect(instagramLength('a\nb')).toBe(4);
+    expect(instagramLength('a\r\nb')).toBe(4);
+    expect(instagramLength('⚽')).toBe(1);
+    expect(instagramLength('😀')).toBe(2); // one emoji, two UTF-16 units
+    // At the edge: 2,196 fits, 2,197 does not, line breaks counted twice.
+    const lines = (breaks: number, total: number) =>
+      `${'a'.repeat(total - 2 * breaks)}${'\n'.repeat(breaks)}`;
+    expect(instagramLength(lines(60, 2196))).toBe(2196);
+    expect(fitsNetwork(lines(60, 2196), 'instagram')).toBe(true);
+    expect(fitsNetwork(lines(60, 2197), 'instagram')).toBe(false);
+    // 2,150 characters with 60 line breaks: 2,150 by code points, 2,210 by Buffer's count.
+    const caption = `${'a'.repeat(2090)}${'\n'.repeat(60)}`;
+    expect([...caption].length).toBe(2150);
+    expect(fitsNetwork(caption, 'instagram')).toBe(false);
+    expect(fitsNetwork(`${'a'.repeat(2195)}😀`, 'instagram')).toBe(false);
+  });
+
+  it('refuses a written caption over the limit, when drafted and when edited', () => {
+    const longName = 'B'.repeat(1100);
+    const wide = {
+      ...payloads.result,
+      home: team(longName, longName),
+      away: team(longName, longName),
+    };
+    // Over Buffer's limit by its count even with the short names: nothing is drafted.
+    expect(buildBody(wide, 'instagram', LINK)).toBeNull();
+    const post = {
+      network: 'instagram' as const,
+      body: buildBody(payloads.result, 'instagram', LINK)!.body,
+      payload: payloads.result,
+    };
+    const words = (n: number) => `${post.body}\n${'w'.repeat(n)}`;
+    const room = INSTAGRAM_MAX_LENGTH - instagramLength(`${post.body}\n`);
+    expect(checkCaptionEdit(post, words(room))).toEqual({ ok: true });
+    expect(checkCaptionEdit(post, words(room + 1))).toEqual({ ok: false, refusal: 'too_long' });
+    // Line breaks count twice: the same characters spread over lines no longer fit.
+    expect(
+      checkCaptionEdit(post, `${post.body}\n${'w'.repeat(room - 40)}${'\n'.repeat(40)}`),
+    ).toEqual({ ok: false, refusal: 'too_long' });
   });
 
   it('carries no image address in any payload', () => {

@@ -157,7 +157,7 @@ export interface SocialCardModel {
 export interface SocialForecastPayload extends SocialCardBase {
   kind: 'forecast_pre_match';
   model: SocialCardModel;
-  /** Whole percentages, adding up to 100. */
+  /** Percentages with one decimal, as the site shows them, adding up to 100.0 (T-1838). */
   percent: { home: number; draw: number; away: number };
 }
 
@@ -179,7 +179,7 @@ export interface SocialVerdictPayload extends SocialCardBase {
    * name, which is extra time alone.)
    */
   after_extra_time: boolean;
-  /** The outcome the model gave the most, and its whole percentage. */
+  /** The outcome the model gave the most, and its percentage (one decimal, as `percent`). */
   called: SocialOutcome;
   called_percent: number;
   /** The frozen forecast's three shares, as the forecast card drew them; the card's bar when known (T-1835). */
@@ -246,4 +246,31 @@ export interface SocialAutomation {
   eligible: boolean;
   level_changed_at: string | null;
   level_changed_by: string | null;
+}
+
+/**
+ * `GET /health/social` (T-1837): whether the publisher could post, never the
+ * key. `key` is `unreadable` when the stored key no longer opens (another
+ * `SESSION_SECRET`); then, as with `not_set` or `stopped`, nothing is published.
+ */
+export interface SocialPublishingHealth {
+  checked_at: string;
+  /** The publisher behind the port (`buffer`). */
+  publisher: string;
+  key: 'set' | 'not_set' | 'unreadable';
+  /** The kill switch: true while publishing is stopped. */
+  stopped: boolean;
+  /** Whether this instance runs the job (`INGESTION_SCHEDULE=on` and Redis). */
+  scheduled: boolean;
+  /** The pause the provider asked for after a rate limit, or null. */
+  paused_until: string | null;
+  networks: SocialNetworkHealth[];
+}
+
+export interface SocialNetworkHealth {
+  network: SocialNetwork;
+  /** The newest post published on it, or null. */
+  last_published_at: string | null;
+  /** The newest attempt (a claim or its outcome), or null. */
+  last_attempt: { state: SocialPostState; at: string } | null;
 }

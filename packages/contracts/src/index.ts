@@ -380,6 +380,8 @@ export type {
 export type {
   SocialAutomation,
   SocialAutomationLevel,
+  SocialNetworkHealth,
+  SocialPublishingHealth,
   SocialCardGoal,
   SocialCardModel,
   SocialCardPayload,

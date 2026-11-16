@@ -1,0 +1,1342 @@
+import { randomUUID } from 'node:crypto';
+import { Test, type TestingModule } from '@nestjs/testing';
+import type { ModelProbabilities, SocialVerdictPayload } from '@fmip/contracts';
+import { Pool } from 'pg';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { DatabaseModule } from '../../database/database.module';
+import { withTriggersOff } from '../../testing/cleanup';
+import { CONSOLE_OPTIONS } from '../agents-console/agents-console.controller';
+import { EvaluationService } from '../forecast/evaluation.service';
+import { MODEL_CLIENT, ModelClient } from '../forecast/forecast.service';
+import { PostgresEvaluationStore } from '../forecast/internal/evaluation-store';
+import { PostgresForecastStore } from '../forecast/internal/forecast-store';
+import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import { CaptureMailer, MAILER } from '../identity/internal/mailer';
+import { INGESTION_SOURCES } from '../ingestion/internal/sources';
+import { NewsHeadlines } from '../news/news-headlines.service';
+import { BufferPublisher } from './internal/buffer-publisher';
+import { SOCIAL_SECRET_BOX, SecretBox, credentialAad } from './internal/secret-box';
+import {
+  PostgresSocialPostStore,
+  type SocialActor,
+  type SocialPostRecord,
+} from './internal/social-post-store';
+import { SocialPublishingScheduler } from './social-publishing-scheduler.service';
+import { SocialPublishingModule } from './social-publishing.module';
+import { SOCIAL_PUBLISHER } from './social-publisher.port';
+import {
+  SOCIAL_OPTIONS,
+  SocialPublishingService,
+  calledFrom,
+  goalsOf,
+  sitePercent,
+} from './social-publishing.service';
+
+/**
+ * T-1838 against the real schema: the candidate job drafts the three kinds
+ * from seeded fixtures, forecasts and evaluations, frozen as built; the gates,
+ * the sensitive-topic check (headlines linked by UUID, a failed read), the
+ * one-live-row rule, the slots, the automation run and level, and that every
+ * change writes its `console_audit` row in its own transaction.
+ *
+ * The matches are on 2046-06-10 in a competition and season of this run's
+ * own, and the job is run "at" 14:00 London that day. Claims take the
+ * database's own day (the CHECK reads the claim's clock), so they use slots 3
+ * to 5 only, leaving 1 and 2 to `social-post.schema.spec.ts`, which may run
+ * beside this file. The automation tests use the `model_verdict` kind; the
+ * schema spec uses `result`. Shared rows (`social_automation`,
+ * `social_switch`, the console owner) are put back afterwards.
+ */
+const DATABASE_URL = process.env.DATABASE_URL;
+const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
+const MODEL = `sp-${RUN}@1.0.0`;
+const NOW = new Date('2046-06-10T13:00:00Z'); // 14:00 London
+const at = (hhmm: string): string => `2046-06-10T${hhmm}:00Z`;
+const RUNS_PROVIDER = 'highlightly';
+
+// The publisher (T-1837) against a stubbed Buffer: no real call, no real key.
+const BOX = new SecretBox('social-publishing-spec-secret-'.repeat(2));
+const OTHER_BOX = new SecretBox('another-session-secret-for-the-spec-'.repeat(2));
+const KEY = `bf-spec-${RUN}-0123456789`;
+const ORIGIN = 'https://stadiomind.test';
+/** Every request the stubbed Buffer saw. */
+const bufferSeen: { operation: string; variables: Record<string, unknown> }[] = [];
+const creates = () => bufferSeen.filter((r) => r.operation === 'FmipCreatePost');
+const stubBuffer = (async (_url: unknown, init?: RequestInit) => {
+  const body = JSON.parse(String(init?.body)) as {
+    query: string;
+    variables: Record<string, unknown>;
+  };
+  const operation = /(?:query|mutation)\s+(\w+)/.exec(body.query)?.[1] ?? '?';
+  bufferSeen.push({ operation, variables: body.variables });
+  const data =
+    operation === 'FmipOrganizations'
+      ? { account: { organizations: [{ id: 'org-spec' }] } }
+      : operation === 'FmipChannels'
+        ? {
+            channels: [
+              {
+                id: 'ch-x',
+                service: 'twitter',
+                isDisconnected: false,
+                isLocked: false,
+                isQueuePaused: false,
+              },
+              {
+                id: 'ch-ig',
+                service: 'instagram',
+                isDisconnected: false,
+                isLocked: false,
+                isQueuePaused: false,
+              },
+            ],
+          }
+        : {
+            createPost: {
+              __typename: 'PostActionSuccess',
+              post: { id: `buf-${RUN}-${creates().length}` },
+            },
+          };
+  return new Response(JSON.stringify({ data }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}) as typeof fetch;
+
+describe('the card fields the job freezes', () => {
+  it("takes the model's pick from the stored evaluation, never from the rounded percentages", () => {
+    // 39.951 / 40.049 both round to 40.0: the rounded figures would pick home.
+    const near = { home: 0.39951, draw: 0.2, away: 0.40049 };
+    expect(sitePercent(near)).toEqual({ home: 40, draw: 20, away: 40 });
+    // The away side won: the evaluation says right, so the pick is away.
+    expect(calledFrom({ probabilities: near, outcome: 'away', correct: true })).toBe('away');
+    // The home side won: the evaluation says wrong, and the raw favourite was away.
+    expect(calledFrom({ probabilities: near, outcome: 'home', correct: false })).toBe('away');
+    expect(
+      calledFrom({
+        probabilities: { home: 0.2, draw: 0.5, away: 0.3 },
+        outcome: 'away',
+        correct: false,
+      }),
+    ).toBe('draw');
+  });
+
+  it('gives percentages with one decimal totalling 100.0, as the site shows them', () => {
+    expect(sitePercent({ home: 0.1774, draw: 0.2528, away: 0.5698 })).toEqual({
+      home: 17.7,
+      draw: 25.3,
+      away: 57,
+    });
+    const p = sitePercent({ home: 1 / 3, draw: 1 / 3, away: 1 / 3 });
+    expect(Math.round((p.home + p.draw + p.away) * 10)).toBe(1000);
+  });
+
+  it('lists the goals only when the events supply every one, with its scorer', () => {
+    const goal = (side: 'home' | 'away', player: string | null, minute: number, kind = 'goal') => ({
+      kind: kind as 'goal',
+      minute,
+      added_time: null,
+      side,
+      player,
+    });
+    const card = (incidents: unknown[], score: { home: number; away: number }) =>
+      ({ scores: { current: score }, incidents }) as unknown as Parameters<typeof goalsOf>[0];
+    expect(
+      goalsOf(
+        card(
+          [
+            goal('home', 'A. One', 12),
+            { ...goal('away', 'B. Two', 50), kind: 'own_goal' },
+            { ...goal('home', 'C. Three', 90, 'penalty_goal'), added_time: 3 },
+            { ...goal('home', 'D. Four', 120), in_shootout: true },
+            { ...goal('away', 'E. Five', 30), kind: 'red_card' },
+          ],
+          { home: 2, away: 1 },
+        ),
+      ),
+    ).toEqual([
+      { side: 'home', player: 'A. One', minute: 12, added: null, kind: 'goal' },
+      { side: 'away', player: 'B. Two', minute: 50, added: null, kind: 'own_goal' },
+      { side: 'home', player: 'C. Three', minute: 90, added: 3, kind: 'penalty' },
+    ]);
+    // One goal missing, or one without its scorer: no list at all.
+    expect(goalsOf(card([goal('home', 'A. One', 12)], { home: 2, away: 0 }))).toBeNull();
+    expect(goalsOf(card([goal('home', null, 12)], { home: 1, away: 0 }))).toBeNull();
+  });
+});
+
+describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
+  'social posts: store, service and candidate job',
+  () => {
+    let moduleRef: TestingModule;
+    let pool: Pool;
+    let social: SocialPublishingService;
+    let headlines: NewsHeadlines;
+    let previousOwner: string | null = null;
+    const competition = randomUUID();
+    const season = randomUUID();
+    const [ash, brook, calder, dun] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    const f = {
+      forecast: randomUUID(),
+      noForecast: randomUUID(),
+      finished: randomUUID(),
+      late: randomUUID(),
+      postponed: randomUUID(),
+      sensitive: randomUUID(),
+      byFixture: randomUUID(),
+      unreadable: randomUUID(),
+    };
+    const fixtures = Object.values(f);
+    const owner: SocialActor = { id: randomUUID(), name: `so_${RUN}` };
+    const teammate: SocialActor = { id: randomUUID(), name: `st_${RUN}` };
+    let source = '';
+    const stories: string[] = [];
+    const runs: string[] = [];
+
+    /** A `fixtures` ingestion run of this file's provider, finished at `finished`. */
+    async function fixturesRun(
+      status: 'succeeded' | 'partial' | 'failed',
+      finished: string,
+      scope: string | null,
+    ): Promise<void> {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO ingest_run (provider, job, scope, status, started_at, finished_at, error)
+         VALUES ($1, 'fixtures', $2, $3, $4::timestamptz - interval '2 minutes', $4,
+                 CASE WHEN $3 = 'succeeded' THEN NULL ELSE 'scripted' END) RETURNING id`,
+        [RUNS_PROVIDER, scope, status, finished],
+      );
+      runs.push(rows[0]!.id);
+    }
+    const clearRuns = async (): Promise<void> => {
+      await pool.query(`DELETE FROM ingest_run WHERE id = ANY($1::uuid[])`, [runs]);
+    };
+    let started = '';
+    let automationBefore: Record<string, unknown>[] = [];
+    let switchBefore: Record<string, unknown> = {};
+    let credentialBefore: Record<string, unknown>[] = [];
+
+    const posts = async (fixture: string): Promise<SocialPostRecord[]> => {
+      const { rows } = await pool.query<SocialPostRecord>(
+        `SELECT *, post_day::text AS post_day FROM social_post WHERE fixture_id = $1 ORDER BY created_at, network`,
+        [fixture],
+      );
+      return rows;
+    };
+    const live = async (fixture: string, kind: string, network: string) =>
+      (await posts(fixture)).find(
+        (p) =>
+          p.kind === kind &&
+          p.network === network &&
+          !['rejected', 'expired', 'superseded'].includes(p.state),
+      )!;
+    const audits = async (target: string) => {
+      const { rows } = await pool.query<{
+        actor_id: string | null;
+        actor_name: string;
+        action: string;
+        reason: string;
+        previous: Record<string, unknown> | null;
+        next: Record<string, unknown> | null;
+        created_at: Date;
+      }>(
+        `SELECT actor_id, actor_name, action, reason, previous, next, created_at
+           FROM console_audit WHERE target_id = $1 ORDER BY created_at, id`,
+        [target],
+      );
+      return rows;
+    };
+    const verdictRun = async (): Promise<{ level: string; clean_run: number }> =>
+      (
+        await pool.query<{ level: string; clean_run: number }>(
+          `SELECT level, clean_run FROM social_automation WHERE kind = 'model_verdict'`,
+        )
+      ).rows[0]!;
+    const setVerdictRun = (run: number) =>
+      pool.query(`UPDATE social_automation SET clean_run = $1 WHERE kind = 'model_verdict'`, [run]);
+
+    async function fixture(
+      id: string,
+      status: string,
+      kickoff: string,
+      updated: string,
+      teams: [string, string],
+      score: [number, number] | null,
+    ): Promise<void> {
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, round, kickoff_at, status, updated_at)
+         VALUES ($1, $2, 'Social test', $3, $4, $5)`,
+        [id, season, kickoff, status, updated],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+        [id, teams[0], teams[1]],
+      );
+      if (score !== null) {
+        await pool.query(
+          `INSERT INTO fixture_score (fixture_id, kind, home, away, updated_at)
+           VALUES ($1, 'current', $2, $3, $4), ($1, 'full_time', $2, $3, $4)`,
+          [id, score[0], score[1], updated],
+        );
+      }
+    }
+
+    async function forecast(
+      id: string,
+      kickoff: string,
+      computed: string,
+      p: ModelProbabilities,
+      teams: [string, string] = [ash, brook],
+    ): Promise<void> {
+      await new PostgresForecastStore(pool).record({
+        fixtureId: id,
+        kind: 'early',
+        role: 'published',
+        modelId: MODEL,
+        request: {
+          fixture_id: id,
+          home_team_id: teams[0],
+          away_team_id: teams[1],
+          division: 'E0',
+          kickoff_at: kickoff,
+        },
+        computedAt: new Date(computed),
+        available: {
+          probabilities: p,
+          expectedGoals: { home: 1.4, away: 1.1 },
+          mostLikely: [{ home: 1, away: 0, probability: 0.12 }],
+          leadingFactors: [],
+          inputs: {
+            model_version: MODEL,
+            fit_date: '2046-06-01',
+            matches_used: 100,
+            elo_used: true,
+            history_from: '2043-06-01',
+            data_completeness: 'available',
+          },
+        },
+        unavailable: null,
+      });
+    }
+
+    async function headline(text: string, link: { type: string; id: string }): Promise<void> {
+      const story = await pool.query<{ id: string }>(
+        `INSERT INTO story DEFAULT VALUES RETURNING id`,
+      );
+      stories.push(story.rows[0]!.id);
+      const article = await pool.query<{ id: string }>(
+        `INSERT INTO article (source_id, story_id, external_id, url) VALUES ($1, $2, $3, $4) RETURNING id`,
+        [source, story.rows[0]!.id, `${text}-${RUN}`, `https://scripted.test/${stories.length}`],
+      );
+      await pool.query(
+        `INSERT INTO article_version (article_id, language, version_number, headline, published_at)
+         VALUES ($1, 'en', 1, $2, $3)`,
+        [article.rows[0]!.id, text, at('03:00')],
+      );
+      await pool.query(
+        `INSERT INTO article_entity (article_id, entity_type, entity_id) VALUES ($1, $2, $3)`,
+        [article.rows[0]!.id, link.type, link.id],
+      );
+    }
+
+    beforeAll(async () => {
+      moduleRef = await Test.createTestingModule({
+        imports: [DatabaseModule, SocialPublishingModule],
+      })
+        .overrideProvider(MAILER)
+        .useValue(new CaptureMailer())
+        .overrideProvider(IDENTITY_OPTIONS)
+        .useValue({
+          ...DEFAULT_IDENTITY_OPTIONS,
+          sessionSecret: 'test-secret-'.repeat(4),
+          webBaseUrl: 'http://web.test',
+          cookieSecure: false,
+        })
+        .overrideProvider(CONSOLE_OPTIONS)
+        .useValue({ secret: 'social-secret-'.repeat(3), cookieSecure: false })
+        .overrideProvider(MODEL_CLIENT)
+        .useValue(
+          new ModelClient({
+            baseUrl: 'http://model.test',
+            fetchImpl: () => Promise.reject(new Error('unused')),
+          }),
+        )
+        .overrideProvider(SOCIAL_OPTIONS)
+        .useValue({ origin: ORIGIN })
+        .overrideProvider(SOCIAL_SECRET_BOX)
+        .useValue(BOX)
+        .overrideProvider(SOCIAL_PUBLISHER)
+        .useFactory({
+          factory: (store: PostgresSocialPostStore) =>
+            new BufferPublisher(store, BOX, stubBuffer, { minGapMs: 0 }),
+          inject: [PostgresSocialPostStore],
+        })
+        // The fixtures job's runs are read as this provider's, which no other spec's
+        // fixtures runs use; this file's runs finish in 2046, after anything real.
+        .overrideProvider(INGESTION_SOURCES)
+        .useValue({ kind: 'live', reason: null, forJob: () => ({ provider: RUNS_PROVIDER }) })
+        .compile();
+      await moduleRef.init();
+      social = moduleRef.get(SocialPublishingService);
+      headlines = moduleRef.get(NewsHeadlines);
+      pool = new Pool({ connectionString: DATABASE_URL });
+      started = (await pool.query<{ now: string }>(`SELECT now()::text AS now`)).rows[0]!.now;
+      automationBefore = (await pool.query(`SELECT * FROM social_automation`)).rows;
+      switchBefore = (await pool.query(`SELECT * FROM social_switch`)).rows[0];
+      credentialBefore = (await pool.query(`SELECT * FROM social_credential`)).rows;
+      // The fixtures list read in full an hour before "now": forecast posts are fresh.
+      await fixturesRun('succeeded', at('12:00'), null);
+
+      await pool.query(
+        `INSERT INTO console_user (id, username, display_name, password_hash) VALUES
+         ($1, $3, 'Owner', 'h'), ($2, $4, 'Teammate', 'h')`,
+        [owner.id, teammate.id, owner.name, teammate.name],
+      );
+      const before = await pool.query<{ id: string }>(`SELECT id FROM console_user WHERE owner`);
+      previousOwner = before.rows[0]?.id ?? null;
+      await pool.query(`UPDATE console_user SET owner = false WHERE owner`);
+      await pool.query(`UPDATE console_user SET owner = true WHERE id = $1`, [owner.id]);
+
+      await pool.query(
+        `INSERT INTO competition (id, country_id, name, kind, scope, gender)
+         VALUES ($1, NULL, $2, 'league', 'international', 'men')`,
+        [competition, `Social League ${RUN}`],
+      );
+      await pool.query(
+        `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+         VALUES ($1, $2, '2045/46', DATE '2045-08-01', DATE '2046-07-31', false)`,
+        [season, competition],
+      );
+      await pool.query(
+        `INSERT INTO coverage_profile (season_id, module, state, provider, note)
+         VALUES ($1, 'scores', 'available', 'api_football', 'social posts test')`,
+        [season],
+      );
+      await pool.query(
+        `INSERT INTO team (id, name, short_name, code, kind, gender) VALUES
+         ($1, $5, 'Ashvale', NULL, 'club', 'men'), ($2, $6, 'Brookmoor', NULL, 'club', 'men'),
+         ($3, $7, 'Calderford', NULL, 'club', 'men'), ($4, $8, 'Dunmere', NULL, 'club', 'men')`,
+        [
+          ash,
+          brook,
+          calder,
+          dun,
+          `Ashvale ${RUN}`,
+          `Brookmoor ${RUN}`,
+          `Calderford ${RUN}`,
+          `Dunmere ${RUN}`,
+        ],
+      );
+
+      const AB: [string, string] = [ash, brook];
+      await fixture(f.forecast, 'scheduled', at('18:00'), at('12:00'), AB, null);
+      await fixture(f.noForecast, 'scheduled', at('18:30'), at('12:00'), AB, null);
+      await fixture(f.finished, 'finished', at('09:00'), at('11:30'), AB, [2, 1]);
+      await fixture(f.late, 'finished', at('09:30'), at('11:30'), AB, [1, 0]);
+      await fixture(f.postponed, 'postponed', at('15:00'), at('12:00'), AB, null);
+      await fixture(f.sensitive, 'finished', at('08:00'), at('11:00'), [calder, dun], [0, 0]);
+      await fixture(f.byFixture, 'finished', at('08:15'), at('11:00'), AB, [3, 1]);
+      await fixture(f.unreadable, 'finished', at('08:30'), at('11:00'), AB, [3, 3]);
+
+      const P = { home: 0.554, draw: 0.247, away: 0.199 };
+      await forecast(f.forecast, at('18:00'), at('11:00'), { home: 0.4, draw: 0.3, away: 0.3 });
+      await forecast(f.finished, at('09:00'), at('08:00'), P);
+      await forecast(f.late, at('09:30'), at('08:00'), P);
+      await forecast(f.postponed, at('15:00'), at('11:00'), P);
+      await forecast(f.sensitive, at('08:00'), at('07:00'), P, [calder, dun]);
+      const evaluations = new EvaluationService(new PostgresEvaluationStore(pool));
+      await evaluations.evaluateFixture(f.finished);
+      await evaluations.evaluateFixture(f.sensitive);
+
+      const src = await pool.query<{ id: string }>(
+        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language)
+         VALUES ($1, 'https://scripted.test', $2, 'rss', 'headline', 'en') RETURNING id`,
+        [`Social ${RUN}`, `https://scripted.test/social-${RUN}.xml`],
+      );
+      source = src.rows[0]!.id;
+      // A death linked to one team; an arrest linked to one match; a football idiom about another team.
+      await headline(`Dunmere ${RUN} mourns former captain who dies aged 54`, {
+        type: 'team',
+        id: dun,
+      });
+      await headline(`Three arrested after crowd trouble`, { type: 'fixture', id: f.byFixture });
+      await headline(`Ashvale ${RUN} crash out of the cup`, { type: 'team', id: ash });
+    });
+
+    afterAll(async () => {
+      if (pool === undefined) return;
+      const targets = await pool.query<{ id: string }>(
+        `SELECT id::text FROM social_post WHERE fixture_id = ANY($1::uuid[])`,
+        [fixtures],
+      );
+      await withTriggersOff(pool, async (c) => {
+        // The job's lowerings of the verdict kind during this run have no actor id to find them by.
+        await c.query(
+          `DELETE FROM console_audit
+            WHERE target_id = ANY($1::text[]) OR actor_id = ANY($2::uuid[])
+               OR (target_type = 'social_automation' AND target_id = 'model_verdict'
+                   AND actor_name = 'automation' AND created_at >= $3::timestamptz)`,
+          [targets.rows.map((r) => r.id), [owner.id, teammate.id], started],
+        );
+        await c.query(`DELETE FROM social_post WHERE fixture_id = ANY($1::uuid[])`, [fixtures]);
+        // The shared rows as they were before this file.
+        for (const row of automationBefore) {
+          await c.query(
+            `UPDATE social_automation
+                SET level = $2, clean_run = $3, level_changed_at = $4, level_changed_by = $5,
+                    level_changed_by_name = $6, level_reason = $7
+              WHERE kind = $1`,
+            [
+              row.kind,
+              row.level,
+              row.clean_run,
+              row.level_changed_at,
+              row.level_changed_by,
+              row.level_changed_by_name,
+              row.level_reason,
+            ],
+          );
+        }
+        await c.query(
+          `UPDATE social_switch SET stopped = $1, changed_at = $2, changed_by = $3, changed_by_name = $4, reason = $5`,
+          [
+            switchBefore.stopped,
+            switchBefore.changed_at,
+            switchBefore.changed_by,
+            switchBefore.changed_by_name,
+            switchBefore.reason,
+          ],
+        );
+        // The publisher's key as it was before this file (none, on a test database).
+        await c.query(`DELETE FROM social_credential`);
+        for (const row of credentialBefore) {
+          await c.query(
+            `INSERT INTO social_credential (id, provider, ciphertext, iv, tag, set_at, set_by, set_by_name)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              row.id,
+              row.provider,
+              row.ciphertext,
+              row.iv,
+              row.tag,
+              row.set_at,
+              row.set_by,
+              row.set_by_name,
+            ],
+          );
+        }
+        for (const id of fixtures) {
+          await c.query(`DELETE FROM evaluation WHERE fixture_id = $1`, [id]);
+          await c.query(`DELETE FROM forecast WHERE fixture_id = $1`, [id]);
+          await c.query(`DELETE FROM input_snapshot WHERE fixture_id = $1`, [id]);
+        }
+        await c.query(`DELETE FROM model_version WHERE model_id = $1`, [MODEL]);
+      });
+      await pool.query(`DELETE FROM ingest_run WHERE id = ANY($1::uuid[])`, [runs]);
+      await pool.query(`DELETE FROM news_source WHERE id = $1`, [source]);
+      if (stories.length > 0) {
+        await pool.query(`DELETE FROM story WHERE id = ANY($1::uuid[])`, [stories]);
+      }
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[ash, brook, calder, dun]]);
+      await pool.query(`DELETE FROM season WHERE id = $1`, [season]);
+      await pool.query(`DELETE FROM competition WHERE id = $1`, [competition]);
+      await pool.query(`UPDATE console_user SET owner = false WHERE id = $1`, [owner.id]);
+      if (previousOwner !== null) {
+        await pool.query(`UPDATE console_user SET owner = true WHERE id = $1`, [previousOwner]);
+      }
+      await pool.query(`DELETE FROM console_user WHERE id = ANY($1::uuid[])`, [
+        [owner.id, teammate.id],
+      ]);
+      await pool.end();
+      await moduleRef.close();
+    });
+
+    it('drafts each kind from our own data, frozen as built, and nothing a gate refuses', async () => {
+      const spy = vi.spyOn(headlines, 'recent');
+      spy.mockImplementation(async (ids, since) => {
+        if (ids.includes(f.unreadable)) throw new Error('news store down');
+        return NewsHeadlines.prototype.recent.call(headlines, ids, since);
+      });
+      const report = await social.draftCandidates(NOW);
+      spy.mockRestore();
+
+      // The forecast: one post a network, the model named with its version, link only on X.
+      const [fx, fi] = [
+        await live(f.forecast, 'forecast_pre_match', 'x'),
+        await live(f.forecast, 'forecast_pre_match', 'instagram'),
+      ];
+      const version = (
+        await pool.query<{ id: string }>(`SELECT id FROM forecast WHERE fixture_id = $1`, [
+          f.forecast,
+        ])
+      ).rows[0]!.id;
+      expect(fx).toMatchObject({
+        state: 'pending_approval',
+        origin: 'template',
+        template_version: 'forecast_pre_match@1',
+        forecast_id: version,
+        model_version: MODEL,
+        sensitive: false,
+      });
+      expect(fx.payload).toMatchObject({
+        kind: 'forecast_pre_match',
+        model: { name: 'The Stadiomind model', version: MODEL, forecast_id: version },
+        percent: { home: 40, draw: 30, away: 30 },
+        // Never the provider's raw round (the contract, after PR #894): left out.
+        round: null,
+        home: { id: ash, name: `Ashvale ${RUN}`, short_name: 'Ashvale', code: null },
+      });
+      expect(fx.body).toContain(`https://stadiomind.test/en/match/${f.forecast}`);
+      expect(fi.body).not.toContain('https://');
+      expect(fx.gates).toMatchObject({ passed: true, failed: [] });
+      expect(fx.inputs).toMatchObject({
+        // The freshness as checked: when the fixtures list was last read in full.
+        fixture: {
+          status: 'scheduled',
+          coverage: 'available',
+          list_read_at: new Date(at('12:00')).toISOString(),
+        },
+        forecast: { id: version, version: MODEL, status: 'available' },
+      });
+      // A forecast is valid until kick-off.
+      expect(fx.expires_at.toISOString()).toBe(new Date(at('18:00')).toISOString());
+
+      // The verdict: the stored evaluation's own `correct`, the 90-minute score it judged.
+      const verdict = await live(f.finished, 'model_verdict', 'x');
+      const evaluation = (
+        await pool.query<{ forecast_id: string; correct: boolean }>(
+          `SELECT forecast_id, correct FROM evaluation WHERE fixture_id = $1`,
+          [f.finished],
+        )
+      ).rows[0]!;
+      expect(verdict.forecast_id).toBe(evaluation.forecast_id);
+      expect(verdict.payload as SocialVerdictPayload).toMatchObject({
+        score: { home: 2, away: 1 },
+        after_extra_time: false,
+        called: 'home',
+        called_percent: 55.4,
+        percent: { home: 55.4, draw: 24.7, away: 19.9 },
+        correct: evaluation.correct,
+      });
+      expect(verdict.body).toContain('Yes: it got this one right.');
+      // The result: no forecast, no model.
+      const result = await live(f.finished, 'result', 'instagram');
+      expect(result).toMatchObject({
+        forecast_id: null,
+        model_version: null,
+        template_version: 'result@1',
+      });
+      expect(result.body).toContain(`Full time: Ashvale ${RUN} 2–1 Brookmoor ${RUN}`);
+      // No goal events were stored: no scorers rather than some (rule 3).
+      expect(result.payload).toMatchObject({ half_time: null, goals: null });
+      // Valid until 16:30 London the day after it was drafted.
+      expect(result.expires_at.toISOString()).toBe('2046-06-11T15:30:00.000Z');
+
+      // No forecast post without an available forecast; no verdict without a stored evaluation;
+      // nothing for a postponed match.
+      expect(await posts(f.noForecast)).toEqual([]);
+      expect((await posts(f.late)).map((p) => p.kind)).toEqual(['result', 'result']);
+      expect(await posts(f.postponed)).toEqual([]);
+      expect(report.skipped).toEqual(
+        expect.arrayContaining([
+          { fixture_id: f.noForecast, kind: 'forecast_pre_match', reason: 'gates:forecast_shown' },
+          { fixture_id: f.late, kind: 'model_verdict', reason: 'gates:evaluation_stored' },
+        ]),
+      );
+
+      // Sensitive: a headline linked to a team, one linked to the match, and an unreadable read.
+      for (const p of await posts(f.sensitive)) {
+        expect(p).toMatchObject({
+          sensitive: true,
+          sensitive_reason: 'death',
+          state: 'pending_approval',
+        });
+      }
+      for (const p of await posts(f.byFixture)) expect(p.sensitive_reason).toBe('violence');
+      for (const p of await posts(f.unreadable)) {
+        expect(p.sensitive_reason).toBe('headlines_unreadable');
+      }
+      // "crash out" is football, not an accident.
+      expect((await posts(f.finished)).every((p) => !p.sensitive)).toBe(true);
+      // Nothing was the job's to approve: every kind is at `approval`.
+      expect(report.automatic).toBe(0);
+      expect(report.drafted).toBe(2 + 4 + 2 + 4 + 2 + 2);
+    });
+
+    it('drafts once: a second run, and a second live row by hand, are refused', async () => {
+      const again = await social.draftCandidates(NOW);
+      expect(again.drafted).toBe(0);
+      expect(again.existing).toBe(16);
+      const standing = await live(f.finished, 'result', 'x');
+      await expect(
+        pool.query(
+          `INSERT INTO social_post (fixture_id, kind, network, template_version, body, payload, inputs, gates, expires_at)
+           SELECT fixture_id, kind, network, template_version, body, payload, inputs, gates, expires_at
+             FROM social_post WHERE id = $1`,
+          [standing.id],
+        ),
+      ).rejects.toThrow(/social_post_one_live/);
+    });
+
+    it('audits every change in its own transaction, and a refused change writes nothing', async () => {
+      const post = await live(f.finished, 'result', 'x');
+      // A rejection without a reason: refused, no audit row, the post unchanged.
+      expect(await social.reject(post.id, teammate, '  ')).toEqual({
+        ok: false,
+        refusal: 'reason_required',
+      });
+      expect(await audits(post.id)).toEqual([]);
+      expect((await social.get(post.id))!.state).toBe('pending_approval');
+
+      expect(await social.approve(post.id, teammate, NOW)).toEqual({ ok: true, value: null });
+      const [approval] = await audits(post.id);
+      expect(approval).toMatchObject({
+        actor_id: teammate.id,
+        actor_name: teammate.name,
+        action: 'social.approve',
+        previous: { state: 'pending_approval' },
+        next: { state: 'approved' },
+      });
+      expect(approval!.reason).not.toBe('');
+      // Approving twice: refused, and still one row.
+      expect(await social.approve(post.id, owner, NOW)).toMatchObject({
+        ok: false,
+        refusal: 'not_waiting',
+      });
+      expect(await audits(post.id)).toHaveLength(1);
+
+      // A gate that fails now names itself: the forecast match has not finished, so its
+      // forecast post's gates are checked at a time after kick-off.
+      const forecastPost = await live(f.forecast, 'forecast_pre_match', 'instagram');
+      expect(await social.approve(forecastPost.id, owner, new Date(at('18:30')))).toMatchObject({
+        ok: false,
+        refusal: 'gates_failed',
+        gates: ['fixture_status', 'freshness'],
+      });
+      expect(await audits(forecastPost.id)).toEqual([]);
+    });
+
+    it('takes a slot once: a race for one slot, a taken slot and a sixth slot are refused', async () => {
+      const a = await live(f.finished, 'result', 'x'); // approved above
+      const b = await live(f.byFixture, 'result', 'x');
+      expect((await social.approve(b.id, owner, NOW)).ok).toBe(true);
+
+      const raced = await Promise.all([social.claim(a.id, 3), social.claim(b.id, 3)]);
+      expect(raced.filter((r) => r.ok)).toHaveLength(1);
+      expect(raced.filter((r) => !r.ok)).toEqual([{ ok: false, refusal: 'slot_taken' }]);
+      const loser = raced[0]!.ok ? b : a;
+      const winner = raced[0]!.ok ? a : b;
+      // The loser stays approved, with no audit row of a claim.
+      expect((await social.get(loser.id))!.state).toBe('approved');
+      expect((await audits(loser.id)).map((r) => r.action)).toEqual(['social.approve']);
+      // The same post is never claimed twice.
+      expect(await social.claim(winner.id, 4)).toEqual({ ok: false, refusal: 'not_claimable' });
+      // A sixth slot does not exist.
+      expect(await social.claim(loser.id, 6)).toEqual({ ok: false, refusal: 'no_such_slot' });
+      const claimed = await social.get(winner.id);
+      expect(claimed).toMatchObject({ state: 'publishing', slot: 3 });
+      expect(claimed!.post_day).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect((await audits(winner.id)).at(-1)).toMatchObject({
+        actor_id: null,
+        actor_name: 'automation',
+        action: 'social.claim',
+        previous: { state: 'approved' },
+      });
+      expect(
+        (await social.finish(winner.id, { state: 'published', providerRef: `ref-${RUN}-1` })).ok,
+      ).toBe(true);
+    });
+
+    it('counts clean posts to 14 (eligible, not automatic); an edit, a rejection or an error resets the run', async () => {
+      const x = await live(f.finished, 'model_verdict', 'x');
+      expect((await social.approve(x.id, owner, NOW)).ok).toBe(true);
+      await setVerdictRun(13);
+      expect((await social.claim(x.id, 4)).ok).toBe(true);
+      expect(
+        (await social.finish(x.id, { state: 'published', providerRef: `ref-${RUN}-2` })).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 14 });
+      expect((await social.automation()).find((a) => a.kind === 'model_verdict')).toMatchObject({
+        level: 'approval',
+        clean_run: 14,
+        eligible: true,
+      });
+
+      // A rejection resets it.
+      const sens = await live(f.sensitive, 'model_verdict', 'x');
+      expect((await social.reject(sens.id, teammate, 'not today')).ok).toBe(true);
+      expect((await verdictRun()).clean_run).toBe(0);
+      // The rejection's audit row keeps the run it reset (rule 10: the previous value).
+      expect((await audits(sens.id)).at(-1)).toMatchObject({
+        action: 'social.reject',
+        previous: { state: 'pending_approval', clean_run: 14 },
+        next: { state: 'rejected', clean_run: 0 },
+      });
+
+      // A person edits the caption only: a changed figure, the model's line, the verdict,
+      // a new figure, another product, a sensitive word or blank text are refused, writing nothing.
+      await setVerdictRun(5);
+      const ig = await live(f.finished, 'model_verdict', 'instagram');
+      const swap = (from: string, to: string) => ig.body.replace(from, to);
+      for (const [body, refusal] of [
+        [swap('55.4%', '75.4%'), 'figures_changed'],
+        [swap(MODEL, 'sp-other@9.9.9'), 'figures_changed'],
+        [swap('Yes: it got this one right.', 'No: it got this one wrong.'), 'figures_changed'],
+        [`${ig.body}\nOur tipsters say 3-0 next time`, 'figures_changed'],
+        [`${ig.body}\nThe founder agrees.`, 'other_product'],
+        [`${ig.body}\nA minute's silence before kick-off.`, 'sensitive_text'],
+        ['   ', 'text_blank'],
+        [`${ig.body}\n${'x'.repeat(2200)}`, 'too_long'],
+      ] as const) {
+        expect(await social.edit(ig.id, owner, body, 'wording')).toEqual({ ok: false, refusal });
+      }
+      expect(await audits(ig.id)).toEqual([]);
+      expect((await verdictRun()).clean_run).toBe(5);
+
+      // An edit of the words resets the run: the old row rejected ("edited: ..."), a new
+      // one waiting with the same card, naming the old.
+      const words = swap('Did the model get it right?', 'So, did the model call it?');
+      const edited = await social.edit(ig.id, owner, words, 'wording');
+      expect(edited.ok).toBe(true);
+      expect((await verdictRun()).clean_run).toBe(0);
+      const old = (await social.get(ig.id))!;
+      expect(old).toMatchObject({ state: 'rejected', decided_reason: 'edited: wording' });
+      const fresh = (await social.get(edited.ok ? edited.value : ''))!;
+      expect(fresh).toMatchObject({
+        state: 'pending_approval',
+        edited_from: ig.id,
+        forecast_id: ig.forecast_id,
+        model_version: ig.model_version,
+        body: words,
+      });
+      expect(fresh.payload).toEqual(ig.payload);
+      expect(await audits(ig.id)).toMatchObject([
+        {
+          action: 'social.edit',
+          previous: { clean_run: 5 },
+          next: { id: fresh.id, body: words, clean_run: 0 },
+        },
+      ]);
+
+      // A publishing error resets it: refused gives the slot back.
+      await setVerdictRun(5);
+      expect((await social.approve(fresh.id, owner, NOW)).ok).toBe(true);
+      expect((await social.claim(fresh.id, 5)).ok).toBe(true);
+      expect((await social.finish(fresh.id, { state: 'refused', error: '400 rejected' })).ok).toBe(
+        true,
+      );
+      expect((await verdictRun()).clean_run).toBe(0);
+      expect(await social.get(fresh.id)).toMatchObject({
+        state: 'refused',
+        slot: null,
+        post_day: null,
+      });
+    });
+
+    it('lets only the owner change a level, raising from 14 with a reason of its own; a second owner is refused', async () => {
+      await setVerdictRun(13);
+      expect(await social.setLevel(teammate, 'model_verdict', 'automatic', 'go')).toEqual({
+        ok: false,
+        refusal: 'not_owner',
+      });
+      expect(await social.setLevel(owner, 'model_verdict', 'automatic', 'go')).toEqual({
+        ok: false,
+        refusal: 'not_eligible',
+      });
+      // The database refuses the same raise by itself.
+      await expect(
+        pool.query(
+          `UPDATE social_automation SET level = 'automatic', level_changed_at = now(), level_changed_by = $1,
+                  level_changed_by_name = 'x', level_reason = 'by hand' WHERE kind = 'model_verdict'`,
+          [owner.id],
+        ),
+      ).rejects.toThrow(/14 clean posts/);
+      await expect(
+        pool.query(`UPDATE console_user SET owner = true WHERE id = $1`, [teammate.id]),
+      ).rejects.toThrow(/console_user_one_owner/);
+      expect((await audits('model_verdict')).filter((r) => r.actor_id === owner.id)).toEqual([]);
+
+      await setVerdictRun(14);
+      expect(
+        (await social.setLevel(owner, 'model_verdict', 'automatic', 'fourteen clean')).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'automatic', clean_run: 14 });
+      const [raise] = (await audits('model_verdict')).filter((r) => r.action === 'social.level');
+      expect(raise).toMatchObject({
+        actor_id: owner.id,
+        reason: 'fourteen clean',
+        previous: { level: 'approval', clean_run: 14 },
+      });
+    });
+
+    it('refuses the job approving a sensitive, LLM or edited post by the CHECK', async () => {
+      // The kind is automatic and publishing runs, so only the CHECK stands in the way.
+      const sensitive = await posts(f.sensitive);
+      const waiting = sensitive.find(
+        (p) => p.kind === 'model_verdict' && p.state === 'pending_approval',
+      )!;
+      await expect(
+        pool.query(
+          `UPDATE social_post SET state = 'approved', approved_by_name = 'automation', approved_at = now() WHERE id = $1`,
+          [waiting.id],
+        ),
+      ).rejects.toThrow(/social_post_automation_only_clean/);
+      const edited = (await posts(f.finished)).find((p) => p.edited_from !== null)!;
+      expect(edited.state).toBe('refused');
+      await expect(
+        pool.query(
+          `UPDATE social_post SET state = 'pending_approval', approved_by = NULL, approved_by_name = NULL, approved_at = NULL WHERE id = $1`,
+          [edited.id],
+        ),
+      ).resolves.toBeDefined();
+      await expect(
+        pool.query(
+          `UPDATE social_post SET state = 'approved', approved_by_name = 'automation', approved_at = now() WHERE id = $1`,
+          [edited.id],
+        ),
+      ).rejects.toThrow(/social_post_automation_only_clean/);
+      // An LLM's text, for a match with no post yet (the postponed one has a forecast).
+      await expect(
+        pool.query(
+          `INSERT INTO social_post (fixture_id, kind, network, state, origin, template_version, body, payload,
+                                    inputs, gates, forecast_id, model_version, expires_at, approved_by_name, approved_at)
+           SELECT $2, kind, 'x', 'approved', 'llm', template_version, body, payload, inputs, gates,
+                  (SELECT id FROM forecast WHERE fixture_id = $2), model_version, expires_at, 'automation', now()
+             FROM social_post WHERE id = $1`,
+          [edited.id, f.postponed],
+        ),
+      ).rejects.toThrow(/social_post_automation_only_clean/);
+    });
+
+    it("lets the job approve an automatic kind's clean post; an error lowers the kind as automation, audited", async () => {
+      // The late match's evaluation arrives: its verdict is now due, and the kind is automatic.
+      await new EvaluationService(new PostgresEvaluationStore(pool)).evaluateFixture(f.late);
+      const report = await social.draftCandidates(NOW);
+      // Only the late verdicts: a rejected, edited or published post is not drafted again.
+      expect(report).toMatchObject({ drafted: 2, automatic: 2 });
+      const auto = await live(f.late, 'model_verdict', 'instagram');
+      expect(auto).toMatchObject({
+        state: 'approved',
+        approved_by: null,
+        approved_by_name: 'automation',
+      });
+      expect(await audits(auto.id)).toMatchObject([
+        { actor_id: null, actor_name: 'automation', action: 'social.approve' },
+      ]);
+
+      // No answer from the network: `unknown`, the slot kept, the kind lowered by `automation`.
+      expect((await social.claim(auto.id, 3)).ok).toBe(true);
+      expect((await social.finish(auto.id, { state: 'unknown', error: 'timeout' })).ok).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 0 });
+      const lowering = (await audits('model_verdict')).at(-1)!;
+      expect(lowering).toMatchObject({
+        actor_id: null,
+        actor_name: 'automation',
+        action: 'social.level',
+        reason: 'publishing error',
+        previous: { level: 'automatic', clean_run: 14 },
+        next: { level: 'approval', clean_run: 0 },
+      });
+      // The job's other approved verdict goes back to a person.
+      const other = await live(f.late, 'model_verdict', 'x');
+      expect(other).toMatchObject({ state: 'pending_approval', approved_by_name: null });
+      expect((await audits(other.id)).at(-1)).toMatchObject({ action: 'social.withdraw' });
+      // A person settles the unknown post from Buffer; it stays not clean.
+      expect(
+        await social.settle(auto.id, teammate, { state: 'published', providerRef: '' }, 'seen'),
+      ).toEqual({
+        ok: false,
+        refusal: 'reference_required',
+      });
+      expect(
+        (
+          await social.settle(
+            auto.id,
+            teammate,
+            { state: 'published', providerRef: `ref-${RUN}-3` },
+            'seen on Buffer',
+          )
+        ).ok,
+      ).toBe(true);
+      expect((await verdictRun()).clean_run).toBe(0);
+    });
+
+    it('the kill switch lowers an automatic kind keeping its run; nothing is claimed while stopped', async () => {
+      await setVerdictRun(14);
+      // A raise needs a reason of its own, not the last change's.
+      const last = (
+        await pool.query<{ level_reason: string }>(
+          `SELECT level_reason FROM social_automation WHERE kind = 'model_verdict'`,
+        )
+      ).rows[0]!.level_reason;
+      expect(await social.setLevel(owner, 'model_verdict', 'automatic', last)).toEqual({
+        ok: false,
+        refusal: 'reason_not_fresh',
+      });
+      expect((await social.setLevel(owner, 'model_verdict', 'automatic', 'again')).ok).toBe(true);
+
+      expect(await social.setSwitch(teammate, true, '')).toEqual({
+        ok: false,
+        refusal: 'reason_required',
+      });
+      expect((await social.setSwitch(teammate, true, 'checking a complaint')).ok).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 14 });
+      const switchAudit = (await audits('switch')).at(-1)!;
+      expect(switchAudit).toMatchObject({
+        actor_id: teammate.id,
+        action: 'social.kill',
+        reason: 'checking a complaint',
+        previous: { stopped: false },
+      });
+      expect((await audits('model_verdict')).at(-1)).toMatchObject({
+        actor_name: 'automation',
+        reason: 'kill switch',
+      });
+      // While stopped: no claim, no raise.
+      const waiting = await live(f.byFixture, 'result', 'instagram');
+      expect((await social.approve(waiting.id, owner, NOW)).ok).toBe(true);
+      expect(await social.claim(waiting.id, 4)).toEqual({ ok: false, refusal: 'stopped' });
+      expect(await social.setLevel(owner, 'model_verdict', 'automatic', 'once more')).toEqual({
+        ok: false,
+        refusal: 'stopped',
+      });
+      // Either account resumes it, with a reason.
+      expect((await social.setSwitch(owner, false, 'resolved')).ok).toBe(true);
+      expect((await social.setSwitch(owner, false, 'resolved')).ok).toBe(false);
+    });
+
+    it("dates a forecast post's freshness by the last full read of the fixtures list, failing closed", async () => {
+      const post = await live(f.forecast, 'forecast_pre_match', 'x');
+      // The match itself last changed long ago: that no longer matters.
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`UPDATE fixture SET updated_at = $2 WHERE id = $1`, [
+          f.forecast,
+          at('00:00'),
+        ]);
+      });
+      const freshness = async () => (await social.gatesNow(post, NOW)).failed.includes('freshness');
+
+      // A succeeded run of global scope within six hours: fresh.
+      await clearRuns();
+      await fixturesRun('succeeded', at('09:00'), null);
+      expect(await social.gatesNow(post, NOW)).toMatchObject({ passed: true, failed: [] });
+      // Only an older one: stale.
+      await clearRuns();
+      await fixturesRun('succeeded', at('06:59'), null);
+      expect(await freshness()).toBe(true);
+      // Recent runs that were partial, scoped (a schedule pass) or failed do not count.
+      await fixturesRun('partial', at('12:30'), null);
+      await fixturesRun('succeeded', at('12:30'), 'schedule');
+      await fixturesRun('failed', at('12:45'), null);
+      expect(await freshness()).toBe(true);
+      // No run at all: fail closed.
+      await clearRuns();
+      expect(await freshness()).toBe(true);
+    });
+
+    // -----------------------------------------------------------------------
+    // The publisher (T-1837): the key, the job's publishing step, the health.
+    // These run at 16:45 London (slot 3), on the database's own claim day.
+    // -----------------------------------------------------------------------
+    const PUBLISH_AT = new Date('2046-06-10T15:45:00Z'); // 16:45 London: slot 3
+    const store = () => moduleRef.get(PostgresSocialPostStore);
+    const scheduler = () => moduleRef.get(SocialPublishingScheduler);
+    const keyAudits = async () =>
+      (await audits('buffer')).filter((r) => r.action === 'social.credential');
+
+    it('sets and clears the key sealed, audited by who and when, never the key', async () => {
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`DELETE FROM social_credential`);
+      });
+      expect(await social.keyStatus()).toEqual({ state: 'not_set' });
+      for (const bad of ['   ', 'two words', `${'k'.repeat(1025)}`]) {
+        expect(await social.setKey(owner, bad)).toEqual({ ok: false, refusal: 'key_invalid' });
+      }
+      expect(await keyAudits()).toEqual([]);
+
+      expect((await social.setKey(owner, `  ${KEY}  `)).ok).toBe(true);
+      const row = (
+        await pool.query<{ id: string; ciphertext: Buffer; iv: Buffer; tag: Buffer }>(
+          `SELECT id, ciphertext, iv, tag FROM social_credential WHERE provider = 'buffer'`,
+        )
+      ).rows[0]!;
+      expect(Buffer.concat([row.ciphertext, row.iv, row.tag]).toString('latin1')).not.toContain(
+        KEY,
+      );
+      // Sealed for this row: it opens with the row's id, and not with another SESSION_SECRET.
+      expect(BOX.open(row, credentialAad('buffer', row.id))).toBe(KEY);
+      expect(await social.keyStatus()).toMatchObject({ state: 'set', set_by: owner.name });
+      expect(await new BufferPublisher(store(), OTHER_BOX, stubBuffer).keyState()).toBe(
+        'unreadable',
+      );
+
+      expect((await social.setKey(teammate, `${KEY}-2`, 'a new key from Buffer')).ok).toBe(true);
+      expect((await social.clearKey(owner, ' ')).ok).toBe(false);
+      expect((await social.clearKey(owner, 'rotating')).ok).toBe(true);
+      expect(await social.keyStatus()).toEqual({ state: 'not_set' });
+      expect(await social.clearKey(owner, 'again')).toEqual({ ok: false, refusal: 'not_set' });
+
+      const rows = await keyAudits();
+      expect(rows.map((r) => [r.actor_name, r.previous, r.next])).toEqual([
+        [
+          owner.name,
+          { key: 'not set' },
+          { key: expect.stringMatching(new RegExp(`^set on .* by ${owner.name}$`)) },
+        ],
+        [
+          teammate.name,
+          { key: expect.stringMatching(new RegExp(`^set on .* by ${owner.name}$`)) },
+          { key: expect.stringMatching(new RegExp(`by ${teammate.name}$`)) },
+        ],
+        [
+          owner.name,
+          { key: expect.stringMatching(new RegExp(`by ${teammate.name}$`)) },
+          { key: 'not set' },
+        ],
+      ]);
+      expect(JSON.stringify(rows)).not.toContain(KEY);
+      expect((await social.setKey(owner, KEY)).ok).toBe(true);
+      expect(JSON.stringify(await social.keyStatus())).not.toContain(KEY);
+    });
+
+    it('publishes nothing while stopped, with no key, or with an unreadable key', async () => {
+      // Earlier cases held slots of today's claim day; give this one its own.
+      const holding = await pool.query<{ id: string }>(
+        `SELECT id::text FROM social_post WHERE fixture_id = ANY($1::uuid[]) AND slot IS NOT NULL`,
+        [fixtures],
+      );
+      await withTriggersOff(pool, async (c) => {
+        const ids = holding.rows.map((r) => r.id);
+        await c.query(`DELETE FROM console_audit WHERE target_id = ANY($1::text[])`, [ids]);
+        await c.query(`DELETE FROM social_post WHERE id = ANY($1::uuid[])`, [ids]);
+      });
+      const waiting = await live(f.byFixture, 'result', 'instagram');
+      expect(waiting.state).toBe('approved');
+      const asked = bufferSeen.length;
+
+      expect((await social.setSwitch(teammate, true, 'checking the publisher')).ok).toBe(true);
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({ kind: 'stopped' });
+      expect((await social.setSwitch(owner, false, 'checked')).ok).toBe(true);
+
+      expect((await social.clearKey(owner, 'testing no key')).ok).toBe(true);
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({
+        kind: 'not_ready',
+        reason: 'not_set',
+      });
+      // A key sealed under another SESSION_SECRET: unreadable, and said so.
+      await store().setCredential(
+        'buffer',
+        owner,
+        (id) => OTHER_BOX.seal(KEY, credentialAad('buffer', id)),
+        'sealed elsewhere',
+      );
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({
+        kind: 'not_ready',
+        reason: 'unreadable',
+      });
+      expect((await scheduler().health(PUBLISH_AT)).key).toBe('unreadable');
+      expect((await social.keyStatus()).state).toBe('unreadable');
+      expect((await social.setKey(owner, KEY)).ok).toBe(true);
+
+      expect(bufferSeen.length).toBe(asked);
+      expect((await social.get(waiting.id))!.state).toBe('approved');
+    });
+
+    it('publishes a post once when two schedulers race for it, with its card, recording the reference', async () => {
+      const post = await live(f.byFixture, 'result', 'instagram');
+      const before = creates().length;
+      const another = () =>
+        new SocialPublishingScheduler(
+          social,
+          store(),
+          new BufferPublisher(store(), BOX, stubBuffer, { minGapMs: 0 }),
+          { origin: ORIGIN },
+        );
+      const outcomes = await Promise.all([
+        another().publishDue('instagram', PUBLISH_AT),
+        another().publishDue('instagram', PUBLISH_AT),
+      ]);
+      expect(creates().length - before).toBe(1);
+      const published = outcomes.filter((o) => o.kind === 'published');
+      expect(published).toEqual([
+        { kind: 'published', id: post.id, providerRef: `buf-${RUN}-${before + 1}`, slot: 3 },
+      ]);
+      expect(creates().at(-1)!.variables).toEqual({
+        input: {
+          channelId: 'ch-ig',
+          text: post.body,
+          schedulingType: 'automatic',
+          mode: 'shareNow',
+          assets: [{ image: { url: `${ORIGIN}/social-card/${post.id}/card.png` } }],
+          metadata: { instagram: { type: 'post', shouldShareToFeed: true } },
+        },
+      });
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'published',
+        provider_ref: `buf-${RUN}-${before + 1}`,
+        slot: 3,
+      });
+      expect((await audits(post.id)).slice(-2)).toMatchObject([
+        {
+          actor_name: 'automation',
+          action: 'social.claim',
+          next: { state: 'publishing', slot: 3 },
+        },
+        { actor_name: 'automation', action: 'social.finish', next: { state: 'published' } },
+      ]);
+      // A third tick finds nothing to send. (The claim's day is the database's own, not
+      // 2046's, so here it is the candidates, not the held slot, that have run out.)
+      await scheduler().publishDue('instagram', PUBLISH_AT);
+      expect(creates().length - before).toBe(1);
+    });
+
+    it('ends a post whose gate fails at publishing, never sending it', async () => {
+      const candidates = (await posts(f.finished))
+        .concat(await posts(f.byFixture))
+        .filter((p) => p.kind === 'result' && p.network === 'x' && p.state === 'approved');
+      expect(candidates).toHaveLength(1);
+      const post = candidates[0]!;
+      // The result changed five minutes ago: not settled, so its freshness gate fails.
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`UPDATE fixture SET updated_at = $2 WHERE id = $1`, [
+          post.fixture_id,
+          new Date(PUBLISH_AT.getTime() - 5 * 60 * 1000).toISOString(),
+        ]);
+      });
+      const before = creates().length;
+      expect(await scheduler().publishDue('x', PUBLISH_AT)).toEqual({ kind: 'nothing' });
+      expect(creates().length).toBe(before);
+      expect(await social.get(post.id)).toMatchObject({ state: 'expired' });
+      expect((await audits(post.id)).at(-1)).toMatchObject({
+        actor_name: 'automation',
+        action: 'social.expire',
+        reason: expect.stringContaining('freshness'),
+      });
+    });
+
+    it('says on /health/social whether the key is set, the switch, and the last publication per network', async () => {
+      const health = await scheduler().health(PUBLISH_AT);
+      expect(health).toMatchObject({
+        publisher: 'buffer',
+        key: 'set',
+        stopped: false,
+        scheduled: false,
+        paused_until: null,
+      });
+      const instagram = health.networks.find((n) => n.network === 'instagram')!;
+      expect(instagram.last_published_at).not.toBeNull();
+      expect(JSON.stringify(health)).not.toContain(KEY);
+    });
+
+    it("sends a person's approval back when the post turns sensitive before publishing", async () => {
+      const post = await live(f.late, 'result', 'instagram');
+      expect(post).toMatchObject({ state: 'pending_approval', sensitive: false });
+      expect((await social.approve(post.id, owner, PUBLISH_AT)).ok).toBe(true);
+      // After the approval, a death linked to the match.
+      await headline(`Supporter dies outside the ground ${RUN}`, { type: 'fixture', id: f.late });
+      const before = creates().length;
+
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({ kind: 'nothing' });
+      expect(creates().length).toBe(before);
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'pending_approval',
+        sensitive: true,
+        sensitive_reason: 'death',
+        approved_by: null,
+        approved_by_name: null,
+      });
+      expect((await audits(post.id)).at(-1)).toMatchObject({
+        actor_id: null,
+        actor_name: 'automation',
+        action: 'social.sensitive',
+        reason: 'became sensitive after approval',
+        previous: { state: 'approved', approved_by: owner.name },
+        next: { state: 'pending_approval', sensitive_reason: 'death' },
+      });
+      // A fresh approval by a person, seeing the flag, lets it go.
+      expect((await social.approve(post.id, teammate, PUBLISH_AT)).ok).toBe(true);
+      expect((await social.checkAtPublishing(post.id, PUBLISH_AT)).go).toBe(true);
+    });
+
+    it('gives the slot back and keeps the run for a refusal before sending, "stopped" included (T-1839)', async () => {
+      const post = await live(f.late, 'model_verdict', 'x');
+      expect(post.state).toBe('pending_approval');
+      expect((await social.approve(post.id, owner, PUBLISH_AT)).ok).toBe(true);
+      await setVerdictRun(9);
+      const finishRow = async () => (await audits(post.id)).at(-1)!;
+
+      // Nothing was sent (no channel, unreachable, a 429, too long): slot back, run kept.
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'no connected, unlocked twitter channel on Buffer',
+            notSent: 'not_sent',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'refused',
+        slot: null,
+        post_day: null,
+      });
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 9 });
+      expect(await finishRow()).toMatchObject({
+        actor_name: 'automation',
+        action: 'social.finish',
+        reason: 'nothing was sent',
+        previous: { state: 'publishing', slot: 4, clean_run: 9 },
+        next: { state: 'refused', clean_run: 9 },
+      });
+
+      // The same slot is free again; a stop landing after the claim is audited as "stopped".
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'publishing was stopped before sending',
+            notSent: 'stopped',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 9 });
+      expect(await finishRow()).toMatchObject({ reason: 'stopped', next: { clean_run: 9 } });
+
+      // Buffer refusing the post itself is a publishing error: the run resets.
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'buffer refused (InvalidInputError)',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 0 });
+      expect(await finishRow()).toMatchObject({
+        reason: 'the network refused it',
+        next: { clean_run: 0 },
+      });
+      expect((await social.get(post.id))!.slot).toBeNull();
+    });
+
+    it('holds a raise to automatic to a reason of its own in the database too', async () => {
+      await setVerdictRun(14);
+      const last = (
+        await pool.query<{ level_reason: string }>(
+          `SELECT level_reason FROM social_automation WHERE kind = 'model_verdict'`,
+        )
+      ).rows[0]!.level_reason;
+      await expect(
+        pool.query(
+          `UPDATE social_automation SET level = 'automatic', level_changed_at = clock_timestamp(),
+                  level_changed_by = $1, level_changed_by_name = $2, level_reason = $3
+            WHERE kind = 'model_verdict'`,
+          [owner.id, owner.name, last],
+        ),
+      ).rejects.toThrow(/reason of its own/);
+    });
+  },
+);

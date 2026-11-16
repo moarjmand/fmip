@@ -8,6 +8,7 @@ import {
 import { ConsoleCalendarController } from './console-calendar.controller';
 import { ConsoleChecklistController } from './console-checklist.controller';
 import { ConsoleCalendarService } from './console-calendar.service';
+import { ConsoleAudit } from './console-audit.service';
 import { ConsoleRequestEvents } from './console-request-events.service';
 import { ConsoleSessions } from './console-sessions.service';
 import { PostgresCalendarStore } from './internal/calendar-store';
@@ -40,6 +41,8 @@ import {
     ConsoleSessions,
     // T-1832 (D-425): a new request, told to console-reminders' sender.
     ConsoleRequestEvents,
+    // T-1838 (D-427): the audit writer, for the social posts' console actions.
+    ConsoleAudit,
     // T-1731 (D-357): the requests' pictures, private on the media volume.
     ImageBodyParser,
     {
@@ -61,6 +64,7 @@ import {
     ConsoleCalendarService,
     ConsoleSessions,
     ConsoleRequestEvents,
+    ConsoleAudit,
     REQUEST_IMAGE_FILES,
   ],
 })
