@@ -46,6 +46,10 @@ const FIELDS: Record<string, Rule> = {
   // writes, such as a dashboard's name, never a member; shown only in the
   // agents console.
   'console-calendar.ts:ConsoleSubscription.source': { exempt: CONSOLE },
+  // The pre-launch checklist (T-1840): who wrote a note, and the console
+  // accounts an item can be given to; shown only in the agents console.
+  'console-checklist.ts:ConsoleChecklistNote.author': { exempt: CONSOLE },
+  'console-checklist.ts:ConsoleChecklistPerson.display_name': { exempt: CONSOLE },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
   // The administrator who dismissed a contributor flag (T-1031): shown only on
@@ -221,6 +225,9 @@ describe('the web never renders a stored name or a tombstone handle directly', (
     'lib/member-name.ts': 'the rule itself',
     'app/console/(app)/layout.tsx': CONSOLE,
     'app/console/(app)/requests/page.tsx': CONSOLE,
+    'app/console/(app)/checklist/page.tsx': CONSOLE,
+    'app/console/checklist-item.tsx': CONSOLE,
+    'app/console/checklist-words.ts': CONSOLE,
     'app/console/(open)/invite/[token]/page.tsx': CONSOLE,
     'components/member-name.tsx': 'the rule itself',
     'components/match-panel.tsx': '`Standing` branches on isDeletedMember first (T-812)',
