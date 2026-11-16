@@ -1,1 +1,0 @@
-- [Exercising data migrations locally](exercising-data-migrations-locally.md) — local DBs have no catalog data; synthetic teams+mappings in a rolled-back txn, psql via stdin, linker test setup
