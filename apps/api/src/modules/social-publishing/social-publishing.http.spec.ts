@@ -1584,22 +1584,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(early.json<{ message: string }>().message).toMatch(/14 clean posts/);
       expect((await verdictRun()).level).toBe('approval');
 
-      // The key: the owner's only; taken, never given back, never in an audit row.
+      // The key: either console person enters or clears it (the maintainer,
+      // 2026-11-16: the teammate owns the Buffer account); taken, never given
+      // back, never in an audit row.
       const NEW_KEY = `bf-console-${RUN}-9876543210`;
-      expect((await call('POST', '/console/social/key', 'mate', { key: NEW_KEY })).statusCode).toBe(
-        403,
-      );
       // Entering or clearing it makes the publisher forget the old key's channels and waits.
       const forgets = vi.spyOn(
         moduleRef.get<{ keyChanged(): void }>(SOCIAL_PUBLISHER),
         'keyChanged',
       );
-      const set = await call('POST', '/console/social/key', 'owner', { key: NEW_KEY });
+      const set = await call('POST', '/console/social/key', 'mate', { key: NEW_KEY });
       expect(set.statusCode).toBe(204);
       expect(set.body).toBe('');
       expect(forgets).toHaveBeenCalledTimes(1);
-      const after = (await call('GET', '/console/social', 'mate')).json<SocialConsoleView>();
-      expect(after.key).toMatchObject({ state: 'set', set_by: owner.name });
+      const after = (await call('GET', '/console/social', 'owner')).json<SocialConsoleView>();
+      expect(after.key).toMatchObject({ state: 'set', set_by: teammate.name });
       expect(
         (await call('POST', '/console/social/key/clear', 'owner', { reason: ' ' })).statusCode,
       ).toBe(400);
@@ -1615,10 +1614,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       });
       const keyRows = await pool.query<{ row: string }>(
         `SELECT row_to_json(a)::text AS row FROM console_audit a
-            WHERE action = 'social.credential' AND actor_id = $1`,
-        [owner.id],
+            WHERE action = 'social.credential' AND actor_id = ANY($1::uuid[])`,
+        [[owner.id, teammate.id]],
       );
       expect(keyRows.rows.length).toBeGreaterThanOrEqual(2);
+      // The level stays the owner's alone.
+      expect(
+        (await call('POST', '/console/social/levels/model_verdict', 'mate', raise)).statusCode,
+      ).toBe(403);
       for (const text of [...seen, ...keyRows.rows.map((r) => r.row)]) {
         expect(text).not.toContain(NEW_KEY);
       }

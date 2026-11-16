@@ -601,7 +601,7 @@ export function LevelRow({
 }
 
 export function KeyCard({ view }: { view: SocialConsoleView }) {
-  const { key, viewer } = view;
+  const { key } = view;
   const status =
     key.state === 'not_set' ? (
       'تنظیم نشده است؛ تا کلیدی وارد نشود چیزی منتشر نمی‌شود.'
@@ -623,44 +623,41 @@ export function KeyCard({ view }: { view: SocialConsoleView }) {
       <p className="mt-1 text-xs text-caption">
         کلید رمزشده نگه داشته می‌شود و هیچ‌جا نشان داده یا برگردانده نمی‌شود.
       </p>
-      {viewer.owner ? (
-        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+      {/* Either console person enters or clears it (the maintainer, 2026-11-16). */}
+      <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ConsoleForm
+          action={setSocialKey}
+          submit={key.state === 'not_set' ? 'ذخیره‌ی کلید' : 'جایگزینی کلید'}
+          className="flex flex-col gap-2 text-sm"
+        >
+          <label className="flex flex-col gap-1">
+            <span className="text-muted">کلید تازه</span>
+            <input
+              type="password"
+              name="key"
+              required
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={1024}
+              dir="ltr"
+              className={inputClass}
+            />
+          </label>
+        </ConsoleForm>
+        {key.state !== 'not_set' && (
           <ConsoleForm
-            action={setSocialKey}
-            submit={key.state === 'not_set' ? 'ذخیره‌ی کلید' : 'جایگزینی کلید'}
+            action={clearSocialKey}
+            submit="پاک کردن کلید"
+            submitClassName={DANGER_BUTTON}
             className="flex flex-col gap-2 text-sm"
           >
             <label className="flex flex-col gap-1">
-              <span className="text-muted">کلید تازه</span>
-              <input
-                type="password"
-                name="key"
-                required
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={1024}
-                dir="ltr"
-                className={inputClass}
-              />
+              <span className="text-muted">دلیل پاک کردن</span>
+              <input name="reason" required maxLength={500} className={inputClass} />
             </label>
           </ConsoleForm>
-          {key.state !== 'not_set' && (
-            <ConsoleForm
-              action={clearSocialKey}
-              submit="پاک کردن کلید"
-              submitClassName={DANGER_BUTTON}
-              className="flex flex-col gap-2 text-sm"
-            >
-              <label className="flex flex-col gap-1">
-                <span className="text-muted">دلیل پاک کردن</span>
-                <input name="reason" required maxLength={500} className={inputClass} />
-              </label>
-            </ConsoleForm>
-          )}
-        </div>
-      ) : (
-        <p className="mt-2 text-xs text-muted">فقط مالک کنسول کلید را وارد یا پاک می‌کند.</p>
-      )}
+        )}
+      </div>
     </Card>
   );
 }

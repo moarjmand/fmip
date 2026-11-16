@@ -52,7 +52,7 @@ describe('the social tab (T-1836)', () => {
     expect(html).toContain('آماده‌ی خودکار شدن (۱۴ پست پاک)');
   });
 
-  it('gives the owner the level and key controls, and the teammate neither (the API refuses them anyway)', () => {
+  it('gives the owner the level controls and both people the key field (the API refuses a level from the teammate anyway)', () => {
     const owner = page();
     expect(owner).toContain('name="level"');
     // The raise is open only from eligible: the forecast kind (9 of 14) has it disabled.
@@ -68,8 +68,8 @@ describe('the social tab (T-1836)', () => {
 
     const mate = page({ ...SOCIAL_VIEW, viewer: { name: 'مریم', owner: false } });
     expect(mate).not.toContain('name="level"');
-    expect(mate).not.toContain('name="key"');
-    expect(mate).toContain('فقط مالک کنسول کلید را وارد یا پاک می‌کند.');
+    // The teammate owns the Buffer account and enters its key (the maintainer, 2026-11-16).
+    expect(mate).toContain('name="key"');
     // Both accounts stop and resume publishing.
     expect(mate).toContain('توقف همه‌ی ارسال‌ها');
   });

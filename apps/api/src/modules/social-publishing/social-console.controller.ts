@@ -230,17 +230,15 @@ export class SocialConsoleController {
   }
 
   /**
-   * The publisher's key, the owner's only (the approved design: the teammate
-   * sees when and by whom, no field). Answers nothing back but its time: the
-   * key is sealed and never returned.
+   * The publisher's key, set or cleared by either console person (the
+   * maintainer's answer, 2026-11-16: the teammate owns the Buffer account and
+   * enters its key). Audited with who and when, never the value; answers
+   * nothing back: the key is sealed and never returned.
    */
   @Post('key')
   @HttpCode(204)
   async setKey(@Body() body: unknown, @Req() request: FastifyRequest): Promise<void> {
     const me = await this.person(request);
-    if (!(await this.social.isOwner(me.id))) {
-      throw forbidden('Only the console owner sets or clears the publisher key.');
-    }
     const key = text((body as { key?: unknown } | null)?.key);
     const outcome = await this.social.setKey(this.actor(me), key);
     if (!outcome.ok) throw refused(outcome);
@@ -250,9 +248,6 @@ export class SocialConsoleController {
   @HttpCode(204)
   async clearKey(@Body() body: unknown, @Req() request: FastifyRequest): Promise<void> {
     const me = await this.person(request);
-    if (!(await this.social.isOwner(me.id))) {
-      throw forbidden('Only the console owner sets or clears the publisher key.');
-    }
     const outcome = await this.social.clearKey(this.actor(me), reasonOf(body));
     if (!outcome.ok) throw refused(outcome);
   }
