@@ -1,0 +1,119 @@
+/*
+ * The business model canvas's sheet (T-1855, D-440; `canvas.tsx`). Loaded by
+ * the canvas page only.
+ *
+ * The nine cells are one grid joined by hairlines (the grid's gap over the
+ * strong border colour). Narrow, one column in the fill order: segments,
+ * value, channels, relationships, revenue, resources, activities, partners,
+ * costs. From 720px, two columns, revenue alone on its row. From 1180px, the
+ * classic canvas: ten tracks, key partners at the inline start (on the right
+ * in Persian, by the grid's own direction), segments at the end, costs and
+ * revenue across the bottom. Areas and tracks are logical (rule 7).
+ *
+ * Print (the browser's own print or save as PDF): the nine cells on one A3
+ * landscape page, the classic layout whatever the width, the console's
+ * frame and every control hidden. `@page canvas` is named, so the size never
+ * reaches another console page printed after this one.
+ */
+
+.canvas-board {
+  display: grid;
+  gap: 1px;
+  background-color: var(--token-border-strong);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'cs' 'vp' 'ch' 'cr' 'rev' 'kr' 'ka' 'kp' 'cost';
+}
+
+.canvas-block[data-area='cs'] {
+  grid-area: cs;
+}
+.canvas-block[data-area='vp'] {
+  grid-area: vp;
+}
+.canvas-block[data-area='ch'] {
+  grid-area: ch;
+}
+.canvas-block[data-area='cr'] {
+  grid-area: cr;
+}
+.canvas-block[data-area='rev'] {
+  grid-area: rev;
+}
+.canvas-block[data-area='kr'] {
+  grid-area: kr;
+}
+.canvas-block[data-area='ka'] {
+  grid-area: ka;
+}
+.canvas-block[data-area='kp'] {
+  grid-area: kp;
+}
+.canvas-block[data-area='cost'] {
+  grid-area: cost;
+}
+
+@media (width >= 720px) {
+  .canvas-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'cs vp' 'ch cr' 'rev rev' 'kr ka' 'kp cost';
+  }
+}
+
+@media (width >= 1180px) {
+  .canvas-board {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-areas:
+      'kp kp ka ka vp vp cr cr cs cs'
+      'kp kp kr kr vp vp ch ch cs cs'
+      'cost cost cost cost cost rev rev rev rev rev';
+  }
+
+  /* The two wide cells along the bottom lay their cards side by side. */
+  .canvas-block[data-area='cost'] .canvas-cards,
+  .canvas-block[data-area='rev'] .canvas-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    align-content: start;
+  }
+}
+
+@page canvas {
+  size: A3 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  body:has(.canvas-page) header,
+  .canvas-page [data-print='hide'] {
+    display: none !important;
+  }
+
+  body:has(.canvas-page) main {
+    max-inline-size: none;
+    padding: 0;
+  }
+
+  .canvas-sheet {
+    page: canvas;
+    box-shadow: none;
+  }
+
+  .canvas-board {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-areas:
+      'kp kp ka ka vp vp cr cr cs cs'
+      'kp kp kr kr vp vp ch ch cs cs'
+      'cost cost cost cost cost rev rev rev rev rev';
+  }
+
+  .canvas-block[data-area='cost'] .canvas-cards,
+  .canvas-block[data-area='rev'] .canvas-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    align-content: start;
+  }
+
+  .canvas-card {
+    break-inside: avoid;
+  }
+}

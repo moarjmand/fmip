@@ -566,3 +566,61 @@ export async function addChecklistNote(id: string, body: string): Promise<Checkl
 export async function removeChecklistItem(id: string, reason: string): Promise<ChecklistResult> {
   return checklistCall(checklistItem(id), 'DELETE', { reason }, 'مورد حذف نشد.');
 }
+
+// --- The business model canvas (T-1855, D-440) ----------------------------------
+
+/** What a canvas control hears back: the card's id, or the error in Persian (the console's messages stay Persian). */
+export interface CanvasResult {
+  ok: boolean;
+  error: string | null;
+  id: string | null;
+}
+
+/** A card's fields as the editor sends them; a field left out is not changed. */
+export interface CanvasCardFields {
+  block?: string;
+  tag?: string;
+  text_fa?: string;
+  text_en?: string;
+  note_fa?: string;
+  note_en?: string;
+  source?: string;
+}
+
+const canvasCard = (id: string) => `canvas/cards/${encodeURIComponent(id)}`;
+
+async function canvasCall(
+  path: string,
+  method: 'POST' | 'PATCH',
+  body: unknown,
+  fallback: string,
+): Promise<CanvasResult> {
+  const result = await consoleCall<{ id: string }>(path, { method, body });
+  revalidatePath('/console', 'layout');
+  return result.ok
+    ? { ok: true, error: null, id: result.data.id }
+    : { ok: false, error: apiErrorWords(result.error?.message, fallback), id: null };
+}
+
+/** A new card, last in its block. */
+export async function createCanvasCard(input: CanvasCardFields): Promise<CanvasResult> {
+  return canvasCall('canvas/cards', 'POST', input, 'کارت اضافه نشد.');
+}
+
+/** A change to a card's block, tag, texts, notes or source. */
+export async function updateCanvasCard(id: string, patch: CanvasCardFields): Promise<CanvasResult> {
+  return canvasCall(canvasCard(id), 'PATCH', patch, 'تغییر کارت ذخیره نشد.');
+}
+
+export async function moveCanvasCard(id: string, direction: 'up' | 'down'): Promise<CanvasResult> {
+  return canvasCall(`${canvasCard(id)}/move`, 'POST', { direction }, 'جابه‌جایی انجام نشد.');
+}
+
+/** Into the bin; `restoreCanvasCard` is its undo. */
+export async function removeCanvasCard(id: string): Promise<CanvasResult> {
+  return canvasCall(`${canvasCard(id)}/remove`, 'POST', {}, 'کارت حذف نشد.');
+}
+
+export async function restoreCanvasCard(id: string): Promise<CanvasResult> {
+  return canvasCall(`${canvasCard(id)}/restore`, 'POST', {}, 'کارت بازگردانده نشد.');
+}

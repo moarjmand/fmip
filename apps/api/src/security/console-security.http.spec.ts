@@ -683,6 +683,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         expect([...PUBLIC_WRITES].filter((r) => !routes.has(r))).toEqual([]);
       });
 
+      it('the agents console canvas writes refuse a body a cross-site form can send (T-1855)', async () => {
+        // The canvas (D-440) is the console's posture: SameSite cookie, no
+        // change on GET, and no form-encoded body reaches a handler.
+        const writes = [...routes].filter((r) => isWrite(r) && / \/console\/canvas\//.test(r));
+        expect(writes.length).toBeGreaterThanOrEqual(5);
+        const accepted: string[] = [];
+        for (const route of writes) {
+          const { method, path } = parts(route);
+          const response = await inject(method, concrete(path), undefined, 'block=channels', {
+            'content-type': 'application/x-www-form-urlencoded',
+          });
+          if (response.statusCode !== 415) accepted.push(`${route} -> ${response.statusCode}`);
+        }
+        expect(accepted, 'canvas writes that took a form-encoded body').toEqual([]);
+      });
+
       it('every /me route refuses a guest', async () => {
         const accepted: string[] = [];
         for (const route of [...routes].filter((r) => / \/me(\/|$)/.test(r))) {

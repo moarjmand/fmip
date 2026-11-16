@@ -30,6 +30,26 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
     /^That is the most checklist changes an hour allows/,
     () => 'به سقف تغییرهای یک ساعت فهرست رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
   ],
+  // The business model canvas (T-1855, D-440).
+  [
+    /^A card needs its text in Persian or English\.$/,
+    () => 'متن کارت را دست‌کم به یکی از دو زبان بنویسید.',
+  ],
+  [
+    /^A card's (Persian|English) (text|note) is at most (\d+) characters\.$/,
+    (m) =>
+      `${m[2] === 'text' ? 'متن' : 'یادداشت'} ${m[1] === 'Persian' ? 'فارسی' : 'انگلیسی'} کارت حداکثر ${fa(m[3]!)} نویسه است.`,
+  ],
+  [
+    /^A card's source is at most (\d+) characters\.$/,
+    (m) => `منبع کارت حداکثر ${fa(m[1]!)} نویسه است.`,
+  ],
+  [/^No such canvas card\.$/, () => 'این کارت دیگر روی بوم نیست؛ صفحه را تازه کنید.'],
+  [/^That card is on the canvas, not in the bin\.$/, () => 'این کارت روی بوم است، نه در سطل.'],
+  [
+    /^That is the most canvas changes an hour allows/,
+    () => 'به سقف تغییرهای یک ساعت بوم رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
   [
     /^Wrong name or password/,
     () => 'نام کاربری یا رمز درست نیست، یا این نام پس از چند تلاش ناموفق مدتی قفل شده است.',
@@ -324,6 +344,11 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'checklist.item_moved': 'جابه‌جایی مورد فهرست راه‌اندازی',
   'checklist.item_removed': 'حذف مورد از فهرست راه‌اندازی',
   'checklist.note_added': 'یادداشت روی مورد فهرست راه‌اندازی',
+  'canvas.card_created': 'کارت تازه در بوم کسب‌وکار',
+  'canvas.card_changed': 'تغییر کارت بوم کسب‌وکار',
+  'canvas.card_moved': 'جابه‌جایی کارت بوم کسب‌وکار',
+  'canvas.card_removed': 'حذف کارت از بوم کسب‌وکار',
+  'canvas.card_restored': 'بازگرداندن کارت به بوم کسب‌وکار',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -341,6 +366,17 @@ const CHANGE_WORDS: Record<string, string> = {
   sectioned: 'بخش',
   status: 'وضعیت',
   assigned: 'مسئول',
+};
+
+/** A canvas card's fields (T-1855), as `changed tag, text_en` names them. */
+const CANVAS_FIELD_WORDS: Record<string, string> = {
+  block: 'بخش',
+  tag: 'برچسب',
+  text_fa: 'متن فارسی',
+  text_en: 'متن انگلیسی',
+  note_fa: 'یادداشت فارسی',
+  note_en: 'یادداشت انگلیسی',
+  source: 'منبع',
 };
 
 /** The reasons the API writes itself; a person's own reason is shown as written. */
@@ -398,6 +434,18 @@ export function auditReasonWords(reason: string): string {
     [/^moved up$/, () => 'یک جا بالاتر رفت'],
     [/^moved down$/, () => 'یک جا پایین‌تر رفت'],
     [/^note added$/, () => 'یادداشت اضافه شد'],
+    [/^card added$/, () => 'کارت اضافه شد'],
+    [/^card removed$/, () => 'کارت به سطل رفت'],
+    [/^card restored$/, () => 'کارت از سطل برگشت'],
+    [
+      // Only the API's own list of fields; a person's own reason is shown as written.
+      /^changed ((?:block|tag|text_fa|text_en|note_fa|note_en|source)(?:, (?:block|tag|text_fa|text_en|note_fa|note_en|source))*)$/,
+      (m) =>
+        `تغییر ${m[1]!
+          .split(', ')
+          .map((k) => CANVAS_FIELD_WORDS[k] ?? k)
+          .join('، ')}`,
+    ],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);

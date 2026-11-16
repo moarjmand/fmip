@@ -376,6 +376,20 @@ export type {
   ConsoleChecklistSection,
   ConsoleChecklistStatus,
 } from './console-checklist';
+// The agents console's business model canvas (T-1855, D-440); its runtime constants are in './console'.
+export type {
+  ConsoleCanvas,
+  ConsoleCanvasBlock,
+  ConsoleCanvasCard,
+  ConsoleCanvasCardInput,
+  ConsoleCanvasCardPatch,
+  ConsoleCanvasEvent,
+  ConsoleCanvasEventKind,
+  ConsoleCanvasField,
+  ConsoleCanvasLastChange,
+  ConsoleCanvasPerson,
+  ConsoleCanvasTag,
+} from './console-canvas';
 // Posts to X and Instagram (T-1834, D-427); its runtime constants are in './console'.
 export type {
   SocialAutomation,

@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
+import { CANVAS } from './canvas.fixture';
 import { CHECKLIST } from './checklist.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 import { PROVIDERS } from './providers.fixture';
@@ -94,6 +95,11 @@ vi.mock('@/lib/console-actions', () => {
     moveChecklistItem: async () => ({ ok: true, error: null }),
     addChecklistNote: async () => ({ ok: true, error: null }),
     removeChecklistItem: async () => ({ ok: true, error: null }),
+    createCanvasCard: async () => ({ ok: true, error: null, id: null }),
+    updateCanvasCard: async () => ({ ok: true, error: null, id: null }),
+    moveCanvasCard: async () => ({ ok: true, error: null, id: null }),
+    removeCanvasCard: async () => ({ ok: true, error: null, id: null }),
+    restoreCanvasCard: async () => ({ ok: true, error: null, id: null }),
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -108,6 +114,8 @@ vi.mock('@/lib/console-api', () => {
     consoleSocial: () => ok(fixtures.social),
     // T-1840: the pre-launch checklist, the seed's Persian text.
     consoleChecklist: () => ok(CHECKLIST),
+    // T-1855: the business model canvas in its Persian view, with a card written in English only.
+    consoleCanvas: () => ok(CANVAS),
     consoleCommands: () =>
       ok({
         commands: [
@@ -676,6 +684,9 @@ const TECHNICAL_TERMS = new Set([
   'KYC',
   // T-1836: the social posts' publisher, named as the teammate's account is.
   'Buffer',
+  // T-1855: the canvas's download and print buttons name the file kinds.
+  'JSON',
+  'PDF',
 ]);
 
 const isTechnical = (word: string) =>
@@ -859,6 +870,20 @@ describe('the Persian-only scan', () => {
         ),
     ],
     [
+      'the business model canvas',
+      async () =>
+        render((await import('./(app)/canvas/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the business model canvas, filtered by a tag',
+      async () =>
+        render(
+          (await import('./(app)/canvas/page')).default({
+            searchParams: params({ tag: 'question' }),
+          }),
+        ),
+    ],
+    [
       'the calendar',
       async () =>
         render((await import('./(app)/calendar/page')).default({ searchParams: params({}) })),
@@ -981,6 +1006,7 @@ describe('the Persian-only scan', () => {
       './(app)/board/page',
       './(app)/calendar/page',
       './(app)/calendar/subscriptions/page',
+      './(app)/canvas/page',
       './(app)/checklist/page',
       './(app)/decisions/page',
       './(app)/findings/page',

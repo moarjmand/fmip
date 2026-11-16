@@ -234,6 +234,21 @@ export const CEILINGS: readonly CeilingDefinition[] = [
       'DELETE /console/checklist/items/:id',
     ],
   },
+  // T-1855 (D-440): the business model canvas. Counted from the person's own
+  // `console_canvas_event` rows this hour, before the write.
+  {
+    action: 'console_canvas',
+    subject: 'console_user',
+    enforced: 'api',
+    what: 'Changes to the business model canvas in the agents console: adding, editing, tagging, moving, removing and restoring a card.',
+    routes: [
+      'POST /console/canvas/cards',
+      'PATCH /console/canvas/cards/:id',
+      'POST /console/canvas/cards/:id/move',
+      'POST /console/canvas/cards/:id/remove',
+      'POST /console/canvas/cards/:id/restore',
+    ],
+  },
 
   // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
   // question is a model call, and the route is public. A member is counted

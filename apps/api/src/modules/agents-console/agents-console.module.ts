@@ -6,12 +6,14 @@ import {
   type ConsoleOptions,
 } from './agents-console.controller';
 import { ConsoleCalendarController } from './console-calendar.controller';
+import { ConsoleCanvasController } from './console-canvas.controller';
 import { ConsoleChecklistController } from './console-checklist.controller';
 import { ConsoleCalendarService } from './console-calendar.service';
 import { ConsoleAudit } from './console-audit.service';
 import { ConsoleRequestEvents } from './console-request-events.service';
 import { ConsoleSessions } from './console-sessions.service';
 import { PostgresCalendarStore } from './internal/calendar-store';
+import { PostgresCanvasStore } from './internal/canvas-store';
 import { PostgresChecklistStore } from './internal/checklist-store';
 import { PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
@@ -28,7 +30,12 @@ import {
  * helpers, through its public file; nothing else reads these tables.
  */
 @Module({
-  controllers: [AgentsConsoleController, ConsoleCalendarController, ConsoleChecklistController],
+  controllers: [
+    AgentsConsoleController,
+    ConsoleCalendarController,
+    ConsoleChecklistController,
+    ConsoleCanvasController,
+  ],
   providers: [
     PostgresConsoleStore,
     PostgresRequestStore,
@@ -37,6 +44,8 @@ import {
     ConsoleCalendarService,
     // T-1840 (D-428): the pre-launch checklist.
     PostgresChecklistStore,
+    // T-1855 (D-440): the business model canvas.
+    PostgresCanvasStore,
     // T-1729: the session check, for the model page another module serves.
     ConsoleSessions,
     // T-1832 (D-425): a new request, told to console-reminders' sender.
