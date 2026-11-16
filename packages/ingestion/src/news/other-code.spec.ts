@@ -294,3 +294,49 @@ describe('otherSportEventOf (T-1833)', () => {
     }
   });
 });
+
+/**
+ * T-1841 (D-429): the words a general sports feed carried past the lists, as
+ * production stored them in the 30 days to 2026-11-16 (Tehran Times' "Sports",
+ * IRNA's and Khabar Varzeshi's general feeds before D-324).
+ */
+describe('otherCodeOf, the general feeds’ other sports (T-1841)', () => {
+  it.each([
+    [
+      'Iranian chess players win golds at Open SCO Cup',
+      'TEHRAN – Iran’s female chess player Mobina Alinasab and her compatriot Reza Mahdavi claimed two gold medals at the Shanghai Cooperation Organisation (SCO) Open Cup in Russia on Monday.',
+    ],
+    ['Rouhollah Rostami wins Silver in para powerlifting', null],
+    ['javelin thrower Bondari bags gold in Asian Para Games', null],
+    ['Iranian shot putters Salehi, Hadidi claim gold, silver at 2026 Nagoya', null],
+    ['Shahi shoots bronze in 50m Pistol at Nagoya 2026', null],
+    ['Zeighaminejad earns bronze in 200m individual medley', null],
+    ['Elina Rahimi, the first Iranian woman to make WTT Contender main draw', null],
+    ['Iranian beach wrestlers win two medals at 2026 YOG', null],
+    ['بازی‌های پاراآسیایی ناگویا؛ بیت‌سیاح در پرتاب نیزه طلایی شد', null],
+    ['تیراندازی با کمان کاپ آسیا؛ فلاح طلایی شد/ گلشنی نقره گرفت', null],
+    ['بوکس جوانان جهان؛ مصباحی به نقره بسنده کرد/ حسرت طلا باقی ماند', null],
+    ['منع حضور شطرنج‌بازان اسرائیلی در مسابقات قهرمانی', null],
+    ['مدال برنز شنای ۱۰۰ متر قورباغه برای رشیدآبادی', null],
+    ['پایان هفته پنجم کورس اسبدوانی آق‌قلا', null],
+    ['صدرنشینی دانشگاه آزاد در دور رفت لیگ برتر روئینگ بانوان؛ استقلال دوم شد', null],
+  ])('%s is another sport', (headline, summary) => {
+    expect(otherCodeOf(headline, summary)).toBe('other_sport');
+  });
+
+  it.each([
+    // "Chess" alone is also football's (D-321).
+    [
+      'Clamour, chess and control - Is Ayyoub Bouaddi the answer to Man City’s midfield problem?',
+      null,
+    ],
+    ['Bayern Munich draws 2-2 in Champions League chess match against Arsenal', null],
+    // Paraguay is «پاراگوئه»; the Asian Games have a football tournament.
+    ['پیروزی تیم ملی امید مقابل پاراگوئه', null],
+    ['تیم امید در بازی‌های آسیایی به مصاف عربستان می‌رود', null],
+    // A football team's fitness coach.
+    ['مربی بدنساز پرسپولیس از جمع سرخ‌ها جدا شد', null],
+  ])('%s is not', (headline, summary) => {
+    expect(otherCodeOf(headline, summary)).toBeNull();
+  });
+});
