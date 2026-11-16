@@ -235,13 +235,13 @@ export function CanvasCard({
       )}
       {card.source !== '' && (
         <p
-          className="break-words font-mono text-xs leading-4 text-caption [unicode-bidi:plaintext]"
+          className="canvas-card-source break-words font-mono text-xs leading-4 text-caption [unicode-bidi:plaintext]"
           dir="ltr"
         >
           {card.source}
         </p>
       )}
-      <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-2">
+      <div className="canvas-card-foot mt-0.5 flex flex-wrap items-center justify-between gap-x-2">
         <p className="min-w-0 truncate text-xs text-caption" data-testid="canvas-card-who">
           {card.last_change === null ? (
             w.firstFill
@@ -489,9 +489,7 @@ export function CardEditor({
             {w.cancel}
           </button>
         </div>
-        <span className="text-xs text-caption" dir="ltr">
-          {w.keys}
-        </span>
+        <span className="text-xs text-caption">{w.keys}</span>
       </div>
     </form>
   );

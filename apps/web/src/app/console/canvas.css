@@ -12,8 +12,9 @@
  *
  * Print (the browser's own print or save as PDF): the nine cells on one A3
  * landscape page, the classic layout whatever the width, the console's
- * frame and every control hidden. `@page canvas` is named, so the size never
- * reaches another console page printed after this one.
+ * frame, every control, each card's footer and source hidden, at half size
+ * (55 cards fit). `@page canvas` is named, so the size never reaches another
+ * console page printed after this one.
  */
 
 .canvas-board {
@@ -88,14 +89,29 @@
     display: none !important;
   }
 
+  /* The page is named on the body, not the sheet: a change of named page would break before it. */
+  body:has(.canvas-page) {
+    page: canvas;
+    background-color: var(--token-surface);
+  }
+
   body:has(.canvas-page) main {
     max-inline-size: none;
     padding: 0;
   }
 
+  /*
+   * Half size, and without each card's footer and source (both stay on the
+   * page and in the JSON): the seed's 55 cards then fit one A3 sheet.
+   */
   .canvas-sheet {
-    page: canvas;
+    zoom: 0.5;
     box-shadow: none;
+  }
+
+  .canvas-card-foot,
+  .canvas-card-source {
+    display: none !important;
   }
 
   .canvas-board {

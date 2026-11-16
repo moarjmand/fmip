@@ -76,7 +76,9 @@ export default async function ConsoleCanvasPage({ searchParams }: Props) {
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="flex min-w-0 flex-col gap-1.5">
             <h1 className="text-xl font-bold">{w.title}</h1>
-            <p className="max-w-measure text-sm text-muted">{w.lede}</p>
+            <p className="max-w-measure text-sm text-muted" data-print="hide">
+              {w.lede}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2" data-print="hide">
             <Link
@@ -136,7 +138,9 @@ export default async function ConsoleCanvasPage({ searchParams }: Props) {
         )}
 
         <CanvasBoard cards={cards} lang={lang} tag={tag} />
-        <p className="max-w-measure text-xs text-caption">{w.foot}</p>
+        <p className="max-w-measure text-xs text-caption" data-print="hide">
+          {w.foot}
+        </p>
 
         <div className="grid gap-4 lg:grid-cols-2">
           <CanvasBin removed={removed} lang={lang} />
