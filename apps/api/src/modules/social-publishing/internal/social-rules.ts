@@ -163,14 +163,12 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
     /\bmissiles?\b/i,
     /\brefugees?\b/i,
     /\bregime\b/i,
-    /\bprotest(?:s|ed|ers?|ing)?\b/i,
+    // Not players protesting a referee's decision.
+    /\bprotest(?:s|ed|ers?|ing)?\b(?!\s+(?:(?:the|a|an|his|their)\s+)?(?:penalty\s+|red\s+card\s+)?(?:decisions?|penalt(?:y|ies)|calls?|goals?|red cards?|bookings?|awards?)\b)/i,
     /\bgaza\b/i,
-    /\bukrain(?:e|ian|ians)\b/i,
-    /\brussian?s?\b/i,
-    /\bisrael(?:i|is)?\b/i,
-    /\bpalestin(?:e|ian|ians)\b/i,
-    /\biran(?:ian|ians)?\b/i,
-    /\bnational anthem\b/i,
+    // An anthem met with silence, refusal, boos or protest.
+    /\b(?:silent|silence|refus(?:e|es|ed|ing)|boo(?:s|ed|ing)?|protest\w*)\b.{0,40}\banthem\b/i,
+    /\banthem\b.{0,40}\b(?:silent|silence|refus(?:e|es|ed|ing)|boo(?:s|ed|ing)?|protest\w*)\b/i,
   ],
   accident: [
     /\bcrash(?:es|ed|ing)?\b(?!\s+out\b)/i,
@@ -179,7 +177,8 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
     /\btragic(?:ally)?\b/i,
     // "Collapses on the pitch", not a team's late collapse.
     /\bcollaps(?:es|ed|ing)\s+(?:on|during)\b/i,
-    /\bhospital(?:s|ised|ized)?\b/i,
+    // Not a "hospital pass".
+    /\bhospital(?:s|ised|ized)?\b(?!\s+pass)/i,
     /\bcardiac\b/i,
     /\bheart attack\b/i,
     /\bintensive care\b/i,
@@ -190,17 +189,20 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
     /\bdie[sd]?\b(?!-hard)/i,
     /\bdying\b/i,
     /\bdead\b(?!\s+(?:ball|rubber)s?\b)/i,
-    /\bkill(?:ed|ing|s)?\b/i,
+    // Not "killed the game" or "killed it off".
+    /\bkill(?:ed|ing|s)?\b(?!\s+(?:the\s+game|off|it|them)\b)/i,
     /\bpass(?:es|ed|ing)? away\b/i,
     /\bpassing of\b/i,
     /\bfunerals?\b/i,
     /\bminute(?:'|’)?s?\s+(?:of\s+)?silence\b/i,
     /\bmourn(?:s|ed|ing|ers)?\b/i,
     /\bcondolences?\b/i,
-    /\btributes?\b/i,
+    // Tributes after a death; not a club's tribute to a departing captain.
+    /\btributes\s+(?:paid|pour|poured|pouring|flood|flooded|for)\b/i,
     /\bRIP\b/,
     /\bR\.I\.P\b/i,
-    /\bmemorial\b/i,
+    // Not the Memorial Cup or a memorial match.
+    /\bmemorial\b(?!\s+(?:cup|trophy|tournament|match|game)s?\b)/i,
   ],
   racism: [
     /\bracis[mt]s?\b/i,
@@ -219,12 +221,16 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
   ],
   violence: [
     /\bstab(?:s|bed|bing)\b/i,
-    /\bassault(?:s|ed)?\b/i,
-    /\barrest(?:s|ed)?\b/i,
+    // Not a "title assault" or an "assault on the top four".
+    /(?<!\btitle\s)\bassault(?:s|ed)?\b(?!\s+on\s+(?:the\s+)?(?:title|top|league|summit|cup|europe)\b)/i,
+    // Not "arrest the slump".
+    /\barrest(?:s|ed)?\b(?!\s+(?:(?:the|a|an|their|its|his)\s+)?(?:slump|slide|decline|fall|run|rot)\b)/i,
     /\bpolice\b/i,
-    /\briot(?:s|ers?|ing)?\b/i,
+    // Not "run riot".
+    /(?<!\b(?:run|runs|ran|running)\s)\briot(?:s|ers?|ing)?\b/i,
     /\bterror(?:ism|ist|ists)?\b/i,
-    /\bviolen(?:ce|t)\b/i,
+    // Not "violent conduct", the red-card offence.
+    /\bviolen(?:ce|t)\b(?!\s+conduct\b)/i,
     /\bshot dead\b/i,
     // Not "the big guns", nor the Gunners.
     /\bgun(?:man|men|fire|shot|shots)\b/i,
@@ -244,22 +250,79 @@ export const SENSITIVE_LEXICON: Readonly<Record<SocialSensitiveTopic, readonly R
   ],
 };
 
+/**
+ * Countries whose name is political news as often as football (review of PR
+ * #893, round 2). On its own a country or nationality word is a team, a
+ * league or a player ("Iran beat Qatar", "Iranian giants Persepolis",
+ * "Zenit lead the Russian Premier League"); it counts as politics only beside
+ * one of `COUNTRY_CONTEXT` ("Iran banned", "Russian clubs suspended from
+ * Europe"). Words that are political on their own (sanctions, war, election,
+ * Gaza ...) are in the lexicon and need no country.
+ */
+export const COUNTRY_TERMS: readonly RegExp[] = [
+  /\biran(?:ian|ians)?\b/i,
+  /\bukrain(?:e|ian|ians)\b/i,
+  /\brussian?s?\b/i,
+  /\bisrael(?:i|is)?\b/i,
+  /\bpalestin(?:e|ian|ians)\b/i,
+];
+export const COUNTRY_CONTEXT =
+  /\b(?:ban(?:s|ned)?|boycott\w*|flags?|anthem|visas?|hijab|human rights|women'?s rights|denied entry|state media|suspended from|expelled|excluded from)\b/i;
+
 /** The topics a text touches, in `SOCIAL_SENSITIVE_TOPICS` order. */
 export function sensitiveTopicsIn(text: string): SocialSensitiveTopic[] {
-  return SOCIAL_SENSITIVE_TOPICS.filter((topic) =>
-    SENSITIVE_LEXICON[topic].some((pattern) => pattern.test(text)),
+  const countryPolitics =
+    COUNTRY_TERMS.some((pattern) => pattern.test(text)) && COUNTRY_CONTEXT.test(text);
+  return SOCIAL_SENSITIVE_TOPICS.filter(
+    (topic) =>
+      (topic === 'politics' && countryPolitics) ||
+      SENSITIVE_LEXICON[topic].some((pattern) => pattern.test(text)),
   );
+}
+
+/** What a headline names that is the post's own match: both teams and the competition. */
+export interface SensitivityContext {
+  /** Each team's name, short name and code, and the competition's name. */
+  names: readonly string[];
+}
+
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * A headline with the match's own names taken out, so a club or a competition
+ * whose name holds a lexicon word ("Kenya Police", "Army United") does not
+ * make its own posts sensitive. A name that is itself a country word is kept:
+ * a country alone is never sensitive, and "Iran banned" must stay political.
+ * Longer names go first, so "Russian Premier League" goes before "Russia".
+ */
+export function withoutOwnNames(headline: string, context: SensitivityContext): string {
+  const names = [...new Set(context.names.map((n) => n.trim()))]
+    .filter(
+      (n) => n.length >= 2 && !COUNTRY_TERMS.some((p) => new RegExp(`^${p.source}$`, 'i').test(n)),
+    )
+    .sort((a, b) => b.length - a.length);
+  let text = headline;
+  for (const name of names) {
+    // A code (ARS, IRN) only in capitals; a name in any case.
+    const flags = /^[A-Z]{2,4}$/.test(name) ? 'g' : 'gi';
+    text = text.replace(new RegExp(`(?<![\\w])${escapeRegExp(name)}(?![\\w])`, flags), ' ');
+  }
+  return text;
 }
 
 /**
  * Whether a post must wait for a person: the first topic any headline linked
- * to either team or the fixture touches, or `headlines_unreadable` when the
- * headlines could not be read (null): fail closed.
+ * to either team or the fixture touches, once the match's own names are taken
+ * out, or `headlines_unreadable` when the headlines could not be read (null):
+ * fail closed.
  */
-export function sensitivity(headlines: readonly string[] | null): SocialSensitiveReason | null {
+export function sensitivity(
+  headlines: readonly string[] | null,
+  context: SensitivityContext = { names: [] },
+): SocialSensitiveReason | null {
   if (headlines === null) return 'headlines_unreadable';
   for (const headline of headlines) {
-    const [topic] = sensitiveTopicsIn(headline);
+    const [topic] = sensitiveTopicsIn(withoutOwnNames(headline, context));
     if (topic !== undefined) return topic;
   }
   return null;

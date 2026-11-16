@@ -34,6 +34,7 @@ import {
   rankCandidates,
   sensitiveTopicsIn,
   sensitivity,
+  withoutOwnNames,
   slotInstants,
   templateVersion,
   xLength,
@@ -229,7 +230,7 @@ describe('sensitivity (D-427 point 5)', () => {
       'Sanctions hit owner',
       'War forces match to move',
       'Club raises funds for Gaza',
-      'Ukraine squad named for qualifier',
+      'Iran sanctions hit the federation',
       'Iran players stay silent during anthem',
       'Russian side banned again',
       'Fans protest against ticket prices',
@@ -323,6 +324,66 @@ describe('sensitivity (D-427 point 5)', () => {
 
   it('reports the first topic found across the headlines', () => {
     expect(sensitivity(['Arsenal win', 'Betting probe opens', 'War of words'])).toBe('betting');
+  });
+
+  describe('a country’s own matches (review of PR #893, round 2)', () => {
+    const iranQatar = { names: ['Iran', 'IRN', 'Qatar', 'QAT', 'World Cup Qualification'] };
+    const persepolis = { names: ['Persepolis', 'PER', 'Sepahan', 'Persian Gulf Pro League'] };
+    const ukraine = { names: ['Ukraine', 'UKR', 'Iceland', 'ISL', 'UEFA Nations League'] };
+    const zenit = { names: ['Zenit', 'Spartak Moscow', 'Spartak', 'Russian Premier League'] };
+    const israel = { names: ['Israel', 'ISR', 'Norway', 'NOR', 'World Cup Qualification'] };
+    const cases: [string, { names: string[] }][] = [
+      ['Iran beat Qatar 2-1 in World Cup qualifier', iranQatar],
+      ['Taremi double sends Iran top of group', iranQatar],
+      ['Iranian giants Persepolis sign striker', persepolis],
+      ['Esteghlal 1-0 Sepahan: Persian Gulf Pro League round-up', persepolis],
+      ['Persepolis win Tehran derby', persepolis],
+      ['Team Melli squad announced', iranQatar],
+      ['Ukraine 2-0 Iceland: Mudryk scores', ukraine],
+      ['Zenit lead the Russian Premier League', zenit],
+      ['Israel lose to Norway in qualifier', israel],
+    ];
+
+    it.each(cases)('lets "%s" go out, with or without the match’s names', (headline, context) => {
+      expect(sensitivity([headline], context)).toBeNull();
+      expect(sensitivity([headline])).toBeNull();
+    });
+
+    it('still sends a political headline about the same country to a person', () => {
+      expect(sensitivity(['Iran players stay silent during anthem'], iranQatar)).toBe('politics');
+      expect(sensitivity(['Iran sanctions hit the federation'], iranQatar)).toBe('politics');
+      expect(sensitivity(['Iran banned from the World Cup'], iranQatar)).toBe('politics');
+      expect(sensitivity(['Ukraine plays in the shadow of war'], ukraine)).toBe('politics');
+      expect(sensitivity(['Election moves Israel match'], israel)).toBe('politics');
+      expect(sensitivity(['Russian clubs suspended from Europe again'])).toBe('politics');
+    });
+
+    it('takes out a club’s or competition’s own name, not a word beside it', () => {
+      const kenya = { names: ['Kenya Police', 'KPF', 'Gor Mahia', 'Kenyan Premier League'] };
+      expect(sensitivity(['Kenya Police beat Gor Mahia'], kenya)).toBeNull();
+      expect(sensitivity(['Kenya Police beat Gor Mahia'])).toBe('violence');
+      expect(sensitivity(['Police called after Kenya Police match'], kenya)).toBe('violence');
+      expect(withoutOwnNames('ARS beat the arsenal of rivals', { names: ['ARS'] })).toBe(
+        '  beat the arsenal of rivals',
+      );
+    });
+  });
+
+  it('keeps football’s own phrases out of violence, death, accident and politics', () => {
+    for (const headline of [
+      'Red card for violent conduct',
+      'City look to arrest slump',
+      'Arsenal title assault gathers pace',
+      'Liverpool launch assault on the top four',
+      'Wolves run riot at Molineux',
+      'Hospital pass costs Spurs',
+      'Players protest penalty decision',
+      'Club pays tribute to departing captain',
+      'Memorial Cup final preview',
+      'Pep: we killed the game',
+    ]) {
+      expect(sensitivity([headline]), headline).toBeNull();
+    }
   });
 });
 
