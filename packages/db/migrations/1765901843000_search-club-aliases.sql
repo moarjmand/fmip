@@ -9,7 +9,8 @@
 -- 'alias' rows only (translations-admin-store.ts).
 --
 -- Wolves and QPR are stored under those short names, so the long form is the
--- alias there. Search finds every alias; the news linker (news_named_entities)
+-- alias there; "Wolverhampton" too, as an exact name, since by the prefix
+-- alone Wolverhampton Casuals and Wolverhampton City sort before Wolves. Search finds every alias; the news linker (news_named_entities)
 -- also reads them, whole words of five letters or more: on production
 -- (read-only, 2026-11-16) a random 25 of the 96 "Spurs" headlines over 30
 -- days were all Tottenham,
@@ -30,6 +31,7 @@ WITH aliases(external_id, alias, kind) AS (
     ('47', 'Spurs', 'alias'),                          -- Tottenham
     ('50', 'Man City', 'alias'),                       -- Manchester City
     ('39', 'Wolverhampton Wanderers', 'alias'),        -- Wolves
+    ('39', 'Wolverhampton', 'alias'),                  -- exact, so Wolves leads
     ('72', 'Queens Park Rangers', 'alias')             -- QPR
 )
 INSERT INTO entity_alias (entity_type, entity_id, alias, language, kind, source)
