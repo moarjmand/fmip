@@ -239,6 +239,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     expect(Number(rows[0]!.t)).toBe(0.6);
   });
 
+  it('keeps a match of exactly the threshold, as the score does (T-1842, review round 1)', async () => {
+    // "abcdefghijklmnopqrs" against "Abcdefghi": word similarity 9/20, a real
+    // the score's `>= 0.45` keeps; `<%` must keep it too.
+    const edge = randomUUID();
+    await pool.query(`INSERT INTO person (id, full_name, known_as) VALUES ($1, $2, NULL)`, [
+      edge,
+      `Abcdefghi ${RUN}`,
+    ]);
+    try {
+      const found = (await search('q=abcdefghijklmnopqrs&types=person&limit=25')).results.find(
+        (r) => r.id === edge,
+      );
+      expect(found).toMatchObject({ type: 'person', score: 0.45 });
+    } finally {
+      await pool.query(`DELETE FROM person WHERE id = $1`, [edge]);
+    }
+  });
+
   it('answers an empty list for nothing like it, and 400 for a bad request', async () => {
     expect(ours(await search('q=quokka'))).toEqual([]);
     const short = await app.inject({ method: 'GET', url: '/search?q=z' });

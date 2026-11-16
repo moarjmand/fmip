@@ -11,6 +11,14 @@ import { PG_POOL } from '../../../database/database.module';
 export const MIN_SIMILARITY = 0.45;
 
 /**
+ * The same threshold for pg_trgm's `<%` (T-1842). `word_similarity` is a
+ * `real`, so the score's `>= 0.45` compares 0.45 as a real (0.4499999881);
+ * `<%` compares it with the setting as a double, where 0.45 is larger. Set as
+ * the real's own value, a similarity of exactly 9/20 passes both.
+ */
+const TRIGRAM_THRESHOLD = String(Math.fround(MIN_SIMILARITY));
+
+/**
  * SQL for entity search (D-039): names and aliases folded through
  * `search_key()` (lower-cased, accents removed), matched by trigram word
  * similarity or prefix, best match per entity kept, ranked by score, then a
@@ -22,9 +30,10 @@ export const MIN_SIMILARITY = 0.45;
  * (`<%`, word similarity at {@link MIN_SIMILARITY}, set for this transaction
  * only, and the prefix `LIKE`), so a search reads the few rows that can match
  * instead of scoring all 111,000 people and 57,000 aliases (about 2.5 s on
- * the server before, tens of milliseconds after). The narrowing keeps exactly
- * the rows the score keeps, and the secondary line (country, current club) is
- * read for the page of results only.
+ * the server before, tens of milliseconds after). The narrowing keeps every
+ * row the score keeps (at the threshold too, see {@link TRIGRAM_THRESHOLD}),
+ * and the secondary line (country, current club) is read for the page of
+ * results only. Ties end on the id, so a page is the same on every plan.
  */
 @Injectable()
 export class PostgresSearchStore {
@@ -41,19 +50,23 @@ export class PostgresSearchStore {
       alias: string | null;
       score: string;
     }[];
+    let broken: Error | undefined;
     try {
       await client.query('BEGIN READ ONLY');
       // `<%` matches at this threshold; SET LOCAL's scope ends with the transaction.
       await client.query(`SELECT set_config('pg_trgm.word_similarity_threshold', $1, true)`, [
-        String(MIN_SIMILARITY),
+        TRIGRAM_THRESHOLD,
       ]);
       ({ rows } = await client.query(SEARCH_SQL, [q, types, limit, MIN_SIMILARITY]));
       await client.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK').catch(() => undefined);
+      // A client whose rollback fails is not handed back to the pool.
+      await client.query('ROLLBACK').catch((rollback: unknown) => {
+        broken = rollback instanceof Error ? rollback : new Error(String(rollback));
+      });
       throw error;
     } finally {
-      client.release();
+      client.release(broken);
     }
     return rows.map((r) => ({
       type: r.type,
@@ -209,11 +222,11 @@ const SEARCH_SQL = `
     SELECT DISTINCT ON (type, id) type, id, name, matched_on, alias, score, exact
       FROM hits
      WHERE score >= $4 AND name IS NOT NULL
-     ORDER BY type, id, score DESC, exact DESC, matched_on
+     ORDER BY type, id, score DESC, exact DESC, matched_on, alias
   ),
   page AS (
     SELECT * FROM best
-     ORDER BY round(score::numeric, 3) DESC, exact DESC, name, type
+     ORDER BY round(score::numeric, 3) DESC, exact DESC, name, type, id
      LIMIT $3
   )
   SELECT type, id, name,
@@ -226,4 +239,4 @@ const SEARCH_SQL = `
          END AS secondary,
          matched_on, alias, round(score::numeric, 3)::text AS score
     FROM page
-   ORDER BY round(page.score::numeric, 3) DESC, page.exact DESC, page.name, page.type`;
+   ORDER BY round(page.score::numeric, 3) DESC, page.exact DESC, page.name, page.type, page.id`;
