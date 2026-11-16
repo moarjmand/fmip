@@ -289,10 +289,10 @@ made per row, a timeout -- does.
 
 | Route | First-load JS measured / budget (gzip kB) | Server response median, CI / laptop / budget (ms) |
 | --- | --- | --- |
-| home `/en` | 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
+| home `/en` | 158.2 / 159 (2026-11-16, T-1844, D-435: the header's search suggestions; budget raised from 158). Before: 150.3 / 158 (2026-10-25, T-1502, after T-1495) | 38 / 50 / 200 |
 | scores `/en/scores` | 165.1 / 170 (2026-11-05, T-1738, D-359: the pick control is server markup, and its one client module is smaller than the form it replaced; was 167.8, budget lowered 2026-11-03, T-1730, D-356) | 21 / 31 / 150 |
 | match centre `/en/match/…0901` | 177.2 / 183 (2026-11-13, T-1829 review round two: the allow-list `fromWire` applies, +1.0). 176.2 (T-1829, D-422: the server function replaced by a fetch of the public address and `fromWire`, +0.3; the budget stays 183, the maintainer's answer). 175.9 (T-1810 to T-1815 and T-1828, D-409: the moving modules are server markup in every state -- key events, statistics, line-ups, Top rated, absences -- and the client keeps the band, the bar, the tabs and the clock; 182.8 before, 175.4 after T-1814, +0.5 for the review fixes; the budget kept at 183 by the maintainer). Before: 181.8 / 183 (2026-11-06, T-1742 to T-1746, D-363 to D-367: the compact score bar, the tools row and freshness line, the coming card and the grouped absences sit in the live view's script, +2.2; 1.2 of headroom left, so the next addition to the live view needs something taken out first; was 179.6 after T-1740 and 179.2 after T-1739, budget lowered 2026-11-03, T-1730, D-356) | 77 / 76 / 300 |
-| competition `/en/competition/…0201` | 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
+| competition `/en/competition/…0201` | 158.9 / 159 (2026-11-16, T-1844, D-435: the header's search suggestions; budget raised from 158). Before: 151.1 / 158 (2026-10-25, T-1502, after T-1498) | 29 / 39 / 150 |
 
 **The raises of 2026-09-29, and the fix that undid them (T-1040, D-138).**
 The scores budget was raised from 230 to 236 (T-1004), then home and
@@ -343,6 +343,14 @@ centre's first load, should it need room again, are the live view itself
 (`match-centre-view.tsx`, about 9 kB gzip, with the line-ups about 2.3 kB)
 and the inline pick form (`prediction-form.tsx` with its field and action
 helpers, about 4 kB), which could load on the reader's first tap.
+
+**The raise of 2026-11-16 (T-1844, D-435).** The search suggestions the
+maintainer asked for (teammate request 9d1c6511) live in the header's field,
+so their client half reaches every page. The combobox is a dynamic import
+(`search-combobox-lazy.tsx`), which took the first measurement from 159.2 to
+158.2 kB on home and 159.9 to 158.9 on competition; both still over 158, so
+both budgets go from 158 to 159. No library was added. The margins are thin
+again: the next addition to the shell is a decision.
 
 **The raise of 2026-11-02 (T-1714, D-344).** The match centre's live view
 (`live-match.tsx`, a client component) renders the line-ups, so the line-up

@@ -35,7 +35,9 @@ import {
 } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader, readerAddress } from '@/lib/session';
-import { Button, Notice, TextField } from '@/components/ui';
+import { Button, Notice, controlClasses } from '@/components/ui';
+import { SearchCombobox } from '@/components/search-combobox';
+import { suggestWords } from '@/lib/search-suggest';
 
 export const dynamic = 'force-dynamic';
 
@@ -241,19 +243,18 @@ export default async function SearchPage({
         <Translated locale={locale} message="nav.search" />
       </h1>
 
-      <form action={`/${locale}/search`} method="get" className="flex gap-2" role="search">
-        <TextField
-          label={field.text}
-          hideLabel
-          id="search-term"
-          name="q"
-          type="search"
+      <form action={`/${locale}/search`} method="get" className="relative flex gap-2" role="search">
+        {/* Suggestions while typing (T-1844, D-435); the list takes the row's width. */}
+        <SearchCombobox
+          variant="page"
+          locale={locale}
+          words={suggestWords(locale)}
           defaultValue={term}
           placeholder={field.text}
+          label={field.text}
           lang={field.lang}
-          autoComplete="off"
-          className="grow"
-          data-testid="search-input"
+          inputClassName={controlClasses('md', 'min-w-0 grow')}
+          testId="search-input"
         />
         <Button type="submit" size="md">
           <Translated locale={locale} message="nav.search" />

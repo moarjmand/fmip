@@ -8,6 +8,7 @@ import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
+import { SearchComboboxLazy } from '@/components/search-combobox-lazy';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -20,6 +21,7 @@ import { logoutAction } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
 import type { ThemePreference } from '@/lib/theme';
 import { readerTimeZone } from '@/lib/reader-time-zone';
+import { suggestWords } from '@/lib/search-suggest';
 
 /**
  * The site shell (T-1381, D-199): the header, the matchday rail under it
@@ -241,7 +243,7 @@ export async function SiteHeader({
               <form
                 action={href('/search')}
                 role="search"
-                className="site-search hidden xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64"
+                className="site-search relative hidden xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64"
                 data-testid="nav-search-form"
               >
                 <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-default bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
@@ -252,12 +254,16 @@ export async function SiteHeader({
                   <span className="sr-only" lang={search.lang}>
                     {search.text}
                   </span>
-                  <input
-                    type="search"
-                    name="q"
+                  {/* Suggestions while typing (T-1844, D-435); the list hangs from the form. */}
+                  <SearchComboboxLazy
+                    variant="header"
+                    locale={locale}
+                    words={suggestWords(locale)}
+                    // Its own name: the list and the live region inside the label must not join it.
+                    label={search.text}
                     placeholder={placeholder.text}
-                    className="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
-                    data-testid="nav-search-input"
+                    inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
+                    testId="nav-search-input"
                   />
                 </label>
               </form>
