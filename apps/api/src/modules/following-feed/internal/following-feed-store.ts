@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { hiddenHeadline, otherSportEventOf } from '@fmip/ingestion';
+import { hiddenHeadline, notFootballOf } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
@@ -34,6 +34,15 @@ export interface StoryRow {
   url: string;
   team_ids: string[];
   competition_ids: string[];
+}
+
+/** A story row with what `notFootballOf` reads (T-1841), dropped before it is returned. */
+interface JudgedStoryRow extends StoryRow {
+  summary: string | null;
+  categories: string[] | null;
+  feed_url: string | null;
+  searched: boolean;
+  entity_types: ('team' | 'competition' | 'person' | 'fixture')[];
 }
 
 export interface AnalysisRow {
@@ -143,9 +152,13 @@ export class PostgresFollowingFeedStore {
     userId: string,
     locale: string | null,
   ): Promise<StoryRow[]> {
-    const { rows } = await this.pool.query<StoryRow>(
+    const { rows } = await this.pool.query<JudgedStoryRow>(
       `SELECT s.id AS story_id, v.headline, v.language, v.published_at, a.fetched_at,
               src.name AS source_name, a.url,
+              v.summary, src.feed_url, src.via_source_id IS NOT NULL AS searched,
+              (SELECT array_agg(ac.category ORDER BY ac.position, ac.category)
+                 FROM article_category ac WHERE ac.article_id = a.id) AS categories,
+              array_agg(DISTINCT e.entity_type) AS entity_types,
               array_remove(array_agg(DISTINCT CASE WHEN e.entity_type = 'team' THEN e.entity_id END), NULL)
                 AS team_ids,
               array_remove(array_agg(DISTINCT CASE WHEN e.entity_type = 'competition' THEN e.entity_id END), NULL)
@@ -156,7 +169,7 @@ export class PostgresFollowingFeedStore {
                 COALESCE($5::text, (SELECT preferred_language FROM user_account WHERE id = $6::uuid)))
          JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
          JOIN LATERAL (
-           SELECT headline, language, published_at
+           SELECT headline, summary, language, published_at
              FROM article_version
             WHERE article_id = a.id
             ORDER BY (language = src.language) DESC, created_at DESC, version_number DESC
@@ -165,19 +178,34 @@ export class PostgresFollowingFeedStore {
          JOIN article m ON m.story_id = s.id
          JOIN article_entity e ON e.article_id = m.id
         WHERE COALESCE(v.published_at, a.fetched_at) BETWEEN $3::timestamptz AND $4::timestamptz
-        GROUP BY s.id, v.headline, v.language, v.published_at, a.fetched_at, src.name, a.url
+        GROUP BY s.id, v.headline, v.summary, v.language, v.published_at, a.fetched_at, src.name, a.url,
+                 src.feed_url, src.via_source_id, a.id
        HAVING bool_or((e.entity_type = 'team' AND e.entity_id = ANY($1::uuid[]))
                    OR (e.entity_type = 'competition' AND e.entity_id = ANY($2::uuid[])))
         ORDER BY COALESCE(v.published_at, a.fetched_at) DESC
         LIMIT 100`,
       [teams, competitions, window.since, window.until, locale, userId],
     );
-    // T-1818 (D-413): a headline on the named list is not shown, nor (T-1833,
-    // D-426) another sport's own event, as in the news lists; applied on
-    // read, nothing is deleted.
-    return rows.filter(
-      (r) => hiddenHeadline(r.headline) === null && !otherSportEventOf(r.headline),
-    );
+    // T-1818 (D-413): a headline on the named list is not shown, nor (T-1841,
+    // D-429) a story about another sport, by the news lists' one rule; applied
+    // on read, nothing is deleted.
+    return rows
+      .filter(
+        (r) =>
+          hiddenHeadline(r.headline) === null &&
+          notFootballOf({
+            headline: r.headline,
+            summary: r.summary,
+            categories: r.categories ?? [],
+            feedUrl: r.feed_url,
+            searched: r.searched,
+            filedTo: r.entity_types,
+          }) === null,
+      )
+      .map(
+        ({ summary: _s, categories: _c, feed_url: _f, searched: _q, entity_types: _e, ...row }) =>
+          row,
+      );
   }
 
   async analyses(teams: string[], competitions: string[], window: Window): Promise<AnalysisRow[]> {

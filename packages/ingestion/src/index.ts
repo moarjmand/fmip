@@ -70,6 +70,20 @@ export {
   otherCodeOf,
   otherSportEventOf,
 } from './news/other-code';
+// Football only on the news pages: the one judgement of a stored item (T-1841, D-429).
+export {
+  FOOTBALL_WORDS,
+  GENERAL_SPORTS_FEEDS,
+  NOT_FOOTBALL_SECTIONS,
+  OTHER_SPORT_SECTIONS,
+  type NewsItemSignals,
+  type NotFootball,
+  footballEvidence,
+  isGeneralSportsFeed,
+  notFootballOf,
+  persianOtherSportHeadline,
+  sectionOf,
+} from './news/football-only';
 // Items whose own headline says they are not articles (T-1396, D-211).
 export {
   NON_ARTICLE_RULES,
