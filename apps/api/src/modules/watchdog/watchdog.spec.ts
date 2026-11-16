@@ -26,6 +26,7 @@ import {
   deliveryChannel,
   eloSource,
   highlightlyBudget,
+  highlightlyRefused,
   ingestJob,
   levelOf,
   liveFeed,
@@ -231,6 +232,139 @@ describe('highlightly_budget', () => {
       [],
     ).find((r) => r.key === 'highlightly_budget');
     expect(reading).toMatchObject({ level: 'unknown', note: 'boom', observed: null });
+  });
+});
+
+describe('highlightly_refused (T-1855)', () => {
+  const NOW_R = new Date('2026-11-16T18:00:00Z');
+  const since = (hours: number) => new Date(NOW_R.getTime() - hours * 3600 * 1000);
+
+  it('is ok while Highlightly answers, whatever our own count', () => {
+    expect(highlightlyRefused({ configured: true, refusedSince: null }, NOW_R)).toMatchObject({
+      key: 'highlightly_refused',
+      level: 'ok',
+      observed: 0,
+    });
+    expect(highlightlyRefused({ configured: true }, NOW_R).level).toBe('ok');
+  });
+
+  it('is degraded from the first refusal and failing after twelve hours of them', () => {
+    expect(highlightlyRefused({ configured: true, refusedSince: NOW_R }, NOW_R)).toMatchObject({
+      level: 'degraded',
+      observed: 1,
+    });
+    const day = highlightlyRefused({ configured: true, refusedSince: since(11) }, NOW_R);
+    expect(day).toMatchObject({ level: 'degraded', observed: 11 * 3600 });
+    expect(day.note).toContain('2026-11-16T07:00:00.000Z');
+    expect(highlightlyRefused({ configured: true, refusedSince: since(12) }, NOW_R).level).toBe(
+      'failing',
+    );
+  });
+
+  it('is ok without a key, and unknown when the reading could not be taken', () => {
+    expect(highlightlyRefused({ configured: false }, NOW_R)).toMatchObject({
+      level: 'ok',
+      observed: null,
+      note: expect.stringContaining('HIGHLIGHTLY_KEY') as string,
+    });
+    const reading = readingsOf(
+      { ...observationsForBudget(), highlightly: { unreadable: 'boom' } },
+      new Map(),
+      NOW_R,
+      [],
+    ).find((r) => r.key === 'highlightly_refused');
+    expect(reading).toMatchObject({ level: 'unknown', note: 'boom', observed: null });
+  });
+
+  it('keeps the last reading through a restart until Highlightly is heard again: no false recovery', () => {
+    const before = {
+      level: 'failing' as const,
+      since: since(2),
+      observed: 14 * 3600,
+    };
+    const held = highlightlyRefused(
+      { configured: true, heard: false, refusedSince: null },
+      NOW_R,
+      before,
+    );
+    expect(held).toMatchObject({ level: 'failing', observed: 14 * 3600 });
+    expect(
+      step({ key: 'highlightly_refused', incidentId: 7, ...before }, held, NOW_R).event,
+    ).toBeNull();
+    expect(
+      highlightlyRefused({ configured: true, heard: false, refusedSince: null }, NOW_R).level,
+    ).toBe('ok');
+  });
+
+  it('readingsOf hands the stored condition on, so a restart reads no recovery end to end', () => {
+    const stored: StoredCondition = {
+      key: 'highlightly_refused',
+      level: 'failing',
+      since: since(2),
+      observed: 14 * 3600,
+      incidentId: 7,
+    };
+    const reading = readingsOf(
+      {
+        ...observationsForBudget(),
+        highlightly: {
+          configured: true,
+          requestsToday: 0,
+          budget: 5000,
+          heard: false,
+          refusedSince: null,
+        },
+      },
+      new Map([['highlightly_refused', stored]]),
+      NOW_R,
+      [],
+    ).find((r) => r.key === 'highlightly_refused');
+    expect(reading).toMatchObject({ level: 'failing', observed: 14 * 3600 });
+    expect(step(stored, reading!, NOW_R).event).toBeNull();
+  });
+
+  it('dates a refusal seen again after a restart from the stored incident, so the clock goes on', () => {
+    const degraded = { level: 'degraded' as const, since: since(11), observed: 3600 };
+    const again = highlightlyRefused(
+      { configured: true, heard: true, refusedSince: since(0.5) },
+      NOW_R,
+      degraded,
+    );
+    expect(again).toMatchObject({ level: 'degraded', observed: 11 * 3600 });
+    expect(
+      highlightlyRefused(
+        { configured: true, heard: true, refusedSince: since(0.5) },
+        new Date(NOW_R.getTime() + 3600 * 1000),
+        degraded,
+      ).level,
+    ).toBe('failing');
+    const failing = { level: 'failing' as const, since: since(3), observed: 15 * 3600 };
+    expect(
+      highlightlyRefused(
+        { configured: true, heard: true, refusedSince: since(0.5) },
+        NOW_R,
+        failing,
+      ).observed,
+    ).toBe(15 * 3600);
+    // an answer in between ends it: a later refusal starts its own clock
+    const ok = { level: 'ok' as const, since: since(1), observed: 0 };
+    expect(
+      highlightlyRefused({ configured: true, heard: true, refusedSince: since(0.5) }, NOW_R, ok),
+    ).toMatchObject({ level: 'degraded', observed: 1800 });
+  });
+
+  it('reads the refusal the quota passes on, beside the budget it leaves untouched', () => {
+    const readings = readingsOf(
+      {
+        ...observationsForBudget(),
+        highlightly: { configured: true, requestsToday: 2, budget: 5000, refusedSince: since(200) },
+      },
+      new Map(),
+      NOW_R,
+      [],
+    );
+    expect(readings.find((r) => r.key === 'highlightly_budget')?.level).toBe('ok');
+    expect(readings.find((r) => r.key === 'highlightly_refused')?.level).toBe('failing');
   });
 });
 
@@ -745,6 +879,7 @@ describe('readingsOf', () => {
       'live_feed',
       'request_budget',
       'highlightly_budget',
+      'highlightly_refused',
       'jobs:ingestion',
       'model_service',
       'elo_source',

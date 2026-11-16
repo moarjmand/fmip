@@ -15679,6 +15679,17 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 **Consequences.** An operator can no longer copy a member's link out of the production log when mail is down; that is intended. Lines written before this was deployed stay in the container's log until the container is recreated (each rollout recreates it).
 
+## D-440 — The watchdog reads Highlightly's own refusals apart from our ceiling
+
+**Date:** 2026-11-16. **Task:** T-1855. **Follows:** D-095, D-224.
+
+**Context.** The highlights feed and the box scores share one Highlightly ceiling (`HIGHLIGHTS_DAILY_BUDGET`, D-224), and the watchdog's `highlightly_budget` reads only our own count against it. Both feeds stop at their first refusal and record the run as `stopped: quota`, which is not a failed job. From about 2026-11-09 Highlightly answered every request with its "daily request limits" 429 while our count read about 2 of 5000: box scores fell from 17-92 matches a day to 0-2, and no condition left `ok` for a week. The 2026-11-16 audit of the scheduled jobs found it in the logs.
+
+**Decision.** `DailyBudgetTransport`, the one door both feeds go through, remembers since when the provider itself has refused: a 429 from the network sets `refusedSince` if it is unset; an answer under 400 clears it; a 403, a 5xx or a thrown timeout says nothing about the plan and leaves it as it was; and its own spent ceiling (a 429 it makes up without asking) never touches it. `heard` says whether, since the process started, the provider has answered with a 429 or under 400 at all. The new condition `highlightly_refused` is the seconds since then: `degraded` from the first refusal, because its 429 is the daily limit (the adapter records `requestsPerMinute: null` for Highlightly), so one refusal while our count is under the ceiling already means the plan does not serve what we ask; `failing` after 12 hours, which is past at least one of the provider's midnight resets. `ok` while the provider answers and without `HIGHLIGHTLY_KEY`, `unknown` when the reading could not be taken, like `highlightly_budget`.
+
+**Consequences.** The refusal is kept in the process's memory like the count, not in a table, so a rollout forgets it. The condition does not read that as an ending: until the provider is heard again (the feeds run every two hours) it keeps the previous level and value, so no `recovered` alert goes out and no second `raised` follows it; when the provider refuses again, the refusal is dated from the earlier of the process's own first refusal and the start the stored condition implies (its `since` when `degraded`, twelve hours before that when `failing`), so the 12-hour clock to `failing` survives rollouts. The ingestion module's own Highlightly adapter, a separate count, is not covered; production ingests from API-Football only. What to do about a refusal (the provider account, the plan) stays the maintainer's; the condition only makes it visible.
+
+
 ## D-435 — Suggestions under the search fields, from a public same-origin route
 
 **Date:** 2026-11-16. **Task:** T-1844 (teammate request 9d1c6511, point 2). **Design:** canvas https://claude.ai/artifact/7vAWaArJvtcTT2uonBzmy9, spec `E:/FMIP/ops/reports/designer/2026-11-16-t1844-search-suggest/spec.md`; the maintainer approved the designer's recommendations on 2026-11-16 («بله، بساز»).
