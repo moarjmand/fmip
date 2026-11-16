@@ -3,7 +3,7 @@ import type { GroupSearchResult, MemberSearchResult, StorySearchResult } from '@
 import { hiddenHeadline, otherSportEventOf } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
-import { MIN_SIMILARITY } from './search-store';
+import { MIN_SIMILARITY, queryAtMinSimilarity } from './search-store';
 
 /** Rows read past a search's limit, for the headlines D-413 and D-426 leave out (T-1818, T-1833). */
 const HIDDEN_HEADROOM = 10;
@@ -41,7 +41,12 @@ export class PostgresCommunitySearchStore {
     limit: number,
     locale: string | null = null,
   ): Promise<StorySearchResult[]> {
-    const { rows } = await this.pool.query<{
+    // T-1845: only the stories a matching headline belongs to are scored --
+    // by the article's story, or by the story that promotes the article --
+    // found through the trigram index on article_version's headlines, in
+    // place of resolving every story's shown article first (2.6 s on
+    // production). Every headline the score can keep matches here.
+    const rows = await queryAtMinSimilarity<{
       story_id: string;
       headline: string;
       language: string;
@@ -50,7 +55,19 @@ export class PostgresCommunitySearchStore {
       published_at: Date;
       score: string;
     }>(
+      this.pool,
       `WITH q AS (SELECT search_key($1) AS key),
+       matching AS (
+         SELECT DISTINCT mv.article_id
+           FROM article_version mv
+          WHERE search_key($1) <% search_key(mv.headline)
+             OR search_key(mv.headline) LIKE search_key($1) || '%'
+       ),
+       candidates AS (
+         SELECT ma.story_id AS id FROM article ma JOIN matching m ON m.article_id = ma.id
+         UNION
+         SELECT ms.id FROM story ms JOIN matching m ON m.article_id = ms.promoted_article_id
+       ),
        hits AS (
          SELECT DISTINCT ON (s.id)
                 s.id AS story_id, v.headline, v.language, src.name AS source_name, a.url,
@@ -60,6 +77,7 @@ export class PostgresCommunitySearchStore {
                   CASE WHEN search_key(v.headline) LIKE q.key || '%' THEN 1 ELSE 0 END
                 ) AS score
            FROM story s
+           JOIN candidates cs ON cs.id = s.id
            JOIN article a ON a.id = story_shown_article(s.id, s.promoted_article_id, $4::text)
            JOIN news_source src ON src.id = a.source_id AND src.dropped_at IS NULL
            -- The newest version in each language: an older headline is what
