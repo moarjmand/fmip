@@ -54,7 +54,16 @@ export interface SocialFacts {
     status: FixtureStatus;
     kick_off: string;
     coverage: CoverageState;
+    /** When the fixture, its scores or its incidents last changed: a result's "settled" clock. */
     last_updated_at: string | null;
+    /**
+     * When the fixtures list was last read: the finish of the newest succeeded
+     * `fixtures` ingestion run of global scope (null when there is none). A
+     * forecast post's freshness clock, since the ingestion writes a fixture
+     * only when something about it changes (D-427 point 3, as amended
+     * 2026-11-16 after the production measurement).
+     */
+    read_at: string | null;
     score_dispute: boolean;
   };
   /** The forecast the post carries (null for a result). */
@@ -80,7 +89,10 @@ export function checkGates(facts: SocialFacts, now: Date): SocialGateCheck {
 
   if (fixture.coverage !== 'available') failed.push('coverage');
 
-  const updated = fixture.last_updated_at === null ? NaN : Date.parse(fixture.last_updated_at);
+  // A forecast post: the fixtures list read within six hours (no run, fail closed).
+  // A result: the fixture unchanged for 30 minutes.
+  const clock = kind === 'forecast_pre_match' ? fixture.read_at : fixture.last_updated_at;
+  const updated = clock === null ? NaN : Date.parse(clock);
   const age = now.getTime() - updated;
   const fresh =
     !Number.isNaN(updated) &&
@@ -429,6 +441,60 @@ export function buildBody(
     if (fits) return { body, template_version: templateVersion(payload.kind) };
   }
   return null;
+}
+
+/**
+ * A caption line a person may not touch: any figure (a percentage, a score,
+ * a time, the model's version), the model's name, the verdict, the link.
+ */
+const PROTECTED_LINE = /\d|%|https?:\/\/|Stadiomind model|^(Yes|No):/i;
+/** Another prediction product named in a caption (rule 6: never blended or relabelled). */
+const OTHER_PRODUCT = /\b(founder|founder's|community|consensus|tipsters?)\b/i;
+
+export type CaptionRefusal =
+  'text_blank' | 'too_long' | 'figures_changed' | 'other_product' | 'sensitive_text';
+
+/**
+ * A person's edit of a post's caption (review of PR #895, finding 3; rules 5
+ * and 6). Only the words around the figures may change: every line of the
+ * drafted text that carries a figure, the model's name, the verdict or the
+ * link stays, unchanged and in order, and no such line is added; the card's
+ * payload is not editable at all. The text must still fit its network, name
+ * no other prediction product, and touch no sensitive topic once the match's
+ * own names are taken out.
+ */
+export function checkCaptionEdit(
+  post: { network: SocialNetwork; body: string; payload: SocialCardPayload },
+  edited: string,
+): Refusal<CaptionRefusal> {
+  if (edited.trim() === '') return { ok: false, refusal: 'text_blank' };
+  const fits =
+    post.network === 'x'
+      ? xLength(edited) <= X_MAX_LENGTH
+      : [...edited].length <= INSTAGRAM_MAX_LENGTH;
+  if (!fits) return { ok: false, refusal: 'too_long' };
+  const guarded = (text: string): string[] =>
+    text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => PROTECTED_LINE.test(l));
+  const before = guarded(post.body);
+  const after = guarded(edited);
+  if (before.length !== after.length || before.some((line, i) => line !== after[i])) {
+    return { ok: false, refusal: 'figures_changed' };
+  }
+  if (OTHER_PRODUCT.test(edited) && !OTHER_PRODUCT.test(post.body)) {
+    return { ok: false, refusal: 'other_product' };
+  }
+  const { payload } = post;
+  const names = [payload.home, payload.away]
+    .flatMap((t) => [t.name, t.short_name, t.code])
+    .concat(payload.competition.name)
+    .filter((n): n is string => n !== null);
+  if (sensitiveTopicsIn(withoutOwnNames(edited, { names })).length > 0) {
+    return { ok: false, refusal: 'sensitive_text' };
+  }
+  return { ok: true };
 }
 
 // ---------------------------------------------------------------------------

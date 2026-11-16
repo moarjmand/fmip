@@ -178,6 +178,22 @@ export class PostgresRunStore {
     );
     return rows;
   }
+
+  /**
+   * When the newest run of a job that succeeded in full over its whole scope
+   * (no `scope`: not a scoped schedule pass or a backfill) finished, or null
+   * (T-1838: the social posts' forecast freshness, D-427 point 3).
+   */
+  async lastGlobalSuccess(provider: string, job: string): Promise<Date | null> {
+    const { rows } = await this.pool.query<{ finished_at: Date }>(
+      `SELECT finished_at FROM ingest_run
+        WHERE provider = $1 AND job = $2 AND status = 'succeeded'
+          AND (scope IS NULL OR btrim(scope) = '')
+        ORDER BY finished_at DESC LIMIT 1`,
+      [provider, job],
+    );
+    return rows[0]?.finished_at ?? null;
+  }
 }
 
 const COLUMNS =

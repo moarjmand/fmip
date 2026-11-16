@@ -157,7 +157,7 @@ export interface SocialCardModel {
 export interface SocialForecastPayload extends SocialCardBase {
   kind: 'forecast_pre_match';
   model: SocialCardModel;
-  /** Whole percentages, adding up to 100. */
+  /** Percentages with one decimal, as the site shows them, adding up to 100.0 (T-1838). */
   percent: { home: number; draw: number; away: number };
 }
 
@@ -179,7 +179,7 @@ export interface SocialVerdictPayload extends SocialCardBase {
    * name, which is extra time alone.)
    */
   after_extra_time: boolean;
-  /** The outcome the model gave the most, and its whole percentage. */
+  /** The outcome the model gave the most, and its percentage (one decimal, as `percent`). */
   called: SocialOutcome;
   called_percent: number;
   /** The frozen forecast's three shares, as the forecast card drew them; the card's bar when known (T-1835). */
