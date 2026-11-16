@@ -22,6 +22,7 @@ import { ForecastService, roundToTotalOne } from '../forecast/forecast.service';
 import { FixturesService } from '../fixtures/fixtures.service';
 import { IngestRunsService } from '../ingestion/ingest-runs.service';
 import { NewsHeadlines } from '../news/news-headlines.service';
+import { type SecretBox, SOCIAL_SECRET_BOX, credentialAad } from './internal/secret-box';
 import {
   type NewSocialPost,
   PostgresSocialPostStore,
@@ -37,8 +38,14 @@ import {
   checkGates,
   expiresAt,
   londonDay,
+  publishingOutcome,
   sensitivity,
 } from './internal/social-rules';
+import {
+  SOCIAL_PUBLISHER,
+  type SocialKeyState,
+  type SocialPublisher,
+} from './social-publisher.port';
 
 /** The site the posts link to (`WEB_BASE_URL`), as the channel post's and the e-mails' links. */
 export const SOCIAL_OPTIONS = Symbol('SOCIAL_OPTIONS');
@@ -64,6 +71,19 @@ const LIVE_STATES: readonly SocialPostState[] = [
   'unknown',
 ];
 const UNCLAIMED_STATES: readonly SocialPostState[] = ['pending_approval', 'approved', 'refused'];
+
+/** The longest key accepted; Buffer's are far shorter. */
+export const SOCIAL_KEY_MAX_LENGTH = 1024;
+
+/** What the publisher may do with a post at its slot, after the last checks (D-427 point 3). */
+export type PublishCheck =
+  | { go: true; post: SocialPostRecord }
+  | { go: false; why: 'gone' | 'expired' | 'superseded' | 'sensitive'; failed?: string[] };
+
+/** The key as the console shows it: never the key. */
+export type SocialKeyStatus =
+  | { state: 'not_set' }
+  | { state: Exclude<SocialKeyState, 'not_set'>; set_at: string; set_by: string };
 
 /** Why a candidate was not drafted, for the job's log. */
 export type SkipReason = `gates:${string}` | 'too_long';
@@ -175,7 +195,9 @@ export function shownForecast(
  * `EvaluationService.countedFor`, D-209; `NewsHeadlines`). Each candidate goes
  * through the gates and the sensitive-topic check of `social-rules.ts`, and a
  * post is drafted frozen with its text, card payload, inputs, gates, template
- * version, forecast and model version. Nothing here publishes (T-1837).
+ * version, forecast and model version. Nothing here publishes: the scheduler
+ * does (T-1837), after `checkAtPublishing`; the publisher's key is set and
+ * cleared here, sealed.
  *
  * The console's actions (T-1836) come through here too, so a person's
  * approval is checked against the gates as they stand at that moment.
@@ -192,6 +214,8 @@ export class SocialPublishingService {
     private readonly runs: IngestRunsService,
     private readonly store: PostgresSocialPostStore,
     @Inject(SOCIAL_OPTIONS) private readonly options: SocialOptions,
+    @Inject(SOCIAL_PUBLISHER) private readonly publisher: SocialPublisher,
+    @Inject(SOCIAL_SECRET_BOX) private readonly box: SecretBox | null,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -322,12 +346,56 @@ export class SocialPublishingService {
    * 3): at a person's approval here, and at publishing (T-1837).
    */
   async gatesNow(post: SocialPostRecord, now: Date = new Date()): Promise<SocialGateCheck> {
+    return (await this.checkNow(post, now)).gates;
+  }
+
+  /**
+   * The last checks before a post goes out (T-1837, D-427 point 3), from
+   * fresh reads: a gate that fails ends it (`superseded` when the forecast
+   * the page shows changed, else `expired`), audited; a headline found
+   * sensitive since drafting marks it so, and a post the job approved goes
+   * back to a person. Only then may it be claimed.
+   */
+  async checkAtPublishing(id: string, now: Date = new Date()): Promise<PublishCheck> {
+    const post = await this.store.get(id);
+    if (post === null || (post.state !== 'approved' && post.state !== 'refused')) {
+      return { go: false, why: 'gone' };
+    }
+    const { gates, card } = await this.checkNow(post, now);
+    const outcome = publishingOutcome(gates);
+    if (outcome !== 'publish') {
+      const ended = await this.store.end(
+        id,
+        outcome,
+        `a gate failed at publishing: ${gates.failed.join(', ')}`,
+      );
+      return { go: false, why: ended.ok ? outcome : 'gone', failed: gates.failed };
+    }
+    if (!post.sensitive && card !== undefined) {
+      const reason = await this.sensitivityOf(card.card, now);
+      if (reason !== null) {
+        const marked = await this.store.markSensitive(id, reason);
+        if (!marked.ok || marked.value === 'pending_approval') {
+          return { go: false, why: 'sensitive' };
+        }
+      }
+    }
+    return { go: true, post };
+  }
+
+  private async checkNow(
+    post: SocialPostRecord,
+    now: Date,
+  ): Promise<{ gates: SocialGateCheck; card: Candidate | undefined }> {
     const kickOff = new Date(post.payload.kick_off);
     const card = (await this.candidatesBetween(kickOff, kickOff)).find(
       (c) => c.card.id === post.fixture_id,
     );
     if (card === undefined) {
-      return { checked_at: now.toISOString(), passed: false, failed: ['fixture_status'] };
+      return {
+        gates: { checked_at: now.toISOString(), passed: false, failed: ['fixture_status'] },
+        card,
+      };
     }
     const counted =
       post.kind === 'model_verdict'
@@ -335,9 +403,9 @@ export class SocialPublishingService {
         : null;
     const built = await this.build(card, post.kind, counted, await this.fixturesReadAt(), now);
     if (built.gates.passed && post.forecast_id !== built.forecastId) {
-      return { ...built.gates, passed: false, failed: ['forecast_shown'] };
+      return { gates: { ...built.gates, passed: false, failed: ['forecast_shown'] }, card };
     }
-    return built.gates;
+    return { gates: built.gates, card };
   }
 
   // -------------------------------------------------------------------------
@@ -405,6 +473,57 @@ export class SocialPublishingService {
 
   get(id: string): Promise<SocialPostRecord | null> {
     return this.store.get(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // The publisher's key (T-1837; the console's write-only field is T-1836).
+  // Sealed here, opened only by the publisher; never returned, never logged.
+  // -------------------------------------------------------------------------
+
+  /**
+   * Sets the publisher's key, sealed (AES-256-GCM, HKDF from
+   * `SESSION_SECRET`), replacing any before it, with an audit row naming who
+   * and when, never the key. Refused when the key is blank, too long or holds
+   * a space or a control character, and when there is no usable `SESSION_SECRET`.
+   */
+  async setKey(
+    actor: SocialActor,
+    key: string,
+    reason = 'the publisher key was entered',
+  ): Promise<
+    StoreOutcome<{ set_at: string }, 'key_invalid' | 'no_secret_box' | 'reason_required'>
+  > {
+    const value = key.trim();
+    if (value === '' || value.length > SOCIAL_KEY_MAX_LENGTH || /[\s\p{Cc}]/u.test(value)) {
+      return { ok: false, refusal: 'key_invalid' };
+    }
+    const box = this.box;
+    if (box === null) return { ok: false, refusal: 'no_secret_box' };
+    const provider = this.publisher.provider;
+    const set = await this.store.setCredential(
+      provider,
+      actor,
+      (rowId) => box.seal(value, credentialAad(provider, rowId)),
+      reason,
+    );
+    return set.ok ? { ok: true, value: { set_at: set.value.set_at.toISOString() } } : set;
+  }
+
+  /** Clears the publisher's key, with a reason and an audit row; nothing is published after. */
+  clearKey(actor: SocialActor, reason: string) {
+    return this.store.clearCredential(this.publisher.provider, actor, reason);
+  }
+
+  /** "set on <date> by <who>", "not set" or "unreadable": never the key. */
+  async keyStatus(): Promise<SocialKeyStatus> {
+    const record = await this.store.credentialRecord(this.publisher.provider);
+    if (record === null) return { state: 'not_set' };
+    const state = await this.publisher.keyState();
+    return {
+      state: state === 'set' ? 'set' : 'unreadable',
+      set_at: record.set_at.toISOString(),
+      set_by: record.set_by,
+    };
   }
 
   // -------------------------------------------------------------------------

@@ -247,3 +247,30 @@ export interface SocialAutomation {
   level_changed_at: string | null;
   level_changed_by: string | null;
 }
+
+/**
+ * `GET /health/social` (T-1837): whether the publisher could post, never the
+ * key. `key` is `unreadable` when the stored key no longer opens (another
+ * `SESSION_SECRET`); then, as with `not_set` or `stopped`, nothing is published.
+ */
+export interface SocialPublishingHealth {
+  checked_at: string;
+  /** The publisher behind the port (`buffer`). */
+  publisher: string;
+  key: 'set' | 'not_set' | 'unreadable';
+  /** The kill switch: true while publishing is stopped. */
+  stopped: boolean;
+  /** Whether this instance runs the job (`INGESTION_SCHEDULE=on` and Redis). */
+  scheduled: boolean;
+  /** The pause the provider asked for after a rate limit, or null. */
+  paused_until: string | null;
+  networks: SocialNetworkHealth[];
+}
+
+export interface SocialNetworkHealth {
+  network: SocialNetwork;
+  /** The newest post published on it, or null. */
+  last_published_at: string | null;
+  /** The newest attempt (a claim or its outcome), or null. */
+  last_attempt: { state: SocialPostState; at: string } | null;
+}
