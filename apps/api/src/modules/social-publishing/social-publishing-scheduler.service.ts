@@ -284,6 +284,9 @@ export class SocialPublishingScheduler implements OnModuleInit, OnApplicationShu
     let answer:
       { state: 'published'; providerRef: string } | { state: 'refused' | 'unknown'; error: string };
     try {
+      // A stop that committed after the claim: nothing has been sent yet, so it is a refusal.
+      if (await this.store.stopped())
+        throw new SocialRefusal('publishing was stopped before sending');
       const { providerRef } = await this.publisher.publish({
         network: post.network,
         text: post.body,

@@ -1228,6 +1228,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(JSON.stringify(health)).not.toContain(KEY);
     });
 
+    it("sends a person's approval back when the post turns sensitive before publishing", async () => {
+      const post = await live(f.late, 'result', 'instagram');
+      expect(post).toMatchObject({ state: 'pending_approval', sensitive: false });
+      expect((await social.approve(post.id, owner, PUBLISH_AT)).ok).toBe(true);
+      // After the approval, a death linked to the match.
+      await headline(`Supporter dies outside the ground ${RUN}`, { type: 'fixture', id: f.late });
+      const before = creates().length;
+
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({ kind: 'nothing' });
+      expect(creates().length).toBe(before);
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'pending_approval',
+        sensitive: true,
+        sensitive_reason: 'death',
+        approved_by: null,
+        approved_by_name: null,
+      });
+      expect((await audits(post.id)).at(-1)).toMatchObject({
+        actor_id: null,
+        actor_name: 'automation',
+        action: 'social.sensitive',
+        reason: 'became sensitive after approval',
+        previous: { state: 'approved', approved_by: owner.name },
+        next: { state: 'pending_approval', sensitive_reason: 'death' },
+      });
+      // A fresh approval by a person, seeing the flag, lets it go.
+      expect((await social.approve(post.id, teammate, PUBLISH_AT)).ok).toBe(true);
+      expect((await social.checkAtPublishing(post.id, PUBLISH_AT)).go).toBe(true);
+    });
+
     it('holds a raise to automatic to a reason of its own in the database too', async () => {
       await setVerdictRun(14);
       const last = (

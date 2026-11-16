@@ -8,6 +8,7 @@ import {
   SocialRefusal,
 } from '../social-publisher.port';
 import { type SecretBox, credentialAad } from './secret-box';
+import { fitsNetwork } from './social-rules';
 
 /**
  * Buffer behind the social publisher port (T-1837, D-427 point 10): the only
@@ -47,7 +48,9 @@ import { type SecretBox, credentialAad } from './secret-box';
  *   is a `MutationError` ("Failed to fetch image dimensions: Not Found")
  *   (guides/hosting-media).
  * - Text: X 280 characters on a free X account (links 23); Instagram 2,196,
- *   UTF-16 units, a line break counting 2 (guides/character-limits).
+ *   UTF-16 units, a line break counting 2 (guides/character-limits). Both
+ *   are `fitsNetwork` in `social-rules.ts`, held at drafting and on an edit;
+ *   a text over them is refused here before anything is asked.
  *
  * What is ours, not Buffer's: Buffer's Free plan has 3 channels and a
  * 10-post queue a channel (buffer.com pricing, not in the API docs), so a
@@ -219,7 +222,16 @@ export class BufferPublisher implements SocialPublisher {
     if (!/^https?:\/\/[^\s/]+\/\S+$/.test(post.imageUrl)) {
       throw new SocialRefusal('the card address is not an absolute web address');
     }
-    const opened = await this.readKey();
+    if (!fitsNetwork(post.text, post.network)) {
+      throw new SocialRefusal(`the text is longer than Buffer takes for ${post.network}`);
+    }
+    let opened: Awaited<ReturnType<BufferPublisher['readKey']>>;
+    try {
+      opened = await this.readKey();
+    } catch (error) {
+      // Nothing was sent: the stored key could not even be read.
+      throw new SocialRefusal(`before posting, the key could not be read: ${describe(error)}`);
+    }
     if (opened.state !== 'set') {
       throw new SocialRefusal(
         opened.state === 'not_set' ? 'no Buffer key is set' : 'the Buffer key is unreadable',
@@ -243,6 +255,10 @@ export class BufferPublisher implements SocialPublisher {
         },
       });
     } catch (error) {
+      // No address or no listener: the request never left, so nothing was posted.
+      if (NEVER_SENT.has(causeCode(error) ?? '')) {
+        throw new SocialRefusal(`buffer unreachable: ${this.scrub(describe(error), key)}`);
+      }
       // Sent, or perhaps sent: a timeout or a dropped connection says nothing of the outcome.
       throw new Error(`buffer did not answer: ${this.scrub(describe(error), key)}`);
     }
@@ -435,6 +451,14 @@ export function pauseOf(headers: Headers, now: number = Date.now()): number {
   const t = limit === null ? null : /(?:^|[;,\s])t=(\d+)/.exec(limit);
   if (t !== null && t !== undefined) return Number(t[1]) * 1000;
   return BUFFER_DEFAULT_PAUSE_MS;
+}
+
+/** Connection failures that happen before a byte of the request is sent. */
+const NEVER_SENT = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED']);
+
+function causeCode(error: unknown): string | null {
+  const cause = error instanceof Error ? (error as { cause?: unknown }).cause : null;
+  return cause !== null && typeof cause === 'object' && 'code' in cause ? String(cause.code) : null;
 }
 
 function describe(error: unknown): string {

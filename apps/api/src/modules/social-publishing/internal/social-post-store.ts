@@ -470,10 +470,13 @@ export class PostgresSocialPostStore {
   }
 
   /**
-   * A headline found sensitive after drafting: the post waits for a person,
-   * an approval by `automation` withdrawn in the same statement (the CHECK
-   * forbids the job's approval of a sensitive post). Only before publishing,
-   * and never undone; a post already sensitive is left as it is.
+   * A headline found sensitive after drafting: the post waits for a person.
+   * Any approval is withdrawn in the same statement -- the job's (the CHECK
+   * forbids it on a sensitive post) and a person's too, who approved it
+   * without that headline ("became sensitive after approval", D-427 point 5
+   * as amended 2026-11-16, review of PR #896): it needs a fresh approval.
+   * Only before publishing, and never undone; a post already sensitive is
+   * left as it is.
    */
   async markSensitive(
     id: string,
@@ -487,7 +490,7 @@ export class PostgresSocialPostStore {
       if (!['pending_approval', 'approved', 'refused'].includes(post.state)) {
         throw new Refused('not_waiting');
       }
-      const withdraw = post.approved_by_name === SOCIAL_AUTOMATION_ACTOR;
+      const withdraw = post.approved_by_name !== null;
       const state: SocialPostState = withdraw ? 'pending_approval' : post.state;
       await c.query(
         `UPDATE social_post
@@ -504,8 +507,13 @@ export class PostgresSocialPostStore {
         action: 'social.sensitive',
         targetType: 'social_post',
         targetId: id,
-        reason: `sensitive: ${reason}`,
-        previous: { state: post.state, sensitive: false, approved_by: post.approved_by_name },
+        reason: withdraw ? 'became sensitive after approval' : `sensitive: ${reason}`,
+        previous: {
+          state: post.state,
+          sensitive: false,
+          approved_by: post.approved_by_name,
+          approved_at: post.approved_at?.toISOString() ?? null,
+        },
         next: { state, sensitive: true, sensitive_reason: reason },
       });
       return state;
@@ -835,6 +843,8 @@ export class PostgresSocialPostStore {
    */
   async exclusive<T>(work: () => Promise<T>): Promise<T | null> {
     const c = await this.pool.connect();
+    // A connection whose unlock failed may still hold the lock: it is thrown away, not pooled.
+    let broken: Error | undefined;
     try {
       const { rows } = await c.query<{ got: boolean }>(
         `SELECT pg_try_advisory_lock(hashtext('social_publishing_tick')) AS got`,
@@ -843,10 +853,14 @@ export class PostgresSocialPostStore {
       try {
         return await work();
       } finally {
-        await c.query(`SELECT pg_advisory_unlock(hashtext('social_publishing_tick'))`);
+        await c
+          .query(`SELECT pg_advisory_unlock(hashtext('social_publishing_tick'))`)
+          .catch((error: unknown) => {
+            broken = error instanceof Error ? error : new Error(String(error));
+          });
       }
     } finally {
-      c.release();
+      c.release(broken);
     }
   }
 

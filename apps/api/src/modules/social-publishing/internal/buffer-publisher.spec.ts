@@ -300,6 +300,46 @@ describe('the Buffer publisher', () => {
       });
     }
 
+    it('for a text over the network limit as Buffer counts it, without asking Buffer', async () => {
+      const stub = stubBuffer();
+      const { buffer } = publisher(stub.fetch);
+      const caption = `${'a'.repeat(2090)}${'\n'.repeat(60)}`; // 2,150 characters, 2,210 for Buffer
+      expect(await failureOf(buffer.publish({ ...IG, text: caption }))).toBeInstanceOf(
+        SocialRefusal,
+      );
+      expect(stub.seen).toEqual([]);
+    });
+
+    it('for a key that cannot be read from the database, or a Buffer that cannot be reached', async () => {
+      const stub = stubBuffer();
+      const broken = new BufferPublisher(
+        {
+          credential: async () => {
+            throw new Error('database down');
+          },
+        },
+        box,
+        stub.fetch,
+        { sleep: async () => undefined },
+      );
+      expect(await failureOf(broken.publish(X))).toBeInstanceOf(SocialRefusal);
+      for (const code of ['ENOTFOUND', 'ECONNREFUSED']) {
+        const { buffer } = publisher(
+          stubBuffer({
+            create: [
+              () => {
+                throw new TypeError('fetch failed', { cause: { code } });
+              },
+            ],
+          }).fetch,
+        );
+        const error = await failureOf(buffer.publish(X));
+        expect(error).toBeInstanceOf(SocialRefusal);
+        expect(error.message).toContain(code);
+      }
+      expect(stub.seen).toEqual([]);
+    });
+
     it('with no key, an unreadable key, or no box, without asking Buffer', async () => {
       const stub = stubBuffer();
       for (const [credential, secretBox] of [

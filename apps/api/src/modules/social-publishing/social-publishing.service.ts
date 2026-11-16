@@ -37,6 +37,7 @@ import {
   checkCaptionEdit,
   checkGates,
   expiresAt,
+  fitsNetwork,
   londonDay,
   publishingOutcome,
   sensitivity,
@@ -352,14 +353,20 @@ export class SocialPublishingService {
   /**
    * The last checks before a post goes out (T-1837, D-427 point 3), from
    * fresh reads: a gate that fails ends it (`superseded` when the forecast
-   * the page shows changed, else `expired`), audited; a headline found
-   * sensitive since drafting marks it so, and a post the job approved goes
-   * back to a person. Only then may it be claimed.
+   * the page shows changed, else `expired`), audited; a text longer than
+   * its network takes ends it `expired` rather than being refused at every
+   * slot; a headline found sensitive since drafting marks it so and sends it
+   * back to a person, whoever approved it ("became sensitive after
+   * approval"). Only then may it be claimed.
    */
   async checkAtPublishing(id: string, now: Date = new Date()): Promise<PublishCheck> {
     const post = await this.store.get(id);
     if (post === null || (post.state !== 'approved' && post.state !== 'refused')) {
       return { go: false, why: 'gone' };
+    }
+    if (!fitsNetwork(post.body, post.network)) {
+      const ended = await this.store.end(id, 'expired', `too long for ${post.network}`);
+      return { go: false, why: ended.ok ? 'expired' : 'gone', failed: ['too_long'] };
     }
     const { gates, card } = await this.checkNow(post, now);
     const outcome = publishingOutcome(gates);

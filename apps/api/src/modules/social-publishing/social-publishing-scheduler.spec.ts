@@ -301,6 +301,24 @@ describe('the social posts job', () => {
     expect(s.rows.get('a')!.state).toBe('approved');
   });
 
+  it('a stop committed after the claim is a refusal, and nothing is sent', async () => {
+    const s = setup();
+    s.add('a');
+    const claim = s.social.claim.bind(s.social);
+    s.social.claim = (async (id: string, slot: number) => {
+      const claimed = await claim(id, slot);
+      s.stop(true);
+      return claimed;
+    }) as typeof s.social.claim;
+    expect(await s.publish('x', at('12:05'))).toEqual({
+      kind: 'refused',
+      id: 'a',
+      error: 'publishing was stopped before sending',
+    });
+    expect(s.publisher.sent).toEqual([]);
+    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null });
+  });
+
   it('skips a post whose gate fails at publishing and takes the next', async () => {
     const s = setup();
     s.add('stale');
