@@ -11,11 +11,12 @@
 -- Wolves and QPR are stored under those short names, so the long form is the
 -- alias there. Search finds every alias; the news linker (news_named_entities)
 -- also reads them, whole words of five letters or more: on production
--- (read-only, 2026-11-16) "Spurs" headlines over 30 days were all Tottenham,
+-- (read-only, 2026-11-16) a random 25 of the 96 "Spurs" headlines over 30
+-- days were all Tottenham,
 -- and "Man City" / "Man Utd" / "Man United" name those clubs. "PSG" is under
 -- the linker's five letters and stays search-only. "Spurs" is also a verb: a
 -- Title Case headline such as "Saka Strike Spurs Arsenal On" would link
--- Tottenham (review of T-1843); none was seen over those 30 days.
+-- Tottenham (review of T-1843); none was in that sample.
 --
 -- Each club is found by the provider's team id in provider_mapping, never by
 -- its name (rule 1), as in production on 2026-11-16. A database without these
