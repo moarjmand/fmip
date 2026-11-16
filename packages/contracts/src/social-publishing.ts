@@ -134,7 +134,11 @@ export interface SocialCardTeam {
 interface SocialCardBase {
   fixture_id: string;
   competition: { id: string; name: string };
-  /** The round or stage as the match page names it ("Matchday 11"); the card's eyebrow, when known (T-1835). */
+  /**
+   * The round or stage as the match page's own display label ("Matchday 11",
+   * "Round of 16"), never the provider's raw string (D-256, D-323); the
+   * card's eyebrow, when known (T-1835).
+   */
   round?: string | null;
   kick_off: string;
   home: SocialCardTeam;
@@ -146,8 +150,8 @@ export interface SocialCardModel {
   name: 'The Stadiomind model';
   version: string;
   forecast_id: string;
-  /** When the forecast was computed; the card's source line says it when known (T-1835). */
-  computed_at?: string | null;
+  /** When the forecast was computed (ISO 8601); the card's source line says it (T-1835, rule 4). */
+  computed_at: string;
 }
 
 export interface SocialForecastPayload extends SocialCardBase {
@@ -169,7 +173,11 @@ export interface SocialVerdictPayload extends SocialCardBase {
    * ... right".
    */
   score: { home: number; away: number };
-  /** The match went past 90 minutes (extra time, perhaps penalties): the card says "after 90 minutes". */
+  /**
+   * The match went past 90 minutes -- extra time, a shoot-out or both: the
+   * card says "after 90 minutes". (Not the result card's flag of the same
+   * name, which is extra time alone.)
+   */
   after_extra_time: boolean;
   /** The outcome the model gave the most, and its whole percentage. */
   called: SocialOutcome;
@@ -182,8 +190,15 @@ export interface SocialVerdictPayload extends SocialCardBase {
 
 export interface SocialResultPayload extends SocialCardBase {
   kind: 'result';
+  /** The final score: after extra time when it was played; never a shoot-out's kicks (as `KnockoutLeg.score`). */
   score: { home: number; away: number };
+  /**
+   * Extra time was played: our records hold an extra-time score (as
+   * `KnockoutLeg.after_extra_time`). A tie that went straight from 90 minutes
+   * to a shoot-out is `false` with `penalties` set.
+   */
   after_extra_time: boolean;
+  /** The shoot-out, when there was one, with or without extra time before it. */
   penalties: { home: number; away: number } | null;
   /** The half-time score, when known (T-1835). */
   half_time?: { home: number; away: number } | null;
@@ -209,6 +224,13 @@ export interface SocialCardGoal {
 /** `GET /social-posts/:id/card`: a live post's frozen card payload (T-1835, D-427 point 11). */
 export interface SocialCardResponse {
   id: string;
+  /**
+   * The post has been published: only then is its card kept for good. A post
+   * still waiting may yet be rejected, expire or be superseded, after which its
+   * card answers 404, so it is never stored anywhere shared.
+   */
+  published: boolean;
+  /** Only the fields a card draws, by kind; nothing else of the stored payload. */
   payload: SocialCardPayload;
 }
 

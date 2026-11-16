@@ -16,7 +16,6 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { SocialModule } from './modules/social/social.module';
-import { SocialPublishingModule } from './modules/social-publishing/social-publishing.module';
 import { AnalysisModule } from './modules/analysis/analysis.module';
 import { FollowingFeedModule } from './modules/following-feed/following-feed.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
@@ -42,6 +41,7 @@ import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
 import { ModelUpsetModule } from './modules/model-upset/model-upset.module';
 import { MomentsModule } from './modules/moments/moments.module';
+import { SocialCardModule } from './modules/social-publishing/social-card.module';
 import { AgentsConsoleModule } from './modules/agents-console/agents-console.module';
 import { ConsoleModelModule } from './modules/console-model/console-model.module';
 import { ConsoleRemindersModule } from './modules/console-reminders/console-reminders.module';
@@ -98,13 +98,13 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     HomepageModule,
     ModelUpsetModule,
     MomentsModule,
+    SocialCardModule,
     LocaleHoldsModule,
     AgentsConsoleModule,
     ConsoleModelModule,
     ConsoleRemindersModule,
     LocalisedNamesModule,
     RatingThresholdsModule,
-    SocialPublishingModule,
     AdminModule,
   ],
 })

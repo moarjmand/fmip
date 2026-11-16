@@ -1,9 +1,12 @@
 import type {
   SocialCardGoal,
+  SocialCardModel,
   SocialCardPayload,
   SocialCardResponse,
   SocialCardTeam,
   SocialOutcome,
+  SocialResultPayload,
+  SocialVerdictPayload,
 } from '@fmip/contracts';
 import { initials } from '@/components/entity-image';
 import { type ApiResult, apiRequest } from '@/lib/api';
@@ -22,8 +25,18 @@ import { cardName } from '@/lib/share-card';
 /** 4:5, the size X and Instagram both show whole in a feed. */
 export const SOCIAL_CARD_SIZE = { width: 1080, height: 1350 } as const;
 
-/** A post's card never changes (its payload is frozen), so it is kept for good. */
+/**
+ * A published post's card never changes (its payload is frozen) and the post
+ * can no longer be withdrawn, so its picture is kept for good.
+ */
 export const SOCIAL_CARD_CACHE = 'public, max-age=31536000, immutable';
+
+/**
+ * A post still waiting (pending, approved, publishing, refused, unknown) may
+ * yet be rejected, expire or be superseded, and then its card answers 404
+ * (D-427 point 11): until it is published its picture is stored nowhere.
+ */
+export const UNPUBLISHED_CARD_CACHE = 'private, no-store';
 
 /** The London clock the posts' times are written in ("UK time"). */
 const LONDON = 'Europe/London';
@@ -176,7 +189,7 @@ interface SocialCardCommon {
 export interface SocialModelLine {
   name: string;
   version: string;
-  computed: string | null;
+  computed: string;
 }
 
 export interface SocialForecastText extends SocialCardCommon {
@@ -258,16 +271,32 @@ function shares(percent: Record<SocialOutcome, number>, home: string, away: stri
   }));
 }
 
-function modelLine(model: {
-  name: string;
-  version: string;
-  computed_at?: string | null;
-}): SocialModelLine {
-  return {
-    name: model.name,
-    version: model.version,
-    computed: model.computed_at == null ? null : computedText(model.computed_at),
-  };
+function modelLine(model: SocialCardModel): SocialModelLine {
+  return { name: model.name, version: model.version, computed: computedText(model.computed_at) };
+}
+
+/**
+ * A verdict payload that contradicts itself is refused, never drawn
+ * (review of PR 894): the stored `correct` is read, not recomputed (D-209),
+ * but it must agree with the pick and the 90-minute score beside it, and the
+ * pick must be the largest of the frozen shares.
+ */
+function checkVerdict(payload: SocialVerdictPayload, happened: SocialOutcome): void {
+  if (payload.correct !== (payload.called === happened)) {
+    throw new Error('The verdict contradicts its pick and score.');
+  }
+  const p = payload.percent;
+  if (p != null && p[payload.called] < Math.max(p.home, p.draw, p.away)) {
+    throw new Error("The verdict's pick is not the forecast's largest share.");
+  }
+}
+
+/** "FT · HT 0–0", "AET", "AET · Pens 4–3", "FT · Pens 4–3" (straight to a shoot-out). */
+export function resultStatus(payload: SocialResultPayload): string {
+  const parts = [payload.after_extra_time ? 'AET' : 'FT'];
+  if (payload.half_time != null) parts.push(`HT ${score(payload.half_time)}`);
+  if (payload.penalties !== null) parts.push(`Pens ${score(payload.penalties)}`);
+  return parts.join(' · ');
 }
 
 function outcomeOf(s: { home: number; away: number }): SocialOutcome {
@@ -311,6 +340,7 @@ export function socialCardText(payload: SocialCardPayload): SocialCardText {
       };
     case 'model_verdict': {
       const happened = outcomeOf(payload.score);
+      checkVerdict(payload, happened);
       const pickValue = payload.percent
         ? shareTexts(payload.percent)[payload.called]
         : String(payload.called_percent);
@@ -332,19 +362,12 @@ export function socialCardText(payload: SocialCardPayload): SocialCardText {
       };
     }
     case 'result': {
-      const status = payload.after_extra_time
-        ? payload.penalties === null
-          ? 'AET'
-          : `AET · Pens ${score(payload.penalties)}`
-        : payload.half_time == null
-          ? 'FT'
-          : `FT · HT ${score(payload.half_time)}`;
       return {
         ...common,
         kind: payload.kind,
         chip: 'Full time',
         score: score(payload.score),
-        status,
+        status: resultStatus(payload),
         scorers: scorers(payload.goals, payload.score),
         date: matchDayText(payload.kick_off),
       };

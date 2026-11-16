@@ -19,6 +19,7 @@ import { NIGHT_COLOURS } from '@/lib/brand-colours';
 import { siteUrl } from '@/lib/seo';
 import {
   SOCIAL_CARD_CACHE,
+  UNPUBLISHED_CARD_CACHE,
   SOCIAL_CARD_SIZE,
   socialCardText,
   type SocialBadge,
@@ -151,7 +152,7 @@ function ModelFooter({
     >
       <div style={flex({ fontSize: 24, color: MODEL })}>{`${model.name} · ${model.version}`}</div>
       <div style={flex({ justifyContent: 'space-between', alignItems: 'flex-end' })}>
-        <div style={flex({ fontSize: 22, color: CAPTION })}>{model.computed ?? ''}</div>
+        <div style={flex({ fontSize: 22, color: CAPTION })}>{model.computed}</div>
         <div style={flex({ fontSize: 28, color: CAPTION })}>{host}</div>
       </div>
     </div>
@@ -504,12 +505,17 @@ export function SocialCardImage({
 }
 
 /**
- * A post's card as a PNG answer, kept for good. A renderer failure is
- * answered 503 with no picture (`drawCard` would answer the plain card), as
- * is a payload the words cannot be made from: a post must never go out with
- * a picture other than its own.
+ * A post's card as a PNG answer: kept for good once the post is published,
+ * stored nowhere before (it may yet be rejected, and its card then answers
+ * 404). A renderer failure is answered 503 with no picture (`drawCard` would
+ * answer the plain card), as is a payload the words cannot be made from or
+ * that contradicts itself: a post must never go out with a picture other
+ * than its own.
  */
-export async function drawSocialCard(payload: SocialCardPayload): Promise<Response> {
+export async function drawSocialCard(
+  payload: SocialCardPayload,
+  published: boolean,
+): Promise<Response> {
   let text: SocialCardText;
   try {
     text = socialCardText(payload);
@@ -518,7 +524,7 @@ export async function drawSocialCard(payload: SocialCardPayload): Promise<Respon
   }
   const response = await drawCard(<SocialCardImage text={text} host={new URL(siteUrl()).host} />, {
     size: SOCIAL_CARD_SIZE,
-    cacheControl: SOCIAL_CARD_CACHE,
+    cacheControl: published ? SOCIAL_CARD_CACHE : UNPUBLISHED_CARD_CACHE,
   });
   if (response.headers.get('cache-control') === FAILED_CARD_CACHE) return noSocialCard(503);
   return response;

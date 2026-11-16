@@ -169,11 +169,7 @@ describe('the forecast card', () => {
     expect(text.shares.map((s) => s.rank)).toEqual([2, 1, 2]);
   });
 
-  it('says nothing of when it was computed when the payload does not', () => {
-    const { computed_at: _, ...model } = MODEL;
-    const text = socialCardText({ ...FORECAST, model });
-    if (text.kind !== 'forecast_pre_match') throw new Error(text.kind);
-    expect(text.model.computed).toBeNull();
+  it('names the competition alone when the payload has no round', () => {
     expect(socialCardText({ ...FORECAST, round: null }).eyebrow).toBe('PREMIER LEAGUE');
   });
 });
@@ -211,6 +207,18 @@ describe('the model check', () => {
     if (text.kind !== 'model_verdict') throw new Error(text.kind);
     expect(text.shares).toBeNull();
     expect(text.pick).toEqual({ label: 'Unionistas win', value: '44' });
+  });
+
+  it('refuses a verdict that contradicts itself rather than draw it (no route then draws a card)', () => {
+    // "Right" while the pick is not what happened over 90 minutes, and the reverse.
+    expect(() => socialCardText({ ...VERDICT, correct: true })).toThrow(/contradicts/);
+    expect(() =>
+      socialCardText({ ...VERDICT, score: { home: 0, away: 1 }, after_extra_time: false }),
+    ).toThrow(/contradicts/);
+    // A pick that is not the largest frozen share.
+    expect(() =>
+      socialCardText({ ...VERDICT, called: 'home', score: { home: 1, away: 0 }, correct: true }),
+    ).toThrow(/largest share/);
   });
 });
 
@@ -250,15 +258,35 @@ describe('the result card', () => {
     if (absent.kind === 'result') expect(absent.status).toBe('FT');
   });
 
-  it('says extra time and the shoot-out', () => {
-    const text = socialCardText({
-      ...RESULT,
-      score: { home: 2, away: 2 },
-      after_extra_time: true,
-      penalties: { home: 4, away: 3 },
-      goals: null,
-    });
+  const status = (over: Partial<SocialResultPayload>): string => {
+    const text = socialCardText({ ...RESULT, goals: null, half_time: null, ...over });
     if (text.kind !== 'result') throw new Error(text.kind);
-    expect(text.status).toBe('AET · Pens 4–3');
+    return text.status;
+  };
+
+  it('says extra time only when it was played', () => {
+    expect(status({ score: { home: 2, away: 1 }, after_extra_time: true })).toBe('AET');
+  });
+
+  it('says extra time and the shoot-out after it', () => {
+    expect(
+      status({
+        score: { home: 2, away: 2 },
+        after_extra_time: true,
+        penalties: { home: 4, away: 3 },
+      }),
+    ).toBe('AET · Pens 4–3');
+  });
+
+  it('says a shoot-out straight after 90 minutes without inventing extra time', () => {
+    // The EFL Cup before the final, the Libertadores' knockout ties.
+    const straight = {
+      score: { home: 2, away: 2 },
+      after_extra_time: false,
+      penalties: { home: 4, away: 3 },
+    };
+    expect(status(straight)).toBe('FT · Pens 4–3');
+    expect(status({ ...straight, half_time: { home: 1, away: 0 } })).toBe('FT · HT 1–0 · Pens 4–3');
+    expect(status(straight)).not.toMatch(/AET/);
   });
 });

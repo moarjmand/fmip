@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
-import { SocialPublishingModule } from './social-publishing.module';
+import { SocialCardModule } from './social-card.module';
 
 /**
  * T-1835 against the real schema: `GET /social-posts/:id/card` answers a live
@@ -88,14 +88,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the social c
             fixture,
             state === 'published' ? 'instagram' : 'x',
             state,
-            JSON.stringify({ ...PAYLOAD, fixture_id: fixture }),
+            JSON.stringify({ ...PAYLOAD, fixture_id: fixture, drafting_note: 'internal' }),
             ...values,
           ],
         );
       }
     });
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule, SocialPublishingModule],
+      imports: [DatabaseModule, SocialCardModule],
     }).compile();
     app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
     await app.init();
@@ -115,14 +115,19 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the social c
 
   const get = (id: string) => app.inject({ method: 'GET', url: `/social-posts/${id}/card` });
 
-  it("answers a live or published post's frozen payload, never indexed or kept", async () => {
+  it("answers a live or published post's card fields alone, never indexed or kept", async () => {
     for (const id of [posts.pending_approval, posts.published]) {
       const response = await get(id);
       expect(response.statusCode).toBe(200);
       expect(response.headers['x-robots-tag']).toBe('noindex');
       expect(response.headers['cache-control']).toBe('no-store');
       const body = response.json<SocialCardResponse>();
-      expect(body).toEqual({ id, payload: { ...PAYLOAD, fixture_id: fixture } });
+      // Only what a card draws: a key the drafting kept beside it stays private.
+      expect(body).toEqual({
+        id,
+        published: id === posts.published,
+        payload: { ...PAYLOAD, fixture_id: fixture, round: null, half_time: null, goals: null },
+      });
     }
     // The id in capitals is the same post.
     expect((await get(posts.published.toUpperCase())).statusCode).toBe(200);

@@ -400,7 +400,12 @@ const base = {
   home: team('Arsenal', null, 'ARS'),
   away: team('Chelsea', null, 'CHE'),
 };
-const model = { name: 'The Stadiomind model' as const, version: 'v3.2', forecast_id: 'f-1' };
+const model = {
+  name: 'The Stadiomind model' as const,
+  version: 'v3.2',
+  forecast_id: 'f-1',
+  computed_at: '2026-11-14T17:32:00.000Z',
+};
 const payloads = {
   forecast_pre_match: {
     ...base,

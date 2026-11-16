@@ -25,7 +25,7 @@ vi.mock('@/lib/api', () => api);
 
 const { drawSocialCard, SocialCardImage } = await import('./social-card-image');
 const { GET } = await import('@/app/social-card/[id]/card.png/route');
-const { SOCIAL_CARD_CACHE } = await import('@/lib/social-card');
+const { SOCIAL_CARD_CACHE, UNPUBLISHED_CARD_CACHE } = await import('@/lib/social-card');
 
 const ID = '6f1d3c1e-5b8a-4f0e-9a51-0c2b7d4e9a10';
 const team = (name: string, code: string | null, short_name: string | null = null) => ({
@@ -141,10 +141,11 @@ const EDGES = {
     away: team('Brighton & Hove Albion', 'BHA', 'Brighton'),
     competition: { id: ID, name: 'EFL Cup' },
     round: 'Round of 16',
+    // The EFL Cup goes straight from 90 minutes to a shoot-out: no extra time.
     score: { home: 2, away: 2 },
-    after_extra_time: true,
+    after_extra_time: false,
     penalties: { home: 4, away: 3 },
-    half_time: null,
+    half_time: { home: 1, away: 0 },
     goals: null,
   },
   'edge-eight-goals-result': {
@@ -190,11 +191,11 @@ beforeEach(() => {
 });
 
 describe('the social cards', () => {
-  it('draws every kind at exactly 1080 x 1350, kept for good and never indexed', async () => {
+  it('draws every kind at exactly 1080 x 1350, a published one kept for good, never indexed', async () => {
     const out = process.env.SOCIAL_CARD_OUT;
     if (out !== undefined && out !== '') await mkdir(out, { recursive: true });
     for (const [name, payload] of Object.entries(SAMPLES)) {
-      const response = await drawSocialCard(payload);
+      const response = await drawSocialCard(payload, true);
       const body = await png(response);
       expect(body.readUInt32BE(16), name).toBe(1080);
       expect(body.readUInt32BE(20), name).toBe(1350);
@@ -208,13 +209,28 @@ describe('the social cards', () => {
     api.apiRequest.mockResolvedValue({
       ok: true,
       status: 200,
-      data: { id: ID, payload: NORWAY_WALES },
+      data: { id: ID, published: true, payload: NORWAY_WALES },
       setCookie: null,
     });
     const response = await GET(new Request('http://web/'), { params: Promise.resolve({ id: ID }) });
     await png(response);
+    expect(response.headers.get('cache-control')).toBe(SOCIAL_CARD_CACHE);
     expect(api.apiRequest).toHaveBeenCalledTimes(1);
     expect(api.apiRequest).toHaveBeenCalledWith(`/social-posts/${ID}/card`);
+  }, 20_000);
+
+  it('keeps the card of a post not yet published nowhere, so a rejection really answers 404', async () => {
+    api.apiRequest.mockResolvedValue({
+      ok: true,
+      status: 200,
+      data: { id: ID, published: false, payload: NORWAY_WALES },
+      setCookie: null,
+    });
+    const response = await GET(new Request('http://web/'), { params: Promise.resolve({ id: ID }) });
+    await png(response);
+    expect(response.headers.get('cache-control')).toBe(UNPUBLISHED_CARD_CACHE);
+    expect(response.headers.get('cache-control')).not.toMatch(/public|immutable|max-age/);
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
   }, 20_000);
 
   it('answers 404 with no picture for a malformed id or a post the API does not answer', async () => {
@@ -234,21 +250,30 @@ describe('the social cards', () => {
     }
   });
 
-  it('answers 503 with no picture when the API cannot be asked', async () => {
-    api.apiRequest.mockResolvedValue({ ok: false, status: 0, error: null, setCookie: null });
-    const response = await GET(new Request('http://web/'), { params: Promise.resolve({ id: ID }) });
-    expect(response.status).toBe(503);
-    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+  it('answers 503 with no picture for any other failure: unreachable, 429, 403, 500', async () => {
+    for (const status of [0, 429, 403, 500]) {
+      api.apiRequest.mockResolvedValue({ ok: false, status, error: null, setCookie: null });
+      const response = await GET(new Request('http://web/'), {
+        params: Promise.resolve({ id: ID }),
+      });
+      expect(response.status, String(status)).toBe(503);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    }
   });
 
   it('answers 503, never the plain card, when the renderer fails', async () => {
     // A payload the words cannot be made from fails inside the drawing.
     const broken = { ...NORWAY_WALES, kick_off: 'not a date' };
-    const response = await drawSocialCard(broken);
-    expect(response.status).toBe(503);
-    expect(response.headers.get('content-type')).toBeNull();
-    expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    // A verdict that contradicts itself is refused rather than drawn.
+    const contradicting = { ...SALAMANCA_CELTA, correct: false };
+    for (const payload of [broken, contradicting]) {
+      const response = await drawSocialCard(payload, true);
+      expect(response.status).toBe(503);
+      expect(response.headers.get('content-type')).toBeNull();
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('x-robots-tag')).toBe('noindex');
+    }
   }, 20_000);
 
   it('reads no crest, logo or photo: no media request and no crest import', async () => {
