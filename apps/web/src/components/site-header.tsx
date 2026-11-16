@@ -259,6 +259,8 @@ export async function SiteHeader({
                     variant="header"
                     locale={locale}
                     words={suggestWords(locale)}
+                    // Its own name: the list and the live region inside the label must not join it.
+                    label={search.text}
                     placeholder={placeholder.text}
                     inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
                     testId="nav-search-input"
