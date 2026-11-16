@@ -16,6 +16,7 @@ import { ConversationsModule } from './modules/conversations/conversations.modul
 import { ModerationModule } from './modules/moderation/moderation.module';
 import { GroupsModule } from './modules/groups/groups.module';
 import { SocialModule } from './modules/social/social.module';
+import { SocialPublishingModule } from './modules/social-publishing/social-publishing.module';
 import { AnalysisModule } from './modules/analysis/analysis.module';
 import { FollowingFeedModule } from './modules/following-feed/following-feed.module';
 import { DeliveryModule } from './modules/delivery/delivery.module';
@@ -103,6 +104,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     ConsoleRemindersModule,
     LocalisedNamesModule,
     RatingThresholdsModule,
+    SocialPublishingModule,
     AdminModule,
   ],
 })

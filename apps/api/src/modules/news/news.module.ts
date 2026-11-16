@@ -31,6 +31,7 @@ import { StoryTypeAdminController } from './story-type-admin.controller';
 import { PostgresTranslationsAdminStore } from './internal/translations-admin-store';
 import { TranslationsAdminController } from './translations-admin.controller';
 import { NewsController } from './news.controller';
+import { NewsHeadlines } from './news-headlines.service';
 import { NewsCoverageAdminController } from './news-coverage-admin.controller';
 import { SavedArticlesController } from './saved-articles.controller';
 import { NewsSourcesAdminController } from './news-sources-admin.controller';
@@ -80,6 +81,7 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     PostgresGNewsStore,
     GNewsIngestionService,
     PostgresNewsSourcesAdminStore,
+    NewsHeadlines,
     { provide: CATEGORY_MAPPING, useValue: STORY_TYPE_MAPPING },
     { provide: NEWS_TRANSPORT, useFactory: (): FetchTransport => new FetchTransport() },
     // T-1322 (D-177): photos, downloaded to MEDIA_DIR and served from our own route.
@@ -88,6 +90,7 @@ import { NewsSourcesAdminController } from './news-sources-admin.controller';
     { provide: NEWS_IMAGE_FETCH, useFactory: () => fetchImage() },
     { provide: MEDIA_ROOT, useFactory: (): string | null => mediaDir() },
   ],
-  exports: [NewsIngestionService, NewsClusteringService],
+  // T-1838 (D-427): headlines by linked entity, read only, for the social posts' sensitive-topic check.
+  exports: [NewsIngestionService, NewsClusteringService, NewsHeadlines],
 })
 export class NewsModule {}
