@@ -6,13 +6,7 @@ import {
   readNewsCursor,
   writeNewsCursor,
 } from '@fmip/contracts';
-import {
-  hiddenHeadline,
-  nonArticleKind,
-  otherCodeOf,
-  otherSportEventOf,
-  stripPhotoCredit,
-} from '@fmip/ingestion';
+import { hiddenHeadline, nonArticleKind, notFootballOf, stripPhotoCredit } from '@fmip/ingestion';
 import type {
   NewsCursor,
   NewsEntity,
@@ -96,6 +90,10 @@ interface CardRow extends ImageColumns {
   homepage_url: string;
   /** Whether the source is a publisher reached through a search (GNews), not its own feed. */
   searched: boolean;
+  /** The source's feed address, for `notFootballOf`'s general sports feeds (T-1841). */
+  feed_url: string | null;
+  /** The feed's own categories of the shown article, in its order (T-1841). */
+  categories: string[] | null;
   rights: NewsRights;
   other_reports: number;
   story_type: StoryType | null;
@@ -758,7 +756,9 @@ export class PostgresNewsReadStore {
    * for what was stored before the job applied it), an item a search brought
    * whose own words name another code of football (`otherCodeOf`, T-1400,
    * D-215), or a publisher's feed item that does and is filed to none of ours
-   * (T-1619, D-290), a headline on the named list of those not shown
+   * (T-1619, D-290) -- with the publisher's own section, a general sports
+   * feed's need for football's words, and the rest of `notFootballOf` (T-1841,
+   * D-429) -- a headline on the named list of those not shown
    * (`hiddenHeadline`, T-1818, D-413: applied here only, nothing deleted),
    * and a story whose report
    * an earlier story already carries (`copies`). `paged` sections say where
@@ -803,15 +803,23 @@ export class PostgresNewsReadStore {
       rows.map((r) => r.story_id),
       q.locale,
     );
-    const filed = (r: CardRow): boolean => (entities.get(r.story_id) ?? []).length > 0;
+    // T-1841 (D-429): every football-only judgement in one pure function --
+    // another sport's event (T-1833), section, words (D-290) or a general
+    // sports feed's item that says no football.
+    const football = (r: CardRow): boolean =>
+      notFootballOf({
+        headline: r.headline,
+        summary: r.summary,
+        categories: r.categories ?? [],
+        feedUrl: r.feed_url,
+        searched: r.searched,
+        filedTo: (entities.get(r.story_id) ?? []).map((e) => e.entity_type),
+      }) === null;
     const listed = rows.filter(
       (r) =>
         nonArticleKind(r.headline) === null &&
         hiddenHeadline(r.headline) === null &&
-        // T-1833: another sport's own event is left out even when filed --
-        // the filing came from the bare word "Championship".
-        !otherSportEventOf(r.headline) &&
-        !((r.searched || !filed(r)) && otherCodeOf(r.headline, r.summary) !== null) &&
+        football(r) &&
         !copies.has(r.story_id),
     );
     return { listed, entities };
@@ -1185,7 +1193,9 @@ class Query {
     return `WITH ${picked.cte} story_card AS (
       SELECT s.id AS story_id, a.id AS article_id, a.url, a.fetched_at,
              src.id AS source_id, src.name AS source_name, src.homepage_url, src.rights,
-             src.via_source_id IS NOT NULL AS searched,
+             src.via_source_id IS NOT NULL AS searched, src.feed_url,
+             (SELECT array_agg(ac.category ORDER BY ac.position, ac.category)
+                FROM article_category ac WHERE ac.article_id = a.id) AS categories,
              v.headline, v.summary, v.byline, v.language, v.published_at, v.origin, v.review_state,
              ${FIRST_SEEN} AS at,
              (SELECT count(*)::int - 1 FROM article m JOIN news_source ms ON ms.id = m.source_id

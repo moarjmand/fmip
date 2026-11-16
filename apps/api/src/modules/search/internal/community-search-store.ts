@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { GroupSearchResult, MemberSearchResult, StorySearchResult } from '@fmip/contracts';
-import { hiddenHeadline, otherSportEventOf } from '@fmip/ingestion';
+import { hiddenHeadline, notFootballOf } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { MIN_SIMILARITY } from './search-store';
@@ -49,12 +49,18 @@ export class PostgresCommunitySearchStore {
       url: string;
       published_at: Date;
       score: string;
+      summary: string | null;
+      categories: string[] | null;
+      feed_url: string | null;
+      searched: boolean;
+      entity_types: ('team' | 'competition' | 'person' | 'fixture')[];
     }>(
       `WITH q AS (SELECT search_key($1) AS key),
        hits AS (
          SELECT DISTINCT ON (s.id)
                 s.id AS story_id, v.headline, v.language, src.name AS source_name, a.url,
-                v.published_at,
+                v.published_at, v.summary, src.feed_url, src.via_source_id IS NOT NULL AS searched,
+                a.id AS article_id,
                 GREATEST(
                   word_similarity(q.key, search_key(v.headline)),
                   CASE WHEN search_key(v.headline) LIKE q.key || '%' THEN 1 ELSE 0 END
@@ -65,7 +71,7 @@ export class PostgresCommunitySearchStore {
            -- The newest version in each language: an older headline is what
            -- the story used to say, not what it says.
            JOIN LATERAL (
-             SELECT DISTINCT ON (language) headline, language, published_at
+             SELECT DISTINCT ON (language) headline, summary, language, published_at
                FROM article_version
               WHERE article_id = a.id
               ORDER BY language, created_at DESC, version_number DESC
@@ -74,18 +80,35 @@ export class PostgresCommunitySearchStore {
           ORDER BY s.id, score DESC, v.language
        )
        SELECT story_id, headline, language, source_name, url, published_at,
-              round(score::numeric, 3)::text AS score
+              round(score::numeric, 3)::text AS score,
+              summary, feed_url, searched,
+              (SELECT array_agg(ac.category ORDER BY ac.position, ac.category)
+                 FROM article_category ac WHERE ac.article_id = hits.article_id) AS categories,
+              ARRAY(SELECT DISTINCT e.entity_type FROM article m
+                      JOIN article_entity e ON e.article_id = m.id
+                     WHERE m.story_id = hits.story_id) AS entity_types
          FROM hits
         WHERE score >= $3
         ORDER BY score DESC, published_at DESC, story_id
         LIMIT $2`,
       [q, limit + HIDDEN_HEADROOM, MIN_SIMILARITY, locale],
     );
-    // T-1818 (D-413): a headline on the named list is not shown, nor (T-1833,
-    // D-426) another sport's own event, as in the news lists; read past the
-    // limit so the ones left out leave no gap.
+    // T-1818 (D-413): a headline on the named list is not shown, nor (T-1841,
+    // D-429) a story about another sport, by the news lists' one rule; read
+    // past the limit so the ones left out leave no gap.
     const shown = rows
-      .filter((r) => hiddenHeadline(r.headline) === null && !otherSportEventOf(r.headline))
+      .filter(
+        (r) =>
+          hiddenHeadline(r.headline) === null &&
+          notFootballOf({
+            headline: r.headline,
+            summary: r.summary,
+            categories: r.categories ?? [],
+            feedUrl: r.feed_url,
+            searched: r.searched,
+            filedTo: r.entity_types,
+          }) === null,
+      )
       .slice(0, limit);
     return shown.map((r) => ({
       story_id: r.story_id,
