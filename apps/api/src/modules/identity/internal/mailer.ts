@@ -1,8 +1,9 @@
 /**
  * Outbound e-mail as a port. The identity service composes messages; how they
- * leave the process is a deployment decision (D-026 defers the provider to
- * T-074). Until then `LogMailer` prints them, which is also exactly what local
- * development wants: the verification link in the terminal.
+ * leave the process is a deployment decision: the delivery port's e-mail
+ * channel (D-073, `DeliveryMailer`). `LogMailer` prints a message whole, which
+ * is what local development wants -- the verification link in the terminal --
+ * and is used only in development with no channel (D-430, T-1846).
  */
 
 export interface OutboundMail {
