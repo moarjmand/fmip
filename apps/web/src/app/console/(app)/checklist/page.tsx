@@ -121,7 +121,7 @@ export default async function ConsoleChecklistPage({ searchParams }: Props) {
                   className={`flex min-h-touch flex-col gap-2 rounded-card border p-3 ${FOCUS} ${
                     active
                       ? 'border-brand bg-surface shadow-sm'
-                      : 'border-default bg-surface-raised hover:border-strong'
+                      : 'border-default bg-canvas hover:border-strong'
                   }`}
                   data-testid="checklist-tab"
                 >
