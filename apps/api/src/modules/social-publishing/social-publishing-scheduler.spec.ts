@@ -1,6 +1,10 @@
 import type { SocialNetwork, SocialPostKind, SocialPostState } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import type { PostgresSocialPostStore, SocialPostRecord } from './internal/social-post-store';
+import type {
+  PostgresSocialPostStore,
+  SocialFinish,
+  SocialPostRecord,
+} from './internal/social-post-store';
 import { SocialPublishingScheduler } from './social-publishing-scheduler.service';
 import type { PublishCheck, SocialPublishingService } from './social-publishing.service';
 import {
@@ -34,6 +38,8 @@ interface Row {
   claimed_at: Date | null;
   provider_ref: string | null;
   error: string | null;
+  /** How `finish` was told the post went: a publishing error, or nothing sent. */
+  counted: 'error' | 'not_sent' | 'stopped' | null;
 }
 
 function world(clock: { now: Date }) {
@@ -55,6 +61,7 @@ function world(clock: { now: Date }) {
       claimed_at: null,
       provider_ref: null,
       error: null,
+      counted: null,
       ...over,
     });
   const held = (network: SocialNetwork, day: string) =>
@@ -119,17 +126,15 @@ function world(clock: { now: Date }) {
       Object.assign(r, { state: 'publishing', slot, post_day: day, claimed_at: clock.now });
       return { ok: true, value: { post_day: day, slot } };
     },
-    finish: async (
-      id: string,
-      answer:
-        | { state: 'published'; providerRef: string }
-        | { state: 'refused' | 'unknown'; error: string },
-    ) => {
+    finish: async (id: string, answer: SocialFinish) => {
       const r = rows.get(id)!;
       r.state = answer.state;
       r.updated_at = clock.now;
       if (answer.state === 'published') r.provider_ref = answer.providerRef;
-      else r.error = answer.error;
+      else {
+        r.error = answer.error;
+        r.counted = answer.state === 'refused' ? (answer.notSent ?? 'error') : 'error';
+      }
       if (answer.state === 'refused')
         Object.assign(r, { slot: null, post_day: null, claimed_at: null });
       return { ok: true, value: answer.state };
@@ -246,7 +251,7 @@ describe('the social posts job', () => {
       id: 'a',
       error: 'buffer refused (InvalidInputError): nope',
     });
-    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null });
+    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null, counted: 'error' });
     // The slot is free again, but the refused post waits for a slot after its refusal.
     expect(await s.publish('x', at('12:10'))).toEqual({ kind: 'nothing' });
     expect(await s.publish('x', at('16:35'))).toMatchObject({
@@ -257,14 +262,19 @@ describe('the social posts job', () => {
     });
   });
 
-  it('a 429 is a refusal, and the pause it named holds the next ticks', async () => {
+  it('a 429 is a refusal before sending (slot back, run kept), and its pause holds the next ticks', async () => {
     const s = setup([
       () => {
-        throw new SocialRefusal('buffer rate limit: paused for 753 s', 753_000);
+        throw SocialRefusal.beforeSend('buffer rate limit: paused for 753 s', 753_000);
       },
     ]);
     s.add('a');
-    expect(await s.publish('x', at('12:05'))).toMatchObject({ kind: 'refused', id: 'a' });
+    expect(await s.publish('x', at('12:05'))).toMatchObject({
+      kind: 'not_sent',
+      id: 'a',
+      why: 'not_sent',
+    });
+    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null, counted: 'not_sent' });
     s.publisher.ready = { ready: false, reason: 'paused', until: at('12:18') };
     expect(await s.publish('x', at('16:30'))).toEqual({ kind: 'not_ready', reason: 'paused' });
     expect(s.publisher.sent).toHaveLength(1);
@@ -301,7 +311,7 @@ describe('the social posts job', () => {
     expect(s.rows.get('a')!.state).toBe('approved');
   });
 
-  it('a stop committed after the claim is a refusal, and nothing is sent', async () => {
+  it('a stop committed after the claim is "stopped": nothing sent, slot back, run kept', async () => {
     const s = setup();
     s.add('a');
     const claim = s.social.claim.bind(s.social);
@@ -311,12 +321,40 @@ describe('the social posts job', () => {
       return claimed;
     }) as typeof s.social.claim;
     expect(await s.publish('x', at('12:05'))).toEqual({
-      kind: 'refused',
+      kind: 'not_sent',
       id: 'a',
+      why: 'stopped',
       error: 'publishing was stopped before sending',
     });
     expect(s.publisher.sent).toEqual([]);
-    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null });
+    expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null, counted: 'stopped' });
+  });
+
+  it("refusals before sending -- no channel, unreachable, too long -- keep the run; Buffer's own refusal does not", async () => {
+    for (const [refusal, counted] of [
+      [SocialRefusal.beforeSend('no connected, unlocked instagram channel on Buffer'), 'not_sent'],
+      [SocialRefusal.beforeSend('buffer unreachable: ENOTFOUND'), 'not_sent'],
+      [SocialRefusal.beforeSend('the text is longer than Buffer takes for x'), 'not_sent'],
+      [new SocialRefusal('buffer refused (InvalidInputError): nope'), 'error'],
+    ] as const) {
+      const s = setup([
+        () => {
+          throw refusal;
+        },
+      ]);
+      s.add('a');
+      await s.publish('x', at('12:05'));
+      expect(s.rows.get('a')).toMatchObject({ state: 'refused', slot: null, counted });
+    }
+  });
+
+  it('checks the network channel before claiming: none, and nothing is claimed', async () => {
+    const s = setup();
+    s.add('a');
+    s.publisher.ready = { ready: false, reason: 'channel', detail: 'no instagram channel' };
+    expect(await s.publish('x', at('12:05'))).toEqual({ kind: 'not_ready', reason: 'channel' });
+    expect(s.rows.get('a')).toMatchObject({ state: 'approved', slot: null });
+    expect(s.publisher.sent).toEqual([]);
   });
 
   it('skips a post whose gate fails at publishing and takes the next', async () => {

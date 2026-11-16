@@ -27,6 +27,7 @@ import {
   type NewSocialPost,
   PostgresSocialPostStore,
   type SocialActor,
+  type SocialFinish,
   type SocialPostRecord,
   type StoreOutcome,
 } from './internal/social-post-store';
@@ -541,11 +542,7 @@ export class SocialPublishingService {
     return this.store.claim(id, slot);
   }
 
-  finish(
-    id: string,
-    answer:
-      { state: 'published'; providerRef: string } | { state: 'refused' | 'unknown'; error: string },
-  ) {
+  finish(id: string, answer: SocialFinish) {
     return this.store.finish(id, answer);
   }
 

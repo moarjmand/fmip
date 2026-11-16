@@ -354,6 +354,70 @@ describe('the Buffer publisher', () => {
     });
   });
 
+  describe('which refusals happened before sending (T-1839)', () => {
+    it("marks Buffer's own refusal of the post as sent, and every refusal before the request as not", async () => {
+      const refusedPost = stubBuffer({
+        create: [
+          json({
+            data: { createPost: { __typename: 'InvalidInputError', message: 'Text is required' } },
+          }),
+        ],
+      });
+      const own = (await failureOf(
+        publisher(refusedPost.fetch).buffer.publish(X),
+      )) as SocialRefusal;
+      expect(own.beforeSend).toBe(false);
+
+      const before: [string, Parameters<typeof stubBuffer>[0], SocialPublication][] = [
+        ['no channel', { channels: json({ data: { channels: [CHANNELS[2]] } }) }, IG],
+        ['a 429', { create: [json({}, 429, { 'retry-after': '60' })] }, X],
+        [
+          'Buffer unreachable',
+          {
+            create: [
+              () => {
+                throw new TypeError('fetch failed', { cause: { code: 'ENOTFOUND' } });
+              },
+            ],
+          },
+          X,
+        ],
+        ['a text over the limit', {}, { ...IG, text: 'a'.repeat(2197) }],
+      ];
+      for (const [name, replies, post] of before) {
+        const error = (await failureOf(
+          publisher(stubBuffer(replies).fetch).buffer.publish(post),
+        )) as SocialRefusal;
+        expect([name, error.beforeSend]).toEqual([name, true]);
+      }
+    });
+
+    it('says before any claim whether the network has a channel, and does not ask again for 15 minutes after a failed lookup', async () => {
+      const onlyX = stubBuffer({ channels: json({ data: { channels: [CHANNELS[0]] } }) });
+      const { buffer } = publisher(onlyX.fetch);
+      expect(await buffer.readiness(undefined, 'x')).toEqual({ ready: true });
+      expect(await buffer.readiness(undefined, 'instagram')).toMatchObject({
+        ready: false,
+        reason: 'channel',
+        detail: expect.stringContaining('instagram'),
+      });
+      // Both answered from one lookup, cached.
+      expect(onlyX.seen.map((s) => s.operation)).toEqual(['FmipOrganizations', 'FmipChannels']);
+      // Without a network: the key and the pause only, no request.
+      expect(await buffer.readiness()).toEqual({ ready: true });
+      expect(onlyX.seen).toHaveLength(2);
+
+      const down = stubBuffer({ organizations: json({}, 500) });
+      const failing = publisher(down.fetch);
+      expect(await failing.buffer.readiness(undefined, 'x')).toMatchObject({ reason: 'channel' });
+      expect(await failing.buffer.readiness(undefined, 'x')).toMatchObject({ reason: 'channel' });
+      expect(down.seen).toHaveLength(1);
+      failing.time.advance(15 * 60 * 1000);
+      await failing.buffer.readiness(undefined, 'x');
+      expect(down.seen).toHaveLength(2);
+    });
+  });
+
   describe('an unknown outcome (perhaps posted: never a refusal)', () => {
     const unknowns: [string, Reply][] = [
       ['a 500', json({ errors: [{ message: 'boom' }] }, 500)],

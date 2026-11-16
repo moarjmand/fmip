@@ -32,12 +32,18 @@ export type SocialKeyState = 'set' | 'not_set' | 'unreadable';
 export type SocialPublisherReadiness =
   | { ready: true }
   | { ready: false; reason: 'not_set' | 'unreadable' }
-  | { ready: false; reason: 'paused'; until: Date };
+  | { ready: false; reason: 'paused'; until: Date }
+  /** The network has no usable channel at the provider, or it could not be looked up. */
+  | { ready: false; reason: 'channel'; detail: string };
 
 export interface SocialPublisher {
   readonly provider: string;
-  /** Whether a call now could post: a readable key, and no pause the provider asked for. */
-  readiness(now?: Date): Promise<SocialPublisherReadiness>;
+  /**
+   * Whether a call now could post: a readable key, no pause the provider
+   * asked for and, given a network, a usable channel for it -- asked before
+   * a post is claimed, so nothing is claimed that cannot go out (T-1839).
+   */
+  readiness(now?: Date, network?: SocialNetwork): Promise<SocialPublisherReadiness>;
   /** The stored key's state, for the health answer and the console. */
   keyState(): Promise<SocialKeyState>;
   /** The pause the provider asked for (a 429), or null. */
@@ -47,19 +53,31 @@ export interface SocialPublisher {
 }
 
 /**
- * The provider answered and posted nothing: a refused input, a missing or
- * disconnected channel, an unauthorised key, a rate limit (with the pause it
- * named), or a step before the post was ever sent. The one failure after
- * which trying again cannot post twice.
+ * Nothing was posted: the one failure after which trying again cannot post
+ * twice. Two kinds (T-1839, D-427 point 6 as amended):
+ * - the provider refused **the post itself** (`new SocialRefusal(...)`): a
+ *   refused input, a picture it could not fetch, a key refused for the post
+ *   -- a publishing error, which breaks the kind's clean run;
+ * - nothing was **sent** (`SocialRefusal.beforeSend(...)`): no usable
+ *   channel, the provider unreachable before the request left, a rate limit
+ *   (with the pause it named), a text over the limit, no readable key -- not
+ *   the post's fault: the slot is given back and the run kept.
  */
 export class SocialRefusal extends Error {
   constructor(
     message: string,
     /** For a rate limit: how long the provider asked us to wait. */
     readonly retryAfterMs: number | null = null,
+    /** True when the request for the post was never sent. */
+    readonly beforeSend: boolean = false,
   ) {
     super(message);
     this.name = 'SocialRefusal';
+  }
+
+  /** Nothing was sent: the slot goes back and the kind's run is kept. */
+  static beforeSend(message: string, retryAfterMs: number | null = null): SocialRefusal {
+    return new SocialRefusal(message, retryAfterMs, true);
   }
 }
 

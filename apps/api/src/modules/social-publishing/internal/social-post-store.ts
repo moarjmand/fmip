@@ -145,6 +145,16 @@ const isConstraint = (error: unknown, code: string, constraint: string): boolean
 const runAfter = (row: AutomationRow, event: RunEvent): number =>
   afterEvent({ level: row.level, clean_run: row.clean_run }, event).next.clean_run;
 
+/**
+ * What the publisher records for a claimed post. `notSent` marks a refusal
+ * before anything was sent (`stopped`: the kill switch landed after the
+ * claim): the slot is given back and the kind's run kept.
+ */
+export type SocialFinish =
+  | { state: 'published'; providerRef: string }
+  | { state: 'refused'; error: string; notSent?: 'not_sent' | 'stopped' }
+  | { state: 'unknown'; error: string };
+
 /** A post the publisher may take: approved, or refused and still valid. */
 export interface PublishableRow {
   id: string;
@@ -361,13 +371,17 @@ export class PostgresSocialPostStore {
   /**
    * What the network answered for a claimed post, and its effect on the
    * kind's run (`afterEvent`): published counts as clean unless the post is
-   * an edit; refused (the slot given back) or no answer (`unknown`, the slot
-   * kept) resets the run and lowers an automatic kind, audited.
+   * an edit; refused by the network (the slot given back) or no answer
+   * (`unknown`, the slot kept) is a publishing error, which resets the run
+   * and lowers an automatic kind, audited. A refusal before anything was
+   * sent (`notSent`: no channel, the provider unreachable, a rate limit, a
+   * text over the limit, or `stopped` after the claim) gives the slot back
+   * and keeps the run (T-1839, D-427 point 6 as amended); a job-approved post
+   * whose kind is no longer automatic goes back to a person.
    */
   async finish(
     id: string,
-    answer:
-      { state: 'published'; providerRef: string } | { state: 'refused' | 'unknown'; error: string },
+    answer: SocialFinish,
   ): Promise<StoreOutcome<SocialPostState, 'not_found' | 'not_publishing'>> {
     const kind = await this.kindOf(id);
     if (kind === null) return { ok: false, refusal: 'not_found' };
@@ -375,10 +389,13 @@ export class PostgresSocialPostStore {
       const auto = await this.lockAutomation(c, kind, 'UPDATE');
       const post = await this.lockPost(c, id);
       if (post.state !== 'publishing') throw new Refused('not_publishing');
-      const event: RunEvent =
+      const notSent = answer.state === 'refused' ? (answer.notSent ?? null) : null;
+      const event: RunEvent | null =
         answer.state === 'published'
           ? { type: 'published', edited: post.edited_from !== null }
-          : { type: 'publish_error' };
+          : notSent !== null
+            ? null
+            : { type: 'publish_error' };
       if (answer.state === 'published') {
         await c.query(
           `UPDATE social_post SET state = 'published', provider_ref = $2, published_at = now() WHERE id = $1`,
@@ -404,18 +421,30 @@ export class PostgresSocialPostStore {
         reason:
           answer.state === 'published'
             ? 'the network published it'
-            : answer.state === 'refused'
-              ? 'the network refused it'
-              : 'the network did not answer',
+            : notSent === 'stopped'
+              ? 'stopped'
+              : notSent === 'not_sent'
+                ? 'nothing was sent'
+                : answer.state === 'refused'
+                  ? 'the network refused it'
+                  : 'the network did not answer',
         previous: {
           state: post.state,
           post_day: post.post_day,
           slot: post.slot,
           clean_run: auto.clean_run,
         },
-        next: { state: answer.state, clean_run: runAfter(auto, event) },
+        next: {
+          state: answer.state,
+          clean_run: event === null ? auto.clean_run : runAfter(auto, event),
+        },
       });
-      await this.applyRun(c, auto, event);
+      if (event !== null) {
+        await this.applyRun(c, auto, event);
+      } else if (post.approved_by_name === SOCIAL_AUTOMATION_ACTOR && auto.level !== 'automatic') {
+        // Lowered (by the kill switch) while it was being sent: back to a person, as its peers went.
+        await this.backToPerson(c, kind, `${kind} is no longer automatic`);
+      }
       return answer.state;
     });
   }

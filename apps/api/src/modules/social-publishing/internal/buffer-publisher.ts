@@ -79,6 +79,8 @@ export const BUFFER_CHANNELS_TTL_MS = 60 * 60 * 1000;
 /** A 429 that names no pause: wait out Buffer's shortest window. */
 export const BUFFER_DEFAULT_PAUSE_MS = 15 * 60 * 1000;
 export const BUFFER_PROVIDER = 'buffer';
+/** A failed channel lookup is not tried again for this long (Buffer's 600 requests a day). */
+export const BUFFER_LOOKUP_RETRY_MS = 15 * 60 * 1000;
 
 /** Our networks as Buffer's `Service` names them. */
 export const BUFFER_SERVICE: Readonly<Record<SocialNetwork, string>> = {
@@ -172,6 +174,8 @@ export class BufferPublisher implements SocialPublisher {
   private lastRequestAt = Number.NEGATIVE_INFINITY;
   private pausedTill: number | null = null;
   private channels: { fingerprint: string; at: number; list: BufferChannel[] } | null = null;
+  /** When the channels last failed to be read: not asked again before `BUFFER_LOOKUP_RETRY_MS`. */
+  private lookupFailed: { at: number; message: string } | null = null;
 
   constructor(
     private readonly credentials: SocialCredentialReader,
@@ -198,11 +202,28 @@ export class BufferPublisher implements SocialPublisher {
     return opened.state;
   }
 
-  async readiness(now: Date = new Date(this.clock())): Promise<SocialPublisherReadiness> {
+  async readiness(
+    now: Date = new Date(this.clock()),
+    network?: SocialNetwork,
+  ): Promise<SocialPublisherReadiness> {
     const until = this.pausedUntil(now);
     if (until !== null) return { ready: false, reason: 'paused', until };
-    const state = await this.keyState();
-    return state === 'set' ? { ready: true } : { ready: false, reason: state };
+    const opened = await this.readKey();
+    if (opened.state !== 'set') return { ready: false, reason: opened.state };
+    if (network === undefined) return { ready: true };
+    // The channel, before anything is claimed (T-1839): cached for an hour, so
+    // this costs Buffer two requests an hour at most.
+    const check = this.serial.then(() => this.channelFor(network, opened.key));
+    this.serial = check.catch(() => undefined);
+    try {
+      await check;
+      return { ready: true };
+    } catch (error) {
+      const paused = this.pausedUntil();
+      if (paused !== null) return { ready: false, reason: 'paused', until: paused };
+      const message = error instanceof Error ? error.message : String(error);
+      return { ready: false, reason: 'channel', detail: this.scrub(message, opened.key) };
+    }
   }
 
   publish(post: SocialPublication): Promise<{ providerRef: string }> {
@@ -214,26 +235,28 @@ export class BufferPublisher implements SocialPublisher {
   private async publishNow(post: SocialPublication): Promise<{ providerRef: string }> {
     const until = this.pausedUntil();
     if (until !== null) {
-      throw new SocialRefusal(
+      throw SocialRefusal.beforeSend(
         `buffer asked for a pause until ${until.toISOString()}`,
         until.getTime() - this.clock(),
       );
     }
     if (!/^https?:\/\/[^\s/]+\/\S+$/.test(post.imageUrl)) {
-      throw new SocialRefusal('the card address is not an absolute web address');
+      throw SocialRefusal.beforeSend('the card address is not an absolute web address');
     }
     if (!fitsNetwork(post.text, post.network)) {
-      throw new SocialRefusal(`the text is longer than Buffer takes for ${post.network}`);
+      throw SocialRefusal.beforeSend(`the text is longer than Buffer takes for ${post.network}`);
     }
     let opened: Awaited<ReturnType<BufferPublisher['readKey']>>;
     try {
       opened = await this.readKey();
     } catch (error) {
       // Nothing was sent: the stored key could not even be read.
-      throw new SocialRefusal(`before posting, the key could not be read: ${describe(error)}`);
+      throw SocialRefusal.beforeSend(
+        `before posting, the key could not be read: ${describe(error)}`,
+      );
     }
     if (opened.state !== 'set') {
-      throw new SocialRefusal(
+      throw SocialRefusal.beforeSend(
         opened.state === 'not_set' ? 'no Buffer key is set' : 'the Buffer key is unreadable',
       );
     }
@@ -257,7 +280,7 @@ export class BufferPublisher implements SocialPublisher {
     } catch (error) {
       // No address or no listener: the request never left, so nothing was posted.
       if (NEVER_SENT.has(causeCode(error) ?? '')) {
-        throw new SocialRefusal(`buffer unreachable: ${this.scrub(describe(error), key)}`);
+        throw SocialRefusal.beforeSend(`buffer unreachable: ${this.scrub(describe(error), key)}`);
       }
       // Sent, or perhaps sent: a timeout or a dropped connection says nothing of the outcome.
       throw new Error(`buffer did not answer: ${this.scrub(describe(error), key)}`);
@@ -317,13 +340,24 @@ export class BufferPublisher implements SocialPublisher {
       this.channels.fingerprint !== fingerprint ||
       now - this.channels.at >= this.channelsTtlMs
     ) {
+      const failed = this.lookupFailed;
+      if (failed !== null && now - failed.at < BUFFER_LOOKUP_RETRY_MS) {
+        throw SocialRefusal.beforeSend(failed.message);
+      }
       try {
         this.channels = { fingerprint, at: now, list: await this.listChannels(key) };
+        this.lookupFailed = null;
       } catch (error) {
-        if (error instanceof SocialRefusal) throw error;
-        throw new SocialRefusal(
-          `before posting, the Buffer channels could not be read: ${this.scrub(describe(error), key)}`,
-        );
+        const refusal =
+          error instanceof SocialRefusal
+            ? error
+            : SocialRefusal.beforeSend(
+                `before posting, the Buffer channels could not be read: ${this.scrub(describe(error), key)}`,
+              );
+        // A rate limit has its own pause; anything else waits out the retry window.
+        if (refusal.retryAfterMs === null)
+          this.lookupFailed = { at: now, message: refusal.message };
+        throw refusal;
       }
     }
     const service = BUFFER_SERVICE[network];
@@ -331,15 +365,15 @@ export class BufferPublisher implements SocialPublisher {
       (c) => c.service === service && !c.isDisconnected && !c.isLocked,
     );
     if (usable.length === 0) {
-      throw new SocialRefusal(`no connected, unlocked ${service} channel on Buffer`);
+      throw SocialRefusal.beforeSend(`no connected, unlocked ${service} channel on Buffer`);
     }
     if (usable.length > 1) {
-      throw new SocialRefusal(
+      throw SocialRefusal.beforeSend(
         `more than one ${service} channel on Buffer: which one is not ours to guess`,
       );
     }
     if (usable[0]!.isQueuePaused) {
-      throw new SocialRefusal(`the ${service} channel's queue is paused on Buffer`);
+      throw SocialRefusal.beforeSend(`the ${service} channel's queue is paused on Buffer`);
     }
     return usable[0]!.id;
   }
@@ -374,7 +408,7 @@ export class BufferPublisher implements SocialPublisher {
     this.refuseOnRateLimit(answer);
     const data = answer.body?.data ?? null;
     if (answer.status !== 200 || data === null || (answer.body?.errors?.length ?? 0) > 0) {
-      throw new SocialRefusal(
+      throw SocialRefusal.beforeSend(
         `before posting, Buffer refused the channel lookup (${answer.status}): ${this.messageOf(answer, key)}`,
       );
     }
@@ -390,7 +424,10 @@ export class BufferPublisher implements SocialPublisher {
     const pause = pauseOf(answer.headers, this.clock());
     this.pausedTill = this.clock() + pause;
     this.channels = null;
-    throw new SocialRefusal(`buffer rate limit: paused for ${Math.round(pause / 1000)} s`, pause);
+    throw SocialRefusal.beforeSend(
+      `buffer rate limit: paused for ${Math.round(pause / 1000)} s`,
+      pause,
+    );
   }
 
   private async request(

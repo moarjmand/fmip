@@ -1258,6 +1258,70 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect((await social.checkAtPublishing(post.id, PUBLISH_AT)).go).toBe(true);
     });
 
+    it('gives the slot back and keeps the run for a refusal before sending, "stopped" included (T-1839)', async () => {
+      const post = await live(f.late, 'model_verdict', 'x');
+      expect(post.state).toBe('pending_approval');
+      expect((await social.approve(post.id, owner, PUBLISH_AT)).ok).toBe(true);
+      await setVerdictRun(9);
+      const finishRow = async () => (await audits(post.id)).at(-1)!;
+
+      // Nothing was sent (no channel, unreachable, a 429, too long): slot back, run kept.
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'no connected, unlocked twitter channel on Buffer',
+            notSent: 'not_sent',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'refused',
+        slot: null,
+        post_day: null,
+      });
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 9 });
+      expect(await finishRow()).toMatchObject({
+        actor_name: 'automation',
+        action: 'social.finish',
+        reason: 'nothing was sent',
+        previous: { state: 'publishing', slot: 4, clean_run: 9 },
+        next: { state: 'refused', clean_run: 9 },
+      });
+
+      // The same slot is free again; a stop landing after the claim is audited as "stopped".
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'publishing was stopped before sending',
+            notSent: 'stopped',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 9 });
+      expect(await finishRow()).toMatchObject({ reason: 'stopped', next: { clean_run: 9 } });
+
+      // Buffer refusing the post itself is a publishing error: the run resets.
+      expect((await social.claim(post.id, 4)).ok).toBe(true);
+      expect(
+        (
+          await social.finish(post.id, {
+            state: 'refused',
+            error: 'buffer refused (InvalidInputError)',
+          })
+        ).ok,
+      ).toBe(true);
+      expect(await verdictRun()).toEqual({ level: 'approval', clean_run: 0 });
+      expect(await finishRow()).toMatchObject({
+        reason: 'the network refused it',
+        next: { clean_run: 0 },
+      });
+      expect((await social.get(post.id))!.slot).toBeNull();
+    });
+
     it('holds a raise to automatic to a reason of its own in the database too', async () => {
       await setVerdictRun(14);
       const last = (
