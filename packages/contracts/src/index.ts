@@ -365,8 +365,10 @@ export type {
 export type {
   SocialAutomation,
   SocialAutomationLevel,
+  SocialCardGoal,
   SocialCardModel,
   SocialCardPayload,
+  SocialCardResponse,
   SocialCardTeam,
   SocialForecastPayload,
   SocialGate,

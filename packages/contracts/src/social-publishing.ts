@@ -134,6 +134,8 @@ export interface SocialCardTeam {
 interface SocialCardBase {
   fixture_id: string;
   competition: { id: string; name: string };
+  /** The round or stage as the match page names it ("Matchday 11"); the card's eyebrow, when known (T-1835). */
+  round?: string | null;
   kick_off: string;
   home: SocialCardTeam;
   away: SocialCardTeam;
@@ -144,6 +146,8 @@ export interface SocialCardModel {
   name: 'The Stadiomind model';
   version: string;
   forecast_id: string;
+  /** When the forecast was computed; the card's source line says it when known (T-1835). */
+  computed_at?: string | null;
 }
 
 export interface SocialForecastPayload extends SocialCardBase {
@@ -170,6 +174,8 @@ export interface SocialVerdictPayload extends SocialCardBase {
   /** The outcome the model gave the most, and its whole percentage. */
   called: SocialOutcome;
   called_percent: number;
+  /** The frozen forecast's three shares, as the forecast card drew them; the card's bar when known (T-1835). */
+  percent?: { home: number; draw: number; away: number } | null;
   /** The stored evaluation's `correct`, never recomputed (D-209). */
   correct: boolean;
 }
@@ -179,6 +185,31 @@ export interface SocialResultPayload extends SocialCardBase {
   score: { home: number; away: number };
   after_extra_time: boolean;
   penalties: { home: number; away: number } | null;
+  /** The half-time score, when known (T-1835). */
+  half_time?: { home: number; away: number } | null;
+  /**
+   * The goals, in order, when the match's events supply all of them (T-1835).
+   * Null or absent when they do not: the card then lists no scorers rather
+   * than some of them (rule 3).
+   */
+  goals?: SocialCardGoal[] | null;
+}
+
+/** A goal as the result card lists it: the scorer's name and minute, never a photo. */
+export interface SocialCardGoal {
+  /** The side the goal counted for (an own goal counts for the other side). */
+  side: 'home' | 'away';
+  player: string;
+  minute: number;
+  /** Added time ("45+2"), when the minute is in it. */
+  added: number | null;
+  kind: 'goal' | 'penalty' | 'own_goal';
+}
+
+/** `GET /social-posts/:id/card`: a live post's frozen card payload (T-1835, D-427 point 11). */
+export interface SocialCardResponse {
+  id: string;
+  payload: SocialCardPayload;
 }
 
 /** The card's frozen payload. */
