@@ -412,6 +412,18 @@ export const EXEMPT: Readonly<Record<string, string>> = {
     "Switches the caller's own new-request notifications on or off: one flag on their own console account, set in place and audited only when it changes; it sends nothing.",
   'POST /console/calendar/push/test':
     "Sends one test message to the caller's own browsers only; reaches no one else, and the push services hold their own limits.",
+  // T-1836 (D-427): the social tab, the same two people. Nothing here posts to
+  // a network: the job publishes at most five a network a London day whatever
+  // is approved (the database's slots), and each decision is one post's once.
+  'POST /console/social/posts/:id/approve': CONSOLE_PERSON,
+  'POST /console/social/posts/:id/reject': CONSOLE_PERSON,
+  'POST /console/social/posts/:id/edit':
+    "One of the console's two people rewords a waiting caption: the old post is rejected and one new one waits, so edits are bounded by the posts drafted; audited.",
+  'POST /console/social/posts/:id/settle': CONSOLE_PERSON,
+  'POST /console/social/switch': CONSOLE_PERSON,
+  'POST /console/social/levels/:kind': `${CONSOLE_PERSON} The console owner only (403 otherwise).`,
+  'POST /console/social/key': `${CONSOLE_PERSON} The console owner only (403 otherwise); the key is sealed in place, one row.`,
+  'POST /console/social/key/clear': `${CONSOLE_PERSON} The console owner only (403 otherwise).`,
 };
 
 /** Every write under this prefix is the console's: role-gated and audited, never rate limited. */

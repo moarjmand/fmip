@@ -20,6 +20,7 @@ import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
 import { CHECKLIST } from './checklist.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 import { PROVIDERS } from './providers.fixture';
+import { SOCIAL_VIEW } from './social.fixture';
 
 /**
  * The console is Persian only (T-1725, D-352), and each agent page draws how
@@ -31,7 +32,11 @@ import { PROVIDERS } from './providers.fixture';
  * fails the scan.
  */
 
-const fixtures = vi.hoisted(() => ({ snapshot: null as unknown, invitationOk: true }));
+const fixtures = vi.hoisted(() => ({
+  snapshot: null as unknown,
+  invitationOk: true,
+  social: null as unknown,
+}));
 
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: () => undefined, set: () => undefined }),
@@ -76,6 +81,14 @@ vi.mock('@/lib/console-actions', () => {
     removeReminderDevice: async () => ({ ok: true }),
     testReminder: async () => null,
     setRequestAlerts: async () => ({ ok: true, error: null }),
+    approveSocial: action,
+    rejectSocial: action,
+    editSocial: action,
+    settleSocial: action,
+    setSocialSwitch: action,
+    setSocialLevel: action,
+    setSocialKey: action,
+    clearSocialKey: action,
     addChecklistItem: action,
     updateChecklistItem: async () => ({ ok: true, error: null }),
     moveChecklistItem: async () => ({ ok: true, error: null }),
@@ -91,6 +104,8 @@ vi.mock('@/lib/console-api', () => {
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
     // T-1729, T-1752: the model page, on the API's real answer of 2026-11-06.
     consoleModel: () => ok(MODEL_REPORT),
+    // T-1836: the social tab, with the English the API really sends (captions inside dir=ltr).
+    consoleSocial: () => ok(fixtures.social),
     // T-1840: the pre-launch checklist, the seed's Persian text.
     consoleChecklist: () => ok(CHECKLIST),
     consoleCommands: () =>
@@ -659,6 +674,8 @@ const TECHNICAL_TERMS = new Set([
   'PayPal',
   'SLA',
   'KYC',
+  // T-1836: the social posts' publisher, named as the teammate's account is.
+  'Buffer',
 ]);
 
 const isTechnical = (word: string) =>
@@ -746,6 +763,7 @@ async function render(node: ReactNode | Promise<ReactNode>): Promise<string> {
 beforeEach(() => {
   fixtures.snapshot = SNAPSHOT;
   fixtures.invitationOk = true;
+  fixtures.social = SOCIAL_VIEW;
 });
 
 describe('the Persian-only scan', () => {
@@ -868,6 +886,25 @@ describe('the Persian-only scan', () => {
       async () => render((await import('./(app)/calendar/subscriptions/page')).default()),
     ],
     ['the forecast model', async () => render((await import('./(app)/model/page')).default())],
+    ['the social posts', async () => render((await import('./(app)/social/page')).default())],
+    [
+      'the social posts, stopped, the key rejected, as the teammate',
+      async () => {
+        fixtures.social = {
+          ...SOCIAL_VIEW,
+          viewer: { name: 'مریم', owner: false },
+          switch: {
+            stopped: true,
+            changed_at: '2026-11-16T09:00:00Z',
+            changed_by: 'maryam',
+            reason: 'stop',
+          },
+          key: { state: 'rejected', set_at: '2026-11-15T20:00:00Z', set_by: 'mostafa' },
+          health: { ...SOCIAL_VIEW.health, key: 'rejected', paused_until: '2026-11-16T11:00:00Z' },
+        };
+        return render((await import('./(app)/social/page')).default());
+      },
+    ],
     [
       'the data providers',
       async () =>
@@ -951,6 +988,7 @@ describe('the Persian-only scan', () => {
       './(app)/providers/page',
       './(app)/reports/page',
       './(app)/requests/page',
+      './(app)/social/page',
       './(open)/login/page',
       './(open)/invite/[token]/page',
     ]) {

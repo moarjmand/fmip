@@ -146,7 +146,77 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
     /^That is the most pictures an hour allows/,
     () => 'به سقف تصویرهای یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
   ],
+  // The social tab (T-1836): `social-console.controller.ts`.
+  [/^No such post\.$/, () => 'چنین پستی نیست.'],
+  [/^No such kind\.$/, () => 'چنین نوع پستی نیست.'],
+  [/^This post is not waiting for approval\.$/, () => 'این پست دیگر منتظر تأیید نیست.'],
+  [
+    /^A gate fails now: (.*)\.$/,
+    (m) =>
+      `این پست اکنون از شرط‌ها نمی‌گذرد: ${m[1]!
+        .split(/,\s*/)
+        .filter((g) => g !== '')
+        .map((g) => SOCIAL_GATE_WORDS[g] ?? g)
+        .join('، ')}.`,
+  ],
+  [/^Give a reason\.$/, () => 'دلیل را بنویسید.'],
+  [/^A reason is at most (\d+) characters\.$/, (m) => `دلیل حداکثر ${fa(m[1]!)} نویسه است.`],
+  [
+    /^Only a post with no answer from the network is settled\.$/,
+    () => 'فقط پستی که شبکه به آن پاسخی نداده تعیین وضعیت می‌شود.',
+  ],
+  [/^Choose published or refused\.$/, () => '«منتشر شد» یا «منتشر نشد» را انتخاب کنید.'],
+  [/^Give the reference of the published post\.$/, () => 'شناسه‌ی پست منتشرشده را بنویسید.'],
+  [/^That reference is too long\.$/, () => 'این شناسه خیلی بلند است.'],
+  [/^It is already so\.$/, () => 'همین حالا هم همین‌طور است.'],
+  [/^stop is true or false\.$/, () => 'فرمان توقف درست فرستاده نشد.'],
+  [
+    /^Only the console owner changes a level\.$/,
+    () => 'فقط مالک کنسول سطح خودکارسازی را عوض می‌کند.',
+  ],
+  [/^A level is approval or automatic\.$/, () => 'سطح باید «تأیید دستی» یا «خودکار» باشد.'],
+  [
+    /^A kind is raised only after 14 clean posts in a row\.$/,
+    () => 'این نوع فقط پس از ۱۴ پست پاک پشت‌سرهم خودکار می‌شود.',
+  ],
+  [
+    /^Publishing is stopped; resume it before raising a level\.$/,
+    () => 'ارسال متوقف است؛ پیش از خودکار کردن، ارسال را از سر بگیرید.',
+  ],
+  [/^Give this change a reason of its own\.$/, () => 'برای این تغییر دلیل تازه‌ای بنویسید.'],
+  [/^Write the caption\.$/, () => 'متن پست را بنویسید.'],
+  [/^The caption is too long for its network\.$/, () => 'متن برای این شبکه بلند است.'],
+  [
+    /^Only the words may change/,
+    () => 'فقط کلمه‌ها عوض می‌شوند؛ عدد، نام تیم، مدل، نتیجه‌ی بررسی و پیوند ثابت می‌مانند.',
+  ],
+  [
+    /^A caption names no other prediction\.$/,
+    () => 'متن پست پیش‌بینی دیگری جز مدل را نام نمی‌برد.',
+  ],
+  [/^The caption touches a sensitive topic\.$/, () => 'متن پست به موضوع حساسی می‌پردازد.'],
+  [/^That is not a key/, () => 'این کلید درست نیست: بدون فاصله و حداکثر ۱۰۲۴ نویسه.'],
+  [
+    /^The server cannot seal a key/,
+    () => 'سرور نمی‌تواند کلید را رمز کند (رمز نشست تنظیم نشده است).',
+  ],
+  [/^No key is set\.$/, () => 'کلیدی تنظیم نشده است.'],
+  [
+    /^Only the console owner sets or clears the publisher key\.$/,
+    () => 'فقط مالک کنسول کلید Buffer را وارد یا پاک می‌کند.',
+  ],
 ];
+
+/** The social posts' gates (D-427 point 3), as an approval's refusal names them. */
+export const SOCIAL_GATE_WORDS: Record<string, string> = {
+  fixture_status: 'وضعیت بازی',
+  coverage: 'پوشش داده',
+  freshness: 'تازگی داده',
+  score_dispute: 'اختلاف در نتیجه',
+  forecast_shown: 'پیش‌بینی نمایش‌داده‌شده عوض شده',
+  evaluation_stored: 'ارزیابی ذخیره‌شده',
+  one_product: 'یک محصول در هر پست',
+};
 
 const hasLatin = (text: string) => /[A-Za-z]{2,}/.test(text);
 
@@ -234,6 +304,21 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
   'requests.alerts_on': 'روشن کردن اعلان درخواست‌های تازه',
   'requests.alerts_off': 'خاموش کردن اعلان درخواست‌های تازه',
+  // The social posts (T-1836, D-427): a person's actions and the job's own.
+  'social.approve': 'تأیید پست',
+  'social.reject': 'رد پست',
+  'social.edit': 'ویرایش متن پست',
+  'social.settle': 'تعیین وضعیت پست بی‌پاسخ',
+  'social.kill': 'کلید توقف ارسال',
+  'social.level': 'تغییر سطح خودکارسازی',
+  'social.credential': 'کلید Buffer',
+  'social.claim': 'گرفتن نوبت انتشار',
+  'social.finish': 'پاسخ شبکه',
+  'social.expire': 'منقضی شدن پست',
+  'social.supersede': 'جایگزینی پست',
+  'social.withdraw': 'پس گرفتن تأیید',
+  'social.sensitive': 'علامت موضوع حساس',
+  'console.owner_set': 'تعیین مالک کنسول',
   'checklist.item_created': 'مورد تازه در فهرست راه‌اندازی',
   'checklist.item_changed': 'تغییر مورد فهرست راه‌اندازی',
   'checklist.item_moved': 'جابه‌جایی مورد فهرست راه‌اندازی',
@@ -291,6 +376,15 @@ export function auditReasonWords(reason: string): string {
     [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
     [/^new-request notifications switched on$/, () => 'اعلان درخواست‌های تازه روشن شد'],
     [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],
+    // The social posts (T-1836): the reasons the store and the job write.
+    [/^approved by a person, its gates passing$/, () => 'با تأیید یک نفر، شرط‌ها برقرار'],
+    [/^the publisher key was entered$/, () => 'کلید وارد شد'],
+    [/^became sensitive after approval$/, () => 'پس از تأیید حساس شد'],
+    [/^its validity ended$/, () => 'زمان اعتبارش گذشت'],
+    [/^publishing was stopped$/, () => 'ارسال متوقف شد'],
+    [/^edited: (.+)$/, (m) => `ویرایش شد: ${m[1]}`],
+    [/^\w+ is automatic: a clean template post$/, () => 'این نوع خودکار است؛ پست قالبی پاک'],
+    [/^claimed slot (\d) of ([\d-]+)$/, (m) => `نوبت ${fa(m[1]!)} از روز ${m[2]}`],
     [/^item added$/, () => 'مورد اضافه شد'],
     [
       // Only the API's own list of fields; a person's own reason is shown as written.

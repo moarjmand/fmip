@@ -387,9 +387,13 @@ export type {
   SocialCardPayload,
   SocialCardResponse,
   SocialCardTeam,
+  SocialConsoleAuditRow,
+  SocialConsolePost,
+  SocialConsoleView,
   SocialForecastPayload,
   SocialGate,
   SocialGateCheck,
+  SocialKeyStatus,
   SocialNetwork,
   SocialOutcome,
   SocialPostKind,
@@ -398,6 +402,7 @@ export type {
   SocialResultPayload,
   SocialSensitiveReason,
   SocialSensitiveTopic,
+  SocialSwitchState,
   SocialVerdictPayload,
 } from './social-publishing';
 // The agents console's data providers' comparison (T-1830, D-423); its runtime constants are in './console'.

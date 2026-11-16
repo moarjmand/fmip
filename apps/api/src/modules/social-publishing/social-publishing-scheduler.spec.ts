@@ -168,6 +168,7 @@ function scriptedPublisher(
     ready: readiness,
     readiness: async () => publisher.ready,
     keyState: async () => 'set',
+    keyChanged: () => undefined,
     pausedUntil: () => null,
     publish: async (post) => {
       sent.push(post);

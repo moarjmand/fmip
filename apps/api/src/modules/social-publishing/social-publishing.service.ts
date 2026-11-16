@@ -10,13 +10,18 @@ import type {
   SocialCardModel,
   SocialCardPayload,
   SocialCardTeam,
+  SocialConsoleAuditRow,
+  SocialConsolePost,
+  SocialConsoleView,
   SocialGateCheck,
+  SocialKeyStatus,
   SocialOutcome,
   SocialPostKind,
   SocialPostState,
   SocialSensitiveReason,
 } from '@fmip/contracts';
-import { SOCIAL_NETWORKS, SOCIAL_TIME_ZONE } from '@fmip/contracts/console';
+import { SOCIAL_DAILY_CAP, SOCIAL_NETWORKS, SOCIAL_TIME_ZONE } from '@fmip/contracts/console';
+import { ConsoleAudit } from '../agents-console/console-audit.service';
 import { EvaluationService, type CountedEvaluation } from '../forecast/evaluation.service';
 import { ForecastService, roundToTotalOne } from '../forecast/forecast.service';
 import { FixturesService } from '../fixtures/fixtures.service';
@@ -43,11 +48,7 @@ import {
   publishingOutcome,
   sensitivity,
 } from './internal/social-rules';
-import {
-  SOCIAL_PUBLISHER,
-  type SocialKeyState,
-  type SocialPublisher,
-} from './social-publisher.port';
+import { SOCIAL_PUBLISHER, type SocialPublisher } from './social-publisher.port';
 
 /** The site the posts link to (`WEB_BASE_URL`), as the channel post's and the e-mails' links. */
 export const SOCIAL_OPTIONS = Symbol('SOCIAL_OPTIONS');
@@ -82,10 +83,8 @@ export type PublishCheck =
   | { go: true; post: SocialPostRecord }
   | { go: false; why: 'gone' | 'expired' | 'superseded' | 'sensitive'; failed?: string[] };
 
-/** The key as the console shows it: never the key. */
-export type SocialKeyStatus =
-  | { state: 'not_set' }
-  | { state: Exclude<SocialKeyState, 'not_set'>; set_at: string; set_by: string };
+/** The key as the console shows it: never the key (the contract's, T-1836). */
+export type { SocialKeyStatus };
 
 /** Why a candidate was not drafted, for the job's log. */
 export type SkipReason = `gates:${string}` | 'too_long';
@@ -99,6 +98,86 @@ export interface DraftReport {
   expired: number;
   superseded: number;
   skipped: { fixture_id: string; kind: SocialPostKind; reason: SkipReason }[];
+}
+
+/** How many rows of history and of the audit trail the console tab shows. */
+export const CONSOLE_HISTORY_ROWS = 60;
+export const CONSOLE_AUDIT_ROWS = 80;
+
+const iso = (d: Date | null): string | null => d?.toISOString() ?? null;
+
+/**
+ * A post as the console shows it (T-1836): the frozen text and card, the
+ * state, and who decided what. Its stored `inputs` are left out on purpose
+ * -- they hold the provider's raw labels (review of PR #895, round 2) -- as
+ * is the publisher's reference to it (provider isolation).
+ */
+export function consolePost(row: SocialPostRecord & { updated_at: Date }): SocialConsolePost {
+  return {
+    id: row.id,
+    fixture_id: row.fixture_id,
+    kind: row.kind,
+    network: row.network,
+    state: row.state,
+    origin: row.origin,
+    body: row.body,
+    payload: row.payload,
+    failed_gates: row.gates.failed ?? [],
+    sensitive: row.sensitive ? row.sensitive_reason : null,
+    edited_from: row.edited_from,
+    created_at: row.created_at.toISOString(),
+    expires_at: row.expires_at.toISOString(),
+    approved_by: row.approved_by_name,
+    approved_at: iso(row.approved_at),
+    decided_by: row.decided_by_name,
+    decided_at: iso(row.decided_at),
+    decided_reason: row.decided_reason,
+    post_day: row.post_day,
+    slot: row.slot,
+    published_at: iso(row.published_at),
+    last_error: row.last_error,
+    updated_at: row.updated_at.toISOString(),
+  };
+}
+
+/** A previous value's field the console never shows, whatever an audit row might hold. */
+const SECRET_FIELD = /secret|token|cipher|password|iv$|tag$/i;
+const PREVIOUS_TEXT_MAX = 200;
+
+/**
+ * An audit row of the tab: the previous value cut to its plain fields (rule
+ * 10's "previous value"), a long text shortened; a nested value (the gates as
+ * checked) is left out. The key's row holds only "set on <date> by <who>".
+ */
+export function consoleAuditRow(row: {
+  created_at: Date;
+  actor_name: string;
+  action: string;
+  target_type: string;
+  target_id: string;
+  reason: string;
+  previous: unknown;
+}): SocialConsoleAuditRow {
+  let previous: SocialConsoleAuditRow['previous'] = null;
+  if (typeof row.previous === 'string') {
+    previous = { value: row.previous.slice(0, PREVIOUS_TEXT_MAX) };
+  } else if (typeof row.previous === 'object' && row.previous !== null) {
+    previous = {};
+    for (const [name, value] of Object.entries(row.previous as Record<string, unknown>)) {
+      if (SECRET_FIELD.test(name)) continue;
+      if (typeof value === 'string') previous[name] = value.slice(0, PREVIOUS_TEXT_MAX);
+      else if (typeof value === 'number' || typeof value === 'boolean' || value === null)
+        previous[name] = value;
+    }
+  }
+  return {
+    at: row.created_at.toISOString(),
+    actor: row.actor_name,
+    action: row.action,
+    target: `${row.target_type}:${row.target_id}`,
+    reason: row.reason,
+    previous,
+  };
 }
 
 /** One match as the scores list gives it to a guest, with its competition's stated place (T-504). */
@@ -218,6 +297,7 @@ export class SocialPublishingService {
     @Inject(SOCIAL_OPTIONS) private readonly options: SocialOptions,
     @Inject(SOCIAL_PUBLISHER) private readonly publisher: SocialPublisher,
     @Inject(SOCIAL_SECRET_BOX) private readonly box: SecretBox | null,
+    private readonly audit: ConsoleAudit,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -483,6 +563,58 @@ export class SocialPublishingService {
     return this.store.get(id);
   }
 
+  /** Whether a console person is the console's owner (`console_user.owner`, set only by the CLI). */
+  isOwner(personId: string): Promise<boolean> {
+    return this.store.isOwner(personId);
+  }
+
+  /**
+   * The console tab in one read (T-1836): the queue, the history, the switch,
+   * the key's record (never the key), each kind's level and run, today's
+   * slots per network on the London day, and the `social.*` audit rows. No
+   * post's stored inputs and no publisher reference ever leave here.
+   */
+  async consoleView(
+    viewer: { name: string; owner: boolean },
+    health: SocialConsoleView['health'],
+    now: Date = new Date(),
+  ): Promise<SocialConsoleView> {
+    const day = londonDay(now);
+    const [queue, history, sw, key, automation, audit, held] = await Promise.all([
+      this.store.consoleQueue(),
+      this.store.consoleHistory(CONSOLE_HISTORY_ROWS),
+      this.store.switchState(),
+      this.keyStatus(),
+      this.store.automation(),
+      this.audit.recent('social', CONSOLE_AUDIT_ROWS),
+      Promise.all(SOCIAL_NETWORKS.map((n) => this.store.heldSlots(n, day))),
+    ]);
+    return {
+      checked_at: now.toISOString(),
+      viewer,
+      switch: {
+        stopped: sw.stopped,
+        changed_at: sw.changed_at?.toISOString() ?? null,
+        changed_by: sw.changed_by_name,
+        reason: sw.reason,
+      },
+      key,
+      health,
+      today: {
+        day,
+        networks: SOCIAL_NETWORKS.map((network, i) => ({
+          network,
+          used: held[i]!.length,
+          cap: SOCIAL_DAILY_CAP,
+        })),
+      },
+      automation,
+      queue: queue.map(consolePost),
+      history: history.map(consolePost),
+      audit: audit.map(consoleAuditRow),
+    };
+  }
+
   // -------------------------------------------------------------------------
   // The publisher's key (T-1837; the console's write-only field is T-1836).
   // Sealed here, opened only by the publisher; never returned, never logged.
@@ -514,21 +646,26 @@ export class SocialPublishingService {
       (rowId) => box.seal(value, credentialAad(provider, rowId)),
       reason,
     );
-    return set.ok ? { ok: true, value: { set_at: set.value.set_at.toISOString() } } : set;
+    if (!set.ok) return set;
+    // A key entered again is used at once: no channel lookup wait, no old rejection (T-1836).
+    this.publisher.keyChanged();
+    return { ok: true, value: { set_at: set.value.set_at.toISOString() } };
   }
 
   /** Clears the publisher's key, with a reason and an audit row; nothing is published after. */
-  clearKey(actor: SocialActor, reason: string) {
-    return this.store.clearCredential(this.publisher.provider, actor, reason);
+  async clearKey(actor: SocialActor, reason: string) {
+    const cleared = await this.store.clearCredential(this.publisher.provider, actor, reason);
+    if (cleared.ok) this.publisher.keyChanged();
+    return cleared;
   }
 
-  /** "set on <date> by <who>", "not set" or "unreadable": never the key. */
+  /** "set on <date> by <who>", "not set", "unreadable" or "rejected" (a 401): never the key. */
   async keyStatus(): Promise<SocialKeyStatus> {
     const record = await this.store.credentialRecord(this.publisher.provider);
     if (record === null) return { state: 'not_set' };
     const state = await this.publisher.keyState();
     return {
-      state: state === 'set' ? 'set' : 'unreadable',
+      state: state === 'not_set' ? 'unreadable' : state,
       set_at: record.set_at.toISOString(),
       set_by: record.set_by,
     };
