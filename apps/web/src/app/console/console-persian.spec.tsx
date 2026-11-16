@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
+import { CHECKLIST } from './checklist.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 import { PROVIDERS } from './providers.fixture';
 import { SOCIAL_VIEW } from './social.fixture';
@@ -88,6 +89,11 @@ vi.mock('@/lib/console-actions', () => {
     setSocialLevel: action,
     setSocialKey: action,
     clearSocialKey: action,
+    addChecklistItem: action,
+    updateChecklistItem: async () => ({ ok: true, error: null }),
+    moveChecklistItem: async () => ({ ok: true, error: null }),
+    addChecklistNote: async () => ({ ok: true, error: null }),
+    removeChecklistItem: async () => ({ ok: true, error: null }),
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -100,6 +106,8 @@ vi.mock('@/lib/console-api', () => {
     consoleModel: () => ok(MODEL_REPORT),
     // T-1836: the social tab, with the English the API really sends (captions inside dir=ltr).
     consoleSocial: () => ok(fixtures.social),
+    // T-1840: the pre-launch checklist, the seed's Persian text.
+    consoleChecklist: () => ok(CHECKLIST),
     consoleCommands: () =>
       ok({
         commands: [
@@ -837,6 +845,20 @@ describe('the Persian-only scan', () => {
     ],
     ['the audit trail', async () => render((await import('./(app)/audit/page')).default())],
     [
+      'the pre-launch checklist',
+      async () =>
+        render((await import('./(app)/checklist/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the pre-launch checklist, public list filtered',
+      async () =>
+        render(
+          (await import('./(app)/checklist/page')).default({
+            searchParams: params({ tab: 'public', who: 'agents' }),
+          }),
+        ),
+    ],
+    [
       'the calendar',
       async () =>
         render((await import('./(app)/calendar/page')).default({ searchParams: params({}) })),
@@ -959,6 +981,7 @@ describe('the Persian-only scan', () => {
       './(app)/board/page',
       './(app)/calendar/page',
       './(app)/calendar/subscriptions/page',
+      './(app)/checklist/page',
       './(app)/decisions/page',
       './(app)/findings/page',
       './(app)/model/page',

@@ -7,6 +7,7 @@ import type {
   ConsoleBoardCard,
   ConsoleCalendar,
   ConsoleCalendarPush,
+  ConsoleChecklist,
   ConsoleCommand,
   ConsoleConversation,
   ConsoleInvitationView,
@@ -176,3 +177,5 @@ export const consoleCalendar = () => consoleCall<ConsoleCalendar>('calendar');
 export const consoleCalendarPush = () => consoleCall<ConsoleCalendarPush>('calendar/push');
 /** The social posts' tab (T-1836, D-427): queue, history, switch, levels, the key's record (never the key), trail. */
 export const consoleSocial = () => consoleCall<SocialConsoleView>('social');
+/** The pre-launch checklist (T-1840, D-428): both lists, their items, notes and history, and the people. */
+export const consoleChecklist = () => consoleCall<ConsoleChecklist>('checklist');
