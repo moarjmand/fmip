@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ fetchAsk: vi.fn(), fetchSearch: vi.fn() }));
 const menu = vi.hoisted(() => ({ menuAnswers: vi.fn() }));
 vi.mock('@/lib/api', () => api);
+// The field's suggestions (T-1844) route from the browser; nothing to route here.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/components/competitions-menu', () => menu);
 vi.mock('@/components/site-header', () => ({
   shellReader: async () => ({ session: null, guest: null }),
