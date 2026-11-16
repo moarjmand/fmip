@@ -10,7 +10,11 @@ import type { SocialNetwork, SocialPublishingHealth } from '@fmip/contracts';
 import { SOCIAL_NETWORKS } from '@fmip/contracts/console';
 import { Queue, Worker, type ConnectionOptions } from 'bullmq';
 import { FailureCountsService } from '../failure-counts/failure-counts.service';
-import { PostgresSocialPostStore, type SocialPostRecord } from './internal/social-post-store';
+import {
+  PostgresSocialPostStore,
+  type SocialFinish,
+  type SocialPostRecord,
+} from './internal/social-post-store';
 import { dueSlot, londonDay, rankCandidates, slotInstants } from './internal/social-rules';
 import {
   type DraftReport,
@@ -36,13 +40,15 @@ export const SOCIAL_CHECKS_PER_TICK = 5;
 /** What one tick did on one network, for the log and for a test that must know. */
 export type PublishOutcome =
   | { kind: 'stopped' }
-  | { kind: 'not_ready'; reason: 'not_set' | 'unreadable' | 'paused' }
+  | { kind: 'not_ready'; reason: 'not_set' | 'unreadable' | 'paused' | 'channel' }
   | { kind: 'no_slot' }
   | { kind: 'nothing' }
   /** Another scheduler took the slot first; it publishes, this one does not. */
   | { kind: 'lost_slot' }
   | { kind: 'published'; id: string; providerRef: string; slot: number }
   | { kind: 'refused'; id: string; error: string }
+  /** Nothing was sent (no channel, unreachable, rate limit, too long, stopped): slot back, run kept. */
+  | { kind: 'not_sent'; id: string; why: 'not_sent' | 'stopped'; error: string }
   | { kind: 'unknown'; id: string; error: string };
 
 export interface SocialTick {
@@ -73,8 +79,12 @@ export interface SocialTick {
  * 5. the answer recorded: a reference is `published`; a refusal `refused`
  *    (slot given back, tried again at a later slot while valid); anything
  *    else `unknown` (slot kept, never retried by the job; a person settles
- *    it from Buffer). A refusal or an unknown resets the kind's run and
- *    lowers an automatic kind, audited (the store's `finish`).
+ *    it from Buffer). Buffer refusing the post itself, or an unknown, is a
+ *    publishing error: it resets the kind's run and lowers an automatic
+ *    kind, audited (the store's `finish`). A refusal before anything was
+ *    sent -- no channel, Buffer unreachable, a 429, a text over the limit,
+ *    a stop that landed after the claim -- gives the slot back and keeps
+ *    the run (T-1839). The channel is checked before any claim.
  *
  * A tick takes a database advisory lock, so two ticks never overlap even if
  * two instances were ever both told to run the jobs; the claim is what makes
@@ -204,6 +214,10 @@ export class SocialPublishingScheduler implements OnModuleInit, OnApplicationShu
         expires_at: r.expires_at.toISOString(),
       })),
     );
+    if (ranked.length === 0) return { kind: 'nothing' };
+    // The network's channel, before anything is claimed (T-1839).
+    const channel = await this.publisher.readiness(now, network);
+    if (!channel.ready) return { kind: 'not_ready', reason: channel.reason };
     for (const candidate of ranked.slice(0, SOCIAL_CHECKS_PER_TICK)) {
       const check = await this.social.checkAtPublishing(candidate.id, now);
       if (!check.go) {
@@ -281,24 +295,30 @@ export class SocialPublishingScheduler implements OnModuleInit, OnApplicationShu
   }
 
   private async send(post: SocialPostRecord, slot: number): Promise<PublishOutcome> {
-    let answer:
-      { state: 'published'; providerRef: string } | { state: 'refused' | 'unknown'; error: string };
+    let answer: SocialFinish;
     try {
-      // A stop that committed after the claim: nothing has been sent yet, so it is a refusal.
-      if (await this.store.stopped())
-        throw new SocialRefusal('publishing was stopped before sending');
-      const { providerRef } = await this.publisher.publish({
-        network: post.network,
-        text: post.body,
-        imageUrl: this.cardUrl(post.id),
-      });
-      answer = { state: 'published', providerRef };
+      // A stop that committed after the claim: nothing has been sent, and it is not the post's fault.
+      if (await this.store.stopped()) {
+        answer = {
+          state: 'refused',
+          error: 'publishing was stopped before sending',
+          notSent: 'stopped',
+        };
+      } else {
+        const { providerRef } = await this.publisher.publish({
+          network: post.network,
+          text: post.body,
+          imageUrl: this.cardUrl(post.id),
+        });
+        answer = { state: 'published', providerRef };
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      answer =
-        error instanceof SocialRefusal
-          ? { state: 'refused', error: message }
-          : { state: 'unknown', error: message };
+      answer = !(error instanceof SocialRefusal)
+        ? { state: 'unknown', error: message }
+        : error.beforeSend
+          ? { state: 'refused', error: message, notSent: 'not_sent' }
+          : { state: 'refused', error: message };
     }
     try {
       await this.social.finish(post.id, answer);
@@ -324,6 +344,15 @@ export class SocialPublishingScheduler implements OnModuleInit, OnApplicationShu
     if (answer.state === 'published') {
       this.log.log('social post published', { ...event, provider_ref: answer.providerRef });
       return { kind: 'published', id: post.id, providerRef: answer.providerRef, slot };
+    }
+    if (answer.state === 'refused' && answer.notSent !== undefined) {
+      this.log.log('social post not sent: its slot given back, the run kept', {
+        ...event,
+        event: 'social.not_sent',
+        why: answer.notSent,
+        error: answer.error,
+      });
+      return { kind: 'not_sent', id: post.id, why: answer.notSent, error: answer.error };
     }
     this.log.warn(`social post ${answer.state}`, { ...event, error: answer.error });
     return { kind: answer.state, id: post.id, error: answer.error };
