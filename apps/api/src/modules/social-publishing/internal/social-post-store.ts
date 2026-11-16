@@ -137,6 +137,10 @@ class Refused extends Error {
 const isConstraint = (error: unknown, code: string, constraint: string): boolean =>
   error instanceof DatabaseError && error.code === code && error.constraint === constraint;
 
+/** A kind's clean run after an event, for the audit row of the change that causes it (rule 10). */
+const runAfter = (row: AutomationRow, event: RunEvent): number =>
+  afterEvent({ level: row.level, clean_run: row.clean_run }, event).next.clean_run;
+
 /** What a kind's record was, for an audit row's previous value. */
 const automationRecord = (row: AutomationRow) => ({
   level: row.level,
@@ -351,6 +355,10 @@ export class PostgresSocialPostStore {
       const auto = await this.lockAutomation(c, kind, 'UPDATE');
       const post = await this.lockPost(c, id);
       if (post.state !== 'publishing') throw new Refused('not_publishing');
+      const event: RunEvent =
+        answer.state === 'published'
+          ? { type: 'published', edited: post.edited_from !== null }
+          : { type: 'publish_error' };
       if (answer.state === 'published') {
         await c.query(
           `UPDATE social_post SET state = 'published', provider_ref = $2, published_at = now() WHERE id = $1`,
@@ -379,16 +387,15 @@ export class PostgresSocialPostStore {
             : answer.state === 'refused'
               ? 'the network refused it'
               : 'the network did not answer',
-        previous: { state: post.state, post_day: post.post_day, slot: post.slot },
-        next: { state: answer.state },
+        previous: {
+          state: post.state,
+          post_day: post.post_day,
+          slot: post.slot,
+          clean_run: auto.clean_run,
+        },
+        next: { state: answer.state, clean_run: runAfter(auto, event) },
       });
-      await this.applyRun(
-        c,
-        auto,
-        answer.state === 'published'
-          ? { type: 'published', edited: post.edited_from !== null }
-          : { type: 'publish_error' },
-      );
+      await this.applyRun(c, auto, event);
       return answer.state;
     });
   }
@@ -546,8 +553,8 @@ export class PostgresSocialPostStore {
         targetType: 'social_post',
         targetId: id,
         reason: reason.trim(),
-        previous: { state: post.state },
-        next: { state: 'rejected' },
+        previous: { state: post.state, clean_run: auto.clean_run },
+        next: { state: 'rejected', clean_run: runAfter(auto, { type: 'rejected' }) },
       });
       await this.applyRun(c, auto, { type: 'rejected' });
       return null;
@@ -555,15 +562,16 @@ export class PostgresSocialPostStore {
   }
 
   /**
-   * A person's edit: the post is frozen, so the old row is rejected ("edited:
-   * <reason>") and a new one drafted from it with the new text and card,
-   * `edited_from` naming the old, waiting for a person (never the job's to
-   * approve). Resets the kind's run and leaves its level.
+   * A person's edit of the caption only (the service checks the text first,
+   * `checkCaptionEdit`): the post is frozen, so the old row is rejected
+   * ("edited: <reason>") and a new one drafted from it with the new text and
+   * the same card payload, `edited_from` naming the old, waiting for a person
+   * (never the job's to approve). Resets the kind's run and leaves its level.
    */
   async edit(
     id: string,
     actor: SocialActor,
-    change: { body: string; payload: SocialCardPayload },
+    body: string,
     reason: string,
   ): Promise<StoreOutcome<string, 'not_found' | 'not_waiting' | 'reason_required'>> {
     const kind = await this.kindOf(id);
@@ -583,11 +591,11 @@ export class PostgresSocialPostStore {
         `INSERT INTO social_post (fixture_id, kind, network, origin, template_version, body, payload,
                                   inputs, gates, forecast_id, model_version, sensitive, sensitive_reason,
                                   edited_from, expires_at)
-         SELECT fixture_id, kind, network, origin, template_version, $2, $3, inputs, gates, forecast_id,
-                model_version, sensitive, sensitive_reason, id, expires_at
+         SELECT fixture_id, kind, network, origin, template_version, $2, payload, inputs, gates,
+                forecast_id, model_version, sensitive, sensitive_reason, id, expires_at
            FROM social_post WHERE id = $1
          RETURNING id`,
-        [id, change.body, JSON.stringify(change.payload)],
+        [id, body],
       );
       const edited = rows[0]!.id;
       await this.audit.write(c, {
@@ -597,8 +605,13 @@ export class PostgresSocialPostStore {
         targetType: 'social_post',
         targetId: id,
         reason: reason.trim(),
-        previous: { state: post.state, body: post.body, payload: post.payload },
-        next: { id: edited, state: 'pending_approval', body: change.body, payload: change.payload },
+        previous: { state: post.state, body: post.body, clean_run: auto.clean_run },
+        next: {
+          id: edited,
+          state: 'pending_approval',
+          body,
+          clean_run: runAfter(auto, { type: 'edited' }),
+        },
       });
       await this.applyRun(c, auto, { type: 'edited' });
       return edited;

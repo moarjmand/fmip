@@ -431,6 +431,60 @@ export function buildBody(
   return null;
 }
 
+/**
+ * A caption line a person may not touch: any figure (a percentage, a score,
+ * a time, the model's version), the model's name, the verdict, the link.
+ */
+const PROTECTED_LINE = /\d|%|https?:\/\/|Stadiomind model|^(Yes|No):/i;
+/** Another prediction product named in a caption (rule 6: never blended or relabelled). */
+const OTHER_PRODUCT = /\b(founder|founder's|community|consensus|tipsters?)\b/i;
+
+export type CaptionRefusal =
+  'text_blank' | 'too_long' | 'figures_changed' | 'other_product' | 'sensitive_text';
+
+/**
+ * A person's edit of a post's caption (review of PR #895, finding 3; rules 5
+ * and 6). Only the words around the figures may change: every line of the
+ * drafted text that carries a figure, the model's name, the verdict or the
+ * link stays, unchanged and in order, and no such line is added; the card's
+ * payload is not editable at all. The text must still fit its network, name
+ * no other prediction product, and touch no sensitive topic once the match's
+ * own names are taken out.
+ */
+export function checkCaptionEdit(
+  post: { network: SocialNetwork; body: string; payload: SocialCardPayload },
+  edited: string,
+): Refusal<CaptionRefusal> {
+  if (edited.trim() === '') return { ok: false, refusal: 'text_blank' };
+  const fits =
+    post.network === 'x'
+      ? xLength(edited) <= X_MAX_LENGTH
+      : [...edited].length <= INSTAGRAM_MAX_LENGTH;
+  if (!fits) return { ok: false, refusal: 'too_long' };
+  const guarded = (text: string): string[] =>
+    text
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => PROTECTED_LINE.test(l));
+  const before = guarded(post.body);
+  const after = guarded(edited);
+  if (before.length !== after.length || before.some((line, i) => line !== after[i])) {
+    return { ok: false, refusal: 'figures_changed' };
+  }
+  if (OTHER_PRODUCT.test(edited) && !OTHER_PRODUCT.test(post.body)) {
+    return { ok: false, refusal: 'other_product' };
+  }
+  const { payload } = post;
+  const names = [payload.home, payload.away]
+    .flatMap((t) => [t.name, t.short_name, t.code])
+    .concat(payload.competition.name)
+    .filter((n): n is string => n !== null);
+  if (sensitiveTopicsIn(withoutOwnNames(edited, { names })).length > 0) {
+    return { ok: false, refusal: 'sensitive_text' };
+  }
+  return { ok: true };
+}
+
 // ---------------------------------------------------------------------------
 // The daily cap (D-427 point 4): slots 1-5 of a network's Europe/London day.
 // ---------------------------------------------------------------------------

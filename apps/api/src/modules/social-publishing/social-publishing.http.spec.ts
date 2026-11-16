@@ -18,6 +18,7 @@ import { SocialPublishingModule } from './social-publishing.module';
 import {
   SOCIAL_OPTIONS,
   SocialPublishingService,
+  calledFrom,
   goalsOf,
   sitePercent,
 } from './social-publishing.service';
@@ -44,6 +45,23 @@ const NOW = new Date('2046-06-10T13:00:00Z'); // 14:00 London
 const at = (hhmm: string): string => `2046-06-10T${hhmm}:00Z`;
 
 describe('the card fields the job freezes', () => {
+  it("takes the model's pick from the stored evaluation, never from the rounded percentages", () => {
+    // 39.951 / 40.049 both round to 40.0: the rounded figures would pick home.
+    const near = { home: 0.39951, draw: 0.2, away: 0.40049 };
+    expect(sitePercent(near)).toEqual({ home: 40, draw: 20, away: 40 });
+    // The away side won: the evaluation says right, so the pick is away.
+    expect(calledFrom({ probabilities: near, outcome: 'away', correct: true })).toBe('away');
+    // The home side won: the evaluation says wrong, and the raw favourite was away.
+    expect(calledFrom({ probabilities: near, outcome: 'home', correct: false })).toBe('away');
+    expect(
+      calledFrom({
+        probabilities: { home: 0.2, draw: 0.5, away: 0.3 },
+        outcome: 'away',
+        correct: false,
+      }),
+    ).toBe('draw');
+  });
+
   it('gives percentages with one decimal totalling 100.0, as the site shows them', () => {
     expect(sitePercent({ home: 0.1774, draw: 0.2528, away: 0.5698 })).toEqual({
       home: 17.7,
@@ -629,16 +647,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const sens = await live(f.sensitive, 'model_verdict', 'x');
       expect((await social.reject(sens.id, teammate, 'not today')).ok).toBe(true);
       expect((await verdictRun()).clean_run).toBe(0);
+      // The rejection's audit row keeps the run it reset (rule 10: the previous value).
+      expect((await audits(sens.id)).at(-1)).toMatchObject({
+        action: 'social.reject',
+        previous: { state: 'pending_approval', clean_run: 14 },
+        next: { state: 'rejected', clean_run: 0 },
+      });
 
-      // An edit resets it: the old row rejected ("edited: ..."), a new one waiting, naming the old.
+      // A person edits the caption only: a changed figure, the model's line, the verdict,
+      // a new figure, another product, a sensitive word or blank text are refused, writing nothing.
       await setVerdictRun(5);
       const ig = await live(f.finished, 'model_verdict', 'instagram');
-      const edited = await social.edit(
-        ig.id,
-        owner,
-        { body: `${ig.body}\n(edited)`, payload: ig.payload },
-        'wording',
-      );
+      const swap = (from: string, to: string) => ig.body.replace(from, to);
+      for (const [body, refusal] of [
+        [swap('55.4%', '75.4%'), 'figures_changed'],
+        [swap(MODEL, 'sp-other@9.9.9'), 'figures_changed'],
+        [swap('Yes: it got this one right.', 'No: it got this one wrong.'), 'figures_changed'],
+        [`${ig.body}\nOur tipsters say 3-0 next time`, 'figures_changed'],
+        [`${ig.body}\nThe founder agrees.`, 'other_product'],
+        [`${ig.body}\nA minute's silence before kick-off.`, 'sensitive_text'],
+        ['   ', 'text_blank'],
+        [`${ig.body}\n${'x'.repeat(2200)}`, 'too_long'],
+      ] as const) {
+        expect(await social.edit(ig.id, owner, body, 'wording')).toEqual({ ok: false, refusal });
+      }
+      expect(await audits(ig.id)).toEqual([]);
+      expect((await verdictRun()).clean_run).toBe(5);
+
+      // An edit of the words resets the run: the old row rejected ("edited: ..."), a new
+      // one waiting with the same card, naming the old.
+      const words = swap('Did the model get it right?', 'So, did the model call it?');
+      const edited = await social.edit(ig.id, owner, words, 'wording');
       expect(edited.ok).toBe(true);
       expect((await verdictRun()).clean_run).toBe(0);
       const old = (await social.get(ig.id))!;
@@ -648,8 +687,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         state: 'pending_approval',
         edited_from: ig.id,
         forecast_id: ig.forecast_id,
+        model_version: ig.model_version,
+        body: words,
       });
-      expect((await audits(ig.id)).map((r) => r.action)).toEqual(['social.edit']);
+      expect(fresh.payload).toEqual(ig.payload);
+      expect(await audits(ig.id)).toMatchObject([
+        {
+          action: 'social.edit',
+          previous: { clean_run: 5 },
+          next: { id: fresh.id, body: words, clean_run: 0 },
+        },
+      ]);
 
       // A publishing error resets it: refused gives the slot back.
       await setVerdictRun(5);

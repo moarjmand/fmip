@@ -29,8 +29,10 @@ import {
   type StoreOutcome,
 } from './internal/social-post-store';
 import {
+  type CaptionRefusal,
   type SocialFacts,
   buildBody,
+  checkCaptionEdit,
   checkGates,
   expiresAt,
   londonDay,
@@ -130,8 +132,22 @@ export function goalsOf(card: ScoreCard): SocialCardGoal[] | null {
   return count('home') === score.home && count('away') === score.away ? goals : null;
 }
 
-/** The outcome the model gave the most (home, then draw, then away on a tie). */
-export function calledOutcome(p: { home: number; draw: number; away: number }): SocialOutcome {
+/**
+ * The verdict card's "model's pick", from the same stored evaluation that
+ * says right or wrong (review of PR #895, finding 1), never from the rounded
+ * percentages, where 39.951 and 40.049 both read 40.0. The evaluation's
+ * `correct` means the actual outcome had the highest raw probability
+ * (`forecast/internal/scoring.ts`), so when it is right the pick is that
+ * outcome; when it is wrong, the raw probabilities' highest (home, then
+ * draw, then away on an exact tie, none of which can then be the actual one).
+ */
+export function calledFrom(evaluation: {
+  probabilities: ModelProbabilities;
+  outcome: SocialOutcome;
+  correct: boolean;
+}): SocialOutcome {
+  if (evaluation.correct) return evaluation.outcome;
+  const p = evaluation.probabilities;
   if (p.home >= p.draw && p.home >= p.away) return 'home';
   return p.draw >= p.away ? 'draw' : 'away';
 }
@@ -335,13 +351,26 @@ export class SocialPublishingService {
     return this.store.reject(id, actor, reason);
   }
 
-  edit(
+  /**
+   * A person's edit of a post's caption, and of nothing else: the card, the
+   * model's numbers, name and version, the score and the outcome stay as
+   * drafted (rules 5 and 6; review of PR #895, finding 3). Refused when the
+   * text would change one of those lines or the link, add a figure, not fit
+   * the network, or touch a sensitive topic (`checkCaptionEdit`).
+   */
+  async edit(
     id: string,
     actor: SocialActor,
-    change: { body: string; payload: SocialCardPayload },
+    body: string,
     reason: string,
-  ) {
-    return this.store.edit(id, actor, change, reason);
+  ): Promise<
+    StoreOutcome<string, 'not_found' | 'not_waiting' | 'reason_required' | CaptionRefusal>
+  > {
+    const post = await this.store.get(id);
+    if (post === null) return { ok: false, refusal: 'not_found' };
+    const check = checkCaptionEdit(post, body);
+    if (!check.ok) return { ok: false, refusal: check.refusal };
+    return this.store.edit(id, actor, body, reason);
   }
 
   settle(
@@ -531,7 +560,7 @@ export class SocialPublishingService {
       };
     } else if (kind === 'model_verdict' && evaluation !== null) {
       const percent = sitePercent(evaluation.probabilities);
-      const called = calledOutcome(percent);
+      const called = calledFrom(evaluation);
       payload = {
         ...base,
         kind,
