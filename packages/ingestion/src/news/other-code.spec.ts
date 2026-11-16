@@ -345,6 +345,8 @@ describe('otherCodeOf, the general feeds’ other sports (T-1841)', () => {
     ['شطرنج اسکوچیچ و گل‌محمدی در دربی', null],
     ['شطرنجی‌پوشان در نیمه‌نهایی جام جهانی', null],
     ['پیشکسوت فوتبال بر اثر بیماری کبدی درگذشت', null],
+    ['استقلال و پرسپولیس در دربی شطرنج بازی کردند', null],
+    ['استقلال و پرسپولیس شطرنج‌بازی کردند', null],
   ])('%s is not', (headline, summary) => {
     expect(otherCodeOf(headline, summary)).toBeNull();
   });

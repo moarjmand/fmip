@@ -154,7 +154,7 @@ const END = '([^\\p{L}\\p{N}]|$)';
  * Remo) or "vela" alone in a headline (a candle).
  */
 const PORTUGUESE_OTHER_SPORT = new RegExp(
-  `${START}(tênis|judô|surfe?|surfistas?|basquete|vôlei|voleibol|handebol|natação|ginástica|esqui|skatistas?|skate|boxe|atletismo|ciclismo|canoagem|jiu-jitsu|taekwondo|paralímpic[oa]s?|xadrez|copa do mundo da vela|slalom|(da|na|do) wsl)${END}`,
+  `${START}(tênis|judô|surfe?|surfistas?|basquete|vôlei|voleibol|handebol|natação|ginástica|esqui|skatistas?|skate|boxe|atletismo|ciclismo|canoagem|jiu-jitsu|taekwondo|paralímpic[oa]s?|xadrez|copa do mundo da vela|slalom (gigante|especial|paralelo)|(da|na|do) wsl)${END}`,
   'iu',
 );
 

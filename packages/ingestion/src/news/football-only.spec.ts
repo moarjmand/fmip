@@ -219,6 +219,17 @@ describe('notFootballOf', () => {
         ]),
       ),
     ).toBe('other_sport');
+    // A dribbler's slalom in English is football's (review of PR #901, round 2).
+    expect(
+      notFootballOf(
+        item({
+          headline: 'Taremi slalom goal sends Iran top',
+          categories: ['Sports'],
+          feedUrl: TEHRAN_TIMES,
+          filedTo: ['person'],
+        }),
+      ),
+    ).toBeNull();
     // English WSL is the Women's Super League: only "da/na/do WSL" is surf's.
     expect(
       notFootballOf(

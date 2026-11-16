@@ -439,7 +439,8 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         // «پاراگوئه»), not «ناگویا» (Nagoya Grampus), not «بازی‌های آسیایی»
         // (the Asian Games have a football tournament), not «بدنساز» (a
         // football team's fitness coach).
-        'شطرنج[‌ ]?باز',
+        // A chess player, not «شطرنج بازی کردند» (they played chess, said of a match).
+        'شطرنج‌?باز(ان)?(?![؀-ۿ])',
         '(فدراسیون|مسابقات|رقابت‌های|المپیاد|تیم ملی) شطرنج',
         'پاراآسیایی',
         'پارا آسیایی',
