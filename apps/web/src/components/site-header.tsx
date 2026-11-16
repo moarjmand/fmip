@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from '@/components/ui/link';
-import { Suspense, cache } from 'react';
+import { cache } from 'react';
 import { BrandMark } from '@/components/brand-mark';
 import { CompetitionsMenu } from '@/components/competitions-menu';
 import { HeldLanguageNotice } from '@/components/held-language-notice';
@@ -9,7 +9,6 @@ import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
 import { HeaderSearchField } from '@/components/header-search-field';
-import { SearchCombobox } from '@/components/search-combobox';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -256,26 +255,16 @@ export async function SiteHeader({
                     {search.text}
                   </span>
                   {/* Suggestions while typing (T-1844, D-435); the list hangs from the form. */}
-                  <Suspense
-                    fallback={
-                      <SearchCombobox
-                        variant="header"
-                        locale={locale}
-                        words={suggestWords(locale)}
-                        placeholder={placeholder.text}
-                        inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
-                        testId="nav-search-input"
-                      />
-                    }
-                  >
-                    <HeaderSearchField
-                      locale={locale}
-                      words={suggestWords(locale)}
-                      placeholder={placeholder.text}
-                      inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
-                      testId="nav-search-input"
-                    />
-                  </Suspense>
+                  {/* No Suspense: the layout reads cookies, so every page renders per
+                      request and the field is drawn in place, the term in the server's
+                      HTML (as shell-nav.tsx reads useSearchParams, T-1850 review). */}
+                  <HeaderSearchField
+                    locale={locale}
+                    words={suggestWords(locale)}
+                    placeholder={placeholder.text}
+                    inputClassName="w-full min-w-0 flex-1 bg-transparent text-sm text-fg placeholder:text-caption"
+                    testId="nav-search-input"
+                  />
                 </label>
               </form>
               {/* The globe (D-281): nothing until a second language is finished (T-306) and not held back (T-1163). */}
