@@ -152,11 +152,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
     const pub = body.sections.filter((s) => s.list === 'public');
     expect(friends.map((s) => s.title)[0]).toBe('برند و راه‌اندازی وب‌سایت');
     expect(pub.at(-1)?.title).toBe('تأیید نهایی راه‌اندازی');
-    const seeded = (list: typeof friends) =>
-      list.flatMap((s) => s.items).filter((i) => i.history.length === 0);
-    expect(seeded(friends)).toHaveLength(28);
-    expect(seeded(pub)).toHaveLength(31);
-    expect(friends[0]!.items[0]!.title).toBe('نهایی‌سازی و اضافه‌کردن لوگوی رسمی');
+    // The seed: 28 and 31 rows nobody added (counted in the database, so a
+    // local database someone has used still passes).
+    const { rows: seed } = await pool.query<{ list: string; n: number }>(
+      `SELECT s.list, count(*)::int AS n FROM console_checklist_item i
+         JOIN console_checklist_section s ON s.id = i.section_id
+        WHERE i.created_by IS NULL GROUP BY s.list ORDER BY s.list`,
+    );
+    expect(seed).toEqual([
+      { list: 'friends', n: 28 },
+      { list: 'public', n: 31 },
+    ]);
+    // An item nobody has changed is as the seed left it: not started, unassigned.
+    const untouched = body.sections.flatMap((s) => s.items).filter((i) => i.history.length === 0);
+    expect(untouched.length).toBeGreaterThan(0);
+    for (const item of untouched)
+      expect(item).toMatchObject({ status: 'not_started', assignee: null });
+    expect(friends.flatMap((s) => s.items).map((i) => i.title)).toContain(
+      'نهایی‌سازی و اضافه‌کردن لوگوی رسمی',
+    );
     expect(body.people.some((p) => p.username === `cl_${RUN}` && p.enabled)).toBe(true);
   });
 

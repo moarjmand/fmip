@@ -387,8 +387,9 @@ export class PostgresChecklistStore {
     next: string | null,
   ): Promise<void> {
     await client.query(
-      `INSERT INTO console_checklist_event (item_id, actor_id, kind, previous, next)
-       VALUES ($1, $2, $3, $4, $5)`,
+      // clock_timestamp(), not now(): the rows of one change keep the order they were written in.
+      `INSERT INTO console_checklist_event (item_id, actor_id, kind, previous, next, created_at)
+       VALUES ($1, $2, $3, $4, $5, clock_timestamp())`,
       [itemId, actor.id, kind, previous, next],
     );
   }
