@@ -8,7 +8,7 @@ import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
-import { SearchCombobox } from '@/components/search-combobox';
+import { SearchComboboxLazy } from '@/components/search-combobox-lazy';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -255,7 +255,7 @@ export async function SiteHeader({
                     {search.text}
                   </span>
                   {/* Suggestions while typing (T-1844, D-435); the list hangs from the form. */}
-                  <SearchCombobox
+                  <SearchComboboxLazy
                     variant="header"
                     locale={locale}
                     words={suggestWords(locale)}
