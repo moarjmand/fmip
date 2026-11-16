@@ -540,7 +540,8 @@ messages arriving in real time needs a Redis the preview does not have.
 If you ever want members on the preview for your own use, the procedure was:
 register at `/en/register`, find the line beginning `[mail] to=` in the Render
 logs, and open the `verify-email` link in it. Nothing in the project waits on
-it any more.
+it any more, and since D-430 (T-1846) a production image never prints a mail's
+link, so the procedure no longer works there.
 
 ## 6. Standing: approving contributors and analysts
 
