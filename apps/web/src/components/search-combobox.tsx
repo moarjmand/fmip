@@ -113,7 +113,11 @@ export function SearchCombobox({
       asked.current?.abort();
       return undefined;
     }
-    if (done) return undefined;
+    if (done) {
+      // Back to a term already answered: whatever another term asked is dropped.
+      asked.current?.abort();
+      return undefined;
+    }
     const pause = setTimeout(() => {
       asked.current?.abort();
       const controller = new AbortController();

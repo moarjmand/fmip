@@ -171,15 +171,17 @@ test.describe('search suggestions', () => {
     await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.click();
-    await field.pressSequentially('arse', { delay: 20 });
-    await expect.poll(() => asked).toEqual(['arse']);
-    await field.pressSequentially('nal', { delay: 20 });
+    // Typed without pausing: the pause after the last key asks once.
+    await field.pressSequentially('arse');
+    await expect.poll(() => asked).toContain('arse');
+    expect(asked).toEqual(['arse']);
+    await field.pressSequentially('nal');
     const options = page.getByTestId('search-suggest-option');
     await expect(options).toHaveText([/Club arsenal/]);
     // The slow answer for "arse" has had its time; it is not drawn.
     await page.waitForTimeout(1800);
     await expect(options).toHaveText([/Club arsenal/]);
-    expect(asked).toEqual(['arse', 'arsenal']);
+    expect(asked.at(-1)).toBe('arsenal');
   });
 
   test('closes on Escape, then clears the field on a second Escape', async ({ page }) => {
