@@ -218,6 +218,22 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: 'Pictures added to the teammate requests in the agents console: each is decoded and re-encoded on the server.',
     routes: ['POST /console/requests/:id/images'],
   },
+  // T-1840 (D-428): the pre-launch checklist. Counted from the person's own
+  // `console_checklist_event` and `console_checklist_note` rows this hour,
+  // before the write.
+  {
+    action: 'console_checklist',
+    subject: 'console_user',
+    enforced: 'api',
+    what: 'Changes to the pre-launch checklist in the agents console: adding, editing, moving and removing an item, its status and assignee, and notes.',
+    routes: [
+      'POST /console/checklist/items',
+      'PATCH /console/checklist/items/:id',
+      'POST /console/checklist/items/:id/move',
+      'POST /console/checklist/items/:id/notes',
+      'DELETE /console/checklist/items/:id',
+    ],
+  },
 
   // Not a write, and the one read with a ceiling (T-838, D-103's gap): every
   // question is a model call, and the route is public. A member is counted

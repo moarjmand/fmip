@@ -6,10 +6,12 @@ import {
   type ConsoleOptions,
 } from './agents-console.controller';
 import { ConsoleCalendarController } from './console-calendar.controller';
+import { ConsoleChecklistController } from './console-checklist.controller';
 import { ConsoleCalendarService } from './console-calendar.service';
 import { ConsoleRequestEvents } from './console-request-events.service';
 import { ConsoleSessions } from './console-sessions.service';
 import { PostgresCalendarStore } from './internal/calendar-store';
+import { PostgresChecklistStore } from './internal/checklist-store';
 import { PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
 import { ImageBodyParser } from './internal/image-body';
@@ -25,13 +27,15 @@ import {
  * helpers, through its public file; nothing else reads these tables.
  */
 @Module({
-  controllers: [AgentsConsoleController, ConsoleCalendarController],
+  controllers: [AgentsConsoleController, ConsoleCalendarController, ConsoleChecklistController],
   providers: [
     PostgresConsoleStore,
     PostgresRequestStore,
     // T-1788 (D-391): the calendar and its reminders' devices.
     PostgresCalendarStore,
     ConsoleCalendarService,
+    // T-1840 (D-428): the pre-launch checklist.
+    PostgresChecklistStore,
     // T-1729: the session check, for the model page another module serves.
     ConsoleSessions,
     // T-1832 (D-425): a new request, told to console-reminders' sender.

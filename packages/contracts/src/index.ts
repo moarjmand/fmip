@@ -361,6 +361,21 @@ export type {
   ConsoleSubscriptionStatus,
   Recurring,
 } from './console-calendar';
+// The agents console's pre-launch checklist (T-1840, D-428); its runtime constants are in './console'.
+export type {
+  ConsoleChecklist,
+  ConsoleChecklistAssignee,
+  ConsoleChecklistEvent,
+  ConsoleChecklistEventKind,
+  ConsoleChecklistItem,
+  ConsoleChecklistItemInput,
+  ConsoleChecklistItemPatch,
+  ConsoleChecklistList,
+  ConsoleChecklistNote,
+  ConsoleChecklistPerson,
+  ConsoleChecklistSection,
+  ConsoleChecklistStatus,
+} from './console-checklist';
 // Posts to X and Instagram (T-1834, D-427); its runtime constants are in './console'.
 export type {
   SocialAutomation,
