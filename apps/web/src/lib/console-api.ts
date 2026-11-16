@@ -16,6 +16,7 @@ import type {
   ConsoleRequestStatus,
   ConsoleModelReport,
   ConsoleSnapshotResponse,
+  SocialConsoleView,
 } from '@fmip/contracts';
 import { consoleBase } from './console-base';
 
@@ -173,3 +174,5 @@ export const consoleInvitation = (token: string) =>
 export const consoleCalendar = () => consoleCall<ConsoleCalendar>('calendar');
 /** Whether reminders can reach a browser here, and how many of this person's are on. */
 export const consoleCalendarPush = () => consoleCall<ConsoleCalendarPush>('calendar/push');
+/** The social posts' tab (T-1836, D-427): queue, history, switch, levels, the key's record (never the key), trail. */
+export const consoleSocial = () => consoleCall<SocialConsoleView>('social');

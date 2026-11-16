@@ -9,6 +9,7 @@ import { NewsModule } from '../news/news.module';
 import { BufferPublisher } from './internal/buffer-publisher';
 import { type SecretBox, SOCIAL_SECRET_BOX, secretBoxFromEnv } from './internal/secret-box';
 import { PostgresSocialPostStore } from './internal/social-post-store';
+import { SocialConsoleController } from './social-console.controller';
 import { SocialPublishingScheduler } from './social-publishing-scheduler.service';
 import {
   SOCIAL_OPTIONS,
@@ -44,7 +45,8 @@ export class SocialPublishingHealthController {
  * through the agents console's exported writer. Publishes through the
  * `SocialPublisher` port, Buffer behind it, on its own job
  * (`SocialPublishingScheduler`); the console tab (T-1836) builds on
- * `SocialPublishingService`; the card's read is `social-card.module.ts`.
+ * `SocialPublishingService` (`social-console.controller.ts`, behind the console's
+ * session); the card's read is `social-card.module.ts`.
  */
 @Module({
   imports: [
@@ -55,7 +57,7 @@ export class SocialPublishingHealthController {
     IngestionModule,
     FailureCountsModule,
   ],
-  controllers: [SocialPublishingHealthController],
+  controllers: [SocialPublishingHealthController, SocialConsoleController],
   providers: [
     PostgresSocialPostStore,
     SocialPublishingService,

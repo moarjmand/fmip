@@ -354,6 +354,144 @@ export async function setRequestAlerts(
       };
 }
 
+// --- The social posts (T-1836, D-427) ----------------------------------------
+
+const socialChanged = () => revalidatePath('/console', 'layout');
+const POST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const socialPost = (id: string, tail: string) => `social/posts/${encodeURIComponent(id)}/${tail}`;
+
+/** The networks' posts ticked on a queue item (one post a network). */
+const tickedPosts = (form: FormData): string[] =>
+  form
+    .getAll('id')
+    .filter((v): v is string => typeof v === 'string' && POST_ID.test(v))
+    .slice(0, 4);
+
+/**
+ * Approves each ticked post of a queue item, one call each: the API checks
+ * every post's gates as they stand now and names the one that fails.
+ */
+export async function approveSocial(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const ids = tickedPosts(form);
+  if (ids.length === 0) return { error: 'دست‌کم یک شبکه را انتخاب کنید.', done: null };
+  for (const id of ids) {
+    const result = await consoleCall(socialPost(id, 'approve'), { method: 'POST', body: {} });
+    if (!result.ok) {
+      socialChanged();
+      return failed(result.error?.message, 'تأیید ثبت نشد.');
+    }
+  }
+  socialChanged();
+  return { error: null, done: 'تأیید شد؛ در یکی از نوبت‌های انتشار بعدی می‌رود.' };
+}
+
+/** Rejects each ticked post with one reason: the chosen kind of reason and the person's note. */
+export async function rejectSocial(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const ids = tickedPosts(form);
+  if (ids.length === 0) return { error: 'دست‌کم یک شبکه را انتخاب کنید.', done: null };
+  const note = field(form, 'note').trim();
+  if (note === '') return { error: 'توضیح رد را بنویسید.', done: null };
+  const kind = field(form, 'why').trim();
+  const reason = kind === '' ? note : `${kind}: ${note}`;
+  for (const id of ids) {
+    const result = await consoleCall(socialPost(id, 'reject'), {
+      method: 'POST',
+      body: { reason },
+    });
+    if (!result.ok) {
+      socialChanged();
+      return failed(result.error?.message, 'رد ثبت نشد.');
+    }
+  }
+  socialChanged();
+  return { error: null, done: 'رد شد.' };
+}
+
+/** A caption's words, with a reason: the post becomes a new one waiting for approval. */
+export async function editSocial(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const result = await consoleCall(socialPost(field(form, 'id'), 'edit'), {
+    method: 'POST',
+    body: { body: field(form, 'body'), reason: field(form, 'reason') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'ویرایش ذخیره نشد.');
+  socialChanged();
+  return { error: null, done: 'ذخیره شد؛ نسخه‌ی تازه منتظر تأیید است.' };
+}
+
+/** A post the network never answered for: published (with its reference) or not, from Buffer's page. */
+export async function settleSocial(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const result = await consoleCall(socialPost(field(form, 'id'), 'settle'), {
+    method: 'POST',
+    body: {
+      state: field(form, 'state'),
+      reference: field(form, 'reference'),
+      reason: field(form, 'reason'),
+    },
+  });
+  if (!result.ok) return failed(result.error?.message, 'وضعیت ثبت نشد.');
+  socialChanged();
+  return { error: null, done: 'ثبت شد.' };
+}
+
+/** The kill switch: either account stops or resumes publishing, with a reason. */
+export async function setSocialSwitch(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const stop = field(form, 'stop') === 'true';
+  const result = await consoleCall('social/switch', {
+    method: 'POST',
+    body: { stop, reason: field(form, 'reason') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'کلید توقف تغییر نکرد.');
+  socialChanged();
+  return { error: null, done: stop ? 'ارسال متوقف شد.' : 'ارسال از سر گرفته شد.' };
+}
+
+/** A kind's automation level: the owner's only, which the API holds whatever this page shows. */
+export async function setSocialLevel(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall(`social/levels/${encodeURIComponent(field(form, 'kind'))}`, {
+    method: 'POST',
+    body: { level: field(form, 'level'), reason: field(form, 'reason') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'سطح تغییر نکرد.');
+  socialChanged();
+  return { error: null, done: 'سطح تغییر کرد.' };
+}
+
+/**
+ * The publisher's key, posted once and never sent back: the answer says only
+ * that it was saved, and the field is empty again after the form returns.
+ */
+export async function setSocialKey(_: ConsoleFormState, form: FormData): Promise<ConsoleFormState> {
+  const result = await consoleCall('social/key', {
+    method: 'POST',
+    body: { key: field(form, 'key') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'کلید ذخیره نشد.');
+  socialChanged();
+  return { error: null, done: 'کلید رمزشده ذخیره شد.' };
+}
+
+export async function clearSocialKey(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const result = await consoleCall('social/key/clear', {
+    method: 'POST',
+    body: { reason: field(form, 'reason') },
+  });
+  if (!result.ok) return failed(result.error?.message, 'کلید پاک نشد.');
+  socialChanged();
+  return { error: null, done: 'کلید پاک شد؛ تا کلید تازه وارد نشود چیزی منتشر نمی‌شود.' };
+}
+
 export async function testReminder(): Promise<{ devices: number; delivered: number } | null> {
   const result = await consoleCall<{ devices: number; delivered: number }>('calendar/push/test', {
     method: 'POST',

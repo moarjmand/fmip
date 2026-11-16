@@ -239,6 +239,57 @@ export class PostgresSocialPostStore {
   }
 
   // -------------------------------------------------------------------------
+  // The console tab's reads (T-1836).
+  // -------------------------------------------------------------------------
+
+  /** The posts still in play -- waiting, approved, publishing, refused, unknown -- oldest first. */
+  async consoleQueue(): Promise<(SocialPostRecord & { updated_at: Date })[]> {
+    const { rows } = await this.pool.query<SocialPostRecord & { updated_at: Date }>(
+      `SELECT ${POST_COLUMNS}, updated_at FROM social_post
+        WHERE state IN ('pending_approval', 'approved', 'publishing', 'refused', 'unknown')
+        ORDER BY created_at, network`,
+    );
+    return rows;
+  }
+
+  /** The posts that are done -- published, rejected, expired, superseded -- newest first. */
+  async consoleHistory(limit: number): Promise<(SocialPostRecord & { updated_at: Date })[]> {
+    const { rows } = await this.pool.query<SocialPostRecord & { updated_at: Date }>(
+      `SELECT ${POST_COLUMNS}, updated_at FROM social_post
+        WHERE state IN ('published', 'rejected', 'expired', 'superseded')
+        ORDER BY updated_at DESC, network LIMIT $1`,
+      [limit],
+    );
+    return rows;
+  }
+
+  /** The kill switch with who changed it last, when and why. */
+  async switchState(): Promise<{
+    stopped: boolean;
+    changed_at: Date | null;
+    changed_by_name: string | null;
+    reason: string | null;
+  }> {
+    const { rows } = await this.pool.query<{
+      stopped: boolean;
+      changed_at: Date | null;
+      changed_by_name: string | null;
+      reason: string | null;
+    }>(`SELECT stopped, changed_at, changed_by_name, reason FROM social_switch`);
+    // No row reads as stopped, as `stopped()` does: fail closed.
+    return rows[0] ?? { stopped: true, changed_at: null, changed_by_name: null, reason: null };
+  }
+
+  /** Whether an enabled console account is the owner (`console_user.owner`, D-427 point 6). */
+  async isOwner(personId: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ owner: boolean }>(
+      `SELECT owner FROM console_user WHERE id = $1 AND disabled_at IS NULL`,
+      [personId],
+    );
+    return rows[0]?.owner === true;
+  }
+
+  // -------------------------------------------------------------------------
   // The job's changes.
   // -------------------------------------------------------------------------
 
