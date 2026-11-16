@@ -37,7 +37,9 @@ describe('the search combobox', () => {
     const controls = /aria-controls="([^"]+)"/.exec(input)![1]!;
     expect(html).toContain(`id="${controls}" role="listbox" aria-label="Suggestions"`);
     // Closed: hidden, and nothing said yet.
-    expect(html).toMatch(/role="listbox"[^>]*hidden=""/);
+    expect(html).toMatch(/<div hidden=""[^>]*data-testid="search-suggest-box"/);
+    // The list holds only options and groups; what it says of itself is outside it.
+    expect(html).not.toMatch(/role="listbox"[^>]*lang=/);
     expect(html).toContain('<span role="status" class="sr-only"></span>');
     // The header's list hangs from the field's end; logical properties only.
     expect(html).toContain('end-0 w-[372px]');

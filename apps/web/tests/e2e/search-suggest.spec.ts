@@ -8,6 +8,18 @@ import { type Page, expect, test } from '@playwright/test';
  * field no longer holds, a failure said as one, and right-to-left.
  */
 
+/** Waits until React has taken the field over (hydration); typing before then is a plain input's. */
+async function hydrated(page: Page, testId: string) {
+  await page.waitForFunction(
+    (id) => {
+      const field = document.querySelector(`[data-testid="${id}"]`);
+      return field !== null && Object.keys(field).some((key) => key.startsWith('__reactFiber'));
+    },
+    testId,
+    { timeout: 30_000 },
+  );
+}
+
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 const NO_MEDIA = { coverage: 'not_supplied', url: null };
 
@@ -55,11 +67,17 @@ async function answer(page: Page, locale = 'en') {
 }
 
 test.describe('search suggestions', () => {
+  // The list needs the page's script: never Lite, however slow the server (as a11y.spec.ts).
+  test.beforeEach(async ({ context, baseURL }) => {
+    await context.addCookies([{ name: 'fmip_lite', value: 'off', url: baseURL ?? '' }]);
+  });
+
   test('lists the matches by kind under the header field, with every result last', async ({
     page,
   }) => {
     const asked = await answer(page);
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.fill('man');
     const list = page.getByRole('listbox', { name: 'Suggestions' });
@@ -88,6 +106,7 @@ test.describe('search suggestions', () => {
   }) => {
     await answer(page);
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.fill('man');
     const options = page.getByTestId('search-suggest-option');
@@ -113,6 +132,7 @@ test.describe('search suggestions', () => {
   }) => {
     await answer(page);
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.fill('man');
     await expect(page.getByTestId('search-suggest-option')).toHaveCount(3);
@@ -120,14 +140,52 @@ test.describe('search suggestions', () => {
     await expect(page).toHaveURL(/\/en\/search\?q=man$/);
 
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     await page.getByTestId('nav-search-input').fill('man');
     await page.getByTestId('search-suggest-all').click();
     await expect(page).toHaveURL(/\/en\/search\?q=man$/);
   });
 
+  test('asks once for a word typed quickly, and drops an answer for a term the field no longer holds', async ({
+    page,
+  }) => {
+    const asked: string[] = [];
+    await page.route('**/api/search/suggest?*', async (route) => {
+      const term = new URL(route.request().url()).searchParams.get('q') ?? '';
+      asked.push(term);
+      // The first term's answer is slow and arrives after the second's.
+      if (term === 'arse') await new Promise((resolve) => setTimeout(resolve, 1500));
+      const club = row('team', term, `Club ${term}`, null, `/en/team/${term}`);
+      try {
+        await route.fulfill({
+          json: {
+            term,
+            groups: [{ type: 'team', heading: 'Teams', headingLang: null, rows: [club] }],
+          },
+        });
+      } catch {
+        // The field aborted the slow request; nothing to answer.
+      }
+    });
+    await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
+    const field = page.getByTestId('nav-search-input');
+    await field.click();
+    await field.pressSequentially('arse', { delay: 20 });
+    await expect.poll(() => asked).toEqual(['arse']);
+    await field.pressSequentially('nal', { delay: 20 });
+    const options = page.getByTestId('search-suggest-option');
+    await expect(options).toHaveText([/Club arsenal/]);
+    // The slow answer for "arse" has had its time; it is not drawn.
+    await page.waitForTimeout(1800);
+    await expect(options).toHaveText([/Club arsenal/]);
+    expect(asked).toEqual(['arse', 'arsenal']);
+  });
+
   test('closes on Escape, then clears the field on a second Escape', async ({ page }) => {
     await answer(page);
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.fill('man');
     await expect(page.getByRole('listbox', { name: 'Suggestions' })).toBeVisible();
@@ -143,6 +201,7 @@ test.describe('search suggestions', () => {
   }) => {
     await answer(page);
     await page.goto('/en/scores');
+    await hydrated(page, 'nav-search-input');
     const field = page.getByTestId('nav-search-input');
     await field.fill('zzzz');
     await expect(page.getByTestId('search-suggest-none')).toHaveText(
@@ -164,18 +223,20 @@ test.describe('search suggestions', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await answer(page, 'fa');
     await page.goto('/fa/search');
+    await hydrated(page, 'search-input');
     const field = page.getByTestId('search-input');
     await field.fill('من');
     const list = page.getByRole('listbox', { name: 'پیشنهادها' });
     await expect(list).toBeVisible();
-    await expect(page.getByTestId('search-suggest-all')).toContainText('همه‌ی نتایج برای «من»');
+    await expect(list.getByTestId('search-suggest-all')).toContainText('همه‌ی نتایج برای «من»');
     // The list takes the field row's width and stays on screen.
     const box = (await list.boundingBox())!;
     const form = (await page.locator('form[role="search"]').last().boundingBox())!;
-    expect(Math.round(box.x)).toBe(Math.round(form.x));
+    // Within a pixel: the list's border sits on a fractional edge.
+    expect(Math.abs(box.x - form.x)).toBeLessThanOrEqual(1);
     expect(box.x + box.width).toBeLessThanOrEqual(390);
     // Rows are thumb-sized.
-    for (const option of await page.getByTestId('search-suggest-option').all()) {
+    for (const option of await list.getByTestId('search-suggest-option').all()) {
       expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     }
   });

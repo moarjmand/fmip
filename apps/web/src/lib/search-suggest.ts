@@ -68,14 +68,37 @@ export function suggestApiQuery(term: string, locale: string): string {
   );
 }
 
-/** Lower case, accents off, Arabic-script letter forms as Persian writes them: enough to compare word starts. */
+/** Latin letters NFD does not take apart, as `unaccent` writes them (Ødegaard, Błaszczykowski, Großkreutz). */
+const LETTERS: Record<string, string> = {
+  ø: 'o',
+  ł: 'l',
+  đ: 'd',
+  ð: 'd',
+  ħ: 'h',
+  ı: 'i',
+  ŀ: 'l',
+  ß: 'ss',
+  æ: 'ae',
+  œ: 'oe',
+  þ: 'th',
+};
+
+/**
+ * Lower case, accents off, the letters NFD keeps whole spelled out, Arabic
+ * letter forms as Persian writes them, and the marks inside a word
+ * (apostrophes, the zero-width non-joiner) dropped rather than read as a
+ * break ("N'Golo" is "ngolo", a Persian name joined by the non-joiner is read as one word): close enough to
+ * the API's `search_key()` to compare word starts.
+ */
 export function foldForMatch(text: string): string {
   return text
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
+    .replace(/[øłđðħıŀßæœþ]/g, (c) => LETTERS[c] ?? c)
     .replace(/ي/g, 'ی')
     .replace(/ك/g, 'ک')
+    .replace(/['’ʼ`\u200c\u200d]/g, '')
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim();
 }

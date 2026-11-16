@@ -62,6 +62,7 @@ export function SearchCombobox({
   defaultValue = '',
   placeholder,
   label,
+  lang,
   inputClassName,
   testId,
 }: {
@@ -73,6 +74,8 @@ export function SearchCombobox({
   placeholder?: string;
   /** The field's accessible name, when no visible label is tied to it. */
   label?: string;
+  /** The field's language, when its placeholder or name is the English standing in. */
+  lang?: string;
   inputClassName?: string;
   testId?: string;
 }) {
@@ -99,12 +102,18 @@ export function SearchCombobox({
   const term = value.trim().replace(/\s+/g, ' ');
   const asking = term.length >= MIN_TERM;
 
-  // Ask after a pause; an answer for a term the field no longer holds is dropped.
+  // An answer already in hand for this term is not asked again.
+  const done = settled !== null && settled.term === term;
+
+  // Ask after a pause, only while the reader is in the field (a results page
+  // that opens with its term asks nothing until then); an answer for a term
+  // the field no longer holds is dropped.
   useEffect(() => {
-    if (!asking) {
+    if (!asking || !open) {
       asked.current?.abort();
       return undefined;
     }
+    if (done) return undefined;
     const pause = setTimeout(() => {
       asked.current?.abort();
       const controller = new AbortController();
@@ -130,11 +139,10 @@ export function SearchCombobox({
         .finally(() => clearTimeout(slowTimer));
     }, DEBOUNCE_MS);
     return () => clearTimeout(pause);
-  }, [asking, term, locale]);
+  }, [asking, open, done, term, locale]);
 
   useEffect(() => () => asked.current?.abort(), []);
 
-  const done = settled !== null && settled.term === term;
   const waiting = asking && !done;
   const failed = asking && done && settled.answer === null;
   const slow = waiting && slowTerm === term;
@@ -170,6 +178,8 @@ export function SearchCombobox({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    // Keys that compose a character (an input method) are not ours.
+    if (event.nativeEvent.isComposing) return;
     const last = seeAllIndex;
     switch (event.key) {
       case 'ArrowDown':
@@ -229,6 +239,7 @@ export function SearchCombobox({
         value={value}
         placeholder={placeholder}
         aria-label={label}
+        lang={lang}
         autoComplete="off"
         spellCheck={false}
         role="combobox"
@@ -251,10 +262,6 @@ export function SearchCombobox({
         {liveText}
       </span>
       <div
-        id={listId}
-        role="listbox"
-        aria-label={words.list.text}
-        lang={words.list.lang}
         hidden={!expanded}
         // Keep the focus in the field while a row is pressed.
         onMouseDown={(event) => event.preventDefault()}
@@ -263,99 +270,108 @@ export function SearchCombobox({
           variant === 'header' ? 'end-0 w-[372px] max-w-[calc(100vw-2rem)]' : 'start-0 end-0',
           expanded ? 'flex' : 'hidden',
         )}
-        data-testid="search-suggest-list"
+        data-testid="search-suggest-box"
       >
+        {/* What the list says of itself sits outside it: a listbox holds options. */}
+        {current !== null && current.groups.length === 0 && (
+          <p className="px-3 py-2 text-sm text-muted" data-testid="search-suggest-none">
+            <span lang={words.none.lang}>{fill(words.none, { term })}</span>
+          </p>
+        )}
+        {failed && (
+          <p
+            className="flex items-center gap-2 px-3 py-2 text-sm"
+            data-testid="search-suggest-unavailable"
+          >
+            <span aria-hidden="true">⚠</span>
+            <span lang={words.unavailable.lang}>{words.unavailable.text}</span>
+          </p>
+        )}
+        {slow && current === null && (
+          <p className="px-3 py-2 text-sm text-muted" data-testid="search-suggest-loading">
+            <span lang={words.loading.lang}>{words.loading.text}</span>
+          </p>
+        )}
         <div
-          role="presentation"
-          className={cx('min-h-0 overflow-y-auto py-1', stale && 'text-muted')}
+          id={listId}
+          role="listbox"
+          aria-label={words.list.text}
+          className="flex min-h-0 flex-col"
+          data-testid="search-suggest-list"
         >
-          {shownAnswer?.groups.map((group) => (
-            <div
-              key={group.type}
-              role="group"
-              aria-labelledby={`${ids}-group-${group.type}`}
-              className="py-1"
-            >
+          <div
+            role="presentation"
+            className={cx('min-h-0 overflow-y-auto py-1', stale && 'text-muted')}
+          >
+            {shownAnswer?.groups.map((group) => (
               <div
-                id={`${ids}-group-${group.type}`}
-                role="presentation"
-                lang={group.headingLang ?? undefined}
-                className="px-3 py-1 text-xs font-bold text-caption"
+                key={group.type}
+                role="group"
+                aria-labelledby={`${ids}-group-${group.type}`}
+                className="py-1"
               >
-                {group.heading}
-              </div>
-              {group.rows.map((row) => {
-                index += 1;
-                const i = index;
-                return (
-                  <div
-                    key={`${row.type}-${row.id}`}
-                    id={optionId(i)}
-                    role="option"
-                    aria-selected={active === i}
-                    onClick={() => choose(i)}
-                    onMouseEnter={() => setActive(i)}
-                    className={cx(
-                      'flex min-h-touch cursor-pointer items-center gap-3 px-3 py-1.5',
-                      active === i && 'bg-surface-raised outline-2 -outline-offset-2 outline-focus',
-                    )}
-                    data-testid="search-suggest-option"
-                  >
-                    <EntityImage
-                      media={row.image ?? undefined}
-                      kind={row.imageKind}
-                      name={row.name}
-                      size={28}
-                    />
-                    <span className="flex min-w-0 flex-col">
-                      <bdi className="truncate text-sm font-medium">{row.name}</bdi>
-                      {row.line !== null && (
-                        <bdi className="truncate text-xs text-muted">{row.line}</bdi>
+                <div
+                  id={`${ids}-group-${group.type}`}
+                  role="presentation"
+                  lang={group.headingLang ?? undefined}
+                  className="px-3 py-1 text-xs font-bold text-caption"
+                >
+                  {group.heading}
+                </div>
+                {group.rows.map((row) => {
+                  index += 1;
+                  const i = index;
+                  return (
+                    <div
+                      key={`${row.type}-${row.id}`}
+                      id={optionId(i)}
+                      role="option"
+                      aria-selected={active === i}
+                      onClick={() => choose(i)}
+                      className={cx(
+                        'flex min-h-touch cursor-pointer items-center gap-3 px-3 py-1.5 hover:bg-surface-raised',
+                        active === i &&
+                          'bg-surface-raised outline-2 -outline-offset-2 outline-focus',
                       )}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          {current !== null && current.groups.length === 0 && (
-            <p className="px-3 py-2 text-sm text-muted" data-testid="search-suggest-none">
-              <span lang={words.none.lang}>{fill(words.none, { term })}</span>
-            </p>
-          )}
-          {failed && (
-            <p
-              className="flex items-center gap-2 px-3 py-2 text-sm"
-              data-testid="search-suggest-unavailable"
-            >
-              <span aria-hidden="true">⚠</span>
-              <span lang={words.unavailable.lang}>{words.unavailable.text}</span>
-            </p>
-          )}
-          {slow && current === null && (
-            <p className="px-3 py-2 text-sm text-muted" data-testid="search-suggest-loading">
-              <span lang={words.loading.lang}>{words.loading.text}</span>
-            </p>
-          )}
-        </div>
-        <div
-          id={optionId(seeAllIndex)}
-          role="option"
-          aria-selected={active === seeAllIndex}
-          onClick={() => choose(seeAllIndex)}
-          onMouseEnter={() => setActive(seeAllIndex)}
-          className={cx(
-            'flex min-h-touch shrink-0 cursor-pointer flex-col justify-center border-t border-default px-3 py-1.5',
-            active === seeAllIndex && 'bg-surface-raised outline-2 -outline-offset-2 outline-focus',
-          )}
-          data-testid="search-suggest-all"
-        >
-          <span className="text-sm font-semibold text-accent" lang={words.seeAll.lang}>
-            {fill(words.seeAll, { term })}
-          </span>
-          <span className="text-xs text-muted" lang={words.alsoSearches.lang}>
-            {words.alsoSearches.text}
-          </span>
+                      data-testid="search-suggest-option"
+                    >
+                      <EntityImage
+                        media={row.image ?? undefined}
+                        kind={row.imageKind}
+                        name={row.name}
+                        size={28}
+                      />
+                      <span className="flex min-w-0 flex-col">
+                        <bdi className="truncate text-sm font-medium">{row.name}</bdi>
+                        {row.line !== null && (
+                          <bdi className="truncate text-xs text-muted">{row.line}</bdi>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div
+            id={optionId(seeAllIndex)}
+            role="option"
+            aria-selected={active === seeAllIndex}
+            onClick={() => choose(seeAllIndex)}
+            className={cx(
+              'flex min-h-touch shrink-0 cursor-pointer flex-col justify-center border-t border-default px-3 py-1.5 hover:bg-surface-raised',
+              active === seeAllIndex &&
+                'bg-surface-raised outline-2 -outline-offset-2 outline-focus',
+            )}
+            data-testid="search-suggest-all"
+          >
+            <span className="text-sm font-semibold text-accent" lang={words.seeAll.lang}>
+              {fill(words.seeAll, { term })}
+            </span>
+            <span className="text-xs text-muted" lang={words.alsoSearches.lang}>
+              {words.alsoSearches.text}
+            </span>
+          </div>
         </div>
       </div>
     </>

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 /**
  * The search results page after a search (T-1850, D-435's design, option B):
@@ -9,7 +9,24 @@ import { expect, test } from '@playwright/test';
  * frame around them is what is checked here.
  */
 
+/** Waits until React has taken the field over (hydration). */
+async function hydrated(page: Page, testId: string) {
+  await page.waitForFunction(
+    (id) => {
+      const field = document.querySelector(`[data-testid="${id}"]`);
+      return field !== null && Object.keys(field).some((key) => key.startsWith('__reactFiber'));
+    },
+    testId,
+    { timeout: 30_000 },
+  );
+}
+
 test.describe('the search results frame', () => {
+  // The header field reads the address in the page's script: never Lite.
+  test.beforeEach(async ({ context, baseURL }) => {
+    await context.addCookies([{ name: 'fmip_lite', value: 'off', url: baseURL ?? '' }]);
+  });
+
   test('names the term and leaves the field to the header from 1280px', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/en/search?q=man%20utd');
@@ -45,6 +62,7 @@ test.describe('the search results frame', () => {
   test('leaves the term behind when the reader goes to another page', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/en/search?q=arsenal');
+    await hydrated(page, 'nav-search-input');
     await expect(page.getByTestId('nav-search-input')).toHaveValue('arsenal');
     await page.getByTestId('nav-matches').click();
     await expect(page).toHaveURL(/\/en\/scores/);

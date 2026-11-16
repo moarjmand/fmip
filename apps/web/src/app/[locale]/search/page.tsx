@@ -270,6 +270,7 @@ export default async function SearchPage({
           defaultValue={term}
           placeholder={field.text}
           label={field.text}
+          lang={field.lang}
           inputClassName={controlClasses('md', 'min-w-0 grow')}
           testId="search-input"
         />

@@ -67,8 +67,18 @@ describe('a word start', () => {
     expect(startsAWord('Ivo Prekazi', 'pre')).toBe(true);
   });
 
+  it('spells out the Latin letters NFD keeps whole, and reads a word across its apostrophe (review)', () => {
+    expect(startsAWord('Martin Ødegaard', 'odegaard')).toBe(true);
+    expect(startsAWord('Jakub Błaszczykowski', 'blaszczykowski')).toBe(true);
+    expect(startsAWord('Kevin Großkreutz', 'grossk')).toBe(true);
+    expect(startsAWord("N'Golo Kanté", 'ngolo')).toBe(true);
+    expect(startsAWord('Dele Alli', 'dele all')).toBe(true);
+  });
+
   it('folds Arabic letter forms as Persian writes them', () => {
     expect(startsAWord('علی كريمی', 'کریمی')).toBe(true);
+    // The zero-width non-joiner inside a name is not a break between words.
+    expect(startsAWord(`محمد${String.fromCharCode(0x200c)}جواد حسین‌نژاد`, 'محمدجواد')).toBe(true);
   });
 
   it('cannot judge a name shown in another script than the term', () => {
