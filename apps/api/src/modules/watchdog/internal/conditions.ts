@@ -276,6 +276,55 @@ export function highlightlyBudget(
 }
 
 /**
+ * How long Highlightly itself has refused us (T-1855, D-440). Its 429 is the
+ * provider's daily limit, so one refusal while our own count is under
+ * `HIGHLIGHTS_DAILY_BUDGET` already means the plan does not serve what we
+ * ask: `degraded` at once, `failing` after twelve hours, across the
+ * provider's midnight reset. Seconds since the first refusal that no answer
+ * has followed; `ok` while it answers, and without `HIGHLIGHTLY_KEY`.
+ */
+export const HIGHLIGHTLY_REFUSED_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 1,
+  failing: 12 * HOUR,
+};
+
+export function highlightlyRefused(
+  seen: { configured: false } | { configured: true; refusedSince?: Date | null },
+  now: Date,
+): Reading {
+  const key = 'highlightly_refused';
+  const threshold = HIGHLIGHTLY_REFUSED_THRESHOLD;
+  if (!seen.configured) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'no HIGHLIGHTLY_KEY: the highlights feed and the box scores are off',
+    };
+  }
+  const since = seen.refusedSince ?? null;
+  if (since === null) {
+    return {
+      key,
+      level: 'ok',
+      observed: 0,
+      threshold,
+      note: 'Highlightly answered the last request (or none was sent since the api started)',
+    };
+  }
+  const observed = Math.max(1, Math.round((now.getTime() - since.getTime()) / 1000));
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `Highlightly has refused every request since ${since.toISOString()} (its daily limit; the highlights feed and the box scores stop at the first refusal)`,
+  };
+}
+
+/**
  * Failed jobs on one BullMQ queue in the last hour: one is worth a look, three
  * is a job that keeps failing. An hour's window is also the hysteresis: the
  * condition recovers an hour after the last failure, not on the next tick.

@@ -387,7 +387,12 @@ describe('the box-score job', () => {
       MAPPED,
     );
     expect(await tight.jobs.run(NOW)).toMatchObject({ requests: 2, stopped: 'quota', stored: 0 });
-    expect(tight.quota.reading()).toEqual({ configured: true, requestsToday: 1, budget: 1 });
+    expect(tight.quota.reading()).toEqual({
+      configured: true,
+      requestsToday: 1,
+      budget: 1,
+      refusedSince: null,
+    });
     expect(tight.jobs.health()).toMatchObject({ requests_today: 1, daily_budget: 1, batch: 60 });
   });
 });

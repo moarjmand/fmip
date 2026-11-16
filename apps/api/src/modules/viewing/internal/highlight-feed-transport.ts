@@ -34,10 +34,19 @@ export class FetchJsonTransport implements Transport {
  * over budget it answers 429 rather than throwing, so the client reports a
  * `quota` refusal and the run stops where it is. The day is UTC, when the
  * provider's own count resets.
+ *
+ * It also remembers when the provider itself began to refuse (T-1855, D-440):
+ * a 429 from the network, not this ceiling's own, sets `refusedSince` and the
+ * next answer the provider gives that is not a 429 clears it. Both feeds stop
+ * at their first refusal, so without this a plan the provider no longer
+ * serves looks like a quiet day: from 2026-11-09 the box scores fell from
+ * dozens a day to none while our count read 2 of 5000 and every condition
+ * stayed `ok`.
  */
 export class DailyBudgetTransport implements Transport {
   private day: string;
   private spent = 0;
+  private refusingSince: Date | null = null;
 
   constructor(
     private readonly inner: Transport,
@@ -63,7 +72,19 @@ export class DailyBudgetTransport implements Transport {
       };
     }
     this.spent += 1;
-    return this.inner.request(url, init);
+    const response = await this.inner.request(url, init);
+    if (response.status === 429) this.refusingSince ??= this.now();
+    else this.refusingSince = null;
+    return response;
+  }
+
+  /**
+   * When the provider's own refusals began, or `null` while it answers. Not
+   * reset at midnight: a refusal that lasts past the provider's daily reset
+   * is the one worth seeing. This process's memory, like the count.
+   */
+  get refusedSince(): Date | null {
+    return this.refusingSince;
   }
 
   private today(): string {
