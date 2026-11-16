@@ -154,7 +154,7 @@ const END = '([^\\p{L}\\p{N}]|$)';
  * Remo) or "vela" alone in a headline (a candle).
  */
 const PORTUGUESE_OTHER_SPORT = new RegExp(
-  `${START}(tênis|judô|surfe?|surfistas?|basquete|vôlei|voleibol|handebol|natação|ginástica|esqui|skatistas?|skate|boxe|atletismo|ciclismo|canoagem|jiu-jitsu|taekwondo|paralímpic[oa]s?|xadrez|copa do mundo da vela|wsl)${END}`,
+  `${START}(tênis|judô|surfe?|surfistas?|basquete|vôlei|voleibol|handebol|natação|ginástica|esqui|skatistas?|skate|boxe|atletismo|ciclismo|canoagem|jiu-jitsu|taekwondo|paralímpic[oa]s?|xadrez|copa do mundo da vela|slalom|(da|na|do) wsl)${END}`,
   'iu',
 );
 
@@ -247,8 +247,11 @@ const PERSIAN_OTHER_SPORT_HEADLINE = new RegExp(
     'ووشو',
     'بدمینتون',
     'ژیمناستیک',
-    'شطرنج',
-    'کبدی',
+    'شطرنج[‌ ]?باز(ان)?',
+    '(فدراسیون|مسابقات|المپیاد|تیم ملی) شطرنج',
+    'کبدی[‌ ]?کاران?',
+    '(فدراسیون|لیگ|مسابقات|تیم ملی) کبدی',
+    'کبدی ایران',
     'پاراآسیایی',
     'پارالمپیک',
     'کشتی[‌ ]?(آزاد|فرنگی|گیر|گیران)',
@@ -262,7 +265,8 @@ const PERSIAN_OTHER_SPORT_HEADLINE = new RegExp(
 
 /** Whether a Persian headline names another sport (`PERSIAN_OTHER_SPORT_HEADLINE`). */
 export function persianOtherSportHeadline(headline: string): boolean {
-  return PERSIAN_OTHER_SPORT_HEADLINE.test(headline);
+  // Arabic yeh and kaf as Persian, as `fold` does: the publishers write both.
+  return PERSIAN_OTHER_SPORT_HEADLINE.test(headline.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک'));
 }
 
 /** Why an item is not listed as football, or `null` when it is. */

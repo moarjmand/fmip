@@ -336,6 +336,15 @@ describe('otherCodeOf, the general feeds’ other sports (T-1841)', () => {
     ['تیم امید در بازی‌های آسیایی به مصاف عربستان می‌رود', null],
     // A football team's fitness coach.
     ['مربی بدنساز پرسپولیس از جمع سرخ‌ها جدا شد', null],
+    // Football's own figures of speech (review of PR #901): a slalom run, a
+    // tactical grandmaster, a coach's chess, Croatia's chequered shirts, a
+    // liver («کبدی») illness.
+    ['Yamal’s slalom run seals Barcelona win', null],
+    ['Guardiola, the grandmaster of positional play', null],
+    ['High jump in ticket prices angers Arsenal fans', null],
+    ['شطرنج اسکوچیچ و گل‌محمدی در دربی', null],
+    ['شطرنجی‌پوشان در نیمه‌نهایی جام جهانی', null],
+    ['پیشکسوت فوتبال بر اثر بیماری کبدی درگذشت', null],
   ])('%s is not', (headline, summary) => {
     expect(otherCodeOf(headline, summary)).toBeNull();
   });

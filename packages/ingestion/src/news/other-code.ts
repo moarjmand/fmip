@@ -375,7 +375,6 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         // bronze in 50m Pistol"). Chess only with its own nouns: "a game of
         // chess" is also a football story's (D-321).
         'chess (players?|olympiad|champions?|championships?|tournaments?|federation|grandmasters?|titles?|golds?)',
-        'grandmasters?',
         'snooker',
         'para (games|athletes?|athletics|powerlifting|powerlifters?|shooters?|shooting|archery|swimmers?|swimming|taekwondo|badminton|cycling|table tennis)',
         'para-(athletes?|athletics|powerlift(ing|ers?))',
@@ -385,7 +384,6 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         'discus( throw(ers?)?)?',
         'shot put(ters?)?',
         'long jump(ers?)?',
-        'high jump(ers?)?',
         'triple jump(ers?)?',
         'boccia',
         'kickboxing',
@@ -396,7 +394,7 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         'sepak takraw',
         'kurash',
         'alpine ski(ing|ers?)',
-        'slalom',
+        'slalom (skiers?|world cup)',
         'surfing',
       ].join('|'),
     ),
@@ -441,7 +439,8 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         // «پاراگوئه»), not «ناگویا» (Nagoya Grampus), not «بازی‌های آسیایی»
         // (the Asian Games have a football tournament), not «بدنساز» (a
         // football team's fitness coach).
-        'شطرنج',
+        'شطرنج[‌ ]?باز',
+        '(فدراسیون|مسابقات|رقابت‌های|المپیاد|تیم ملی) شطرنج',
         'پاراآسیایی',
         'پارا آسیایی',
         'پارالمپیک',
@@ -453,7 +452,8 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
         'بوکس',
         'شمشیرباز',
         'اسبدوانی',
-        'کبدی',
+        'کبدی[‌ ]?کار',
+        '(فدراسیون|لیگ|مسابقات|رقابت‌های|تیم ملی) کبدی',
         'وزنه[‌ ]?بردار',
         'فرنگی[‌ ]?کار',
         'آزادکار',

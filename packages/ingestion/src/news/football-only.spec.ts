@@ -90,6 +90,18 @@ describe('persianOtherSportHeadline', () => {
       persianOtherSportHeadline('ویدیو| خلاصه بازی ناپولی ۴ - بوده گلیمت ۳/ فوتبال بسکتبالی جذاب'),
     ).toBe(false);
     expect(persianOtherSportHeadline('فن دو امتیازی کشتی، گل دوم استقلال را پراند')).toBe(false);
+    // Review of PR #901: a coach's chess, Croatia's chequered shirts, a liver illness.
+    expect(persianOtherSportHeadline('شطرنج اسکوچیچ و گل‌محمدی در دربی')).toBe(false);
+    expect(persianOtherSportHeadline('شطرنجی‌پوشان در نیمه‌نهایی جام جهانی')).toBe(false);
+    expect(persianOtherSportHeadline('پیشکسوت فوتبال بر اثر بیماری کبدی درگذشت')).toBe(false);
+  });
+
+  it('reads Arabic yeh and kaf as Persian', () => {
+    expect(persianOtherSportHeadline('ليگ برتر واليبال؛ شهرداري اروميه')).toBe(true);
+    expect(persianOtherSportHeadline('منع حضور شطرنج‌بازان اسرائيلي')).toBe(true);
+    expect(
+      persianOtherSportHeadline('کبودرآهنگ؛ کانون توجه کبدی ایران در مسیر رقابت‌های آسیایی'),
+    ).toBe(true);
   });
 });
 
@@ -199,6 +211,23 @@ describe('notFootballOf', () => {
     ).toBe('other_sport');
     expect(
       notFootballOf(ag('Brasil perde para o Japão com gol nos acréscimos: 3 a 2', ['amistoso'])),
+    ).toBeNull();
+    expect(
+      notFootballOf(
+        ag('Lucas Pinheiro abre temporada com ouro em slalom gigante na Áustria', [
+          'campeão olímpico',
+        ]),
+      ),
+    ).toBe('other_sport');
+    // English WSL is the Women's Super League: only "da/na/do WSL" is surf's.
+    expect(
+      notFootballOf(
+        item({
+          headline: 'Iranian striker joins WSL side Everton',
+          categories: ['Sports'],
+          feedUrl: TEHRAN_TIMES,
+        }),
+      ),
     ).toBeNull();
   });
 
