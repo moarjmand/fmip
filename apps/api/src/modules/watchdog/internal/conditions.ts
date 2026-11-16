@@ -276,6 +276,84 @@ export function highlightlyBudget(
 }
 
 /**
+ * How long Highlightly itself has refused us (T-1855, D-440). Its 429 is the
+ * provider's daily limit (the adapter records no per-minute limit for it), so
+ * one refusal while our own count is under `HIGHLIGHTS_DAILY_BUDGET` already
+ * means the plan does not serve what we ask: `degraded` at once, `failing`
+ * after twelve hours, across the provider's midnight reset. Seconds since the
+ * first refusal that no answer under 400 has followed; `ok` while it answers,
+ * and without `HIGHLIGHTLY_KEY`.
+ *
+ * The refusal is the API process's memory, so a rollout forgets it. Until the
+ * provider has been heard again (`heard: false`, the feeds run every two
+ * hours) the previous level and value are kept rather than read as `ok`,
+ * which would send a `recovered` alert and then a fresh `raised` one. When it
+ * refuses again, the refusal is dated from the earlier of the process's own
+ * first refusal and the start the stored condition implies (its `since` when
+ * `degraded`, twelve hours before it when `failing`), so the clock to
+ * `failing` survives rollouts.
+ */
+export const HIGHLIGHTLY_REFUSED_THRESHOLD: WatchdogThreshold = {
+  unit: 'seconds',
+  degraded: 1,
+  failing: 12 * HOUR,
+};
+
+export function highlightlyRefused(
+  seen: { configured: false } | { configured: true; heard?: boolean; refusedSince?: Date | null },
+  now: Date,
+  previous: { level: WatchdogLevel; since: Date; observed: number | null } | null = null,
+): Reading {
+  const key = 'highlightly_refused';
+  const threshold = HIGHLIGHTLY_REFUSED_THRESHOLD;
+  if (!seen.configured) {
+    return {
+      key,
+      level: 'ok',
+      observed: null,
+      threshold,
+      note: 'no HIGHLIGHTLY_KEY: the highlights feed and the box scores are off',
+    };
+  }
+  if (seen.heard === false) {
+    return {
+      key,
+      level: previous?.level ?? 'ok',
+      observed: previous?.observed ?? null,
+      threshold,
+      note: 'Highlightly not heard from since the api started (the feeds run every two hours); the last reading is kept',
+    };
+  }
+  const own = seen.refusedSince ?? null;
+  if (own === null) {
+    return {
+      key,
+      level: 'ok',
+      observed: 0,
+      threshold,
+      note: 'Highlightly answered the last request',
+    };
+  }
+  const carried =
+    previous === null
+      ? null
+      : previous.level === 'degraded'
+        ? previous.since
+        : previous.level === 'failing'
+          ? new Date(previous.since.getTime() - threshold.failing * 1000)
+          : null;
+  const since = carried !== null && carried < own ? carried : own;
+  const observed = Math.max(1, Math.round((now.getTime() - since.getTime()) / 1000));
+  return {
+    key,
+    level: levelOf(observed, threshold),
+    observed,
+    threshold,
+    note: `Highlightly has refused every request since ${since.toISOString()} (its daily limit; the highlights feed and the box scores stop at the first refusal)`,
+  };
+}
+
+/**
  * Failed jobs on one BullMQ queue in the last hour: one is worth a look, three
  * is a job that keeps failing. An hour's window is also the hysteresis: the
  * condition recovers an hour after the last failure, not on the next tick.
