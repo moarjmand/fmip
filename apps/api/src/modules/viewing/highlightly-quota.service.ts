@@ -12,7 +12,13 @@ import {
  */
 export type HighlightlyQuotaReading =
   | { configured: false }
-  | { configured: true; requestsToday: number; budget: number; refusedSince: Date | null };
+  | {
+      configured: true;
+      requestsToday: number;
+      budget: number;
+      heard: boolean;
+      refusedSince: Date | null;
+    };
 
 /**
  * The one daily ceiling every Highlightly caller of this boundary draws on
@@ -40,6 +46,7 @@ export class HighlightlyQuota {
       configured: true,
       requestsToday: this.transport.used,
       budget: this.transport.perDay,
+      heard: this.transport.heard,
       refusedSince: this.transport.refusedSince,
     };
   }

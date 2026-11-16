@@ -99,7 +99,13 @@ export interface Observations {
    */
   highlightly?:
     | { configured: false }
-    | { configured: true; requestsToday: number; budget: number; refusedSince?: Date | null }
+    | {
+        configured: true;
+        requestsToday: number;
+        budget: number;
+        heard?: boolean;
+        refusedSince?: Date | null;
+      }
     | Unreadable;
 }
 
@@ -160,7 +166,7 @@ export function readingsOf(
           level: 'unknown',
           note: highlightly.unreadable,
         }
-      : highlightlyRefused(highlightly, now),
+      : highlightlyRefused(highlightly, now, previous.get('highlightly_refused') ?? null),
   );
 
   for (const q of seen.queues) {

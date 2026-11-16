@@ -203,6 +203,37 @@ describe('the budget', () => {
     expect(budget.refusedSince).toBeNull();
   });
 
+  it('lets only an answer under 400 end a refusal; a 403, a 5xx or a throw say nothing (T-1855)', async () => {
+    const now = new Date('2026-11-16T10:00:00Z');
+    let answer: () => Promise<TransportResponse> = () =>
+      Promise.resolve({ status: 429, body: {}, receivedAt: 'x' });
+    const budget = new DailyBudgetTransport({ request: () => answer() }, 10, () => now);
+    expect(budget.heard).toBe(false);
+    await budget.request('u');
+    expect(budget.heard).toBe(true);
+    for (const status of [403, 500, 503]) {
+      answer = () => Promise.resolve({ status, body: {}, receivedAt: 'x' });
+      await budget.request('u');
+      expect(budget.refusedSince).toEqual(now);
+    }
+    answer = () => Promise.reject(new Error('timeout'));
+    await expect(budget.request('u')).rejects.toThrow('timeout');
+    expect(budget.refusedSince).toEqual(now);
+    answer = () => Promise.resolve({ status: 204, body: {}, receivedAt: 'x' });
+    await budget.request('u');
+    expect(budget.refusedSince).toBeNull();
+  });
+
+  it('has not heard the provider while only 5xx answers or its own ceiling come back', async () => {
+    const down = new DailyBudgetTransport(
+      { request: () => Promise.resolve({ status: 502, body: {}, receivedAt: 'x' }) },
+      1,
+    );
+    await down.request('u');
+    await down.request('u');
+    expect(down.heard).toBe(false);
+  });
+
   it('does not count its own spent ceiling as the provider refusing', async () => {
     const budget = new DailyBudgetTransport(inner, 1, () => new Date('2026-11-16T10:00:00Z'));
     await budget.request('u');
