@@ -361,6 +361,26 @@ export type {
   ConsoleSubscriptionStatus,
   Recurring,
 } from './console-calendar';
+// Posts to X and Instagram (T-1834, D-427); its runtime constants are in './console'.
+export type {
+  SocialAutomation,
+  SocialAutomationLevel,
+  SocialCardModel,
+  SocialCardPayload,
+  SocialCardTeam,
+  SocialForecastPayload,
+  SocialGate,
+  SocialGateCheck,
+  SocialNetwork,
+  SocialOutcome,
+  SocialPostKind,
+  SocialPostOrigin,
+  SocialPostState,
+  SocialResultPayload,
+  SocialSensitiveReason,
+  SocialSensitiveTopic,
+  SocialVerdictPayload,
+} from './social-publishing';
 // The agents console's data providers' comparison (T-1830, D-423); its runtime constants are in './console'.
 export type {
   ConsoleProvider,
