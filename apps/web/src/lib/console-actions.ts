@@ -360,3 +360,71 @@ export async function testReminder(): Promise<{ devices: number; delivered: numb
   });
   return result.ok ? result.data : null;
 }
+
+// --- The pre-launch checklist (T-1840, D-428) ---------------------------------
+
+const checklistChanged = () => revalidatePath('/console', 'layout');
+
+/** What a checklist control hears back: nothing, or the error in Persian. */
+export interface ChecklistResult {
+  ok: boolean;
+  error: string | null;
+}
+
+const checklistItem = (id: string) => `checklist/items/${encodeURIComponent(id)}`;
+
+async function checklistCall(
+  path: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  body: unknown,
+  fallback: string,
+): Promise<ChecklistResult> {
+  const result = await consoleCall(path, { method, body });
+  checklistChanged();
+  return result.ok
+    ? { ok: true, error: null }
+    : { ok: false, error: apiErrorWords(result.error?.message, fallback) };
+}
+
+/** A new item at the end of a section, from the section's own form. */
+export async function addChecklistItem(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const result = await checklistCall(
+    'checklist/items',
+    'POST',
+    { section_id: field(form, 'section_id'), title: field(form, 'title') },
+    'مورد اضافه نشد.',
+  );
+  return result.ok ? { error: null, done: 'اضافه شد.' } : { error: result.error, done: null };
+}
+
+/** A change to an item's status, assignee, text or section. */
+export async function updateChecklistItem(
+  id: string,
+  patch: {
+    status?: string;
+    assignee?: string | null;
+    title?: string;
+    section_id?: string;
+  },
+): Promise<ChecklistResult> {
+  return checklistCall(checklistItem(id), 'PATCH', patch, 'تغییر ذخیره نشد.');
+}
+
+export async function moveChecklistItem(
+  id: string,
+  direction: 'up' | 'down',
+): Promise<ChecklistResult> {
+  return checklistCall(`${checklistItem(id)}/move`, 'POST', { direction }, 'جابه‌جایی انجام نشد.');
+}
+
+export async function addChecklistNote(id: string, body: string): Promise<ChecklistResult> {
+  return checklistCall(`${checklistItem(id)}/notes`, 'POST', { body }, 'یادداشت ذخیره نشد.');
+}
+
+/** Removes an item; the reason goes to its history and the console's audit trail. */
+export async function removeChecklistItem(id: string, reason: string): Promise<ChecklistResult> {
+  return checklistCall(checklistItem(id), 'DELETE', { reason }, 'مورد حذف نشد.');
+}

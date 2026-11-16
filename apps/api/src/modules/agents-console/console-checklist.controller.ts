@@ -146,10 +146,17 @@ function answer(outcome: ChecklistOutcome, reply: FastifyReply): ConsoleChecklis
     case 'ok':
       return outcome.item;
     case 'limited':
-      return refuseOverRate(reply, { ok: false, retryAfterSeconds: outcome.retryAfterSeconds }, LIMIT);
+      return refuseOverRate(
+        reply,
+        { ok: false, retryAfterSeconds: outcome.retryAfterSeconds },
+        LIMIT,
+      );
     case 'missing':
       throw new NotFoundException(NO_ITEM);
     case 'refused':
-      throw new ConflictException({ error: 'conflict', message: outcome.reason } satisfies ApiError);
+      throw new ConflictException({
+        error: 'conflict',
+        message: outcome.reason,
+      } satisfies ApiError);
   }
 }

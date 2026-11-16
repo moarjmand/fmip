@@ -24,13 +24,7 @@ export const CONSOLE_CHECKLIST_REASON_MAX = 300;
 export type ConsoleChecklistList = (typeof CONSOLE_CHECKLIST_LISTS)[number];
 export type ConsoleChecklistStatus = (typeof CONSOLE_CHECKLIST_STATUSES)[number];
 export type ConsoleChecklistEventKind =
-  | 'created'
-  | 'retitled'
-  | 'sectioned'
-  | 'status'
-  | 'assigned'
-  | 'moved'
-  | 'removed';
+  'created' | 'retitled' | 'sectioned' | 'status' | 'assigned' | 'moved' | 'removed';
 
 /**
  * Who must do an item: a console account by its id, the agents' team

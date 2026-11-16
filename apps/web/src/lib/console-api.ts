@@ -7,6 +7,7 @@ import type {
   ConsoleBoardCard,
   ConsoleCalendar,
   ConsoleCalendarPush,
+  ConsoleChecklist,
   ConsoleCommand,
   ConsoleConversation,
   ConsoleInvitationView,
@@ -173,3 +174,5 @@ export const consoleInvitation = (token: string) =>
 export const consoleCalendar = () => consoleCall<ConsoleCalendar>('calendar');
 /** Whether reminders can reach a browser here, and how many of this person's are on. */
 export const consoleCalendarPush = () => consoleCall<ConsoleCalendarPush>('calendar/push');
+/** The pre-launch checklist (T-1840, D-428): both lists, their items, notes and history, and the people. */
+export const consoleChecklist = () => consoleCall<ConsoleChecklist>('checklist');

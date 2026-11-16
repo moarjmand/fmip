@@ -33,7 +33,10 @@ describe('checkNewItem', () => {
 
 describe('checkItemPatch', () => {
   it('takes any of the fields, and the three kinds of assignee', () => {
-    expect(checkItemPatch({ status: 'blocked' })).toEqual({ ok: true, value: { status: 'blocked' } });
+    expect(checkItemPatch({ status: 'blocked' })).toEqual({
+      ok: true,
+      value: { status: 'blocked' },
+    });
     expect(checkItemPatch({ assignee: null })).toEqual({ ok: true, value: { assignee: null } });
     expect(checkItemPatch({ assignee: 'agents' })).toEqual({
       ok: true,

@@ -32,7 +32,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
   let other = '';
   const users: string[] = [];
 
-  const call = async <T>(method: string, url: string, body?: unknown, who: string | null = cookie) => {
+  const call = async <T>(
+    method: string,
+    url: string,
+    body?: unknown,
+    who: string | null = cookie,
+  ) => {
     const response = await app.inject({
       method: method as 'GET',
       url: `/console/checklist${url}`,
@@ -200,7 +205,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
     const same = await call<ConsoleChecklistItem>('PATCH', `/items/${id}`, { assignee: other });
     expect(same.body.history).toHaveLength(toPerson.body.history.length);
 
-    const moved = await call<ConsoleChecklistItem>('POST', `/items/${id}/move`, { direction: 'up' });
+    const moved = await call<ConsoleChecklistItem>('POST', `/items/${id}/move`, {
+      direction: 'up',
+    });
     expect(moved.body.history.at(-1)).toMatchObject({
       kind: 'moved',
       previous: String(target.items.length + 1),

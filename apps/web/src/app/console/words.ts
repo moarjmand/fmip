@@ -13,6 +13,23 @@ const fa = (n: string) => new Intl.NumberFormat('fa-IR').format(Number(n));
 /** The API's console messages (`agents-console.controller.ts`, `console-rules.ts`). */
 const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^Sign in to the console\.$/, () => 'وارد کنسول شوید.'],
+  // The pre-launch checklist (T-1840, D-428).
+  [/^An item needs its text\.$/, () => 'متن مورد را بنویسید.'],
+  [
+    /^An item's text is at most (\d+) characters\.$/,
+    (m) => `متن مورد حداکثر ${fa(m[1]!)} نویسه است.`,
+  ],
+  [/^A note needs its text\.$/, () => 'متن یادداشت را بنویسید.'],
+  [/^A note is at most (\d+) characters\.$/, (m) => `یادداشت حداکثر ${fa(m[1]!)} نویسه است.`],
+  [/^Say why the item is removed\.$/, () => 'دلیل حذف را بنویسید.'],
+  [/^A reason is at most (\d+) characters\.$/, (m) => `دلیل حداکثر ${fa(m[1]!)} نویسه است.`],
+  [/^No such console account\.$/, () => 'این حساب در کنسول نیست یا غیرفعال شده است.'],
+  [/^No such checklist item\.$/, () => 'این مورد دیگر در فهرست نیست؛ صفحه را تازه کنید.'],
+  [/^No such (checklist )?section\.$/, () => 'این بخش در فهرست نیست.'],
+  [
+    /^That is the most checklist changes an hour allows/,
+    () => 'به سقف تغییرهای یک ساعت فهرست رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
   [
     /^Wrong name or password/,
     () => 'نام کاربری یا رمز درست نیست، یا این نام پس از چند تلاش ناموفق مدتی قفل شده است.',
@@ -217,6 +234,11 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
   'requests.alerts_on': 'روشن کردن اعلان درخواست‌های تازه',
   'requests.alerts_off': 'خاموش کردن اعلان درخواست‌های تازه',
+  'checklist.item_created': 'مورد تازه در فهرست راه‌اندازی',
+  'checklist.item_changed': 'تغییر مورد فهرست راه‌اندازی',
+  'checklist.item_moved': 'جابه‌جایی مورد فهرست راه‌اندازی',
+  'checklist.item_removed': 'حذف مورد از فهرست راه‌اندازی',
+  'checklist.note_added': 'یادداشت روی مورد فهرست راه‌اندازی',
 };
 
 /** An audit row's action in Persian (`command.agent_pause` from `COMMAND_WORDS`); an unknown one keeps its id. */
@@ -227,6 +249,14 @@ export function auditActionWords(action: string): { words: string; known: boolea
     (command !== undefined ? COMMAND_WORDS[command as ConsoleCommandKind] : undefined);
   return words === undefined ? { words: action, known: false } : { words, known: true };
 }
+
+/** A checklist change's fields (T-1840), as `changed status, assigned` names them. */
+const CHANGE_WORDS: Record<string, string> = {
+  retitled: 'متن',
+  sectioned: 'بخش',
+  status: 'وضعیت',
+  assigned: 'مسئول',
+};
 
 /** The reasons the API writes itself; a person's own reason is shown as written. */
 export function auditReasonWords(reason: string): string {
@@ -261,6 +291,18 @@ export function auditReasonWords(reason: string): string {
     [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
     [/^new-request notifications switched on$/, () => 'اعلان درخواست‌های تازه روشن شد'],
     [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],
+    [/^item added$/, () => 'مورد اضافه شد'],
+    [
+      /^changed (.+)$/,
+      (m) =>
+        `تغییر ${m[1]!
+          .split(', ')
+          .map((k) => CHANGE_WORDS[k] ?? k)
+          .join('، ')}`,
+    ],
+    [/^moved up$/, () => 'یک جا بالاتر رفت'],
+    [/^moved down$/, () => 'یک جا پایین‌تر رفت'],
+    [/^note added$/, () => 'یادداشت اضافه شد'],
   ];
   for (const [pattern, words] of system) {
     const match = pattern.exec(reason);

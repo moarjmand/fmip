@@ -92,13 +92,11 @@ export function checkItemPatch(body: unknown): Checked<ConsoleChecklistItemPatch
   }
   if (body.assignee !== undefined) {
     const assignee = body.assignee;
-    if (
-      !(
-        assignee === null ||
-        assignee === CONSOLE_CHECKLIST_AGENTS ||
-        (typeof assignee === 'string' && CHECKLIST_ID.test(assignee))
-      )
-    )
+    if (!(
+      assignee === null ||
+      assignee === CONSOLE_CHECKLIST_AGENTS ||
+      (typeof assignee === 'string' && CHECKLIST_ID.test(assignee))
+    ))
       return { ok: false, reason: 'assignee is a console account, agents, or null.' };
     patch.assignee = assignee as ConsoleChecklistAssignee;
   }

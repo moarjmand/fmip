@@ -47,8 +47,9 @@ const ITEM_COLUMNS = `i.id, i.section_id, i.position, i.title, i.status, i.assig
   i.assigned_agents, i.updated_at, u.display_name AS updated_by`;
 const ITEM_FROM = 'console_checklist_item i LEFT JOIN console_user u ON u.id = i.updated_by';
 
-const assigneeOf = (row: Pick<ItemRow, 'assignee_id' | 'assigned_agents'>): ConsoleChecklistAssignee =>
-  row.assigned_agents ? CONSOLE_CHECKLIST_AGENTS : row.assignee_id;
+const assigneeOf = (
+  row: Pick<ItemRow, 'assignee_id' | 'assigned_agents'>,
+): ConsoleChecklistAssignee => (row.assigned_agents ? CONSOLE_CHECKLIST_AGENTS : row.assignee_id);
 
 const stateOf = (row: ItemRow): ItemState => ({
   title: row.title,
@@ -148,7 +149,11 @@ export class PostgresChecklistStore {
             return { kind: 'refused', reason: 'No such section.' };
           position = await this.nextPosition(client, change.next!);
         }
-        if (change.kind === 'assigned' && change.next !== null && change.next !== CONSOLE_CHECKLIST_AGENTS) {
+        if (
+          change.kind === 'assigned' &&
+          change.next !== null &&
+          change.next !== CONSOLE_CHECKLIST_AGENTS
+        ) {
           const { rowCount } = await client.query(
             `SELECT 1 FROM console_user WHERE id = $1 AND disabled_at IS NULL`,
             [change.next],
@@ -190,7 +195,11 @@ export class PostgresChecklistStore {
   }
 
   /** Swaps an item with its neighbour in its section; at either end nothing moves. */
-  async moveItem(id: string, direction: 'up' | 'down', actor: ConsoleMe): Promise<ChecklistOutcome> {
+  async moveItem(
+    id: string,
+    direction: 'up' | 'down',
+    actor: ConsoleMe,
+  ): Promise<ChecklistOutcome> {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
@@ -287,9 +296,10 @@ export class PostgresChecklistStore {
   // --- Reading ---------------------------------------------------------------
 
   private async itemById(db: Pool | PoolClient, id: string): Promise<ConsoleChecklistItem> {
-    const { rows } = await db.query<ItemRow>(`SELECT ${ITEM_COLUMNS} FROM ${ITEM_FROM} WHERE i.id = $1`, [
-      id,
-    ]);
+    const { rows } = await db.query<ItemRow>(
+      `SELECT ${ITEM_COLUMNS} FROM ${ITEM_FROM} WHERE i.id = $1`,
+      [id],
+    );
     return (await this.withDetail(db, rows))[0]!;
   }
 
@@ -352,9 +362,10 @@ export class PostgresChecklistStore {
   }
 
   private async sectionExists(client: PoolClient, id: string): Promise<boolean> {
-    const { rowCount } = await client.query(`SELECT 1 FROM console_checklist_section WHERE id = $1`, [
-      id,
-    ]);
+    const { rowCount } = await client.query(
+      `SELECT 1 FROM console_checklist_section WHERE id = $1`,
+      [id],
+    );
     return (rowCount ?? 0) > 0;
   }
 

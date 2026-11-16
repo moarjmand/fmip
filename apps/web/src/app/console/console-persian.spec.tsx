@@ -17,6 +17,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
+import { CHECKLIST } from './checklist.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 import { PROVIDERS } from './providers.fixture';
 
@@ -75,6 +76,11 @@ vi.mock('@/lib/console-actions', () => {
     removeReminderDevice: async () => ({ ok: true }),
     testReminder: async () => null,
     setRequestAlerts: async () => ({ ok: true, error: null }),
+    addChecklistItem: action,
+    updateChecklistItem: async () => ({ ok: true, error: null }),
+    moveChecklistItem: async () => ({ ok: true, error: null }),
+    addChecklistNote: async () => ({ ok: true, error: null }),
+    removeChecklistItem: async () => ({ ok: true, error: null }),
   };
 });
 vi.mock('@/lib/console-api', () => {
@@ -85,6 +91,8 @@ vi.mock('@/lib/console-api', () => {
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
     // T-1729, T-1752: the model page, on the API's real answer of 2026-11-06.
     consoleModel: () => ok(MODEL_REPORT),
+    // T-1840: the pre-launch checklist, the seed's Persian text.
+    consoleChecklist: () => ok(CHECKLIST),
     consoleCommands: () =>
       ok({
         commands: [
@@ -819,6 +827,20 @@ describe('the Persian-only scan', () => {
     ],
     ['the audit trail', async () => render((await import('./(app)/audit/page')).default())],
     [
+      'the pre-launch checklist',
+      async () =>
+        render((await import('./(app)/checklist/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the pre-launch checklist, public list filtered',
+      async () =>
+        render(
+          (await import('./(app)/checklist/page')).default({
+            searchParams: params({ tab: 'public', who: 'agents' }),
+          }),
+        ),
+    ],
+    [
       'the calendar',
       async () =>
         render((await import('./(app)/calendar/page')).default({ searchParams: params({}) })),
@@ -922,6 +944,7 @@ describe('the Persian-only scan', () => {
       './(app)/board/page',
       './(app)/calendar/page',
       './(app)/calendar/subscriptions/page',
+      './(app)/checklist/page',
       './(app)/decisions/page',
       './(app)/findings/page',
       './(app)/model/page',
