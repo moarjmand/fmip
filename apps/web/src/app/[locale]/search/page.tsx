@@ -35,7 +35,9 @@ import {
 } from '@/lib/search';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader, readerAddress } from '@/lib/session';
-import { Button, Notice, TextField } from '@/components/ui';
+import { Button, Notice, controlClasses } from '@/components/ui';
+import { SearchCombobox } from '@/components/search-combobox';
+import { suggestWords } from '@/lib/search-suggest';
 
 export const dynamic = 'force-dynamic';
 
@@ -140,11 +142,13 @@ async function loadChips(locale: string, timeZone: string) {
   return searchChips(directory, scores, pageLocale(locale));
 }
 
-/** "Nothing matches “zzqxv”", the term isolated from the sentence around it. */
-function nothingHeading(locale: string, term: string): ReactNode {
-  const [before = '', after = ''] = say(locale, 'searchPage.nothing', { term: '\u0000' }).split(
-    '\u0000',
-  );
+/** A sentence carrying the term ("Nothing matches “zzqxv”"), the term isolated from the words around it. */
+function termSentence(
+  locale: string,
+  key: 'searchPage.nothing' | 'searchPage.resultsFor',
+  term: string,
+): ReactNode {
+  const [before = '', after = ''] = say(locale, key, { term: '\u0000' }).split('\u0000');
   return (
     <>
       {before}
@@ -182,6 +186,8 @@ export default async function SearchPage({
   ]);
   const lang = pageLocale(locale);
   const term = readSearchTerm(query);
+  // A term long enough to search: the page is its results (T-1850).
+  const searched = term.length >= MIN_QUERY_LENGTH;
   const ask = apiQuery(term);
   const community = communityQuery(term);
   // Read by the model when there is one (T-421); the search's own rows either
@@ -237,27 +243,42 @@ export default async function SearchPage({
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
+      {/* A term asked: "Results for “…”" (T-1850, D-435's design, option B). */}
       <h1 className="border-s-4 border-s-accent ps-4 text-2xl font-semibold" data-testid="title">
-        <Translated locale={locale} message="nav.search" />
+        {searched ? (
+          termSentence(locale, 'searchPage.resultsFor', term)
+        ) : (
+          <Translated locale={locale} message="nav.search" />
+        )}
       </h1>
 
-      <form action={`/${locale}/search`} method="get" className="flex gap-2" role="search">
-        <TextField
-          label={field.text}
-          hideLabel
-          id="search-term"
-          name="q"
-          type="search"
+      {/* From 1280px the header's field carries the term, so a result page
+          draws no second one; below it a compact field stays, without the
+          button (T-1850). The empty page, and a term too short to ask, keep both. */}
+      <form
+        action={`/${locale}/search`}
+        method="get"
+        className={searched ? 'relative flex gap-2 xl:hidden' : 'relative flex gap-2'}
+        role="search"
+        data-testid="search-form"
+      >
+        {/* Suggestions while typing (T-1844, D-435); the list takes the row's width. */}
+        <SearchCombobox
+          variant="page"
+          locale={locale}
+          words={suggestWords(locale)}
           defaultValue={term}
           placeholder={field.text}
+          label={field.text}
           lang={field.lang}
-          autoComplete="off"
-          className="grow"
-          data-testid="search-input"
+          inputClassName={controlClasses('md', 'min-w-0 grow')}
+          testId="search-input"
         />
-        <Button type="submit" size="md">
-          <Translated locale={locale} message="nav.search" />
-        </Button>
+        {!searched && (
+          <Button type="submit" size="md">
+            <Translated locale={locale} message="nav.search" />
+          </Button>
+        )}
       </form>
 
       {limited !== null && (
@@ -300,7 +321,9 @@ export default async function SearchPage({
           data-testid="search-nothing"
           data-reason={entity?.reason ?? 'read'}
         >
-          <h2 className="text-lg font-semibold">{nothingHeading(locale, term)}</h2>
+          <h2 className="text-lg font-semibold">
+            {termSentence(locale, 'searchPage.nothing', term)}
+          </h2>
           <p className="text-sm text-muted">
             <Translated locale={locale} message="searchPage.tryThese" />
           </p>

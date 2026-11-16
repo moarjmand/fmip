@@ -5,7 +5,7 @@
       "name": "home",
       "appRoute": "/[locale]",
       "path": "/en",
-      "firstLoadJsGzipKB": 158,
+      "firstLoadJsGzipKB": 159,
       "serverResponseMedianMs": 200
     },
     {
@@ -26,7 +26,7 @@
       "name": "competition",
       "appRoute": "/[locale]/competition/[id]",
       "path": "/en/competition/00000000-0000-4000-8000-000000000201",
-      "firstLoadJsGzipKB": 158,
+      "firstLoadJsGzipKB": 159,
       "serverResponseMedianMs": 150
     }
   ]

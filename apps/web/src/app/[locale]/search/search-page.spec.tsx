@@ -12,6 +12,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const api = vi.hoisted(() => ({ fetchAsk: vi.fn(), fetchSearch: vi.fn() }));
 const menu = vi.hoisted(() => ({ menuAnswers: vi.fn() }));
 vi.mock('@/lib/api', () => api);
+// The field's suggestions (T-1844) route from the browser; nothing to route here.
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }));
 vi.mock('@/components/competitions-menu', () => menu);
 vi.mock('@/components/site-header', () => ({
   shellReader: async () => ({ session: null, guest: null }),
@@ -177,6 +179,27 @@ describe('the search page (T-1803, D-401)', () => {
     api.fetchSearch.mockResolvedValue(community(0));
     const html = await render('fa', 'zzqxv');
     expect(html).toContain('چیزی با «<bdi>zzqxv</bdi>» پیدا نشد');
+  });
+
+  it('names the term it searched and leaves the field to the header from 1280px (T-1850)', async () => {
+    api.fetchAsk.mockResolvedValue(asked([], null));
+    api.fetchSearch.mockResolvedValue(community(0));
+    const html = await render('fa', 'arsenal');
+    expect(html).toContain('نتایج برای «<bdi>arsenal</bdi>»');
+    const form = /<form[^>]*data-testid="search-form"[^>]*>[\s\S]*?<\/form>/.exec(html)![0];
+    expect(form).toContain('xl:hidden');
+    expect(form).not.toContain('<button');
+    expect(form).toContain('value="arsenal"');
+  });
+
+  it('keeps the heading, the field and the button on the empty page and for a term too short (T-1850)', async () => {
+    for (const q of [undefined, 'a']) {
+      const html = await render('en', q);
+      expect(html).toMatch(/data-testid="title"[^>]*>(<[^>]+>)*Search</);
+      const form = /<form[^>]*data-testid="search-form"[^>]*>[\s\S]*?<\/form>/.exec(html)![0];
+      expect(form).not.toContain('xl:hidden');
+      expect(form).toContain('<button');
+    }
   });
 
   it('still says when the service is unreachable, never "nothing matches"', async () => {
