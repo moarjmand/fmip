@@ -347,9 +347,28 @@ export function sensitivity(
 /** X counts any link as 23 characters. */
 export const X_LINK_LENGTH = 23;
 export const X_MAX_LENGTH = 280;
-export const INSTAGRAM_MAX_LENGTH = 2200;
+/**
+ * Instagram through Buffer: 2,196 characters, counted in UTF-16 units with
+ * every line break counting 2 (Buffer's guides/character-limits, read
+ * 2026-11-16; review of PR #896, finding 1). Instagram's own 2,200 is not
+ * the limit that answers.
+ */
+export const INSTAGRAM_MAX_LENGTH = 2196;
 
 const LINK = /https?:\/\/\S+/g;
+
+/** Buffer's Instagram length: UTF-16 units, a line break (`\n` or `\r\n`) counting 2. */
+export function instagramLength(text: string): number {
+  const normalised = text.replace(/\r\n/g, '\n');
+  return normalised.length + (normalised.match(/\n/g)?.length ?? 0);
+}
+
+/** Whether a text fits its network as Buffer will count it. */
+export function fitsNetwork(text: string, network: SocialNetwork): boolean {
+  return network === 'x'
+    ? xLength(text) <= X_MAX_LENGTH
+    : instagramLength(text) <= INSTAGRAM_MAX_LENGTH;
+}
 
 /** X's weighted length: a link 23, most Latin and punctuation 1, anything else 2 (twitter-text's ranges). */
 export function xLength(text: string): number {
@@ -436,9 +455,8 @@ export function buildBody(
   for (const name of namings) {
     const text = lines(payload, name).join('\n');
     const body = network === 'x' ? `${text}\n\n${link}` : text;
-    const fits =
-      network === 'x' ? xLength(body) <= X_MAX_LENGTH : [...body].length <= INSTAGRAM_MAX_LENGTH;
-    if (fits) return { body, template_version: templateVersion(payload.kind) };
+    if (fitsNetwork(body, network))
+      return { body, template_version: templateVersion(payload.kind) };
   }
   return null;
 }
@@ -468,11 +486,7 @@ export function checkCaptionEdit(
   edited: string,
 ): Refusal<CaptionRefusal> {
   if (edited.trim() === '') return { ok: false, refusal: 'text_blank' };
-  const fits =
-    post.network === 'x'
-      ? xLength(edited) <= X_MAX_LENGTH
-      : [...edited].length <= INSTAGRAM_MAX_LENGTH;
-  if (!fits) return { ok: false, refusal: 'too_long' };
+  if (!fitsNetwork(edited, post.network)) return { ok: false, refusal: 'too_long' };
   const guarded = (text: string): string[] =>
     text
       .split('\n')

@@ -13,6 +13,7 @@ import {
   type SocialCandidate,
   type SocialFacts,
   FORECAST_FRESH_MS,
+  INSTAGRAM_MAX_LENGTH,
   RESULT_SETTLED_MS,
   X_MAX_LENGTH,
   afterEvent,
@@ -20,6 +21,7 @@ import {
   backToPerson,
   buildBody,
   canMove,
+  checkCaptionEdit,
   checkGates,
   checkLevelChange,
   checkPersonApproval,
@@ -27,6 +29,8 @@ import {
   checkSwitch,
   dueSlot,
   expiresAt,
+  fitsNetwork,
+  instagramLength,
   isEligible,
   londonDay,
   nextToPublish,
@@ -562,6 +566,50 @@ describe('buildBody, the fixed templates', () => {
     const hopeless = { ...tight, home: team(long, long), away: team(long, long) };
     expect(buildBody(hopeless, 'x', LINK)).toBeNull();
     expect(buildBody(hopeless, 'instagram', LINK)).not.toBeNull();
+  });
+
+  it('counts Instagram as Buffer does: UTF-16 units, a line break 2, at most 2,196 (review of PR #896)', () => {
+    expect(INSTAGRAM_MAX_LENGTH).toBe(2196);
+    expect(instagramLength('ab')).toBe(2);
+    expect(instagramLength('a\nb')).toBe(4);
+    expect(instagramLength('a\r\nb')).toBe(4);
+    expect(instagramLength('⚽')).toBe(1);
+    expect(instagramLength('😀')).toBe(2); // one emoji, two UTF-16 units
+    // At the edge: 2,196 fits, 2,197 does not, line breaks counted twice.
+    const lines = (breaks: number, total: number) =>
+      `${'a'.repeat(total - 2 * breaks)}${'\n'.repeat(breaks)}`;
+    expect(instagramLength(lines(60, 2196))).toBe(2196);
+    expect(fitsNetwork(lines(60, 2196), 'instagram')).toBe(true);
+    expect(fitsNetwork(lines(60, 2197), 'instagram')).toBe(false);
+    // 2,150 characters with 60 line breaks: 2,150 by code points, 2,210 by Buffer's count.
+    const caption = `${'a'.repeat(2090)}${'\n'.repeat(60)}`;
+    expect([...caption].length).toBe(2150);
+    expect(fitsNetwork(caption, 'instagram')).toBe(false);
+    expect(fitsNetwork(`${'a'.repeat(2195)}😀`, 'instagram')).toBe(false);
+  });
+
+  it('refuses a written caption over the limit, when drafted and when edited', () => {
+    const longName = 'B'.repeat(1100);
+    const wide = {
+      ...payloads.result,
+      home: team(longName, longName),
+      away: team(longName, longName),
+    };
+    // Over Buffer's limit by its count even with the short names: nothing is drafted.
+    expect(buildBody(wide, 'instagram', LINK)).toBeNull();
+    const post = {
+      network: 'instagram' as const,
+      body: buildBody(payloads.result, 'instagram', LINK)!.body,
+      payload: payloads.result,
+    };
+    const words = (n: number) => `${post.body}\n${'w'.repeat(n)}`;
+    const room = INSTAGRAM_MAX_LENGTH - instagramLength(`${post.body}\n`);
+    expect(checkCaptionEdit(post, words(room))).toEqual({ ok: true });
+    expect(checkCaptionEdit(post, words(room + 1))).toEqual({ ok: false, refusal: 'too_long' });
+    // Line breaks count twice: the same characters spread over lines no longer fit.
+    expect(
+      checkCaptionEdit(post, `${post.body}\n${'w'.repeat(room - 40)}${'\n'.repeat(40)}`),
+    ).toEqual({ ok: false, refusal: 'too_long' });
   });
 
   it('carries no image address in any payload', () => {

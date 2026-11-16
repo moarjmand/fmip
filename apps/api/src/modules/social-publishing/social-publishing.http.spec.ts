@@ -14,8 +14,16 @@ import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
 import { INGESTION_SOURCES } from '../ingestion/internal/sources';
 import { NewsHeadlines } from '../news/news-headlines.service';
-import type { SocialActor, SocialPostRecord } from './internal/social-post-store';
+import { BufferPublisher } from './internal/buffer-publisher';
+import { SOCIAL_SECRET_BOX, SecretBox, credentialAad } from './internal/secret-box';
+import {
+  PostgresSocialPostStore,
+  type SocialActor,
+  type SocialPostRecord,
+} from './internal/social-post-store';
+import { SocialPublishingScheduler } from './social-publishing-scheduler.service';
 import { SocialPublishingModule } from './social-publishing.module';
+import { SOCIAL_PUBLISHER } from './social-publisher.port';
 import {
   SOCIAL_OPTIONS,
   SocialPublishingService,
@@ -45,6 +53,55 @@ const MODEL = `sp-${RUN}@1.0.0`;
 const NOW = new Date('2046-06-10T13:00:00Z'); // 14:00 London
 const at = (hhmm: string): string => `2046-06-10T${hhmm}:00Z`;
 const RUNS_PROVIDER = 'highlightly';
+
+// The publisher (T-1837) against a stubbed Buffer: no real call, no real key.
+const BOX = new SecretBox('social-publishing-spec-secret-'.repeat(2));
+const OTHER_BOX = new SecretBox('another-session-secret-for-the-spec-'.repeat(2));
+const KEY = `bf-spec-${RUN}-0123456789`;
+const ORIGIN = 'https://stadiomind.test';
+/** Every request the stubbed Buffer saw. */
+const bufferSeen: { operation: string; variables: Record<string, unknown> }[] = [];
+const creates = () => bufferSeen.filter((r) => r.operation === 'FmipCreatePost');
+const stubBuffer = (async (_url: unknown, init?: RequestInit) => {
+  const body = JSON.parse(String(init?.body)) as {
+    query: string;
+    variables: Record<string, unknown>;
+  };
+  const operation = /(?:query|mutation)\s+(\w+)/.exec(body.query)?.[1] ?? '?';
+  bufferSeen.push({ operation, variables: body.variables });
+  const data =
+    operation === 'FmipOrganizations'
+      ? { account: { organizations: [{ id: 'org-spec' }] } }
+      : operation === 'FmipChannels'
+        ? {
+            channels: [
+              {
+                id: 'ch-x',
+                service: 'twitter',
+                isDisconnected: false,
+                isLocked: false,
+                isQueuePaused: false,
+              },
+              {
+                id: 'ch-ig',
+                service: 'instagram',
+                isDisconnected: false,
+                isLocked: false,
+                isQueuePaused: false,
+              },
+            ],
+          }
+        : {
+            createPost: {
+              __typename: 'PostActionSuccess',
+              post: { id: `buf-${RUN}-${creates().length}` },
+            },
+          };
+  return new Response(JSON.stringify({ data }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+}) as typeof fetch;
 
 describe('the card fields the job freezes', () => {
   it("takes the model's pick from the stored evaluation, never from the rounded percentages", () => {
@@ -156,6 +213,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let started = '';
     let automationBefore: Record<string, unknown>[] = [];
     let switchBefore: Record<string, unknown> = {};
+    let credentialBefore: Record<string, unknown>[] = [];
 
     const posts = async (fixture: string): Promise<SocialPostRecord[]> => {
       const { rows } = await pool.query<SocialPostRecord>(
@@ -303,7 +361,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           }),
         )
         .overrideProvider(SOCIAL_OPTIONS)
-        .useValue({ origin: 'https://stadiomind.test' })
+        .useValue({ origin: ORIGIN })
+        .overrideProvider(SOCIAL_SECRET_BOX)
+        .useValue(BOX)
+        .overrideProvider(SOCIAL_PUBLISHER)
+        .useFactory({
+          factory: (store: PostgresSocialPostStore) =>
+            new BufferPublisher(store, BOX, stubBuffer, { minGapMs: 0 }),
+          inject: [PostgresSocialPostStore],
+        })
         // The fixtures job's runs are read as this provider's, which no other spec's
         // fixtures runs use; this file's runs finish in 2046, after anything real.
         .overrideProvider(INGESTION_SOURCES)
@@ -316,6 +382,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       started = (await pool.query<{ now: string }>(`SELECT now()::text AS now`)).rows[0]!.now;
       automationBefore = (await pool.query(`SELECT * FROM social_automation`)).rows;
       switchBefore = (await pool.query(`SELECT * FROM social_switch`)).rows[0];
+      credentialBefore = (await pool.query(`SELECT * FROM social_credential`)).rows;
       // The fixtures list read in full an hour before "now": forecast posts are fresh.
       await fixturesRun('succeeded', at('12:00'), null);
 
@@ -439,6 +506,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
             switchBefore.reason,
           ],
         );
+        // The publisher's key as it was before this file (none, on a test database).
+        await c.query(`DELETE FROM social_credential`);
+        for (const row of credentialBefore) {
+          await c.query(
+            `INSERT INTO social_credential (id, provider, ciphertext, iv, tag, set_at, set_by, set_by_name)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [
+              row.id,
+              row.provider,
+              row.ciphertext,
+              row.iv,
+              row.tag,
+              row.set_at,
+              row.set_by,
+              row.set_by_name,
+            ],
+          );
+        }
         for (const id of fixtures) {
           await c.query(`DELETE FROM evaluation WHERE fixture_id = $1`, [id]);
           await c.query(`DELETE FROM forecast WHERE fixture_id = $1`, [id]);
@@ -947,6 +1032,247 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // No run at all: fail closed.
       await clearRuns();
       expect(await freshness()).toBe(true);
+    });
+
+    // -----------------------------------------------------------------------
+    // The publisher (T-1837): the key, the job's publishing step, the health.
+    // These run at 16:45 London (slot 3), on the database's own claim day.
+    // -----------------------------------------------------------------------
+    const PUBLISH_AT = new Date('2046-06-10T15:45:00Z'); // 16:45 London: slot 3
+    const store = () => moduleRef.get(PostgresSocialPostStore);
+    const scheduler = () => moduleRef.get(SocialPublishingScheduler);
+    const keyAudits = async () =>
+      (await audits('buffer')).filter((r) => r.action === 'social.credential');
+
+    it('sets and clears the key sealed, audited by who and when, never the key', async () => {
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`DELETE FROM social_credential`);
+      });
+      expect(await social.keyStatus()).toEqual({ state: 'not_set' });
+      for (const bad of ['   ', 'two words', `${'k'.repeat(1025)}`]) {
+        expect(await social.setKey(owner, bad)).toEqual({ ok: false, refusal: 'key_invalid' });
+      }
+      expect(await keyAudits()).toEqual([]);
+
+      expect((await social.setKey(owner, `  ${KEY}  `)).ok).toBe(true);
+      const row = (
+        await pool.query<{ id: string; ciphertext: Buffer; iv: Buffer; tag: Buffer }>(
+          `SELECT id, ciphertext, iv, tag FROM social_credential WHERE provider = 'buffer'`,
+        )
+      ).rows[0]!;
+      expect(Buffer.concat([row.ciphertext, row.iv, row.tag]).toString('latin1')).not.toContain(
+        KEY,
+      );
+      // Sealed for this row: it opens with the row's id, and not with another SESSION_SECRET.
+      expect(BOX.open(row, credentialAad('buffer', row.id))).toBe(KEY);
+      expect(await social.keyStatus()).toMatchObject({ state: 'set', set_by: owner.name });
+      expect(await new BufferPublisher(store(), OTHER_BOX, stubBuffer).keyState()).toBe(
+        'unreadable',
+      );
+
+      expect((await social.setKey(teammate, `${KEY}-2`, 'a new key from Buffer')).ok).toBe(true);
+      expect((await social.clearKey(owner, ' ')).ok).toBe(false);
+      expect((await social.clearKey(owner, 'rotating')).ok).toBe(true);
+      expect(await social.keyStatus()).toEqual({ state: 'not_set' });
+      expect(await social.clearKey(owner, 'again')).toEqual({ ok: false, refusal: 'not_set' });
+
+      const rows = await keyAudits();
+      expect(rows.map((r) => [r.actor_name, r.previous, r.next])).toEqual([
+        [
+          owner.name,
+          { key: 'not set' },
+          { key: expect.stringMatching(new RegExp(`^set on .* by ${owner.name}$`)) },
+        ],
+        [
+          teammate.name,
+          { key: expect.stringMatching(new RegExp(`^set on .* by ${owner.name}$`)) },
+          { key: expect.stringMatching(new RegExp(`by ${teammate.name}$`)) },
+        ],
+        [
+          owner.name,
+          { key: expect.stringMatching(new RegExp(`by ${teammate.name}$`)) },
+          { key: 'not set' },
+        ],
+      ]);
+      expect(JSON.stringify(rows)).not.toContain(KEY);
+      expect((await social.setKey(owner, KEY)).ok).toBe(true);
+      expect(JSON.stringify(await social.keyStatus())).not.toContain(KEY);
+    });
+
+    it('publishes nothing while stopped, with no key, or with an unreadable key', async () => {
+      // Earlier cases held slots of today's claim day; give this one its own.
+      const holding = await pool.query<{ id: string }>(
+        `SELECT id::text FROM social_post WHERE fixture_id = ANY($1::uuid[]) AND slot IS NOT NULL`,
+        [fixtures],
+      );
+      await withTriggersOff(pool, async (c) => {
+        const ids = holding.rows.map((r) => r.id);
+        await c.query(`DELETE FROM console_audit WHERE target_id = ANY($1::text[])`, [ids]);
+        await c.query(`DELETE FROM social_post WHERE id = ANY($1::uuid[])`, [ids]);
+      });
+      const waiting = await live(f.byFixture, 'result', 'instagram');
+      expect(waiting.state).toBe('approved');
+      const asked = bufferSeen.length;
+
+      expect((await social.setSwitch(teammate, true, 'checking the publisher')).ok).toBe(true);
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({ kind: 'stopped' });
+      expect((await social.setSwitch(owner, false, 'checked')).ok).toBe(true);
+
+      expect((await social.clearKey(owner, 'testing no key')).ok).toBe(true);
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({
+        kind: 'not_ready',
+        reason: 'not_set',
+      });
+      // A key sealed under another SESSION_SECRET: unreadable, and said so.
+      await store().setCredential(
+        'buffer',
+        owner,
+        (id) => OTHER_BOX.seal(KEY, credentialAad('buffer', id)),
+        'sealed elsewhere',
+      );
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({
+        kind: 'not_ready',
+        reason: 'unreadable',
+      });
+      expect((await scheduler().health(PUBLISH_AT)).key).toBe('unreadable');
+      expect((await social.keyStatus()).state).toBe('unreadable');
+      expect((await social.setKey(owner, KEY)).ok).toBe(true);
+
+      expect(bufferSeen.length).toBe(asked);
+      expect((await social.get(waiting.id))!.state).toBe('approved');
+    });
+
+    it('publishes a post once when two schedulers race for it, with its card, recording the reference', async () => {
+      const post = await live(f.byFixture, 'result', 'instagram');
+      const before = creates().length;
+      const another = () =>
+        new SocialPublishingScheduler(
+          social,
+          store(),
+          new BufferPublisher(store(), BOX, stubBuffer, { minGapMs: 0 }),
+          { origin: ORIGIN },
+        );
+      const outcomes = await Promise.all([
+        another().publishDue('instagram', PUBLISH_AT),
+        another().publishDue('instagram', PUBLISH_AT),
+      ]);
+      expect(creates().length - before).toBe(1);
+      const published = outcomes.filter((o) => o.kind === 'published');
+      expect(published).toEqual([
+        { kind: 'published', id: post.id, providerRef: `buf-${RUN}-${before + 1}`, slot: 3 },
+      ]);
+      expect(creates().at(-1)!.variables).toEqual({
+        input: {
+          channelId: 'ch-ig',
+          text: post.body,
+          schedulingType: 'automatic',
+          mode: 'shareNow',
+          assets: [{ image: { url: `${ORIGIN}/social-card/${post.id}/card.png` } }],
+          metadata: { instagram: { type: 'post', shouldShareToFeed: true } },
+        },
+      });
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'published',
+        provider_ref: `buf-${RUN}-${before + 1}`,
+        slot: 3,
+      });
+      expect((await audits(post.id)).slice(-2)).toMatchObject([
+        {
+          actor_name: 'automation',
+          action: 'social.claim',
+          next: { state: 'publishing', slot: 3 },
+        },
+        { actor_name: 'automation', action: 'social.finish', next: { state: 'published' } },
+      ]);
+      // A third tick finds nothing to send. (The claim's day is the database's own, not
+      // 2046's, so here it is the candidates, not the held slot, that have run out.)
+      await scheduler().publishDue('instagram', PUBLISH_AT);
+      expect(creates().length - before).toBe(1);
+    });
+
+    it('ends a post whose gate fails at publishing, never sending it', async () => {
+      const candidates = (await posts(f.finished))
+        .concat(await posts(f.byFixture))
+        .filter((p) => p.kind === 'result' && p.network === 'x' && p.state === 'approved');
+      expect(candidates).toHaveLength(1);
+      const post = candidates[0]!;
+      // The result changed five minutes ago: not settled, so its freshness gate fails.
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`UPDATE fixture SET updated_at = $2 WHERE id = $1`, [
+          post.fixture_id,
+          new Date(PUBLISH_AT.getTime() - 5 * 60 * 1000).toISOString(),
+        ]);
+      });
+      const before = creates().length;
+      expect(await scheduler().publishDue('x', PUBLISH_AT)).toEqual({ kind: 'nothing' });
+      expect(creates().length).toBe(before);
+      expect(await social.get(post.id)).toMatchObject({ state: 'expired' });
+      expect((await audits(post.id)).at(-1)).toMatchObject({
+        actor_name: 'automation',
+        action: 'social.expire',
+        reason: expect.stringContaining('freshness'),
+      });
+    });
+
+    it('says on /health/social whether the key is set, the switch, and the last publication per network', async () => {
+      const health = await scheduler().health(PUBLISH_AT);
+      expect(health).toMatchObject({
+        publisher: 'buffer',
+        key: 'set',
+        stopped: false,
+        scheduled: false,
+        paused_until: null,
+      });
+      const instagram = health.networks.find((n) => n.network === 'instagram')!;
+      expect(instagram.last_published_at).not.toBeNull();
+      expect(JSON.stringify(health)).not.toContain(KEY);
+    });
+
+    it("sends a person's approval back when the post turns sensitive before publishing", async () => {
+      const post = await live(f.late, 'result', 'instagram');
+      expect(post).toMatchObject({ state: 'pending_approval', sensitive: false });
+      expect((await social.approve(post.id, owner, PUBLISH_AT)).ok).toBe(true);
+      // After the approval, a death linked to the match.
+      await headline(`Supporter dies outside the ground ${RUN}`, { type: 'fixture', id: f.late });
+      const before = creates().length;
+
+      expect(await scheduler().publishDue('instagram', PUBLISH_AT)).toEqual({ kind: 'nothing' });
+      expect(creates().length).toBe(before);
+      expect(await social.get(post.id)).toMatchObject({
+        state: 'pending_approval',
+        sensitive: true,
+        sensitive_reason: 'death',
+        approved_by: null,
+        approved_by_name: null,
+      });
+      expect((await audits(post.id)).at(-1)).toMatchObject({
+        actor_id: null,
+        actor_name: 'automation',
+        action: 'social.sensitive',
+        reason: 'became sensitive after approval',
+        previous: { state: 'approved', approved_by: owner.name },
+        next: { state: 'pending_approval', sensitive_reason: 'death' },
+      });
+      // A fresh approval by a person, seeing the flag, lets it go.
+      expect((await social.approve(post.id, teammate, PUBLISH_AT)).ok).toBe(true);
+      expect((await social.checkAtPublishing(post.id, PUBLISH_AT)).go).toBe(true);
+    });
+
+    it('holds a raise to automatic to a reason of its own in the database too', async () => {
+      await setVerdictRun(14);
+      const last = (
+        await pool.query<{ level_reason: string }>(
+          `SELECT level_reason FROM social_automation WHERE kind = 'model_verdict'`,
+        )
+      ).rows[0]!.level_reason;
+      await expect(
+        pool.query(
+          `UPDATE social_automation SET level = 'automatic', level_changed_at = clock_timestamp(),
+                  level_changed_by = $1, level_changed_by_name = $2, level_reason = $3
+            WHERE kind = 'model_verdict'`,
+          [owner.id, owner.name, last],
+        ),
+      ).rejects.toThrow(/reason of its own/);
     });
   },
 );

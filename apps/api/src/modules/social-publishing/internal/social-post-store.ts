@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type {
   SocialAutomation,
@@ -14,6 +15,8 @@ import { SOCIAL_AUTOMATION_ACTOR, SOCIAL_TIME_ZONE } from '@fmip/contracts/conso
 import { DatabaseError, Pool, type PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import { ConsoleAudit } from '../../agents-console/console-audit.service';
+import type { StoredCredential } from './buffer-publisher';
+import type { SealedSecret } from './secret-box';
 import {
   type RunEvent,
   afterEvent,
@@ -28,7 +31,8 @@ import {
 
 /**
  * The social posts' tables (T-1838, D-427): `social_post`, `social_automation`
- * and `social_switch`, written only here. Every change is one transaction that
+ * and `social_switch`, and the publisher's sealed key `social_credential`
+ * (T-1837), written only here. Every change is one transaction that
  * also writes its `console_audit` row (rule 10: actor, time, reason, previous
  * value) -- a person's action under the person's name, the job's own under
  * `automation` with no id -- so a change that fails writes no audit row and an
@@ -140,6 +144,22 @@ const isConstraint = (error: unknown, code: string, constraint: string): boolean
 /** A kind's clean run after an event, for the audit row of the change that causes it (rule 10). */
 const runAfter = (row: AutomationRow, event: RunEvent): number =>
   afterEvent({ level: row.level, clean_run: row.clean_run }, event).next.clean_run;
+
+/** A post the publisher may take: approved, or refused and still valid. */
+export interface PublishableRow {
+  id: string;
+  kind: SocialPostKind;
+  state: 'approved' | 'refused';
+  approved_by_name: string | null;
+  updated_at: Date;
+  expires_at: Date;
+  kick_off: string;
+  competition_rank: number | null;
+}
+
+/** A key's record in words, for an audit row: never the key. */
+const credentialWords = (row: { set_at: Date; set_by_name: string } | null): string =>
+  row === null ? 'not set' : `set on ${row.set_at.toISOString()} by ${row.set_by_name}`;
 
 /** What a kind's record was, for an audit row's previous value. */
 const automationRecord = (row: AutomationRow) => ({
@@ -450,10 +470,13 @@ export class PostgresSocialPostStore {
   }
 
   /**
-   * A headline found sensitive after drafting: the post waits for a person,
-   * an approval by `automation` withdrawn in the same statement (the CHECK
-   * forbids the job's approval of a sensitive post). Only before publishing,
-   * and never undone; a post already sensitive is left as it is.
+   * A headline found sensitive after drafting: the post waits for a person.
+   * Any approval is withdrawn in the same statement -- the job's (the CHECK
+   * forbids it on a sensitive post) and a person's too, who approved it
+   * without that headline ("became sensitive after approval", D-427 point 5
+   * as amended 2026-11-16, review of PR #896): it needs a fresh approval.
+   * Only before publishing, and never undone; a post already sensitive is
+   * left as it is.
    */
   async markSensitive(
     id: string,
@@ -467,7 +490,7 @@ export class PostgresSocialPostStore {
       if (!['pending_approval', 'approved', 'refused'].includes(post.state)) {
         throw new Refused('not_waiting');
       }
-      const withdraw = post.approved_by_name === SOCIAL_AUTOMATION_ACTOR;
+      const withdraw = post.approved_by_name !== null;
       const state: SocialPostState = withdraw ? 'pending_approval' : post.state;
       await c.query(
         `UPDATE social_post
@@ -484,8 +507,13 @@ export class PostgresSocialPostStore {
         action: 'social.sensitive',
         targetType: 'social_post',
         targetId: id,
-        reason: `sensitive: ${reason}`,
-        previous: { state: post.state, sensitive: false, approved_by: post.approved_by_name },
+        reason: withdraw ? 'became sensitive after approval' : `sensitive: ${reason}`,
+        previous: {
+          state: post.state,
+          sensitive: false,
+          approved_by: post.approved_by_name,
+          approved_at: post.approved_at?.toISOString() ?? null,
+        },
         next: { state, sensitive: true, sensitive_reason: reason },
       });
       return state;
@@ -783,6 +811,207 @@ export class PostgresSocialPostStore {
       if (to === 'approval') await this.backToPerson(c, kind, `${kind} was lowered to approval`);
       return null;
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // The publisher's reads (T-1837).
+  // -------------------------------------------------------------------------
+
+  /**
+   * The posts a network may publish now: approved, or refused and still
+   * valid, with the competition's rank as frozen at drafting and when the row
+   * last changed (a refused post waits for a slot after its refusal).
+   */
+  async publishable(network: SocialNetwork, now: Date): Promise<PublishableRow[]> {
+    const { rows } = await this.pool.query<PublishableRow>(
+      `SELECT id, kind, state, approved_by_name, updated_at, expires_at,
+              payload->>'kick_off' AS kick_off,
+              CASE WHEN jsonb_typeof(inputs->'competition_rank') = 'number'
+                   THEN (inputs->>'competition_rank')::int END AS competition_rank
+         FROM social_post
+        WHERE network = $1 AND state IN ('approved', 'refused') AND expires_at > $2
+        ORDER BY created_at`,
+      [network, now.toISOString()],
+    );
+    return rows;
+  }
+
+  /**
+   * Runs the job's tick alone: a session advisory lock held on one connection
+   * for its length; null, doing nothing, when another tick holds it (review
+   * of PR #895: drafting once is the code's, beyond the one live row).
+   */
+  async exclusive<T>(work: () => Promise<T>): Promise<T | null> {
+    const c = await this.pool.connect();
+    // A connection whose unlock failed may still hold the lock: it is thrown away, not pooled.
+    let broken: Error | undefined;
+    try {
+      const { rows } = await c.query<{ got: boolean }>(
+        `SELECT pg_try_advisory_lock(hashtext('social_publishing_tick')) AS got`,
+      );
+      if (rows[0]?.got !== true) return null;
+      try {
+        return await work();
+      } finally {
+        await c
+          .query(`SELECT pg_advisory_unlock(hashtext('social_publishing_tick'))`)
+          .catch((error: unknown) => {
+            broken = error instanceof Error ? error : new Error(String(error));
+          });
+      }
+    } finally {
+      c.release(broken);
+    }
+  }
+
+  /** The slots of a network's London day already held (publishing, published or unknown). */
+  async heldSlots(network: SocialNetwork, day: string): Promise<number[]> {
+    const { rows } = await this.pool.query<{ slot: number }>(
+      `SELECT slot FROM social_post
+        WHERE network = $1 AND post_day = $2::date AND slot IS NOT NULL
+          AND state IN ('publishing', 'published', 'unknown')`,
+      [network, day],
+    );
+    return rows.map((r) => r.slot);
+  }
+
+  /** Posts claimed before `before` and still `publishing`: their publisher never recorded an answer. */
+  async staleClaims(before: Date): Promise<string[]> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT id FROM social_post WHERE state = 'publishing' AND claimed_at < $1 ORDER BY claimed_at`,
+      [before.toISOString()],
+    );
+    return rows.map((r) => r.id);
+  }
+
+  /** Per network, the newest publication and the newest attempt (a claim or its outcome), for `/health/social`. */
+  async lastByNetwork(): Promise<
+    {
+      network: SocialNetwork;
+      published_at: Date | null;
+      state: SocialPostState | null;
+      at: Date | null;
+    }[]
+  > {
+    const { rows } = await this.pool.query<{
+      network: SocialNetwork;
+      published_at: Date | null;
+      state: SocialPostState | null;
+      at: Date | null;
+    }>(
+      `SELECT n.network,
+              (SELECT max(published_at) FROM social_post p WHERE p.network = n.network) AS published_at,
+              a.state, a.at
+         FROM unnest(ARRAY['x', 'instagram']) AS n(network)
+         LEFT JOIN LATERAL (
+           SELECT state, updated_at AS at FROM social_post p
+            WHERE p.network = n.network AND (p.claimed_at IS NOT NULL OR p.state IN ('refused', 'published'))
+            ORDER BY updated_at DESC LIMIT 1
+         ) a ON true`,
+    );
+    return rows;
+  }
+
+  // -------------------------------------------------------------------------
+  // The publisher's key (T-1837; the console's field is T-1836). Stored
+  // sealed; the sealing is the caller's, the opening the publisher's only.
+  // -------------------------------------------------------------------------
+
+  /** The sealed key of a provider, or null. Read by the publisher alone. */
+  async credential(provider: string): Promise<StoredCredential | null> {
+    const { rows } = await this.pool.query<StoredCredential>(
+      `SELECT id, iv, tag, ciphertext FROM social_credential WHERE provider = $1`,
+      [provider],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Who set a provider's key and when, never the key: "set on <date> by <who>", or null. */
+  async credentialRecord(provider: string): Promise<{ set_at: Date; set_by: string } | null> {
+    const { rows } = await this.pool.query<{ set_at: Date; set_by: string }>(
+      `SELECT set_at, set_by_name AS set_by FROM social_credential WHERE provider = $1`,
+      [provider],
+    );
+    return rows[0] ?? null;
+  }
+
+  /**
+   * Sets a provider's key, sealed by `seal` with the row's id (the associated
+   * data), replacing any before it, with its audit row: the previous value is
+   * "set on <date> by <who>" or "not set", never the key.
+   */
+  async setCredential(
+    provider: string,
+    actor: SocialActor,
+    seal: (rowId: string) => SealedSecret,
+    reason: string,
+  ): Promise<StoreOutcome<{ set_at: Date }, 'reason_required'>> {
+    return this.tx(async (c) => {
+      if (reason.trim() === '') throw new Refused('reason_required');
+      // Two settings at once would each seal for a row id of their own.
+      await c.query(`SELECT pg_advisory_xact_lock(hashtext('social_credential'))`);
+      const before = await this.lockCredential(c, provider);
+      const id = before?.id ?? randomUUID();
+      const sealed = seal(id);
+      const { rows } = await c.query<{ set_at: Date }>(
+        before === null
+          ? `INSERT INTO social_credential (id, provider, ciphertext, iv, tag, set_at, set_by, set_by_name)
+             VALUES ($1, $2, $3, $4, $5, now(), $6, $7) RETURNING set_at`
+          : `UPDATE social_credential
+                SET ciphertext = $3, iv = $4, tag = $5, set_at = now(), set_by = $6, set_by_name = $7
+              WHERE id = $1 AND provider = $2 RETURNING set_at`,
+        [id, provider, sealed.ciphertext, sealed.iv, sealed.tag, actor.id, actor.name],
+      );
+      const setAt = rows[0]!.set_at;
+      await this.audit.write(c, {
+        actorId: actor.id,
+        actorName: actor.name,
+        action: 'social.credential',
+        targetType: 'social_credential',
+        targetId: provider,
+        reason: reason.trim(),
+        previous: { key: credentialWords(before) },
+        next: { key: credentialWords({ set_at: setAt, set_by_name: actor.name }) },
+      });
+      return { set_at: setAt };
+    });
+  }
+
+  /** Clears a provider's key, with a reason and its audit row; publishing then stops. */
+  async clearCredential(
+    provider: string,
+    actor: SocialActor,
+    reason: string,
+  ): Promise<StoreOutcome<null, 'reason_required' | 'not_set'>> {
+    return this.tx(async (c) => {
+      if (reason.trim() === '') throw new Refused('reason_required');
+      await c.query(`SELECT pg_advisory_xact_lock(hashtext('social_credential'))`);
+      const before = await this.lockCredential(c, provider);
+      if (before === null) throw new Refused('not_set');
+      await c.query(`DELETE FROM social_credential WHERE id = $1`, [before.id]);
+      await this.audit.write(c, {
+        actorId: actor.id,
+        actorName: actor.name,
+        action: 'social.credential',
+        targetType: 'social_credential',
+        targetId: provider,
+        reason: reason.trim(),
+        previous: { key: credentialWords(before) },
+        next: { key: 'not set' },
+      });
+      return null;
+    });
+  }
+
+  private async lockCredential(
+    c: PoolClient,
+    provider: string,
+  ): Promise<{ id: string; set_at: Date; set_by_name: string } | null> {
+    const { rows } = await c.query<{ id: string; set_at: Date; set_by_name: string }>(
+      `SELECT id, set_at, set_by_name FROM social_credential WHERE provider = $1 FOR UPDATE`,
+      [provider],
+    );
+    return rows[0] ?? null;
   }
 
   // -------------------------------------------------------------------------
