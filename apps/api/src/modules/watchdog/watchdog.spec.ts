@@ -296,6 +296,33 @@ describe('highlightly_refused (T-1855)', () => {
     ).toBe('ok');
   });
 
+  it('readingsOf hands the stored condition on, so a restart reads no recovery end to end', () => {
+    const stored: StoredCondition = {
+      key: 'highlightly_refused',
+      level: 'failing',
+      since: since(2),
+      observed: 14 * 3600,
+      incidentId: 7,
+    };
+    const reading = readingsOf(
+      {
+        ...observationsForBudget(),
+        highlightly: {
+          configured: true,
+          requestsToday: 0,
+          budget: 5000,
+          heard: false,
+          refusedSince: null,
+        },
+      },
+      new Map([['highlightly_refused', stored]]),
+      NOW_R,
+      [],
+    ).find((r) => r.key === 'highlightly_refused');
+    expect(reading).toMatchObject({ level: 'failing', observed: 14 * 3600 });
+    expect(step(stored, reading!, NOW_R).event).toBeNull();
+  });
+
   it('dates a refusal seen again after a restart from the stored incident, so the clock goes on', () => {
     const degraded = { level: 'degraded' as const, since: since(11), observed: 3600 };
     const again = highlightlyRefused(
