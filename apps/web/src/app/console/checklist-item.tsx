@@ -100,7 +100,7 @@ export function ChecklistItemRow({
       data-testid="checklist-item"
       data-status={shown.status}
     >
-      <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-center gap-2 p-3 md:grid-cols-[minmax(9rem,10rem)_minmax(0,1fr)_minmax(10rem,13rem)_auto] md:gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] items-center gap-2 p-3 md:grid-cols-[minmax(9rem,10rem)_minmax(0,1fr)_minmax(10rem,13rem)_auto] md:gap-3">
         <p
           className={`col-span-2 text-sm leading-7 md:col-span-1 md:col-start-2 md:row-start-1 ${
             shown.status === 'done' || shown.status === 'not_needed' ? 'text-muted' : 'text-fg'
@@ -113,7 +113,7 @@ export function ChecklistItemRow({
         <div className="relative md:col-start-1 md:row-start-1">
           <span
             aria-hidden="true"
-            className={`pointer-events-none absolute start-3 top-1/2 size-2.5 -translate-y-1/2 rounded-pill ${tone.dot}`}
+            className={`pointer-events-none absolute start-2.5 top-1/2 size-2.5 -translate-y-1/2 rounded-pill ${tone.dot}`}
           />
           <select
             aria-label="وضعیت"
@@ -123,7 +123,7 @@ export function ChecklistItemRow({
               const status = e.target.value as ConsoleChecklistStatus;
               void run(() => updateChecklistItem(item.id, { status }), { status });
             }}
-            className={`${SELECT} ps-7 pe-2 font-bold ${tone.control}`}
+            className={`${SELECT} ps-6 pe-1 font-semibold ${tone.control}`}
           >
             {CONSOLE_CHECKLIST_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -225,6 +225,8 @@ export function ItemDetail({
       <div className="flex flex-col gap-4">
         <History item={item} people={people} sectionTitle={sectionTitle} />
         <Manage
+          // A change by anyone (another account included) starts the drafts from the item as it now is.
+          key={item.updated_at}
           item={item}
           sections={sections}
           first={first}

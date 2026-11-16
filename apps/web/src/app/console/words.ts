@@ -293,7 +293,8 @@ export function auditReasonWords(reason: string): string {
     [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],
     [/^item added$/, () => 'مورد اضافه شد'],
     [
-      /^changed (.+)$/,
+      // Only the API's own list of fields; a person's own reason is shown as written.
+      /^changed ((?:retitled|sectioned|status|assigned)(?:, (?:retitled|sectioned|status|assigned))*)$/,
       (m) =>
         `تغییر ${m[1]!
           .split(', ')

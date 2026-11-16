@@ -139,7 +139,7 @@ export default async function ConsoleChecklistPage({ searchParams }: Props) {
         </ul>
       </nav>
 
-      <Card title={LIST_WORDS[tab].title}>
+      <Card title={`پیشرفت و فیلترها — ${LIST_WORDS[tab].short}`}>
         <div className="flex flex-col gap-3">
           <ProgressBar progress={progress} />
           <ProgressWords progress={progress} />

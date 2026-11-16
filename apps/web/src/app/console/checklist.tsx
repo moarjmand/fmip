@@ -17,8 +17,11 @@ import { fa, inputClass } from './ui';
  * section's card with its items and its add form.
  */
 
-/** The bar's order, from the inline start: what is done first. */
-const BAR_ORDER = ['done', 'in_progress', 'blocked', 'not_started'] as const;
+/**
+ * The bar's segments, from the inline start: what is done first. Not started
+ * is the empty track, so a list nobody has begun reads as empty, not full.
+ */
+const BAR_ORDER = ['done', 'in_progress', 'blocked'] as const;
 
 export function ProgressBar({ progress, size = 'md' }: { progress: Progress; size?: 'sm' | 'md' }) {
   const label =
@@ -45,14 +48,26 @@ export function ProgressBar({ progress, size = 'md' }: { progress: Progress; siz
   );
 }
 
-/** "۱۲ از ۵۷ انجام شد · ۲۱٪" and, when there are any, the items left out of the count. */
+/**
+ * "۱۲ از ۵۷ انجام شد · ۲۱٪" and, when there are any, the items left out of
+ * the count. Nothing done is said in words: a bold Persian zero reads as a dot.
+ */
 export function ProgressWords({ progress }: { progress: Progress }) {
+  const notNeeded =
+    progress.by.not_needed > 0 ? <> · {fa(progress.by.not_needed)} لازم نیست</> : null;
+  if (progress.done === 0)
+    return (
+      <span className="text-sm text-muted">
+        {progress.counted === 0
+          ? 'موردی برای شمردن نیست'
+          : `هنوز هیچ‌کدام از ${fa(progress.counted)} مورد انجام نشده`}
+        {notNeeded}
+      </span>
+    );
   return (
     <span className="text-sm text-muted">
       <span className="font-bold text-fg">{fa(progress.done)}</span> از {fa(progress.counted)} انجام
-      شد
-      {progress.counted > 0 && <> · {fa(progress.percent)}٪</>}
-      {progress.by.not_needed > 0 && <> · {fa(progress.by.not_needed)} لازم نیست</>}
+      شد · {fa(progress.percent)}٪{notNeeded}
     </span>
   );
 }

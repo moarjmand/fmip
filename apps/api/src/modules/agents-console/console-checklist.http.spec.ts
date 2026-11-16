@@ -299,7 +299,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
       `SELECT per_hour FROM rate_limit WHERE action = 'console_checklist'`,
     );
     expect(rows[0]?.per_hour).toBe(300);
-    // The earlier tests' changes this hour are already past a ceiling of one.
+    // One change written just now, so a ceiling of one is reached in this
+    // clock hour whatever the earlier tests did or when the hour turned.
+    expect((await call('PATCH', `/items/${item.id}`, { status: 'blocked' })).status).toBe(200);
     try {
       await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_checklist'`);
       const refused = await call<ApiError>('PATCH', `/items/${item.id}`, { status: 'in_progress' });
@@ -310,6 +312,6 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
       await pool.query(`UPDATE rate_limit SET per_hour = 300 WHERE action = 'console_checklist'`);
     }
     const untouched = (await call<ConsoleChecklist>('GET', '')).body.sections[0]!.items[0]!;
-    expect(untouched.status).toBe(item.status);
+    expect(untouched.status).toBe('blocked');
   });
 });

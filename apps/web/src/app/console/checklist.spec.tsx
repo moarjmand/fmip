@@ -116,6 +116,9 @@ describe('the page', () => {
 
   it('opens the public list, and says a section has no items yet', async () => {
     const html = await page({ tab: 'public' });
+    // Nothing done is said in words, and the bar of a list nobody began is empty.
+    expect(html).toContain('هنوز هیچ‌کدام از ۱ مورد انجام نشده');
+    expect(html).not.toContain('class="h-full bg-caption"');
     expect(items(html)).toBe(1);
     expect(html).toContain('این بخش هنوز موردی ندارد.');
     expect(html).toContain('href="/checklist?tab=public&amp;status=done"');
