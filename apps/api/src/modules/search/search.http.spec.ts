@@ -4,7 +4,7 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import type { ApiError, SearchResponse } from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { DatabaseModule } from '../../database/database.module';
+import { DatabaseModule, PG_POOL } from '../../database/database.module';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { SearchModule } from './search.module';
 
@@ -222,6 +222,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
       name: `Quillon Ravensworth${RUN}`,
       matched_on: 'alias',
     });
+  });
+
+  it('finds a near miss below the trigram default, and leaves that threshold on the pool alone (T-1842)', async () => {
+    // "tesrovic" against "Testović": word similarity 0.5, under pg_trgm's
+    // default 0.6 and over MIN_SIMILARITY, so only the transaction's own
+    // threshold lets the index narrowing keep it.
+    const found = ours(await search('q=tesrovic&types=person'));
+    expect(found[0]).toMatchObject({ type: 'person', id: PERSON, score: 0.5 });
+    // SET LOCAL ended with the search's transaction: the pool's next client,
+    // the one just released, is back at the default.
+    const appPool = app.get<Pool>(PG_POOL);
+    const { rows } = await appPool.query<{ t: string }>(
+      `SELECT current_setting('pg_trgm.word_similarity_threshold') AS t`,
+    );
+    expect(Number(rows[0]!.t)).toBe(0.6);
   });
 
   it('answers an empty list for nothing like it, and 400 for a bad request', async () => {
