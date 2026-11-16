@@ -270,6 +270,16 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('community se
     });
   });
 
+  it('finds a story by a near miss under the trigram default, through the headline index (T-1845)', async () => {
+    // "qokka" against "Quökka ...": word similarity 0.5, under pg_trgm's
+    // default 0.6, so only the transaction's own threshold keeps it.
+    const found = ((await search('q=qokka&types=story&limit=25')).stories ?? []).filter((s) =>
+      stories.includes(s.story_id),
+    );
+    expect(found.map((s) => s.story_id)).toEqual([stories[0]]);
+    expect(found[0]!.score).toBe(0.5);
+  });
+
   it('answers null for a kind nobody asked for, and keeps the catalog list its own', async () => {
     const onlyGroups = await search(`${q}&types=group`);
     expect(onlyGroups.types).toEqual(['group']);

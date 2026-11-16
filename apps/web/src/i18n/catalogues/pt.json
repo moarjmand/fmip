@@ -15720,6 +15720,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "searchPage.resultsFor": {
+    "source": "Results for “{term}”",
+    "text": "",
+    "status": "untranslated"
+  },
   "searchPage.tryThese": {
     "source": "Try a team or competition name, or one of these.",
     "text": "",
@@ -15727,6 +15732,41 @@
   },
   "searchPage.neverListed": {
     "source": "Invite-only groups and private or friends-only profiles are never listed.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.list": {
+    "source": "Suggestions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.seeAll": {
+    "source": "See all results for “{term}”",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.alsoSearches": {
+    "source": "Also searches news, groups and members",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.none": {
+    "source": "No teams, competitions or players match “{term}”",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.unavailable": {
+    "source": "Suggestions are unavailable right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.loading": {
+    "source": "Searching…",
+    "text": "",
+    "status": "untranslated"
+  },
+  "searchSuggest.count": {
+    "source": "Suggestions: {count}",
     "text": "",
     "status": "untranslated"
   },

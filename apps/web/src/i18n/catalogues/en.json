@@ -3443,8 +3443,16 @@
   "searchPage.playingToday": "Playing today",
   "searchPage.allCompetitions": "All competitions",
   "searchPage.nothing": "Nothing matches “{term}”",
+  "searchPage.resultsFor": "Results for “{term}”",
   "searchPage.tryThese": "Try a team or competition name, or one of these.",
   "searchPage.neverListed": "Invite-only groups and private or friends-only profiles are never listed.",
+  "searchSuggest.list": "Suggestions",
+  "searchSuggest.seeAll": "See all results for “{term}”",
+  "searchSuggest.alsoSearches": "Also searches news, groups and members",
+  "searchSuggest.none": "No teams, competitions or players match “{term}”",
+  "searchSuggest.unavailable": "Suggestions are unavailable right now.",
+  "searchSuggest.loading": "Searching…",
+  "searchSuggest.count": "Suggestions: {count}",
   "compare.season": "Season",
   "compare.higher": "higher"
 }

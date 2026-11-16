@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { SearchEntityType, SearchResult, SearchTeamContext } from '@fmip/contracts';
-import { Pool } from 'pg';
+import { Pool, type QueryResultRow } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 
 /**
@@ -17,6 +17,39 @@ export const MIN_SIMILARITY = 0.45;
  * the real's own value, a similarity of exactly 9/20 passes both.
  */
 const TRIGRAM_THRESHOLD = String(Math.fround(MIN_SIMILARITY));
+
+/**
+ * Runs a read-only query with pg_trgm's word-similarity threshold at
+ * {@link TRIGRAM_THRESHOLD}, so `<%` narrows by the trigram indexes to every
+ * row the score keeps (T-1842; the stories too, T-1845). `set_config(...,
+ * true)` is SET LOCAL: its scope ends with the transaction, so the pool's
+ * clients never carry it, and a client whose rollback fails is not handed
+ * back to the pool.
+ */
+export async function queryAtMinSimilarity<R extends QueryResultRow>(
+  pool: Pool,
+  sql: string,
+  params: unknown[],
+): Promise<R[]> {
+  const client = await pool.connect();
+  let broken: Error | undefined;
+  try {
+    await client.query('BEGIN READ ONLY');
+    await client.query(`SELECT set_config('pg_trgm.word_similarity_threshold', $1, true)`, [
+      TRIGRAM_THRESHOLD,
+    ]);
+    const { rows } = await client.query<R>(sql, params);
+    await client.query('COMMIT');
+    return rows;
+  } catch (error) {
+    await client.query('ROLLBACK').catch((rollback: unknown) => {
+      broken = rollback instanceof Error ? rollback : new Error(String(rollback));
+    });
+    throw error;
+  } finally {
+    client.release(broken);
+  }
+}
 
 /**
  * SQL for entity search (D-039): names and aliases folded through
@@ -40,8 +73,7 @@ export class PostgresSearchStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
   async search(q: string, types: SearchEntityType[], limit: number): Promise<SearchResult[]> {
-    const client = await this.pool.connect();
-    let rows: {
+    const rows = await queryAtMinSimilarity<{
       type: SearchEntityType;
       id: string;
       name: string;
@@ -49,25 +81,7 @@ export class PostgresSearchStore {
       matched_on: 'name' | 'alias';
       alias: string | null;
       score: string;
-    }[];
-    let broken: Error | undefined;
-    try {
-      await client.query('BEGIN READ ONLY');
-      // `<%` matches at this threshold; SET LOCAL's scope ends with the transaction.
-      await client.query(`SELECT set_config('pg_trgm.word_similarity_threshold', $1, true)`, [
-        TRIGRAM_THRESHOLD,
-      ]);
-      ({ rows } = await client.query(SEARCH_SQL, [q, types, limit, MIN_SIMILARITY]));
-      await client.query('COMMIT');
-    } catch (error) {
-      // A client whose rollback fails is not handed back to the pool.
-      await client.query('ROLLBACK').catch((rollback: unknown) => {
-        broken = rollback instanceof Error ? rollback : new Error(String(rollback));
-      });
-      throw error;
-    } finally {
-      client.release(broken);
-    }
+    }>(this.pool, SEARCH_SQL, [q, types, limit, MIN_SIMILARITY]);
     return rows.map((r) => ({
       type: r.type,
       id: r.id,
