@@ -20,6 +20,7 @@ import { SOCIAL_NETWORKS, SOCIAL_TIME_ZONE } from '@fmip/contracts/console';
 import { EvaluationService, type CountedEvaluation } from '../forecast/evaluation.service';
 import { ForecastService, roundToTotalOne } from '../forecast/forecast.service';
 import { FixturesService } from '../fixtures/fixtures.service';
+import { IngestRunsService } from '../ingestion/ingest-runs.service';
 import { NewsHeadlines } from '../news/news-headlines.service';
 import {
   type NewSocialPost,
@@ -188,6 +189,7 @@ export class SocialPublishingService {
     private readonly forecasts: ForecastService,
     private readonly evaluations: EvaluationService,
     private readonly headlines: NewsHeadlines,
+    private readonly runs: IngestRunsService,
     private readonly store: PostgresSocialPostStore,
     @Inject(SOCIAL_OPTIONS) private readonly options: SocialOptions,
   ) {}
@@ -231,6 +233,7 @@ export class SocialPublishingService {
     }
     const finished = candidates.filter((c) => c.card.status === 'finished').map((c) => c.card.id);
     const counted = await this.evaluations.countedFor(finished);
+    const listReadAt = await this.fixturesReadAt();
 
     for (const candidate of candidates) {
       const { card } = candidate;
@@ -242,7 +245,13 @@ export class SocialPublishingService {
             : [];
       let sensitive: SocialSensitiveReason | null | undefined;
       for (const kind of kinds) {
-        const built = await this.build(candidate, kind, counted.get(card.id) ?? null, now);
+        const built = await this.build(
+          candidate,
+          kind,
+          counted.get(card.id) ?? null,
+          listReadAt,
+          now,
+        );
         if (!built.gates.passed || built.payload === null) {
           report.skipped.push({
             fixture_id: card.id,
@@ -324,7 +333,7 @@ export class SocialPublishingService {
       post.kind === 'model_verdict'
         ? ((await this.evaluations.countedFor([post.fixture_id])).get(post.fixture_id) ?? null)
         : null;
-    const built = await this.build(card, post.kind, counted, now);
+    const built = await this.build(card, post.kind, counted, await this.fixturesReadAt(), now);
     if (built.gates.passed && post.forecast_id !== built.forecastId) {
       return { ...built.gates, passed: false, failed: ['forecast_shown'] };
     }
@@ -426,6 +435,24 @@ export class SocialPublishingService {
   // Reading and building.
   // -------------------------------------------------------------------------
 
+  /**
+   * When the fixtures list was last read in full: the newest `fixtures` run
+   * that succeeded with no scope (D-427 point 3, amended 2026-11-16: the
+   * production measurement found most fixtures unchanged for days, read
+   * hourly). Null when there is none or it cannot be read: forecast posts
+   * then fail their freshness gate (fail closed).
+   */
+  private async fixturesReadAt(): Promise<Date | null> {
+    try {
+      return await this.runs.lastGlobalSuccess('fixtures');
+    } catch (error) {
+      this.log.warn('the fixtures runs are unreadable: no forecast post is fresh', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return null;
+    }
+  }
+
   private link(fixtureId: string): string {
     return `${this.options.origin}/en/match/${fixtureId}`;
   }
@@ -462,6 +489,7 @@ export class SocialPublishingService {
     candidate: Candidate,
     kind: SocialPostKind,
     counted: CountedEvaluation | null,
+    listReadAt: Date | null,
     now: Date,
   ): Promise<{
     gates: SocialGateCheck;
@@ -499,6 +527,7 @@ export class SocialPublishingService {
         kick_off: card.kickoff_at,
         coverage: card.coverage,
         last_updated_at: card.last_updated_at,
+        read_at: listReadAt?.toISOString() ?? null,
         score_dispute: card.score_dispute !== undefined && card.score_dispute !== null,
       },
       forecast: carried,
@@ -530,6 +559,8 @@ export class SocialPublishingService {
         kick_off: card.kickoff_at,
         coverage: card.coverage,
         last_updated_at: card.last_updated_at,
+        // When the fixtures list was last read in full: the forecast's freshness, as checked.
+        list_read_at: facts.fixture.read_at,
         score_dispute: facts.fixture.score_dispute,
         scores: card.scores,
         stage: card.stage?.name ?? null,

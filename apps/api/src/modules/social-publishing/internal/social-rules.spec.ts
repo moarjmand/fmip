@@ -53,6 +53,7 @@ function facts(kind: SocialPostKind, change: Partial<SocialFacts> = {}): SocialF
       kick_off: finished ? ago(150 * MINUTE) : new Date(NOW.getTime() + 2 * 3600_000).toISOString(),
       coverage: 'available',
       last_updated_at: finished ? ago(45 * MINUTE) : ago(10 * MINUTE),
+      read_at: ago(20 * MINUTE),
       score_dispute: false,
     },
     forecast: kind === 'result' ? null : { id: 'f-1', version: 'v3.2', status: 'available' },
@@ -113,21 +114,32 @@ describe('checkGates (T-1834, D-427 point 3)', () => {
     expect(checkGates(settled, NOW).passed).toBe(true);
   });
 
-  it('refuses a forecast post whose fixture was read more than six hours ago', () => {
-    const stale = withFixture('forecast_pre_match', {
-      last_updated_at: ago(FORECAST_FRESH_MS + MINUTE),
-    });
+  it('refuses a forecast post whose fixtures list was read more than six hours ago', () => {
+    const stale = withFixture('forecast_pre_match', { read_at: ago(FORECAST_FRESH_MS + MINUTE) });
     expect(checkGates(stale, NOW).failed).toEqual(['freshness']);
+    const fresh = withFixture('forecast_pre_match', { read_at: ago(FORECAST_FRESH_MS) });
+    expect(checkGates(fresh, NOW).passed).toBe(true);
   });
 
-  it('refuses a missing or future last_updated_at as not fresh', () => {
+  it("does not need a forecast post's fixture itself to have changed lately (2026-11-16)", () => {
+    const unchanged = withFixture('forecast_pre_match', { last_updated_at: ago(72 * 3600_000) });
+    expect(checkGates(unchanged, NOW).passed).toBe(true);
+    // ...nor does the list's read settle a result.
+    const result = withFixture('result', { read_at: null });
+    expect(checkGates(result, NOW).passed).toBe(true);
+  });
+
+  it('refuses a missing or future clock as not fresh (no fixtures run: fail closed)', () => {
     expect(checkGates(withFixture('result', { last_updated_at: null }), NOW).failed).toEqual([
       'freshness',
     ]);
+    expect(checkGates(withFixture('forecast_pre_match', { read_at: null }), NOW).failed).toEqual([
+      'freshness',
+    ]);
     const future = new Date(NOW.getTime() + MINUTE).toISOString();
-    expect(
-      checkGates(withFixture('forecast_pre_match', { last_updated_at: future }), NOW).failed,
-    ).toEqual(['freshness']);
+    expect(checkGates(withFixture('forecast_pre_match', { read_at: future }), NOW).failed).toEqual([
+      'freshness',
+    ]);
   });
 
   it('refuses a score dispute alone', () => {

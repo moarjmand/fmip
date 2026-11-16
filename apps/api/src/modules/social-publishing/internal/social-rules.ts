@@ -54,7 +54,16 @@ export interface SocialFacts {
     status: FixtureStatus;
     kick_off: string;
     coverage: CoverageState;
+    /** When the fixture, its scores or its incidents last changed: a result's "settled" clock. */
     last_updated_at: string | null;
+    /**
+     * When the fixtures list was last read: the finish of the newest succeeded
+     * `fixtures` ingestion run of global scope (null when there is none). A
+     * forecast post's freshness clock, since the ingestion writes a fixture
+     * only when something about it changes (D-427 point 3, as amended
+     * 2026-11-16 after the production measurement).
+     */
+    read_at: string | null;
     score_dispute: boolean;
   };
   /** The forecast the post carries (null for a result). */
@@ -80,7 +89,10 @@ export function checkGates(facts: SocialFacts, now: Date): SocialGateCheck {
 
   if (fixture.coverage !== 'available') failed.push('coverage');
 
-  const updated = fixture.last_updated_at === null ? NaN : Date.parse(fixture.last_updated_at);
+  // A forecast post: the fixtures list read within six hours (no run, fail closed).
+  // A result: the fixture unchanged for 30 minutes.
+  const clock = kind === 'forecast_pre_match' ? fixture.read_at : fixture.last_updated_at;
+  const updated = clock === null ? NaN : Date.parse(clock);
   const age = now.getTime() - updated;
   const fresh =
     !Number.isNaN(updated) &&

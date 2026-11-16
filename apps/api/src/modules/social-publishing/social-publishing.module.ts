@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AgentsConsoleModule } from '../agents-console/agents-console.module';
 import { FixturesModule } from '../fixtures/fixtures.module';
 import { ForecastModule } from '../forecast/forecast.module';
+import { IngestionModule } from '../ingestion/ingestion.module';
 import { NewsModule } from '../news/news.module';
 import { PostgresSocialPostStore } from './internal/social-post-store';
 import {
@@ -16,12 +17,14 @@ import {
  * Owns `social_post`, `social_automation` and `social_switch`. Reads the
  * scores list, the model's forecasts and their stored evaluations, and the
  * news headlines through their public services only -- no founder's analysis,
- * no consensus (rule 6) -- and writes its console actions' audit rows through
- * the agents console's exported writer. Publishing (T-1837), the cards
- * (T-1835) and the console tab (T-1836) build on `SocialPublishingService`.
+ * no consensus (rule 6) -- with when the fixtures list was last read in full
+ * (`IngestRunsService.lastGlobalSuccess`, the forecast's freshness), and
+ * writes its console actions' audit rows through the agents console's
+ * exported writer. Publishing (T-1837) and the console tab (T-1836) build on
+ * `SocialPublishingService`; the card's read is `social-card.module.ts`.
  */
 @Module({
-  imports: [FixturesModule, ForecastModule, NewsModule, AgentsConsoleModule],
+  imports: [FixturesModule, ForecastModule, NewsModule, AgentsConsoleModule, IngestionModule],
   providers: [
     PostgresSocialPostStore,
     SocialPublishingService,

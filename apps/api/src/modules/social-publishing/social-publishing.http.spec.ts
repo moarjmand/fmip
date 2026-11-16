@@ -12,6 +12,7 @@ import { PostgresEvaluationStore } from '../forecast/internal/evaluation-store';
 import { PostgresForecastStore } from '../forecast/internal/forecast-store';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { CaptureMailer, MAILER } from '../identity/internal/mailer';
+import { INGESTION_SOURCES } from '../ingestion/internal/sources';
 import { NewsHeadlines } from '../news/news-headlines.service';
 import type { SocialActor, SocialPostRecord } from './internal/social-post-store';
 import { SocialPublishingModule } from './social-publishing.module';
@@ -43,6 +44,7 @@ const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const MODEL = `sp-${RUN}@1.0.0`;
 const NOW = new Date('2046-06-10T13:00:00Z'); // 14:00 London
 const at = (hhmm: string): string => `2046-06-10T${hhmm}:00Z`;
+const RUNS_PROVIDER = 'highlightly';
 
 describe('the card fields the job freezes', () => {
   it("takes the model's pick from the stored evaluation, never from the rounded percentages", () => {
@@ -132,6 +134,25 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     const teammate: SocialActor = { id: randomUUID(), name: `st_${RUN}` };
     let source = '';
     const stories: string[] = [];
+    const runs: string[] = [];
+
+    /** A `fixtures` ingestion run of this file's provider, finished at `finished`. */
+    async function fixturesRun(
+      status: 'succeeded' | 'partial' | 'failed',
+      finished: string,
+      scope: string | null,
+    ): Promise<void> {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO ingest_run (provider, job, scope, status, started_at, finished_at, error)
+         VALUES ($1, 'fixtures', $2, $3, $4::timestamptz - interval '2 minutes', $4,
+                 CASE WHEN $3 = 'succeeded' THEN NULL ELSE 'scripted' END) RETURNING id`,
+        [RUNS_PROVIDER, scope, status, finished],
+      );
+      runs.push(rows[0]!.id);
+    }
+    const clearRuns = async (): Promise<void> => {
+      await pool.query(`DELETE FROM ingest_run WHERE id = ANY($1::uuid[])`, [runs]);
+    };
     let started = '';
     let automationBefore: Record<string, unknown>[] = [];
     let switchBefore: Record<string, unknown> = {};
@@ -283,6 +304,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         )
         .overrideProvider(SOCIAL_OPTIONS)
         .useValue({ origin: 'https://stadiomind.test' })
+        // The fixtures job's runs are read as this provider's, which no other spec's
+        // fixtures runs use; this file's runs finish in 2046, after anything real.
+        .overrideProvider(INGESTION_SOURCES)
+        .useValue({ kind: 'live', reason: null, forJob: () => ({ provider: RUNS_PROVIDER }) })
         .compile();
       await moduleRef.init();
       social = moduleRef.get(SocialPublishingService);
@@ -291,6 +316,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       started = (await pool.query<{ now: string }>(`SELECT now()::text AS now`)).rows[0]!.now;
       automationBefore = (await pool.query(`SELECT * FROM social_automation`)).rows;
       switchBefore = (await pool.query(`SELECT * FROM social_switch`)).rows[0];
+      // The fixtures list read in full an hour before "now": forecast posts are fresh.
+      await fixturesRun('succeeded', at('12:00'), null);
 
       await pool.query(
         `INSERT INTO console_user (id, username, display_name, password_hash) VALUES
@@ -419,6 +446,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         }
         await c.query(`DELETE FROM model_version WHERE model_id = $1`, [MODEL]);
       });
+      await pool.query(`DELETE FROM ingest_run WHERE id = ANY($1::uuid[])`, [runs]);
       await pool.query(`DELETE FROM news_source WHERE id = $1`, [source]);
       if (stories.length > 0) {
         await pool.query(`DELETE FROM story WHERE id = ANY($1::uuid[])`, [stories]);
@@ -477,7 +505,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(fi.body).not.toContain('https://');
       expect(fx.gates).toMatchObject({ passed: true, failed: [] });
       expect(fx.inputs).toMatchObject({
-        fixture: { status: 'scheduled', coverage: 'available' },
+        // The freshness as checked: when the fixtures list was last read in full.
+        fixture: {
+          status: 'scheduled',
+          coverage: 'available',
+          list_read_at: new Date(at('12:00')).toISOString(),
+        },
         forecast: { id: version, version: MODEL, status: 'available' },
       });
       // A forecast is valid until kick-off.
@@ -885,6 +918,35 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // Either account resumes it, with a reason.
       expect((await social.setSwitch(owner, false, 'resolved')).ok).toBe(true);
       expect((await social.setSwitch(owner, false, 'resolved')).ok).toBe(false);
+    });
+
+    it("dates a forecast post's freshness by the last full read of the fixtures list, failing closed", async () => {
+      const post = await live(f.forecast, 'forecast_pre_match', 'x');
+      // The match itself last changed long ago: that no longer matters.
+      await withTriggersOff(pool, async (c) => {
+        await c.query(`UPDATE fixture SET updated_at = $2 WHERE id = $1`, [
+          f.forecast,
+          at('00:00'),
+        ]);
+      });
+      const freshness = async () => (await social.gatesNow(post, NOW)).failed.includes('freshness');
+
+      // A succeeded run of global scope within six hours: fresh.
+      await clearRuns();
+      await fixturesRun('succeeded', at('09:00'), null);
+      expect(await social.gatesNow(post, NOW)).toMatchObject({ passed: true, failed: [] });
+      // Only an older one: stale.
+      await clearRuns();
+      await fixturesRun('succeeded', at('06:59'), null);
+      expect(await freshness()).toBe(true);
+      // Recent runs that were partial, scoped (a schedule pass) or failed do not count.
+      await fixturesRun('partial', at('12:30'), null);
+      await fixturesRun('succeeded', at('12:30'), 'schedule');
+      await fixturesRun('failed', at('12:45'), null);
+      expect(await freshness()).toBe(true);
+      // No run at all: fail closed.
+      await clearRuns();
+      expect(await freshness()).toBe(true);
     });
   },
 );

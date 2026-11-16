@@ -308,6 +308,19 @@ export class IngestRunsService implements OnModuleInit, BeforeApplicationShutdow
   }
 
   /**
+   * When a job last read everything it reads: the newest run of its serving
+   * provider that `succeeded` with no scope (not partial, not a scoped pass
+   * or a backfill), or null when there is none or no provider serves the job
+   * (T-1838: the social posts' forecast freshness, D-427 point 3). Stricter
+   * than `jobCompletions`, which counts a partial run as movement.
+   */
+  async lastGlobalSuccess(job: IngestJob): Promise<Date | null> {
+    const source = this.sources.forJob(job);
+    if (source === null) return null;
+    return this.store.lastGlobalSuccess(source.provider, job);
+  }
+
+  /**
    * For every scheduled job, the newest run that completed (T-801): a partial
    * run counts, because it wrote what it could and the job is moving; a job
    * whose runs all fail, or that stopped running, does not move this.
