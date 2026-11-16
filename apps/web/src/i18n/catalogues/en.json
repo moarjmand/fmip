@@ -3443,6 +3443,7 @@
   "searchPage.playingToday": "Playing today",
   "searchPage.allCompetitions": "All competitions",
   "searchPage.nothing": "Nothing matches “{term}”",
+  "searchPage.resultsFor": "Results for “{term}”",
   "searchPage.tryThese": "Try a team or competition name, or one of these.",
   "searchPage.neverListed": "Invite-only groups and private or friends-only profiles are never listed.",
   "searchSuggest.list": "Suggestions",

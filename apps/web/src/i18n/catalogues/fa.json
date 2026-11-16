@@ -19124,6 +19124,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
   },
+  "searchPage.resultsFor": {
+    "source": "Results for “{term}”",
+    "text": "نتایج برای «{term}»",
+    "status": "translated",
+    "note": "Written by the agent; the maintainer approved the designer's wording (T-1850, D-435)."
+  },
   "searchPage.tryThese": {
     "source": "Try a team or competition name, or one of these.",
     "text": "نام یک تیم یا رقابت را بنویسید، یا یکی از این‌ها را بزنید.",

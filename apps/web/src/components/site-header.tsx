@@ -8,7 +8,7 @@ import { Translated } from '@/components/translated';
 import { LanguagePicker } from '@/components/language-picker';
 import { MomentsRail } from '@/components/moments-rail';
 import { RulesPrompt } from '@/components/rules-prompt';
-import { SearchComboboxLazy } from '@/components/search-combobox-lazy';
+import { HeaderSearchFieldLazy } from '@/components/search-combobox-lazy';
 import { BottomTabBar, PrimaryNav } from '@/components/shell-nav';
 import { ThemeSwitch } from '@/components/theme-switch';
 import { DEFAULT_LOCALE, type Locale, isLocale } from '@/i18n/locales';
@@ -246,7 +246,7 @@ export async function SiteHeader({
                 className="site-search relative hidden xl:ms-auto xl:flex xl:max-w-64 xl:min-w-11 xl:grow xl:basis-64"
                 data-testid="nav-search-form"
               >
-                <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-default bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
+                <label className="flex h-11 w-full min-w-0 items-center overflow-hidden gap-2 rounded-control border border-strong bg-surface px-3 text-caption focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus">
                   <Icon>
                     <circle cx="11" cy="11" r="7" />
                     <path d="m20 20-4-4" />
@@ -255,8 +255,10 @@ export async function SiteHeader({
                     {search.text}
                   </span>
                   {/* Suggestions while typing (T-1844, D-435); the list hangs from the form. */}
-                  <SearchComboboxLazy
-                    variant="header"
+                  {/* No Suspense: the layout reads cookies, so every page renders per
+                      request and the field is drawn in place, the term in the server's
+                      HTML (as shell-nav.tsx reads useSearchParams, T-1850 review). */}
+                  <HeaderSearchFieldLazy
                     locale={locale}
                     words={suggestWords(locale)}
                     // Its own name: the list and the live region inside the label must not join it.

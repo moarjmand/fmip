@@ -99,10 +99,18 @@ describe('search helpers', () => {
   });
 
   it('notes the alias that matched', () => {
-    expect(matchNote('en', { matched_on: 'alias', alias: 'Man Utd' })).toBe(
-      'also known as Man Utd',
-    );
-    expect(matchNote('en', { matched_on: 'name', alias: null })).toBeNull();
+    expect(
+      matchNote('en', { matched_on: 'alias', alias: 'Man Utd', name: 'Manchester United' }),
+    ).toBe('also known as Man Utd');
+    expect(matchNote('en', { matched_on: 'name', alias: null, name: 'Arsenal' })).toBeNull();
+  });
+
+  it("says nothing when the alias is the row's own name (T-1850)", () => {
+    // The Persian page shows the Persian name, which is also what matched.
+    expect(
+      matchNote('fa', { matched_on: 'alias', alias: 'منچستریونایتد', name: 'منچستریونایتد' }),
+    ).toBeNull();
+    expect(matchNote('en', { matched_on: 'alias', alias: 'wolves', name: 'Wolves' })).toBeNull();
   });
 });
 
