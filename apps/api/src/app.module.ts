@@ -41,6 +41,7 @@ import { RateLimitsModule } from './modules/rate-limits/rate-limits.module';
 import { HomepageModule } from './modules/homepage/homepage.module';
 import { ModelUpsetModule } from './modules/model-upset/model-upset.module';
 import { MomentsModule } from './modules/moments/moments.module';
+import { SocialCardModule } from './modules/social-publishing/social-card.module';
 import { AgentsConsoleModule } from './modules/agents-console/agents-console.module';
 import { ConsoleModelModule } from './modules/console-model/console-model.module';
 import { ConsoleRemindersModule } from './modules/console-reminders/console-reminders.module';
@@ -97,6 +98,7 @@ import { RatingThresholdsModule } from './modules/rating-thresholds/rating-thres
     HomepageModule,
     ModelUpsetModule,
     MomentsModule,
+    SocialCardModule,
     LocaleHoldsModule,
     AgentsConsoleModule,
     ConsoleModelModule,
