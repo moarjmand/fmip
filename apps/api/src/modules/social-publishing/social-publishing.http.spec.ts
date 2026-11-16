@@ -469,7 +469,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         kind: 'forecast_pre_match',
         model: { name: 'The Stadiomind model', version: MODEL, forecast_id: version },
         percent: { home: 40, draw: 30, away: 30 },
-        round: 'Social test',
+        // Never the provider's raw round (the contract, after PR #894): left out.
+        round: null,
         home: { id: ash, name: `Ashvale ${RUN}`, short_name: 'Ashvale', code: null },
       });
       expect(fx.body).toContain(`https://stadiomind.test/en/match/${f.forecast}`);

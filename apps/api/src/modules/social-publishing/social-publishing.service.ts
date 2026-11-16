@@ -513,7 +513,11 @@ export class SocialPublishingService {
     const base = {
       fixture_id: card.id,
       competition: { id: card.competition.id, name: card.competition.name },
-      round: card.round ?? card.stage?.name ?? null,
+      // The contract wants the match page's own label, never the provider's raw
+      // round ("Regular Season - 11"); that label is the web's (`stage-label.ts`),
+      // so the card leaves the round out until the API can word it. The raw
+      // stage and round stay in `inputs.fixture`.
+      round: null,
       kick_off: card.kickoff_at,
       home: team(card.home),
       away: team(card.away),
@@ -528,6 +532,8 @@ export class SocialPublishingService {
         last_updated_at: card.last_updated_at,
         score_dispute: facts.fixture.score_dispute,
         scores: card.scores,
+        stage: card.stage?.name ?? null,
+        round: card.round,
       },
       forecast: carried,
       shown_forecast: facts.shown_forecast,
