@@ -50,6 +50,14 @@ const FIELDS: Record<string, Rule> = {
   // accounts an item can be given to; shown only in the agents console.
   'console-checklist.ts:ConsoleChecklistNote.author': { exempt: CONSOLE },
   'console-checklist.ts:ConsoleChecklistPerson.display_name': { exempt: CONSOLE },
+  // The business model canvas (T-1856): the console accounts that change it, shown
+  // only in the agents console; a card's source is a document or a decision, never a person.
+  'console-canvas.ts:ConsoleCanvasPerson.display_name': { exempt: CONSOLE },
+  'console-canvas.ts:ConsoleCanvasCard.source': {
+    exempt: 'a document or decision a canvas card came from, not a name',
+  },
+  'console-canvas.ts:ConsoleCanvasCardInput.source': { exempt: 'a request body, not a name shown' },
+  'console-canvas.ts:ConsoleCanvasCardPatch.source': { exempt: 'a request body, not a name shown' },
   'campaigns.ts:Audience.created_by': { exempt: STAFF },
   'campaigns.ts:Campaign.created_by': { exempt: STAFF },
   // The administrator who dismissed a contributor flag (T-1031): shown only on
