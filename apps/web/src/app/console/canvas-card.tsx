@@ -296,7 +296,15 @@ export function CanvasCard({
                     words: w.removed,
                     action: {
                       label: w.undo,
-                      run: () => void restoreCanvasCard(card.id),
+                      // The undo says how it went: a refused restore leaves the card in the bin.
+                      run: () =>
+                        void restoreCanvasCard(card.id).then(
+                          (result) =>
+                            toast({
+                              words: result.ok ? w.restored : (result.error ?? w.restoreFailed),
+                            }),
+                          () => toast({ words: w.restoreFailed }),
+                        ),
                     },
                   }),
               )
