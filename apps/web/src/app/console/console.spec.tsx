@@ -9,9 +9,12 @@ import {
   isConsoleHost,
 } from '@/lib/console-host';
 import { ChatThread, MESSAGE_STATUS_WORDS } from './chat';
+import { ConsoleNav, consolePathname, isCurrent } from './console-nav';
 import { FindingRow, RunsBars, freshness } from './ui';
 
+const nav = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
+vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 const { parseConsoleSetCookie } = await import('@/lib/console-api');
 
 /**
@@ -194,5 +197,70 @@ describe('the console pieces', () => {
     expect(freshness('2026-11-02T05:00:00Z', now).stale).toBe(false);
     expect(freshness('2026-10-31T05:00:00Z', now)).toMatchObject({ stale: true });
     expect(freshness('2026-10-31T05:00:00Z', now).words).toContain('کهنه');
+  });
+});
+
+describe('the console menu (T-1871)', () => {
+  const ITEMS = [
+    { path: '/', href: '/agents', label: 'نمای کلی' },
+    { path: '/findings', href: '/agents/findings', label: 'یافته‌ها' },
+    { path: '/requests', href: '/agents/requests', label: 'درخواست‌های هم‌تیمی', badge: '۳' },
+    { path: '/audit', href: '/agents/audit', label: 'کارنامه‌ی کنسول' },
+  ];
+  const menu = (pathname: string, base = '/agents') => {
+    nav.pathname = pathname;
+    return renderToStaticMarkup(<ConsoleNav items={ITEMS} base={base} />);
+  };
+  const currentLinks = (html: string) =>
+    [...html.matchAll(/<a [^>]*aria-current="page"[^>]*>(.*?)<\/a>/g)].map((m) => m[1]);
+
+  it('reads the console path under its base, under /console, or as it is', () => {
+    expect(consolePathname('/agents', '/agents')).toBe('/');
+    expect(consolePathname('/agents/findings', '/agents')).toBe('/findings');
+    expect(consolePathname('/agents/agents/data-auditor', '/agents')).toBe('/agents/data-auditor');
+    expect(consolePathname('/console/board', '/agents')).toBe('/board');
+    expect(consolePathname('/console', '')).toBe('/');
+    expect(consolePathname('/findings', '')).toBe('/findings');
+    expect(consolePathname('/agentsx', '/agents')).toBe('/agentsx');
+  });
+
+  it('marks the overview only on itself, and a section with its sub-pages', () => {
+    expect(isCurrent('/', '/')).toBe(true);
+    expect(isCurrent('/', '/findings')).toBe(false);
+    expect(isCurrent('/calendar', '/calendar/subscriptions')).toBe(true);
+    expect(isCurrent('/calendar', '/calendarx')).toBe(false);
+  });
+
+  it('is a labelled list with the page shown marked, once', () => {
+    const html = menu('/agents/findings');
+    expect(html).toContain('<nav');
+    expect(html).toContain('aria-label="منوی کنسول"');
+    expect(currentLinks(html)).toHaveLength(1);
+    expect(currentLinks(html)[0]).toContain('یافته‌ها');
+    expect(currentLinks(menu('/agents'))[0]).toContain('نمای کلی');
+    expect(currentLinks(menu('/console/audit', ''))[0]).toContain('کارنامه‌ی کنسول');
+    expect(currentLinks(menu('/agents/agents/data-auditor'))).toEqual([]);
+    for (const item of ITEMS) expect(html).toContain(`href="${item.href}"`);
+    expect(html).toContain('۳<span class="sr-only"> درخواست باز</span>');
+  });
+
+  it('is a column with its own scroll from 1024px, and a button that opens it below', () => {
+    const html = menu('/agents/findings');
+    const navTag = /<nav [^>]*>/.exec(html)?.[0] ?? '';
+    const button = /<button [^>]*>/.exec(html)?.[0] ?? '';
+    // Closed on a phone, always shown from 1024px, scrolling by itself in both.
+    expect(navTag).toMatch(/class="hidden /);
+    expect(navTag).toContain('lg:block');
+    expect(navTag).toContain('overflow-y-auto');
+    expect(navTag).toContain('max-h-[60dvh]');
+    expect(button).toContain('aria-expanded="false"');
+    expect(button).toContain('lg:hidden');
+    expect(button).toContain('min-h-touch');
+    const id = /id="([^"]+)"/.exec(navTag)?.[1];
+    expect(id).toBeTruthy();
+    expect(button).toContain(`aria-controls="${id}"`);
+    expect(html).toContain('فهرست');
+    // Logical sides only (rule 7).
+    expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right|border-l|border-r)-/);
   });
 });

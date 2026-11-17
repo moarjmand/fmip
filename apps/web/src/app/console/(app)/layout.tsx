@@ -3,7 +3,8 @@ import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { ReactNode } from 'react';
 import { signOut } from '@/lib/console-actions';
 import { consoleMe, consoleRequestCounts } from '@/lib/console-api';
-import { consoleUrl } from '@/lib/console-base';
+import { consoleBase, consoleUrl } from '@/lib/console-base';
+import { ConsoleNav, type ConsoleNavItem } from '@/app/console/console-nav';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,51 +35,42 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
   // The open requests' count beside their link (T-1728); none when it cannot be read.
   const counts = await consoleRequestCounts();
   const openRequests = counts.ok ? counts.data.open : 0;
+  const base = await consoleBase();
+  const items: ConsoleNavItem[] = await Promise.all(
+    NAV.map(async ([path, label]) => ({
+      path,
+      label,
+      href: await consoleUrl(path),
+      badge:
+        path === '/requests' && openRequests > 0
+          ? new Intl.NumberFormat('fa-IR').format(openRequests)
+          : null,
+    })),
+  );
+  // T-1871: the menu is a column at the inline-start edge (the right, in
+  // Persian) from 1024px, sticky at the window's height with its own scroll;
+  // below that a bar whose button opens the same list.
   return (
-    <>
-      <header className="border-b border-default bg-surface">
-        <div className="page-frame flex flex-wrap items-center gap-x-6 gap-y-2 py-3">
-          <Link href="/" className="text-base font-bold text-fg">
-            کنسول عامل‌ها
-            <span className="ms-2 text-xs font-normal text-caption">Stadiomind</span>
-          </Link>
-          <nav
-            aria-label="کنسول"
-            className="order-3 w-full overflow-x-auto [scrollbar-width:none] md:order-none md:w-auto"
-          >
-            <ul className="flex gap-1">
-              {NAV.map(([href, label]) => (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    className="inline-flex min-h-touch items-center whitespace-nowrap rounded-control px-3 text-sm text-muted hover:bg-surface-raised hover:text-fg"
-                  >
-                    {label}
-                    {href === '/requests' && openRequests > 0 && (
-                      <span className="relative ms-1.5 rounded-pill bg-brand px-1.5 text-xs font-bold text-on-brand">
-                        {new Intl.NumberFormat('fa-IR').format(openRequests)}
-                        <span className="sr-only"> درخواست باز</span>
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="ms-auto flex items-center gap-3 text-sm">
-            <span className="text-muted">{me.data.display_name}</span>
-            <form action={signOut}>
-              <button
-                type="submit"
-                className="min-h-touch rounded-control border border-strong px-3 text-sm text-fg"
-              >
-                خروج
-              </button>
-            </form>
-          </div>
+    <div className="lg:flex lg:items-start">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-default bg-surface px-4 py-2 md:px-8 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:flex-nowrap lg:items-stretch lg:gap-3 lg:border-e lg:border-b-0 lg:px-0 lg:py-4">
+        <Link href="/" className="me-auto text-base font-bold text-fg lg:me-0 lg:px-6">
+          کنسول عامل‌ها
+          <span className="ms-2 text-xs font-normal text-caption">Stadiomind</span>
+        </Link>
+        <ConsoleNav items={items} base={base} />
+        <div className="flex items-center gap-3 text-sm lg:border-t lg:border-default lg:px-6 lg:pt-3">
+          <span className="min-w-0 truncate text-muted">{me.data.display_name}</span>
+          <form action={signOut} className="ms-auto">
+            <button
+              type="submit"
+              className="min-h-touch rounded-control border border-strong px-3 text-sm text-fg"
+            >
+              خروج
+            </button>
+          </form>
         </div>
       </header>
-      <main className="page-frame flex flex-col gap-5 py-5">{children}</main>
-    </>
+      <main className="page-frame flex min-w-0 flex-col gap-5 py-5 lg:flex-1">{children}</main>
+    </div>
   );
 }
