@@ -33,6 +33,9 @@ or by a page check in `SKILL.md`.
 - **P4:** a wrestling story (Tehran Times) on `/en/news`.
 - **I4:** every club has no country (4,013), so same-name clubs cannot be told apart; I1 was
   narrowed to one competition and found Neftchi twice in the AFC Champions League Two.
+- **V1/V2:** Estadio de Mestalla shown in "Valdivia" (142 matches) and Allianz Field in "Sao Paulo"
+  (84), 2026-11-11 (aud-2026-11-11-01): one ground each, one provider id each, the city the one
+  fixture answer it was queued from gave, never corrected by the answers about the ground (T-1875).
 
 ## Accepted: known and explained, not findings
 

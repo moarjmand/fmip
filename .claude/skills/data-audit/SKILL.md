@@ -57,6 +57,9 @@ edit the file mid-audit.
 | I2 person_on_both_sides | One person on both line-ups: two people resolved to one, or a line-up on the wrong side. The sample is `fixture <uuid> person <name>`. |
 | I3 sides_malformed | A match without exactly one home and one away club. |
 | I4 club_without_country | Clubs with no country (info: all of them today). |
+| V1 ground_city_not_its_answer | A ground shown in a city other than the one the provider's latest answer about the ground gave (T-1875, D-451): a write that went wrong. |
+| V2 ground_city_unconfirmed | Grounds with a city still the one fixture answer they were queued from (info: falls as the monthly pass describes each again, but has a floor: grounds with no API-Football mapping, ones the provider has no entry for, and ones whose answer gives no city stay counted; a V2 flat for a month after the T-1875 deploy is a fault, one resting at that floor is not). |
+| V3 ground_without_city | Grounds with matches and no city at all (info; counted apart from V2). |
 | M1 / M2 | A published forecast not summing to one; a modelled match in the next 24 hours with no forecast. |
 | P1 request_budget | Today's provider requests as a share of the plan (the watchdog's figure); 80% or more is major. |
 | P2 unresolved_pending | Provider players and clubs the ingestion could not tie to an identity yet (rule 1); a growing count means data that does not appear. |
