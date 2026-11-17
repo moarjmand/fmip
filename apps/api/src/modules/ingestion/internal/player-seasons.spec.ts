@@ -311,6 +311,51 @@ describe('a player holding several provider ids (T-1866)', () => {
     expect(calls.filter((c) => c.startsWith('mark'))).toEqual(['markSeason 10']);
   });
 
+  it('stops the run at a quota refusal on the second id, with nothing saved or marked (T-1868)', async () => {
+    const { store, calls } = fakeStore(
+      [
+        { personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 },
+        { personId: 'p2', externalId: '30', seasonYear: 2026 },
+      ],
+      [{ personId: 'p3', externalId: '50' }],
+    );
+    const { adapter, asked } = fakeAdapter((what) =>
+      what === 'season 20'
+        ? { ok: false, error: { kind: 'quota', message: 'rateLimit' }, requests: 1 }
+        : ok([at('league', 'old-club', 9)]),
+    );
+    const sweep = await sweepPlayerSeasons({ ...base, adapter, store });
+    expect(asked).toEqual(['season 10 2026', 'season 20 2026']);
+    expect(sweep).toMatchObject({ asked: 2, answered: 0, written: 0 });
+    expect(sweep.refused).toEqual(['person 20 season 2026: quota: rateLimit']);
+    expect(calls.filter((c) => c.startsWith('save') || c.startsWith('mark'))).toEqual([]);
+  });
+
+  it('reads the run clock before the second id: out of time, nothing saved or marked (T-1868)', async () => {
+    const { store, calls } = fakeStore(
+      [
+        { personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 },
+        { personId: 'p2', externalId: '30', seasonYear: 2026 },
+      ],
+      [],
+    );
+    let t = 0;
+    const { adapter, asked } = fakeAdapter(() => {
+      t += 20_000;
+      return ok([at('league', 'old-club', 9)]);
+    });
+    const sweep = await sweepPlayerSeasons({
+      ...base,
+      adapter,
+      store,
+      runMs: 15_000,
+      clock: () => t,
+    });
+    expect(asked).toEqual(['season 10 2026']);
+    expect(sweep).toMatchObject({ asked: 1, answered: 0, refused: [] });
+    expect(calls.filter((c) => c.startsWith('save') || c.startsWith('mark'))).toEqual([]);
+  });
+
   it('spaces every ask, the second id included', async () => {
     const { store } = fakeStore(
       [

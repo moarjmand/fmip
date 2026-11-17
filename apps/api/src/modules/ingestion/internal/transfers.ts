@@ -191,13 +191,18 @@ export async function sweepTransfers(input: {
 
   const deadline = clock() + (input.runMs ?? TRANSFERS_RUN_MS);
   subjects: for (const ask of due) {
-    // The run's clock is read before each subject: a player's ids are asked together.
+    // The run's clock is read before each subject, and before each of a
+    // player's ids (T-1868): out of time between two, nothing is saved or
+    // marked, and he is asked whole next run.
     await pacer.pace();
     if (clock() >= deadline) break;
     const answers: NormalisedTransfer[][] = [];
     let fetchedAt: string | null = null;
     for (const [index, externalId] of everyExternalId(ask).entries()) {
-      if (index > 0) await pacer.pace();
+      if (index > 0) {
+        await pacer.pace();
+        if (clock() >= deadline) break subjects;
+      }
       const result = ask.subject === 'team' ? await byTeam(externalId) : await byPlayer(externalId);
       sweep.asked += result.requests;
       if (!result.ok) {

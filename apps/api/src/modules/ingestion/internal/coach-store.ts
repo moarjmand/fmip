@@ -151,15 +151,35 @@ export class CoachStore implements CoachesStore {
         provider,
         held.flatMap(({ coach }) => coach.career.map((s) => s.team.externalId)),
       );
+      const severalIds = await personsWithSeveralCoachIds(
+        client,
+        provider,
+        held.map(({ personId }) => personId),
+      );
       for (const { personId, coach } of held) {
-        await client.query(`DELETE FROM coach_spell WHERE source = $1 AND person_id = $2`, [
-          provider,
-          personId,
-        ]);
+        // A coach with one id: his answer is his whole career, and replaces
+        // it. One holding several (a merged duplicate, T-1863) has a career
+        // under each, and `coach_spell` does not say which id gave a row, so
+        // an answer replaces only the spells it lists -- same team, same
+        // start -- and the other id's stay (T-1868).
+        if (!severalIds.has(personId)) {
+          await client.query(`DELETE FROM coach_spell WHERE source = $1 AND person_id = $2`, [
+            provider,
+            personId,
+          ]);
+        }
         let spells = 0;
         for (const spell of coach.career) {
           const teamId = teams.get(spell.team.externalId);
           if (teamId === undefined) continue;
+          if (severalIds.has(personId)) {
+            await client.query(
+              `DELETE FROM coach_spell
+                WHERE source = $1 AND person_id = $2 AND team_id = $3
+                  AND start_date IS NOT DISTINCT FROM $4::date`,
+              [provider, personId, teamId, spell.start],
+            );
+          }
           await client.query(
             `INSERT INTO coach_spell (source, person_id, team_id, start_date, end_date, fetched_at)
              VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -227,6 +247,24 @@ export class CoachStore implements CoachesStore {
       client.release();
     }
   }
+}
+
+/** Those of `personIds` holding more than one of the provider's `coach:` ids. */
+async function personsWithSeveralCoachIds(
+  client: PoolClient,
+  provider: Provider,
+  personIds: string[],
+): Promise<Set<string>> {
+  if (personIds.length === 0) return new Set();
+  const { rows } = await client.query<{ internal_id: string }>(
+    `SELECT internal_id FROM provider_mapping
+      WHERE provider = $1 AND entity_type = 'person' AND internal_id = ANY($2::uuid[])
+        AND external_id LIKE 'coach:%'
+      GROUP BY internal_id
+     HAVING count(*) > 1`,
+    [provider, [...new Set(personIds)]],
+  );
+  return new Set(rows.map((r) => r.internal_id));
 }
 
 /** Our team ids for the provider's, by `provider_mapping`; an id it does not know is absent. */

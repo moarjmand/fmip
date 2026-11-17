@@ -252,16 +252,20 @@ export async function sweepPlayerSeasons(input: {
     return { ...sweep, idle: 'no player is owed a season or a career ask' };
   }
 
+  const deadline = clock() + (input.runMs ?? PLAYER_SEASONS_RUN_MS);
+
   /**
    * One ask by each of the player's ids, the answers saved together under
    * the one person only when every id answered (T-1866): the requests it
-   * cost, and what was kept or why not.
+   * cost, and what was kept or why not. The run's clock is read before each
+   * id after the first (T-1868): out of time between two, nothing is saved.
    */
   const askOne = async (
     item: Ask,
   ): Promise<
     | { requests: number; ok: true; kept: Kept }
-    | { requests: number; ok: false; externalId: string; error: AdapterError }
+    | { requests: number; ok: false; late: false; externalId: string; error: AdapterError }
+    | { requests: number; ok: false; late: true }
   > => {
     let requests = 0;
     // The oldest answer dates the rows, so none is shown fresher than it is.
@@ -269,17 +273,20 @@ export async function sweepPlayerSeasons(input: {
     const seasonLines: NormalisedPlayerSeasonLine[][] = [];
     const careers: NormalisedCareerEntry[][] = [];
     for (const [index, externalId] of everyExternalId(item.ask).entries()) {
-      if (index > 0) await wait(gapMs);
+      if (index > 0) {
+        await wait(gapMs);
+        if (clock() >= deadline) return { requests, ok: false, late: true };
+      }
       if (item.kind === 'season') {
         const r = await getSeason(externalId, String(item.ask.seasonYear));
         requests += r.requests;
-        if (!r.ok) return { requests, ok: false, externalId, error: r.error };
+        if (!r.ok) return { requests, ok: false, late: false, externalId, error: r.error };
         seasonLines.push(r.data);
         if (fetchedAt === null || r.fetchedAt < fetchedAt) fetchedAt = r.fetchedAt;
       } else {
         const r = await getCareer(externalId);
         requests += r.requests;
-        if (!r.ok) return { requests, ok: false, externalId, error: r.error };
+        if (!r.ok) return { requests, ok: false, late: false, externalId, error: r.error };
         careers.push(r.data);
         if (fetchedAt === null || r.fetchedAt < fetchedAt) fetchedAt = r.fetchedAt;
       }
@@ -292,13 +299,15 @@ export async function sweepPlayerSeasons(input: {
     return { requests, ok: true, kept };
   };
 
-  const deadline = clock() + (input.runMs ?? PLAYER_SEASONS_RUN_MS);
   for (const [index, item] of due.entries()) {
     if (index > 0) await wait(gapMs);
-    // The run's clock is read before each player: his ids are asked together.
+    // The run's clock is read before each player, and before each of his ids.
     if (clock() >= deadline) break;
     const result = await askOne(item);
     sweep.asked += result.requests;
+    // Out of time between two of his ids: nothing saved or marked, and the
+    // player is asked whole next run.
+    if (!result.ok && result.late) break;
     if (!result.ok) {
       const what = item.kind === 'season' ? `season ${item.ask.seasonYear}` : 'career';
       const { error } = result;

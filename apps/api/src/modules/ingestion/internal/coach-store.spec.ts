@@ -36,6 +36,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
     chelsea: randomUUID(),
     guardiola: randomUUID(),
     maresca: randomUUID(),
+    merged: randomUUID(),
     player: randomUUID(),
     fixture: randomUUID(),
     home: randomUUID(),
@@ -116,14 +117,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
     );
     await pool.query(
       `INSERT INTO person (id, full_name) VALUES
-       ($1, 'Pep Guardiola'), ($2, 'Enzo Maresca'), ($3, 'T-1439 Player')`,
-      [id.guardiola, id.maresca, id.player],
+       ($1, 'Pep Guardiola'), ($2, 'Enzo Maresca'), ($3, 'T-1439 Player'),
+       ($4, 'T-1868 Merged Coach')`,
+      [id.guardiola, id.maresca, id.player, id.merged],
     );
     for (const [type, external, internal] of [
       ['team', ext('city'), id.city],
       ['team', ext('chelsea'), id.chelsea],
       ['person', coachExt('guardiola'), id.guardiola],
       ['person', ext('player'), id.player],
+      // A merged duplicate (T-1863): one person under two coach ids.
+      ['person', coachExt('merged-a'), id.merged],
+      ['person', coachExt('merged-b'), id.merged],
     ] as const) {
       await pool.query(
         `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
@@ -157,7 +162,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
       [`t1439-${RUN}-%`, `coach:t1439-${RUN}-%`],
     );
     await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
-      [id.guardiola, id.maresca, id.player],
+      [id.guardiola, id.maresca, id.player, id.merged],
     ]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[id.city, id.chelsea]]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [id.season]);
@@ -306,5 +311,94 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
     expect((await teamsDue(retryNow)).map((t) => t.teamId)).toContain(id.chelsea);
     for (let i = 0; i < 4; i += 1) await store.markTeamAsked(PROVIDER, chelsea);
     expect((await teamsDue(retryNow)).map((t) => t.teamId)).not.toContain(id.chelsea);
+  });
+
+  describe('a coach holding several coach ids (T-1868)', () => {
+    const city = { teamId: id.city, externalId: ext('city'), reason: 'refresh' as const };
+    const chelsea = { teamId: id.chelsea, externalId: ext('chelsea'), reason: 'refresh' as const };
+    const coach = (n: string, career: NormalisedCoach['career']): NormalisedCoach => ({
+      ref: { externalId: coachExt(n), name: 'T-1868 Merged' },
+      name: null,
+      dateOfBirth: null,
+      nationality: null,
+      career,
+    });
+    const atCity = (start: string, end: string | null) => ({
+      team: { externalId: ext('city'), name: 'City' },
+      start,
+      end,
+    });
+    const atChelsea = (start: string, end: string | null) => ({
+      team: { externalId: ext('chelsea'), name: 'Chelsea' },
+      start,
+      end,
+    });
+    const spells = async (personId: string) =>
+      (
+        await pool.query<{ team_id: string; start_date: string; end_date: string | null }>(
+          `SELECT team_id, start_date::text, end_date::text FROM coach_spell
+            WHERE person_id = $1 ORDER BY start_date`,
+          [personId],
+        )
+      ).rows.map((r) => [r.team_id, r.start_date, r.end_date]);
+
+    it("keeps each id's career: an answer replaces only the spells it lists", async () => {
+      await store.saveTeamCoaches(
+        PROVIDER,
+        city,
+        [coach('merged-a', [atCity('2025-07-01', null)])],
+        '2026-11-17T10:00:00.000Z',
+      );
+      await store.saveTeamCoaches(
+        PROVIDER,
+        chelsea,
+        [coach('merged-b', [atChelsea('2019-07-01', '2021-06-30')])],
+        '2026-11-17T10:05:00.000Z',
+      );
+      expect(await spells(id.merged)).toEqual([
+        [id.chelsea, '2019-07-01', '2021-06-30'],
+        [id.city, '2025-07-01', null],
+      ]);
+      // The first id answers again with its spell closed: that spell is
+      // replaced, the other id's is kept, and nothing is doubled.
+      await store.saveTeamCoaches(
+        PROVIDER,
+        city,
+        [coach('merged-a', [atCity('2025-07-01', '2026-11-01')])],
+        '2026-11-17T10:10:00.000Z',
+      );
+      expect(await spells(id.merged)).toEqual([
+        [id.chelsea, '2019-07-01', '2021-06-30'],
+        [id.city, '2025-07-01', '2026-11-01'],
+      ]);
+    });
+
+    it('keeps both when one answer names both ids', async () => {
+      const kept = await store.saveTeamCoaches(
+        PROVIDER,
+        city,
+        [
+          coach('merged-a', [atCity('2025-07-01', '2026-11-01')]),
+          coach('merged-b', [atChelsea('2019-07-01', '2021-06-30'), atCity('2017-01-01', null)]),
+        ],
+        '2026-11-17T10:15:00.000Z',
+      );
+      expect(kept).toEqual({ coaches: 2, queued: 0, spells: 3, spellsUnmapped: 0 });
+      expect(await spells(id.merged)).toEqual([
+        [id.city, '2017-01-01', null],
+        [id.chelsea, '2019-07-01', '2021-06-30'],
+        [id.city, '2025-07-01', '2026-11-01'],
+      ]);
+    });
+
+    it('still replaces the whole career of a coach with one id', async () => {
+      await store.saveTeamCoaches(
+        PROVIDER,
+        city,
+        [maresca({ career: [atCity('2026-08-01', null)] })],
+        '2026-11-17T10:20:00.000Z',
+      );
+      expect(await spells(id.maresca)).toEqual([[id.city, '2026-08-01', null]]);
+    });
   });
 });

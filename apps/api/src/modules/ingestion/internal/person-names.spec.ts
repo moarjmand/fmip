@@ -4,6 +4,7 @@ import {
   MAX_PEOPLE_NAMES_BATCH,
   PEOPLE_NAMES_ASK_GAP_MS,
   PEOPLE_NAMES_BATCH,
+  combineNameAnswers,
   fullNameFromProfile,
   parseShortForm,
   peopleNamesAllowance,
@@ -319,5 +320,142 @@ describe('the people names sweep', () => {
       `wait ${PEOPLE_NAMES_ASK_GAP_MS}`,
       'ask 3',
     ]);
+  });
+});
+
+describe('a person holding several provider ids (T-1868)', () => {
+  const both = (n: number, more: string[], storedName = 'M. Salah'): ShortNamedPerson => ({
+    ...person(n, storedName),
+    moreExternalIds: more,
+  });
+  const salah = () => ok(profile('Mohamed', 'Salah Hamed Mahrous Ghaly'));
+
+  it('asks by each id and records one answer', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20']), person(3)];
+    const calls: string[] = [];
+    const sweep = await sweepPeopleNames({
+      ...base,
+      store,
+      adapter: adapterAnswering((id) => (id === '20' ? salah() : ok(null)), calls),
+    });
+    expect(calls).toEqual(['10', '20', '3']);
+    expect(sweep).toMatchObject({ asked: 3, answered: 2, written: 1, refused: [] });
+    expect(sweep.kept).toEqual({ no_profile: 1 });
+    expect(store.answers).toHaveLength(2);
+    expect(store.answers[0]?.person.personId).toBe('p10');
+    expect(store.answers[0]?.answer).toMatchObject({
+      outcome: 'written',
+      fullName: 'Mohamed Salah',
+      alias: 'M. Salah',
+    });
+    expect(store.answers[0]?.answer.detail).toMatch(/^id 10: .*; id 20: /);
+  });
+
+  it('counts each id against the allowance, and passes over a person whose ids do not fit', async () => {
+    const store = new FakeStore();
+    store.due = [person(1), both(10, ['20']), person(3)];
+    const calls: string[] = [];
+    await sweepPeopleNames({
+      ...base,
+      store,
+      batch: 2,
+      adapter: adapterAnswering(() => salah(), calls),
+    });
+    expect(store.limit).toBe(2);
+    // The store gives two people for two asks: person 1 takes one, and
+    // person 10's two ids do not fit in the one left.
+    expect(calls).toEqual(['1']);
+  });
+
+  it('records nothing as answered when one id is refused, so both are asked again', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20'])];
+    const sweep = await sweepPeopleNames({
+      ...base,
+      store,
+      adapter: adapterAnswering((id) =>
+        id === '20'
+          ? { ok: false, error: { kind: 'http', message: 'HTTP 500' }, requests: 1 }
+          : salah(),
+      ),
+    });
+    expect(sweep).toMatchObject({ asked: 2, answered: 0, refused: ['person 20: http: HTTP 500'] });
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual(['p10']);
+  });
+
+  it('stops the run at a quota refusal on the second id, with nothing recorded', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20']), person(3)];
+    const calls: string[] = [];
+    const sweep = await sweepPeopleNames({
+      ...base,
+      store,
+      adapter: adapterAnswering(
+        (id) =>
+          id === '20'
+            ? { ok: false, error: { kind: 'quota', message: 'rateLimit' }, requests: 1 }
+            : salah(),
+        calls,
+      ),
+    });
+    expect(calls).toEqual(['10', '20']);
+    expect(sweep).toMatchObject({
+      asked: 2,
+      answered: 0,
+      refused: ['person 20: quota: rateLimit'],
+    });
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual([]);
+  });
+
+  it('reads the run clock before the second id: out of time, nothing recorded', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20']), person(3)];
+    let now = 0;
+    const calls: string[] = [];
+    const adapter = {
+      getPersonProfile: (id: string) => {
+        calls.push(id);
+        now += 20_000;
+        return Promise.resolve(salah());
+      },
+    } as unknown as ProviderAdapter;
+    const sweep = await sweepPeopleNames({
+      ...base,
+      store,
+      adapter,
+      clock: () => now,
+      runMs: 15_000,
+    });
+    expect(calls).toEqual(['10']);
+    expect(sweep).toMatchObject({ asked: 1, answered: 0, refused: [] });
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual([]);
+  });
+
+  it('combines: a profile of another name is never hidden, two full names keep ours', () => {
+    const written = fullNameFromProfile('M. Salah', profile('Mohamed', 'Salah'));
+    expect(combineNameAnswers([written])).toBe(written);
+    const differs = fullNameFromProfile('M. Salah', profile('Mohamed', 'Elneny'));
+    expect(combineNameAnswers([written, differs], ['10', '20'])).toMatchObject({
+      outcome: 'family_name_differs',
+      profileName: 'Mohamed Elneny',
+    });
+    expect(combineNameAnswers([written, differs]).fullName).toBeUndefined();
+    const initial = fullNameFromProfile('M. Salah', profile('Ahmed', 'Salah'));
+    expect(combineNameAnswers([initial, written]).outcome).toBe('initial_differs');
+    const other = fullNameFromProfile('M. Salah', profile('Mahmoud', 'Salah'));
+    expect(combineNameAnswers([written, other])).toMatchObject({ outcome: 'name_kept' });
+    expect(combineNameAnswers([written, other]).fullName).toBeUndefined();
+    const same = fullNameFromProfile('M. Salah', profile('MOHAMED', 'Salah'));
+    expect(combineNameAnswers([written, same])).toMatchObject({
+      outcome: 'written',
+      fullName: 'Mohamed Salah',
+    });
+    const none = fullNameFromProfile('M. Salah', null);
+    expect(combineNameAnswers([none, none]).outcome).toBe('no_profile');
+    expect(combineNameAnswers([none, written]).outcome).toBe('written');
   });
 });

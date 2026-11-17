@@ -28,7 +28,9 @@
  * is asked by each, in one go, and the answers are recorded as one: each id
  * is one request against the allowance, a field is offered by the lowest id
  * that gives it (`combineBioAnswers`), and the store still fills only the
- * fields we do not hold.
+ * fields we do not hold. A profile of another name under one id is recorded
+ * as `name_differs` and nothing is written, even when another id answers
+ * cleanly: under a merged person it is the sign of a wrong merge (T-1868).
  */
 
 import {
@@ -210,16 +212,25 @@ export function bioFromProfile(
 
 /**
  * The answers of each of a player's ids, lowest first, as one (T-1866). Pure.
- * When any is readable: each field from the first readable answer that
- * offers it, a nationality we could not match only when no answer gave one
- * we could, and the outcome `readable`. Otherwise the first answer's outcome.
- * One answer is returned as it is.
+ * When any is `name_differs`, that, with nothing to write: a profile of
+ * another name under one of his ids is never hidden by another id's clean
+ * answer (T-1868). Else, when any is readable: each field from the first
+ * readable answer that offers it, a nationality we could not match only when
+ * no answer gave one we could, and the outcome `readable`. Otherwise the
+ * first answer's outcome. One answer is returned as it is.
  */
-export function combineBioAnswers(answers: PersonBioAnswer[]): PersonBioAnswer {
+export function combineBioAnswers(
+  answers: PersonBioAnswer[],
+  externalIds: string[] = [],
+): PersonBioAnswer {
   const [first, ...rest] = answers;
   if (first === undefined) throw new Error('a bio needs at least one answer');
   if (rest.length === 0) return first;
-  const detail = answers.map((a, i) => `id ${i + 1}: ${a.detail}`).join('; ');
+  const detail = answers.map((a, i) => `id ${externalIds[i] ?? i + 1}: ${a.detail}`).join('; ');
+  const differs = answers.find((a) => a.outcome === 'name_differs');
+  if (differs !== undefined) {
+    return { ...differs, detail, fields: {}, unmatchedNationality: null };
+  }
   const readable = answers.filter((a) => a.outcome === 'readable');
   if (readable.length === 0) return { ...first, detail };
   const fields: BioFields = {};
@@ -295,12 +306,15 @@ export async function sweepPeopleBios(input: {
   const countries = await store.countries();
 
   people: for (const person of due) {
+    const externalIds = everyExternalId(person);
     const answers: PersonBioAnswer[] = [];
-    for (const [index, externalId] of everyExternalId(person).entries()) {
+    for (const externalId of externalIds) {
       // Spaced from the ask before, the names pass's last one included.
       await wait(gapMs);
-      // The run's clock is read before each player: his ids are asked together.
-      if (index === 0 && clock() >= deadline) break people;
+      // The run's clock is read before every ask (T-1868). A player whose ids
+      // are not all asked in time has nothing recorded, and is asked whole
+      // next run.
+      if (clock() >= deadline) break people;
       const result = await adapter.getPersonProfile(externalId);
       sweep.asked += result.requests;
       if (!result.ok) {
@@ -317,7 +331,7 @@ export async function sweepPeopleBios(input: {
     const outcome = await store.recordPersonBioAnswer(
       provider,
       person.personId,
-      combineBioAnswers(answers),
+      combineBioAnswers(answers, externalIds),
     );
     if (outcome === 'written') sweep.written += 1;
     else sweep.kept[outcome] = (sweep.kept[outcome] ?? 0) + 1;
