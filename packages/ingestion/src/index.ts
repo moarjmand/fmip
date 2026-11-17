@@ -72,15 +72,20 @@ export {
 } from './news/other-code';
 // Football only on the news pages: the one judgement of a stored item (T-1841, D-429).
 export {
+  ENTERTAINMENT_SECTIONS,
   FOOTBALL_WORDS,
   GENERAL_SPORTS_FEEDS,
   NOT_FOOTBALL_SECTIONS,
   OTHER_SPORT_SECTIONS,
+  SCHOOL_SPORT_SECTIONS,
+  VIDEO_SECTIONS,
   type NewsItemSignals,
   type NotFootball,
+  type NotFootballPage,
   footballEvidence,
   isGeneralSportsFeed,
   notFootballOf,
+  notFootballPageOf,
   persianOtherSportHeadline,
   sectionOf,
 } from './news/football-only';

@@ -1,8 +1,9 @@
+import type { Logger } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type { Transport, TransportResponse } from '@fmip/ingestion';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { GNEWS_SOURCE_ID } from './internal/gnews-store';
 import { NEWS_TRANSPORT } from './internal/news-transport';
@@ -356,6 +357,53 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('gnews ingest
     expect(second).toMatchObject({ itemsSeen: 2, itemsWritten: 1 });
     expect((await filed(id)).rows.map((r) => r.headline)).toEqual([
       `Jamie Carragher fumes Man City 'kidding' football ${RUN}`,
+    ]);
+  });
+
+  it('leaves out a TV, showbiz or school sport page and counts it (T-1874, D-449)', async () => {
+    const id = await aggregator();
+    // Addresses and headlines as GNews brought them to production, with the
+    // run's mark; the last is a football report in a football section.
+    transport.answer([
+      {
+        title: `Coleen Rooney's special message to Wayne ahead of I'm A Celebrity ${RUN}`,
+        url: `https://echo-${RUN}.example/news/showbiz-news/coleen-rooneys-special-message-wayne-34920933`,
+        source: { name: `Echo Desk ${RUN}` },
+      },
+      {
+        title: `Vote for the Hometeam Playoff Performer of the Week ${RUN}`,
+        description: 'Field hockey and soccer standouts from Central Massachusetts.',
+        url: `https://telegram-${RUN}.example/story/sports/high-school/athlete-of-the-week/2026/11/16/vote/92809653007/`,
+        source: { name: `Telegram Desk ${RUN}` },
+      },
+      {
+        title: `Man United icon Wayne Rooney makes I'm A Celebrity 2026 decision ${RUN}`,
+        url: `https://men-${RUN}.example/sport/football/football-news/wayne-rooney-im-a-celeb-34850918`,
+        source: { name: `MEN Desk ${RUN}` },
+      },
+      {
+        title: `Unai Emery calls for major change in football ${RUN}`,
+        url: `https://men-${RUN}.example/sport/football/football-news/unai-emery-34810001`,
+        source: { name: `MEN Desk ${RUN}` },
+      },
+    ]);
+    const log = vi.spyOn((service as unknown as { log: Logger }).log, 'log');
+    try {
+      expect(await service.run(ON, id)).toMatchObject({ itemsSeen: 4, itemsWritten: 1 });
+      expect(log).toHaveBeenCalledWith(
+        'gnews items left out',
+        expect.objectContaining({
+          event: 'news.gnews_left_out',
+          // The Hometeam vote is school sport by its words first (otherCodeOf).
+          other_code: 1,
+          not_football_page: 2,
+        }),
+      );
+    } finally {
+      log.mockRestore();
+    }
+    expect((await filed(id)).rows.map((r) => r.headline)).toEqual([
+      `Unai Emery calls for major change in football ${RUN}`,
     ]);
   });
 

@@ -123,6 +123,7 @@ export class PostgresCommunitySearchStore {
             summary: r.summary,
             categories: r.categories ?? [],
             feedUrl: r.feed_url,
+            url: r.url,
             searched: r.searched,
             filedTo: r.entity_types,
           }) === null,

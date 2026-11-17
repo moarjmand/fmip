@@ -5,6 +5,7 @@ import {
   isGeneralSportsFeed,
   type NewsItemSignals,
   notFootballOf,
+  notFootballPageOf,
   persianOtherSportHeadline,
   sectionOf,
 } from './football-only';
@@ -21,7 +22,15 @@ const KHABAR = 'https://www.khabarvarzeshi.com/rss/tp/1';
 const YAHOO = 'https://sports.yahoo.com/soccer/rss/';
 
 function item(over: Partial<NewsItemSignals> & Pick<NewsItemSignals, 'headline'>): NewsItemSignals {
-  return { summary: null, categories: [], feedUrl: null, searched: false, filedTo: [], ...over };
+  return {
+    summary: null,
+    categories: [],
+    feedUrl: null,
+    url: null,
+    searched: false,
+    filedTo: [],
+    ...over,
+  };
 }
 
 describe('isGeneralSportsFeed', () => {
@@ -370,5 +379,270 @@ describe('notFootballOf', () => {
         item({ headline: '2026 Asian Women’s Handball Championship', filedTo: ['competition'] }),
       ),
     ).toBe('other_sport_event');
+  });
+});
+
+/**
+ * T-1874 (D-449). Every headline and address below is one production stored
+ * by 2026-11-17 (a few headlines cut where the publisher's feed cut them),
+ * except the three marked as written for the spec.
+ */
+describe('notFootballPageOf', () => {
+  it.each([
+    // Television and showbiz sections, whoever of football is named.
+    [
+      'https://www.telegraph.co.uk/tv/2026/11/16/im-a-celebrity-get-me-out-of-here-launch-show-instareview/',
+      'Not even Wayne Rooney can rescue I’m A Celebrity from the TV relegation zone',
+    ],
+    [
+      'https://www.liverpoolecho.co.uk/news/showbiz-news/reason-wayne-rooney-couldnt-visit-34913715',
+      'Reason Wayne Rooney couldn’t visit Coleen during I’m A Celebrity as football legend enters jungle',
+    ],
+    [
+      'https://www.liverpoolecho.co.uk/news/showbiz-news/jurgen-klopp-pays-bill-16-34809705',
+      'Jurgen Klopp pays the bill for 16 Scousers during special night with Jamie Carragher',
+    ],
+    [
+      'https://www.dailystar.co.uk/tv/mark-chapman-cannot-stand-colleague-37809738',
+      'Mark Chapman ‘cannot stand’ colleague as real reason for ‘foul mood’ on MOTD explained',
+    ],
+    [
+      'https://www.express.co.uk/showbiz/tv-radio/2256179/Strictly-Shaun-Wright-Phillips-dad-Ian-Wright',
+      'Strictly fans baffled as Ian Wright makes appearance',
+    ],
+    [
+      'https://www.thesun.co.uk/tvandshowbiz/41038307/brooklyn-beckham-drops-dad-david-23-trademark-cloud-sauce/',
+      'Brooklyn Beckham ditches plan to trademark dad David’s shirt number for his hot sauce business amid feud',
+    ],
+    [
+      'https://www.mirror.co.uk/3am/celebrity-news/robbie-williams-new-year-honours-37807742',
+      'Robbie Williams ‘tipped for New Year’s Honour’ after ‘tax row’',
+    ],
+    [
+      'https://www.standard.co.uk/showbiz/who-is-declan-rice-girlfriend-lauren-fryer-ballon-dor-2026-b1301917.html',
+      'Who is Declan Rice’s girlfriend? Meet Lauren Fryer, the childhood sweetheart of the Arsenal player',
+    ],
+    [
+      'https://www.ladbible.com/entertainment/tv/im-a-celeb-2026-wayne-rooney-smuggle-contraband-claim-nicky-butt-174270-20261111',
+      'Wayne Rooney ‘planning on smuggling banned item’ into I’m A Celeb jungle',
+    ],
+    [
+      'https://www.essexlive.news/news/celebs-tv/russell-brand-moved-new-jail-11242128',
+      'with yoga, choir and inmate football league',
+    ],
+    // Culture, lifestyle, music, film, travel.
+    [
+      'https://www.walesonline.co.uk/lifestyle/tv/im-celebritys-aj-odudu-terrified-34897756',
+      'I’m A Celebrity’s AJ Odudu ‘terrified’ as she reveals jungle phobias before show',
+    ],
+    [
+      'https://nypost.com/2026/10/30/lifestyle/skechers-drops-limited-edition-harry-kane-collab-cleats-and-they-wont-last-long/',
+      'Skechers drops limited-edition Harry Kane collab cleats',
+    ],
+    [
+      'https://www.theguardian.com/lifeandstyle/2026/oct/11/partners-obnoxious-conduct-sons-football-matches-putting-me-off',
+      'My partner’s obnoxious conduct at our sons’ football matches is putting me off him',
+    ],
+    [
+      'https://www.independent.co.uk/life-style/jude-jobe-bellingham-age-net-worth-instagram-b3084359.html',
+      'Brand Bellingham: How the Jude and Jobe took over the football and fashion scene to make millions',
+    ],
+    [
+      'https://www.standard.co.uk/culture/music/fans-ash-northern-ireland-taiwan-australia-b1303138.html',
+      'Ash shirt collaboration with Irish League team attracts fans from across the world',
+    ],
+    [
+      'https://variety.com/2026/film/asia/soccer-drama-forza-ac-milan-alessandro-costacurta-tokyo-market-est-n8-1236930538/',
+      'Soccer Drama ‘Forza’ Lands at EST N8 Ahead of Tokyo Market',
+    ],
+    [
+      'https://www.thesun.co.uk/travel/40715736/gary-neville-hotel-review-manchester-travel/',
+      'I stayed at Gary Neville’s football hotel with rooftop pitch and Manchester United themed rooms',
+    ],
+    // A US paper's TV section: where to stream a match, not a report.
+    [
+      'https://www.nj.com/tv/2026/10/how-to-watch-bayern-munich-vs-arsenal-champions-league-match-for-free.html',
+      'Bayern Munich vs. Arsenal: Champions League FREE live stream (10/21)',
+    ],
+    [
+      'https://www.techradar.com/entertainment/football/watch-arsenal-vs-everton-premier-league-2026-27-free',
+      'Watch Arsenal vs Everton: Free streams & TV channels',
+    ],
+  ])('%s is an entertainment section', (url, headline) => {
+    expect(notFootballPageOf(url, headline)).toBe('entertainment_section');
+  });
+
+  it.each([
+    [
+      'https://www.telegram.com/story/sports/high-school/athlete-of-the-week/2026/11/16/vote-for-the-hometeam-playoff-performer-of-the-week-presented-by-the-ymca-of-central-massachusetts/92809653007/',
+      'Vote for the Hometeam Playoff Performer of the Week, presented by the YMCA of Central Massachusetts',
+    ],
+    [
+      'https://www.pennlive.com/highschoolsports/2026/10/central-pa-soccer-top-performers-for-oct-16.html',
+      'Central Pa. soccer top performers for Oct. 16',
+    ],
+    [
+      'https://www.ydr.com/story/sports/high-school/2026/11/09/bucks-county-teams-in-piaa-state-playoffs-in-soccer-field-hockey-volleyball-cb-east/92596358007/',
+      'Bucks County teams in PIAA state playoffs in soccer, field hockey',
+    ],
+    [
+      'https://www.cincinnati.com/story/sports/high-school/kentucky-high-school/2026/10/19/northern-kentucky-boys-girls-regional-soccer-tournament-brackets/92300012007/',
+      'Northern Kentucky boys, girls regional soccer tournament brackets',
+    ],
+    [
+      'https://www.latimes.com/sports/highschool/story/2026-11-13/city-section-cross-country-produces-stories-of-a-lifetime',
+      'City Section cross-country produces stories of a lifetime',
+    ],
+    [
+      'https://www.si.com/college/virginia/virginia-women-s-soccer-shuts-out-louisville',
+      'Virginia Women’s Soccer Shuts Out Louisville',
+    ],
+    [
+      'https://www.inquirer.com/college-sports/villanova/samar-azem-womens-soccer-coach-winning-season-big-east',
+      'Villanova women’s soccer continues historic run as the Big East’s ‘team to beat’',
+    ],
+  ])('%s is a school sport section', (url, headline) => {
+    expect(notFootballPageOf(url, headline)).toBe('school_sport_section');
+  });
+
+  it('reads I’m A Celebrity in a headline outside those sections', () => {
+    expect(
+      notFootballPageOf(
+        'https://www.manchestereveningnews.co.uk/sport/football/football-news/wayne-rooney-im-a-celeb-34850918',
+        'Man United icon Wayne Rooney makes I’m A Celebrity 2026 decision as full line',
+      ),
+    ).toBe('tv_show');
+    expect(
+      notFootballPageOf(
+        'https://www.walesonline.co.uk/sport/im-celeb-broadcast-delayed-itv-34914486',
+        'I’m a Celeb broadcast delayed as ITV forced into schedule change',
+      ),
+    ).toBe('tv_show');
+    expect(
+      notFootballPageOf(
+        'https://metro.co.uk/2026/11/10/wayne-rooneys-planning-smuggling-banned-item-im-a-celebrity-camp-says-friend-29779250/',
+        "Wayne Rooney's planning on 'smuggling' banned item into I'm A Celebrity camp, says friend",
+      ),
+    ).toBe('tv_show');
+  });
+
+  it.each([
+    // The Independent's `tv` is its video section, with its football shows.
+    [
+      'https://www.independent.co.uk/tv/acfc/florian-wirtz-liverpool-premier-league-b3065795.html',
+      'Why Florian Wirtz is Liverpool’s biggest problem',
+    ],
+    [
+      'https://www.independent.co.uk/tv/copa-independent/ballon-dor-award-harry-kane-lamine-yamal-b3070529.html',
+      'Copa Independent | Kane v Yamal – and is the Ballon d’Or just a PR contest?',
+    ],
+    [
+      'https://www.independent.co.uk/tv/sport/referee-51-red-cards-brazil-football-brawl-b3079326.html',
+      'Referee shows 51 red cards in record-breaking football brawl',
+    ],
+    // Football sections, even about a footballer on the show: the slug's
+    // "im-a-celeb" is the page, not a section.
+    [
+      'https://www.independent.co.uk/sport/football/wayne-rooney-im-a-celeb-suicide-man-united-b3086345.html',
+      'Wayne Rooney says he contemplated suicide during ‘lowest point’ of Man Utd career',
+    ],
+    [
+      'https://www.theguardian.com/football/2026/nov/11/mauricio-pochettino-football-daily-newsletter',
+      'Mauricio Pochettino readies his jungle outfit for another big adventure',
+    ],
+    [
+      'https://www.independent.co.uk/sport/football/jeff-stelling-celebrity-race-across-the-world-hartlepool-b3075949.html',
+      'Hiding remotes and unplugging TVs: How Celebrity Race Across the World cut Jeff Stelling off from football',
+    ],
+    [
+      'https://www.sportsmole.co.uk/football/man-utd/premier-league-team/feature/man-utd-liverpool-arsenal-represented-premier-league-team-of-the-week_608768.html',
+      'Premier League Team of the Week: Bruno Fernandes, Dominik Szoboszlai, Liam Delap',
+    ],
+    [
+      'https://sports.yahoo.com/articles/champions-league-player-week-132700977.html',
+      '⭐️ Champions League: the player of the week is…',
+    ],
+    [
+      'https://www.si.com/soccer/mls-goals-of-the-week-nashville-history-sergi-solans-seals-wild-card-matchday',
+      'MLS Goals of the Week: Nashville Makes History, Sergi Solans Seals Wild Card',
+    ],
+    // Written for the spec: a section's name as the page itself is not a
+    // section; no address, or one that does not parse.
+    ['https://example.com/sport/football/tv', 'Arsenal beat Bayern'],
+    [null, 'Arsenal beat Bayern'],
+    ['not a url', 'Arsenal beat Bayern'],
+  ])('%s stays', (url, headline) => {
+    expect(notFootballPageOf(url, headline)).toBeNull();
+  });
+
+  it('exempts the Independent’s video section only as the first directory', () => {
+    // Written for the spec (review of PR #934): a section under the video one,
+    // and the Independent's television news, where `tv` is not the first.
+    expect(
+      notFootballPageOf(
+        'https://www.independent.co.uk/tv/culture/some-show-b3000000.html',
+        'A football star’s new show',
+      ),
+    ).toBe('entertainment_section');
+    expect(
+      notFootballPageOf(
+        'https://www.independent.co.uk/arts-entertainment/tv/news/rooney-jungle-b3000001.html',
+        'Wayne Rooney enters the jungle',
+      ),
+    ).toBe('entertainment_section');
+    // Another publisher's first-level `tv` is not exempt.
+    expect(
+      notFootballPageOf(
+        'https://notindependent.co.uk/tv/acfc/some-show-b3000002.html',
+        'Why Florian Wirtz is Liverpool’s biggest problem',
+      ),
+    ).toBe('entertainment_section');
+  });
+});
+
+describe('notFootballOf, the publisher’s page section (T-1874)', () => {
+  it('decides before everything else, filed or not, from a feed or a search', () => {
+    expect(
+      notFootballOf(
+        item({
+          headline:
+            'Who is Declan Rice’s girlfriend? Meet Lauren Fryer, the childhood sweetheart of the Arsenal player',
+          url: 'https://www.standard.co.uk/showbiz/who-is-declan-rice-girlfriend-lauren-fryer-ballon-dor-2026-b1301917.html',
+          searched: true,
+          filedTo: ['team'],
+        }),
+      ),
+    ).toBe('entertainment_section');
+    expect(
+      notFootballOf(
+        item({
+          headline:
+            'Mary Earps ‘over the moon’ to reveal birth of ‘secret’ baby boy with partner Kitty Forrest',
+          url: 'https://www.yahoo.com/entertainment/celebrity/articles/mary-earps-over-moon-reveal-174410045.html',
+          feedUrl: YAHOO,
+        }),
+      ),
+    ).toBe('entertainment_section');
+    expect(
+      notFootballOf(
+        item({
+          headline: 'Central Pa. soccer top performers for Oct. 16',
+          url: 'https://www.pennlive.com/highschoolsports/2026/10/central-pa-soccer-top-performers-for-oct-16.html',
+          searched: true,
+        }),
+      ),
+    ).toBe('school_sport_section');
+  });
+
+  it('keeps a football report in the Independent’s video section filed to ours', () => {
+    expect(
+      notFootballOf(
+        item({
+          headline: 'Why Florian Wirtz is Liverpool’s biggest problem',
+          url: 'https://www.independent.co.uk/tv/acfc/florian-wirtz-liverpool-premier-league-b3065795.html',
+          filedTo: ['team'],
+        }),
+      ),
+    ).toBeNull();
   });
 });
