@@ -27,7 +27,7 @@ import type {
  * A free tier answers 429 when it is asked too fast; that is retried once
  * after the pause the server names (capped), and then it is a failure the
  * caller records -- at once, with no retry, for a caller that asks so
- * (`retryWhenBusy: false`, T-1857). Two things learned on Mistral's free plan on 2026-09-19
+ * (`retryWhenBusy: false`, T-1861). Two things learned on Mistral's free plan on 2026-09-19
  * are handled here rather than documented away: a model that does not take
  * `reasoning_effort` says so with a 400 naming the field, and the adapter
  * drops the field for the rest of the process and sends again; and a model

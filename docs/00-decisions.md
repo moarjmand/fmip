@@ -14771,7 +14771,7 @@ No client JavaScript: CSS, `details` and container queries only.
 - *A "Not supplied" card for a cup:* it says data is missing when nothing is.
 - *Client-side switching:* the chips are plain links; the JS budgets are nearly full.
 
-**Consequences.** The player comparison page also opened on the EFL Cup (C-02), but it does not read this order: it sorts its own scopes by season, then competition name (`scopesOf` in `lib/player-compare.ts`), so the order does not fix it; it is its own task. A competition whose `tier` is not recorded (most added with `catalog.mjs`) ranks after a recorded one in its group. A club with two domestic leagues in one season (rare) is ordered by tier, then name. The Persian words are the agent's proposal, not yet reviewed by a translator.
+**Consequences.** The player comparison page also opened on the EFL Cup (C-02), but it does not read this order: it sorts its own scopes by season, then competition name (`scopesOf` in `lib/player-compare.ts`), so the order does not fix it; it is its own task. *Applied, 2026-11-17 (T-1857):* the record's rows carry `kind` and `scope`, the groups moved to the contracts as `competitionOrderGroup` (one rule for both pages), and the comparison orders a season's competitions by them, so its default is the newest season both share and, in it, the domestic league. A competition whose `tier` is not recorded (most added with `catalog.mjs`) ranks after a recorded one in its group. A club with two domestic leagues in one season (rare) is ordered by tier, then name. The Persian words are the agent's proposal, not yet reviewed by a translator.
 
 ## D-380 — The main football-data leagues reload daily; a version being judged gives counts only everywhere; the weekly read counts matches; verdicts go into the ledger
 
@@ -15754,7 +15754,7 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 ## D-442 — `/ask` answers a question that is wholly a known name with the search, and asks the model only for the rest, without a second try
 
-**Status:** Accepted · 2026-11-17 (the maintainer, in chat: «بله، طراحی کن», then through the coordinator «ادامه بدهیم همه کارهای باقی مانده را الان انجام دهیم») · **Task:** T-1857 · **Follows:** D-435, T-420 to T-422, T-838
+**Status:** Accepted · 2026-11-17 (the maintainer, in chat: «بله، طراحی کن», then through the coordinator «ادامه بدهیم همه کارهای باقی مانده را الان انجام دهیم») · **Task:** T-1861 · **Follows:** D-435, T-420 to T-422, T-838
 
 **Context.** After T-1842 and T-1845 the search page's entity rows waited on `/ask`, which put every question to the language model before searching. Measured live on 2026-11-17 against the API: "Salah" and "Liverpool" 0.56 s with the model against 0.07–0.08 s for the plain search, with the same rows; from the third question in a row Mistral's free plan answered 429, the adapter paused a second and tried once more, and the page waited 1.3–1.5 s for the keyword rows it would have had in 0.05–0.3 s. The model's plan is shared with the briefing, the moderation assistant and the match summaries, so every name searched spent their quota too.
 

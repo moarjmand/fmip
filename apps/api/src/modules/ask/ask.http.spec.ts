@@ -18,7 +18,7 @@ import { readIntent } from './ask.service';
  * Natural-language search through the API (T-420 to T-422), with a scripted
  * model against the seed: a readable intent finds Liverpool by id and says
  * how the question was read; a question that is wholly a name the search
- * knows is answered by the search with no model asked (T-1857); an
+ * knows is answered by the search with no model asked (T-1861); an
  * unreadable answer, a refusal and a call that fails each fall back to
  * keywords with the reason; a deployment with no model is keyword search
  * with one sentence more; and the reading is strict about what it accepts.
@@ -125,7 +125,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ask', () => 
     expect(request.system).toContain('Do not answer the question');
   });
 
-  it('answers a question that is wholly a known name with the search, asking no model (T-1857)', async () => {
+  it('answers a question that is wholly a known name with the search, asking no model (T-1861)', async () => {
     const before = asked.length;
     for (const q of ['Liverpool', 'liverpool', 'Liverp']) {
       const { status, body } = await ask(app, q);
@@ -139,7 +139,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ask', () => 
     expect(asked.length).toBe(before);
   });
 
-  it('asks the model without a second try when a word stands beside the name (T-1857)', async () => {
+  it('asks the model without a second try when a word stands beside the name (T-1861)', async () => {
     script = { ...script, text: '{"names":["Liverpool"],"types":["person"]}', stop: 'end_turn' };
     const before = asked.length;
     await ask(app, 'Liverpool players');

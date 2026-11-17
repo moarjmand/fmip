@@ -195,7 +195,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the ceilings
     expect((await ask(app, { 'x-fmip-client-ip': address() })).statusCode).toBe(200);
   });
 
-  it('does not count a known name against the ceiling: no model is asked for it (T-1857)', async () => {
+  it('does not count a known name against the ceiling: no model is asked for it (T-1861)', async () => {
     const ip = address();
     const calls = asked.length;
     for (let i = 0; i < CEILING + 2; i += 1) {
