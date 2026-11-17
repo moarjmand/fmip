@@ -33,7 +33,12 @@ import { withTriggersOff } from '../../testing/cleanup';
 import { hashToken, newToken } from '../identity/identity.service';
 import { CONSOLE_OPTIONS } from './agents-console.controller';
 import { AgentsConsoleModule } from './agents-console.module';
-import { LOCK_AFTER_FAILURES, checkSnapshot, consoleTokenText } from './internal/console-rules';
+import {
+  LOCK_AFTER_FAILURES,
+  SESSION_IDLE_HOURS,
+  checkSnapshot,
+  consoleTokenText,
+} from './internal/console-rules';
 import { PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
 import { IMAGE_REFUSALS } from './internal/request-images';
@@ -41,7 +46,8 @@ import { IMAGE_REFUSALS } from './internal/request-images';
 /**
  * The agents console (T-1696, T-1697, D-340): an account opens only from a
  * one-time invitation; a session is the console's own cookie; wrong
- * passwords lock a name; nothing but signing in answers without a session;
+ * passwords lock a name; a session ends after 12 hours idle; nothing but
+ * signing in answers without a session;
  * the snapshot keeps an open security finding to its title; a command is
  * queued, taken and finished; board changes and sign-ins are audited.
  *
@@ -243,6 +249,54 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       null,
     );
     expect(unknown.statusCode).toBe(401);
+  });
+
+  it('ends a session left idle for 12 hours; each use restarts its clock', async () => {
+    const signedIn = await send('POST', 'session', { username: name, password: PASSWORD }, null);
+    expect(signedIn.statusCode).toBe(204);
+    const idle = cookieOf(signedIn.headers['set-cookie']);
+    const tokenHash = hashToken(consoleTokenText(idle), SECRET);
+    /** Hours from now to the session's end, and from its last use to its end. */
+    const clock = async () => {
+      const { rows } = await pool.query<{ left: number; window: number }>(
+        `SELECT extract(epoch FROM expires_at - now()) / 3600 AS left,
+                extract(epoch FROM expires_at - last_seen_at) / 3600 AS window
+           FROM console_session WHERE token_hash = $1`,
+        [tokenHash],
+      );
+      return { left: Number(rows[0]?.left), window: Number(rows[0]?.window) };
+    };
+    /** As if the session was last used `hours` ago (the clock moved, not the rows' rule). */
+    const idleFor = (hours: string) =>
+      pool.query(
+        `UPDATE console_session
+            SET last_seen_at = now() - $2::interval,
+                expires_at = now() - $2::interval + make_interval(hours => $3)
+          WHERE token_hash = $1`,
+        [tokenHash, hours, SESSION_IDLE_HOURS],
+      );
+
+    expect(SESSION_IDLE_HOURS).toBe(12);
+    expect((await clock()).window).toBeCloseTo(SESSION_IDLE_HOURS, 3);
+
+    // Idle a minute short of 12 hours: still open, and the use restarts the clock.
+    await idleFor('11 hours 59 minutes');
+    expect((await clock()).left).toBeLessThan(0.02);
+    expect((await get('me', idle)).statusCode).toBe(200);
+    expect((await clock()).left).toBeGreaterThan(SESSION_IDLE_HOURS - 0.01);
+
+    // Idle for 12 hours and a second: the session is over, everywhere.
+    await idleFor('12 hours 1 second');
+    for (const url of ['me', 'snapshot', 'commands', 'board', 'audit']) {
+      expect((await get(url, idle)).statusCode).toBe(401);
+    }
+    expect((await send('POST', 'board', { title: 't', column: 'next' }, idle)).statusCode).toBe(
+      401,
+    );
+    // A refused use does not reopen it.
+    expect((await clock()).left).toBeLessThan(0);
+    // Another session of the same person is not touched.
+    expect((await get('me')).statusCode).toBe(200);
   });
 
   it('shows the newest snapshot with an open security finding kept to its title', async () => {
