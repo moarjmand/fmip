@@ -8,6 +8,7 @@ import {
   type CardState,
   changedReason,
   changesOf,
+  checkCanvasKey,
   checkCardPatch,
   checkMove,
   checkNewCard,
@@ -27,6 +28,23 @@ const CARD: CardState = {
   note_en: '',
   source: 'D-427',
 };
+
+describe('checkCanvasKey (T-1872)', () => {
+  it('reads no key, or an empty one, as Claude’s canvas, so old links keep working', () => {
+    expect(checkCanvasKey(undefined)).toEqual({ ok: true, value: 'claude' });
+    expect(checkCanvasKey('')).toEqual({ ok: true, value: 'claude' });
+  });
+
+  it('takes the two canvases by name and refuses anything else', () => {
+    expect(checkCanvasKey('claude')).toEqual({ ok: true, value: 'claude' });
+    expect(checkCanvasKey('teammate')).toEqual({ ok: true, value: 'teammate' });
+    for (const bad of ['Teammate', 'mine', ['teammate', 'claude'], 1, null])
+      expect(checkCanvasKey(bad)).toEqual({
+        ok: false,
+        reason: 'canvas is one of claude, teammate.',
+      });
+  });
+});
 
 describe('checkNewCard', () => {
   it('takes a block and a text in one language, trimmed; the tag is an assumption unless said', () => {

@@ -387,6 +387,7 @@ export type {
   ConsoleCanvasEvent,
   ConsoleCanvasEventKind,
   ConsoleCanvasField,
+  ConsoleCanvasKey,
   ConsoleCanvasLastChange,
   ConsoleCanvasPerson,
   ConsoleCanvasTag,

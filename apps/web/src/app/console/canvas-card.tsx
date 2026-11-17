@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  type KeyboardEvent,
   type ReactNode,
   createContext,
   useCallback,
@@ -11,7 +12,12 @@ import {
   useState,
   useTransition,
 } from 'react';
-import type { ConsoleCanvasBlock, ConsoleCanvasCard, ConsoleCanvasTag } from '@fmip/contracts';
+import type {
+  ConsoleCanvasBlock,
+  ConsoleCanvasCard,
+  ConsoleCanvasKey,
+  ConsoleCanvasTag,
+} from '@fmip/contracts';
 import {
   CONSOLE_CANVAS_BLOCKS,
   CONSOLE_CANVAS_NOTE_MAX,
@@ -43,15 +49,24 @@ import {
  * The business model canvas's one client part (T-1856, D-441): a card with
  * its controls (edit in place in both languages with its tag and block, up,
  * down, remove with an undo), the add button of a block, a removed card's
- * restore, the JSON download and the print button, and the toast that
- * carries an undo past the card's own removal. Every write is a server
- * action; the page redraws from the server after it.
+ * restore, the JSON download and the print button, the toast that
+ * carries an undo past the card's own removal, and the arrow keys of the two
+ * canvases' tabs (T-1872). Every write is a server action naming the
+ * page's canvas; the page redraws from the server after it.
+ *
+ * Compact (T-1872): on a wide screen with a mouse the controls are 28 to
+ * 36 px (WCAG 2.2's 24 px minimum target); on a phone, a tablet or any touch
+ * screen they stay the 44 px touch target.
  */
 
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
-const ICON = `inline-flex min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 ${FOCUS}`;
-const SECONDARY = `inline-flex min-h-touch items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised disabled:opacity-50 ${FOCUS}`;
-const PRIMARY = `inline-flex min-h-touch items-center justify-center rounded-control bg-brand px-4 text-sm font-bold text-on-brand disabled:opacity-60 ${FOCUS}`;
+/** Smaller only on a wide screen with a fine pointer; any touch keeps 44 px. */
+const COMPACT_ICON =
+  'lg:min-h-7 lg:min-w-7 lg:pointer-coarse:min-h-touch lg:pointer-coarse:min-w-touch';
+const COMPACT = 'lg:min-h-9 lg:pointer-coarse:min-h-touch';
+const ICON = `inline-flex min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 ${COMPACT_ICON} ${FOCUS}`;
+const SECONDARY = `inline-flex min-h-touch items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised disabled:opacity-50 ${COMPACT} ${FOCUS}`;
+const PRIMARY = `inline-flex min-h-touch items-center justify-center rounded-control bg-brand px-4 text-sm font-bold text-on-brand disabled:opacity-60 ${COMPACT} ${FOCUS}`;
 const FIELD =
   'w-full rounded-control border border-strong bg-canvas px-2.5 py-1.5 text-sm leading-6 text-fg focus:outline-2 focus:outline-focus';
 
@@ -63,13 +78,24 @@ interface Toast {
 }
 
 const ToastContext = createContext<(toast: Toast | null) => void>(() => undefined);
+/** The canvas the page shows (T-1872); every control writes to it. */
+const CanvasKeyContext = createContext<ConsoleCanvasKey>('claude');
 
 /**
  * The canvas's toast: one message at a time, with an action (the undo of a
  * removal), gone after eight seconds. It sits above the board so a removed
- * card, which leaves the page, can still be brought back from it.
+ * card, which leaves the page, can still be brought back from it. It also
+ * hands the page's canvas to every control under it.
  */
-export function CanvasToasts({ children, lang }: { children: ReactNode; lang: CanvasLang }) {
+export function CanvasToasts({
+  children,
+  lang,
+  canvas = 'claude',
+}: {
+  children: ReactNode;
+  lang: CanvasLang;
+  canvas?: ConsoleCanvasKey;
+}) {
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const show = useCallback((next: Toast | null) => {
@@ -84,41 +110,76 @@ export function CanvasToasts({ children, lang }: { children: ReactNode; lang: Ca
     [],
   );
   return (
-    <ToastContext.Provider value={show}>
-      {children}
-      <div
-        role="status"
-        aria-live="polite"
-        data-print="hide"
-        className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
-      >
-        {toast !== null && (
-          <div className="pointer-events-auto flex max-w-xl items-center gap-3 rounded-tile bg-fg px-4 py-2.5 text-sm text-canvas shadow-lg">
-            <span>{toast.words}</span>
-            {toast.action !== undefined && (
+    <CanvasKeyContext.Provider value={canvas}>
+      <ToastContext.Provider value={show}>
+        {children}
+        <div
+          role="status"
+          aria-live="polite"
+          data-print="hide"
+          className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex justify-center px-4"
+        >
+          {toast !== null && (
+            <div className="pointer-events-auto flex max-w-xl items-center gap-3 rounded-tile bg-fg px-4 py-2.5 text-sm text-canvas shadow-lg">
+              <span>{toast.words}</span>
+              {toast.action !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.action?.run();
+                    show(null);
+                  }}
+                  className={`min-h-touch rounded-control bg-brand px-3 font-bold text-on-brand ${FOCUS}`}
+                >
+                  {toast.action.label}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  toast.action?.run();
-                  show(null);
-                }}
-                className={`min-h-touch rounded-control bg-brand px-3 font-bold text-on-brand ${FOCUS}`}
+                onClick={() => show(null)}
+                aria-label={CANVAS_WORDS[lang].close}
+                className={`min-h-touch min-w-touch rounded-control ${FOCUS}`}
               >
-                {toast.action.label}
+                <span aria-hidden="true">×</span>
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => show(null)}
-              aria-label={CANVAS_WORDS[lang].close}
-              className={`min-h-touch min-w-touch rounded-control ${FOCUS}`}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </ToastContext.Provider>
+            </div>
+          )}
+        </div>
+      </ToastContext.Provider>
+    </CanvasKeyContext.Provider>
+  );
+}
+
+// --- The two canvases' tabs ------------------------------------------------------------
+
+/**
+ * The tab list's keys (T-1872): the arrows move between the two tabs in the
+ * reading direction (in Persian the left arrow is the next tab), Home and End
+ * go to the first and last. The tabs themselves are server-drawn links; the
+ * chosen one is in the tab order, the other is reached by the arrows, and
+ * Enter opens it.
+ */
+export function CanvasTabKeys({ label, children }: { label: string; children: ReactNode }) {
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const tabs = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')];
+    const at = tabs.findIndex((tab) => tab === globalThis.document.activeElement);
+    if (at < 0) return;
+    const rtl = globalThis.getComputedStyle(event.currentTarget).direction === 'rtl';
+    const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
+    const back = rtl ? 'ArrowRight' : 'ArrowLeft';
+    let to: number | null = null;
+    if (event.key === forward) to = (at + 1) % tabs.length;
+    else if (event.key === back) to = (at - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') to = 0;
+    else if (event.key === 'End') to = tabs.length - 1;
+    if (to === null) return;
+    event.preventDefault();
+    tabs[to]?.focus();
+  };
+  return (
+    <div role="tablist" aria-label={label} className="flex gap-1.5" onKeyDown={onKeyDown}>
+      {children}
+    </div>
   );
 }
 
@@ -179,6 +240,7 @@ export function CanvasCard({
 }) {
   const w = CANVAS_WORDS[lang];
   const toast = useContext(ToastContext);
+  const canvas = useContext(CanvasKeyContext);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -199,7 +261,7 @@ export function CanvasCard({
           lang={lang}
           initial={card}
           onCancel={() => setEditing(false)}
-          onSave={(patch) => updateCanvasCard(card.id, patch)}
+          onSave={(patch) => updateCanvasCard(canvas, card.id, patch)}
           onSaved={() => setEditing(false)}
         />
       </li>
@@ -207,51 +269,25 @@ export function CanvasCard({
 
   return (
     <li
-      className={`canvas-card flex flex-col gap-1 rounded-tile border p-2.5 ${TAG_TONE[card.tag].card}`}
+      className={`canvas-card flex flex-col gap-0.5 rounded-tile border px-2 py-1.5 ${TAG_TONE[card.tag].card}`}
       data-testid="canvas-card"
       data-tag={card.tag}
     >
-      <p className="flex items-center gap-1.5 text-xs font-bold text-muted">
-        <span
-          aria-hidden="true"
-          className={`size-2.5 shrink-0 rounded-pill ${TAG_TONE[card.tag].dot}`}
-        />
-        {TAG_WORDS[card.tag][lang]}
-      </p>
-      <p className="whitespace-pre-line break-words text-sm font-semibold leading-6 text-fg">
-        <span lang={shown.textLang} dir={shown.textLang === 'fa' ? 'rtl' : 'ltr'}>
-          {shown.text}
-        </span>
-        {shown.textLang !== lang && <OtherLanguage lang={lang} title={w.onlyOther} />}
-      </p>
-      {shown.note !== '' && (
-        <p
-          className="whitespace-pre-line break-words text-xs leading-5 text-muted"
-          lang={shown.noteLang}
-          dir={shown.noteLang === 'fa' ? 'rtl' : 'ltr'}
+      {/* The tag and the controls share the card's first line. */}
+      <div className="flex flex-wrap items-center justify-between gap-x-2">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-muted">
+          <span
+            aria-hidden="true"
+            className={`size-2.5 shrink-0 rounded-pill ${TAG_TONE[card.tag].dot}`}
+          />
+          {TAG_WORDS[card.tag][lang]}
+        </p>
+        <div
+          className="-me-1.5 -my-0.5 flex"
+          role="group"
+          aria-label={w.cardActions}
+          data-print="hide"
         >
-          {shown.note}
-        </p>
-      )}
-      {card.source !== '' && (
-        <p
-          className="canvas-card-source break-words font-mono text-xs leading-4 text-caption [unicode-bidi:plaintext]"
-          dir="ltr"
-        >
-          {card.source}
-        </p>
-      )}
-      <div className="canvas-card-foot mt-0.5 flex flex-wrap items-center justify-between gap-x-2">
-        <p className="min-w-0 truncate text-xs text-caption" data-testid="canvas-card-who">
-          {card.last_change === null ? (
-            w.firstFill
-          ) : (
-            <>
-              <span dir="auto">{card.last_change.actor}</span> · {at(card.last_change.at, lang)}
-            </>
-          )}
-        </p>
-        <div className="-me-2 flex" role="group" aria-label={w.cardActions} data-print="hide">
           <button
             type="button"
             className={ICON}
@@ -268,7 +304,7 @@ export function CanvasCard({
             aria-label={w.up}
             title={w.up}
             disabled={pending || first}
-            onClick={() => run(() => moveCanvasCard(card.id, 'up'))}
+            onClick={() => run(() => moveCanvasCard(canvas, card.id, 'up'))}
           >
             <Icon name="up" />
           </button>
@@ -278,7 +314,7 @@ export function CanvasCard({
             aria-label={w.down}
             title={w.down}
             disabled={pending || last}
-            onClick={() => run(() => moveCanvasCard(card.id, 'down'))}
+            onClick={() => run(() => moveCanvasCard(canvas, card.id, 'down'))}
           >
             <Icon name="down" />
           </button>
@@ -290,7 +326,7 @@ export function CanvasCard({
             disabled={pending}
             onClick={() =>
               run(
-                () => removeCanvasCard(card.id),
+                () => removeCanvasCard(canvas, card.id),
                 () =>
                   toast({
                     words: w.removed,
@@ -298,7 +334,7 @@ export function CanvasCard({
                       label: w.undo,
                       // The undo says how it went: a refused restore leaves the card in the bin.
                       run: () =>
-                        void restoreCanvasCard(card.id).then(
+                        void restoreCanvasCard(canvas, card.id).then(
                           (result) =>
                             toast({
                               words: result.ok ? w.restored : (result.error ?? w.restoreFailed),
@@ -314,6 +350,41 @@ export function CanvasCard({
           </button>
         </div>
       </div>
+      <p className="whitespace-pre-line break-words text-[0.8125rem] font-semibold leading-5 text-fg">
+        <span lang={shown.textLang} dir={shown.textLang === 'fa' ? 'rtl' : 'ltr'}>
+          {shown.text}
+        </span>
+        {shown.textLang !== lang && <OtherLanguage lang={lang} title={w.onlyOther} />}
+      </p>
+      {shown.note !== '' && (
+        <p
+          className="whitespace-pre-line break-words text-xs leading-[1.125rem] text-muted"
+          lang={shown.noteLang}
+          dir={shown.noteLang === 'fa' ? 'rtl' : 'ltr'}
+        >
+          {shown.note}
+        </p>
+      )}
+      {card.source !== '' && (
+        <p
+          className="canvas-card-source break-words font-mono text-xs leading-4 text-caption [unicode-bidi:plaintext]"
+          dir="ltr"
+        >
+          {card.source}
+        </p>
+      )}
+      <p
+        className="canvas-card-foot min-w-0 truncate text-xs leading-4 text-caption"
+        data-testid="canvas-card-who"
+      >
+        {card.last_change === null ? (
+          w.firstFill
+        ) : (
+          <>
+            <span dir="auto">{card.last_change.actor}</span> · {at(card.last_change.at, lang)}
+          </>
+        )}
+      </p>
       <p role="status" aria-live="polite" className="text-xs text-danger empty:hidden">
         {error}
       </p>
@@ -510,6 +581,7 @@ const EMPTY = { text_fa: '', text_en: '', note_fa: '', note_en: '', source: '' }
 /** A block's «افزودن کارت»: the editor, empty, with the block chosen; a new card is an assumption. */
 export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: CanvasLang }) {
   const [open, setOpen] = useState(false);
+  const canvas = useContext(CanvasKeyContext);
   const w = CANVAS_WORDS[lang];
   if (open)
     return (
@@ -517,7 +589,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
         lang={lang}
         initial={{ ...EMPTY, block, tag: 'assumption' }}
         onCancel={() => setOpen(false)}
-        onSave={(fields) => createCanvasCard({ block, tag: 'assumption', ...fields })}
+        onSave={(fields) => createCanvasCard(canvas, { block, tag: 'assumption', ...fields })}
         onSaved={() => setOpen(false)}
       />
     );
@@ -526,7 +598,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
       type="button"
       onClick={() => setOpen(true)}
       data-print="hide"
-      className={`inline-flex min-h-touch items-center gap-1.5 self-start rounded-control border border-dashed border-strong px-3 text-sm font-bold text-muted hover:text-fg ${FOCUS}`}
+      className={`inline-flex min-h-touch items-center gap-1.5 self-start rounded-control border border-dashed border-strong px-2.5 text-xs font-bold text-muted hover:text-fg lg:min-h-8 lg:pointer-coarse:min-h-touch ${FOCUS}`}
     >
       <Icon name="plus" />
       {w.add}
@@ -538,6 +610,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
 export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
   const w = CANVAS_WORDS[lang];
   const toast = useContext(ToastContext);
+  const canvas = useContext(CanvasKeyContext);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
@@ -548,7 +621,7 @@ export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const result = await restoreCanvasCard(id);
+            const result = await restoreCanvasCard(canvas, id);
             if (result.ok) toast({ words: w.restored });
             else setError(result.error);
           })
@@ -563,9 +636,10 @@ export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
   );
 }
 
-/** The live cards as a JSON file, made in the browser from what the page already has. */
+/** The canvas's live cards as a JSON file, made in the browser from what the page already has. */
 export function JsonDownload({ cards, lang }: { cards: ConsoleCanvasCard[]; lang: CanvasLang }) {
   const w = CANVAS_WORDS[lang];
+  const canvas = useContext(CanvasKeyContext);
   return (
     <button
       type="button"
@@ -573,13 +647,14 @@ export function JsonDownload({ cards, lang }: { cards: ConsoleCanvasCard[]; lang
       title={w.jsonTitle}
       onClick={() => {
         const now = new Date();
-        const blob = new Blob([canvasJson(cards, now.toISOString())], {
+        const blob = new Blob([canvasJson(cards, now.toISOString(), canvas)], {
           type: 'application/json',
         });
         const url = URL.createObjectURL(blob);
         const link = Object.assign(globalThis.document.createElement('a'), {
           href: url,
-          download: `stadiomind-canvas-${now.toISOString().slice(0, 10)}.json`,
+          // Claude's keeps the name it always had; the teammate's says whose.
+          download: `stadiomind-canvas-${canvas === 'claude' ? '' : `${canvas}-`}${now.toISOString().slice(0, 10)}.json`,
         });
         link.click();
         setTimeout(() => URL.revokeObjectURL(url), 1000);

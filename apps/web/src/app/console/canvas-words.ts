@@ -3,6 +3,7 @@ import type {
   ConsoleCanvasCard,
   ConsoleCanvasEvent,
   ConsoleCanvasField,
+  ConsoleCanvasKey,
   ConsoleCanvasTag,
 } from '@fmip/contracts';
 import { CONSOLE_CANVAS_BLOCKS } from '@fmip/contracts/console';
@@ -11,7 +12,8 @@ import { CONSOLE_CANVAS_BLOCKS } from '@fmip/contracts/console';
  * The business model canvas's words (T-1856, D-441), shared by the
  * server-drawn page and its one client part: the nine blocks with their fill
  * order and guiding question, the tags and their tones, the page's own words
- * in Persian and in English (`?lang=en`, D-441's exception to D-352), what a
+ * in Persian and in English (`?lang=en`, D-441's exception to D-352), the
+ * two canvases' tabs and what differs between them (T-1872, D-448), what a
  * history row says, a card's text in the shown language with its fallback,
  * and the JSON a download holds. No React, no server.
  */
@@ -138,11 +140,26 @@ const FIELD_WORDS: Record<ConsoleCanvasField, Record<CanvasLang, string>> = {
   source: { fa: 'منبع', en: 'the source' },
 };
 
+/**
+ * The two canvases' names on their tabs (T-1872): the one Claude filled and
+ * the one the teammate fills himself. «Claude» is a name, as in the Persian
+ * scan's technical terms.
+ */
+export const CANVAS_NAMES: Record<ConsoleCanvasKey, Record<CanvasLang, string>> = {
+  claude: { fa: 'بوم Claude', en: 'Claude’s canvas' },
+  teammate: { fa: 'بوم هم‌تیمی', en: 'Teammate’s canvas' },
+};
+
 /** The page's own words, in the shown language. */
 export const CANVAS_WORDS = {
   fa: {
     title: 'بوم مدل کسب‌وکار',
     lede: 'پیش‌نویس زنده از وضعیت واقعی پروژه. هر کارت منبعش را دارد؛ آنچه سنجیده نشده «فرض» است و هر رقم ناشناخته «پرسش باز». هر تغییر با نام و زمان در تاریخچه و کارنامه‌ی کنسول می‌ماند.',
+    ledeTeammate:
+      'بومی که هم‌تیمی خودش پر می‌کند؛ همان نُه بخش و همان امکانات کارت. هر تغییر با نام و زمان در تاریخچه و کارنامه‌ی کنسول می‌ماند.',
+    tabs: 'دو بوم',
+    emptyCanvas:
+      'این بوم هنوز خالی است. در هر بخش «افزودن کارت» را بزنید، متن را به فارسی یا انگلیسی بنویسید و ذخیره کنید؛ برچسب، یادداشت و منبع را هم می‌شود همان‌جا گذاشت.',
     sheetHead: 'Stadiomind · بوم مدل کسب‌وکار',
     sheetOrder: 'شماره‌ی هر خانه ترتیب پرکردن بوم است',
     all: 'همه',
@@ -165,6 +182,7 @@ export const CANVAS_WORDS = {
     history: 'تاریخچه‌ی بوم',
     historyNote: 'صد تغییر تازه‌تر، تازه‌ترین بالا.',
     historyEmpty: 'هنوز تغییری ثبت نشده؛ همه‌ی کارت‌ها از پرکردن اولیه‌اند.',
+    historyEmptyTeammate: 'هنوز تغییری ثبت نشده.',
     readError: 'بوم خوانده نشد. کمی بعد دوباره امتحان کنید.',
     foot: 'این بوم مشاوره‌ی مالی یا حقوقی نیست. رقم‌ها فقط همان‌هایی‌اند که در منابع آمده؛ برای درآمد هیچ رقمی پیش‌بینی نشده و جای خالی‌اش «پرسش باز» است.',
     // The card and its editor.
@@ -196,6 +214,11 @@ export const CANVAS_WORDS = {
   en: {
     title: 'Business model canvas',
     lede: 'A live draft from the project’s real state. Every card names its source; anything untested is an assumption, and every unknown number is an open question. Every change is kept with its name and time in the history and the console’s audit trail.',
+    ledeTeammate:
+      'The canvas the teammate fills in himself: the same nine blocks and the same cards. Every change is kept with its name and time in the history and the console’s audit trail.',
+    tabs: 'The two canvases',
+    emptyCanvas:
+      'This canvas is still empty. Press “Add card” in any block, write the text in Persian or English, and save; the tag, note and source go in the same place.',
     sheetHead: 'Stadiomind · Business model canvas',
     sheetOrder: 'Each cell’s number is the order the canvas is filled in',
     all: 'All',
@@ -218,6 +241,7 @@ export const CANVAS_WORDS = {
     history: 'History of the canvas',
     historyNote: 'The newest 100 changes, newest first.',
     historyEmpty: 'No changes yet; every card is from the first fill.',
+    historyEmptyTeammate: 'No changes yet.',
     readError: 'The canvas could not be read. Try again in a moment.',
     foot: 'Not financial or legal advice. Figures are only those stated in the sources; no revenue figure has been forecast, and each gap is an open question.',
     edit: 'Edit',
@@ -356,11 +380,18 @@ export function tagCounts(
   return counts;
 }
 
-/** The JSON a download holds: every live card in block order, with its source and tag. */
-export function canvasJson(cards: readonly ConsoleCanvasCard[], exportedAt: string): string {
+/** The JSON a download holds: one canvas's live cards in block order, with their source and tag. */
+export function canvasJson(
+  cards: readonly ConsoleCanvasCard[],
+  exportedAt: string,
+  canvas: ConsoleCanvasKey = 'claude',
+): string {
   return `${JSON.stringify(
     {
       canvas: 'Stadiomind business model canvas',
+      // Which of the two (T-1872): `claude` or `teammate`.
+      canvas_key: canvas,
+      canvas_name: CANVAS_NAMES[canvas].en,
       exported_at: exportedAt,
       cards: cards.map((c) => ({
         block: c.block,

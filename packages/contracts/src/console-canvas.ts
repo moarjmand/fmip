@@ -7,6 +7,15 @@
  */
 
 /**
+ * The canvases (T-1872, D-448): the one Claude filled (`claude`, the seed of
+ * D-441) and the one the teammate fills himself (`teammate`, empty at first).
+ * Every route takes `?canvas=`; without it a route is Claude's, as before.
+ */
+export const CONSOLE_CANVAS_KEYS = ['claude', 'teammate'] as const;
+/** The canvas a route without `?canvas=` reads and writes: the one old links name. */
+export const CONSOLE_CANVAS_DEFAULT_KEY = 'claude';
+
+/**
  * The nine blocks, in the order a canvas is filled (and the order the API
  * lists cards in): segments, value, channels, relationships, revenue,
  * resources, activities, partners, costs.
@@ -38,6 +47,7 @@ export const CONSOLE_CANVAS_SOURCE_MAX = 300;
 /** How many of the canvas's newest changes `GET /console/canvas` sends. */
 export const CONSOLE_CANVAS_HISTORY_SIZE = 100;
 
+export type ConsoleCanvasKey = (typeof CONSOLE_CANVAS_KEYS)[number];
 export type ConsoleCanvasBlock = (typeof CONSOLE_CANVAS_BLOCKS)[number];
 export type ConsoleCanvasTag = (typeof CONSOLE_CANVAS_TAGS)[number];
 export type ConsoleCanvasField = (typeof CONSOLE_CANVAS_FIELDS)[number];
@@ -52,6 +62,8 @@ export interface ConsoleCanvasLastChange {
 
 export interface ConsoleCanvasCard {
   id: string;
+  /** The canvas it is on (T-1872). */
+  canvas: ConsoleCanvasKey;
   block: ConsoleCanvasBlock;
   /** Its order inside the block. */
   position: number;
@@ -98,8 +110,13 @@ export interface ConsoleCanvasPerson {
   owner: boolean;
 }
 
-/** `GET /console/canvas`: the live cards in block order, the bin, the newest changes and the people. */
+/**
+ * `GET /console/canvas?canvas=`: one canvas's live cards in block order, its
+ * bin, its newest changes, and the people.
+ */
 export interface ConsoleCanvas {
+  /** The canvas read (T-1872). */
+  canvas: ConsoleCanvasKey;
   cards: ConsoleCanvasCard[];
   /** Removed cards, the newest removal first. */
   removed: ConsoleCanvasCard[];

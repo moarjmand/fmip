@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CANVAS, ENGLISH_ONLY, PARTNER, REMOVED, SEGMENT } from './canvas.fixture';
+import { CANVAS, ENGLISH_ONLY, PARTNER, REMOVED, SEGMENT, TEAMMATE_EMPTY } from './canvas.fixture';
 import { CardEditor } from './canvas-card';
 import { canvasJson, cardText, historyWords, tagCounts } from './canvas-words';
 
@@ -14,10 +14,13 @@ import { canvasJson, cardText, historyWords, tagCounts } from './canvas-words';
  * changed them, the tag filters with counts, the bin with restore, the
  * history newest first in words, the English view on the page's own
  * container, the editor with both languages, the JSON download, and
- * logical CSS only (rule 7).
+ * logical CSS only (rule 7). T-1872 (D-448): the two canvases as two tabs
+ * (an accessible tab list, the URL keeping the tab and the language), the
+ * teammate's starting empty with a hint, and the compact sizes that keep the
+ * 44 px target on any touch screen.
  */
 
-const state = vi.hoisted(() => ({ answer: null as unknown }));
+const state = vi.hoisted(() => ({ answer: null as unknown, asked: [] as unknown[] }));
 
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: () => undefined, set: () => undefined }),
@@ -41,7 +44,10 @@ vi.mock('@/lib/console-actions', () => {
   };
 });
 vi.mock('@/lib/console-api', () => ({
-  consoleCanvas: () => Promise.resolve(state.answer),
+  consoleCanvas: (canvas: unknown) => {
+    state.asked.push(canvas);
+    return Promise.resolve(state.answer);
+  },
 }));
 // The page imports its stylesheet; the test reads it as a file instead.
 vi.mock('./canvas.css', () => ({}));
@@ -55,6 +61,7 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 
 beforeEach(() => {
   state.answer = { ok: true, status: 200, data: CANVAS, setCookie: null };
+  state.asked = [];
 });
 
 describe('the layout', () => {
@@ -257,7 +264,7 @@ describe('the bin and the history', () => {
 describe('the English view', () => {
   it('turns only the page’s own container English and left to right', async () => {
     const html = await page({ lang: 'en' });
-    expect(html).toMatch(/^<div class="canvas-page flex flex-col gap-4" lang="en" dir="ltr"/);
+    expect(html).toMatch(/^<div class="canvas-page flex flex-col gap-3" lang="en" dir="ltr"/);
     expect(html).toContain('<h1 class="text-xl font-bold">Business model canvas</h1>');
     expect(html).toContain('Who are we building for?');
     expect(html).toContain(SEGMENT.text_en);
@@ -272,8 +279,109 @@ describe('the English view', () => {
 
   it('links the Persian view to the English one', async () => {
     const html = await page();
-    expect(html).toMatch(/^<div class="canvas-page flex flex-col gap-4" data-testid="canvas-page"/);
+    expect(html).toMatch(/^<div class="canvas-page flex flex-col gap-3" data-testid="canvas-page"/);
     expect(html).toMatch(/href="\/canvas\?lang=en" lang="en" dir="ltr"[^>]*>English</);
+  });
+});
+
+describe('the two canvases (T-1872)', () => {
+  const tabs = (html: string) =>
+    [...html.matchAll(/<a[^>]*role="tab"[^>]*>[^<]*<\/a>/g)].map((m) => m[0]);
+
+  it('opens Claude’s canvas by default, as a tab list whose chosen tab controls the panel', async () => {
+    const html = await page();
+    expect(state.asked).toEqual(['claude']);
+    expect(html).toMatch(/<div role="tablist" aria-label="دو بوم"/);
+    const [claude, teammate] = tabs(html);
+    expect(tabs(html)).toHaveLength(2);
+    expect(claude).toContain('href="/canvas"');
+    expect(claude).toContain('id="canvas-tab-claude"');
+    expect(claude).toContain('aria-selected="true"');
+    expect(claude).toContain('tabindex="0"');
+    expect(claude).toContain('aria-controls="canvas-panel"');
+    expect(claude).toContain('>بوم Claude</a>');
+    expect(teammate).toContain('href="/canvas?canvas=teammate"');
+    expect(teammate).toContain('aria-selected="false"');
+    expect(teammate).toContain('tabindex="-1"');
+    expect(teammate).toContain('>بوم هم‌تیمی</a>');
+    expect(html).toMatch(/id="canvas-panel" role="tabpanel" aria-labelledby="canvas-tab-claude"/);
+    // Claude's canvas keeps its seed's words and its foot.
+    expect(html).toContain('پیش‌نویس زنده از وضعیت واقعی پروژه.');
+    expect(html).toContain('این بوم مشاوره‌ی مالی یا حقوقی نیست.');
+    expect(html).toContain('Stadiomind · بوم مدل کسب‌وکار · بوم Claude');
+    expect(html).not.toContain('data-testid="canvas-empty"');
+  });
+
+  it('reads and writes the teammate’s canvas with ?canvas=teammate, empty at first with a hint', async () => {
+    state.answer = { ok: true, status: 200, data: TEAMMATE_EMPTY, setCookie: null };
+    const html = await page({ canvas: 'teammate' });
+    expect(state.asked).toEqual(['teammate']);
+    const [claude, teammate] = tabs(html);
+    expect(claude).toContain('aria-selected="false"');
+    expect(teammate).toContain('aria-selected="true"');
+    expect(html).toMatch(/id="canvas-panel" role="tabpanel" aria-labelledby="canvas-tab-teammate"/);
+    expect(html).toContain('data-canvas="teammate"');
+    // The same nine blocks, each with its add button, and how to begin.
+    expect(count(html, 'data-testid="canvas-block"')).toBe(9);
+    expect(count(html, 'افزودن کارت')).toBeGreaterThanOrEqual(9);
+    expect(count(html, 'data-testid="canvas-card"')).toBe(0);
+    expect(html).toContain('data-testid="canvas-empty"');
+    expect(html).toContain('این بوم هنوز خالی است.');
+    expect(html).toContain('بومی که هم‌تیمی خودش پر می‌کند');
+    expect(html).toContain('هنوز تغییری ثبت نشده.');
+    expect(html).not.toContain('همه‌ی کارت‌ها از پرکردن اولیه‌اند');
+    // Claude's foot and lede speak of Claude's cards only.
+    expect(html).not.toContain('این بوم مشاوره‌ی مالی یا حقوقی نیست.');
+    expect(html).not.toContain('پیش‌نویس زنده از وضعیت واقعی پروژه.');
+    expect(html).toContain('Stadiomind · بوم مدل کسب‌وکار · بوم هم‌تیمی');
+    // Every link on the tab keeps it: the filters and the language.
+    expect(html).toContain('href="/canvas?canvas=teammate&amp;tag=risk"');
+    expect(html).toMatch(/href="\/canvas\?canvas=teammate&amp;lang=en" lang="en" dir="ltr"/);
+  });
+
+  it('keeps the language on the tabs, drops the tag filter, and reads an unknown canvas as Claude’s', async () => {
+    const english = await page({ lang: 'en', tag: 'risk' });
+    const [claude, teammate] = tabs(english);
+    expect(claude).toContain('href="/canvas?lang=en"');
+    expect(claude).toContain('>Claude’s canvas</a>');
+    expect(teammate).toContain('href="/canvas?canvas=teammate&amp;lang=en"');
+    expect(teammate).toContain('>Teammate’s canvas</a>');
+    expect(english).toMatch(/<div role="tablist" aria-label="The two canvases"/);
+    await page({ canvas: 'mine' });
+    expect(state.asked.at(-1)).toBe('claude');
+  });
+
+  it('downloads the teammate’s canvas named as such', () => {
+    const json = JSON.parse(canvasJson([], '2026-11-17T12:00:00.000Z', 'teammate')) as Record<
+      string,
+      unknown
+    >;
+    expect(json).toMatchObject({
+      canvas_key: 'teammate',
+      canvas_name: 'Teammate’s canvas',
+      cards: [],
+    });
+    expect(JSON.parse(canvasJson(CANVAS.cards, 'x'))).toMatchObject({ canvas_key: 'claude' });
+  });
+});
+
+describe('compact (T-1872)', () => {
+  it('shrinks the controls only on a wide screen with a fine pointer; touch keeps 44 px', async () => {
+    const html = await page();
+    // A card's controls: 44 px, 28 px from lg, 44 px again on any coarse pointer.
+    expect(html).toContain(
+      'min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 lg:min-h-7 lg:min-w-7 lg:pointer-coarse:min-h-touch lg:pointer-coarse:min-w-touch',
+    );
+    // Every tag chip, tab and button is 44 px below lg.
+    for (const testid of ['canvas-tag-filter', 'canvas-tab', 'canvas-lang']) {
+      const tag = new RegExp(`<a[^>]*data-testid="${testid}"[^>]*>`).exec(html)?.[0] ?? '';
+      expect(tag, testid).toContain('min-h-touch');
+      expect(tag, testid).toContain('lg:pointer-coarse:min-h-touch');
+    }
+    // Tighter cells and smaller card text.
+    expect(html).toContain('canvas-block flex min-h-28 min-w-0 flex-col gap-1.5 bg-surface p-2');
+    expect(html).toContain('text-[0.8125rem] font-semibold leading-5');
+    expect(html).not.toContain('min-h-44');
   });
 });
 
