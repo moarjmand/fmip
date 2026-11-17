@@ -38,6 +38,14 @@ describe('nonArticleKind', () => {
       'Use DraftKings promo code to get $150 bonus bets by betting Georgia-Alabama, USC-Penn State, college football',
       'betting_offer',
     ],
+    // T-1862: on the English news page of production on 2026-11-17.
+    [
+      'Football accumulator tips for Tuesday November 17: Back our Nations League acca at 8-1',
+      'betting_offer',
+    ],
+    ['Arsenal vs Spurs prediction and betting tips', 'betting_offer'],
+    ['Premier League best bets for the weekend', 'betting_offer'],
+    ['Saturday acca: four picks at 12-1', 'betting_offer'],
   ])('%s is %s', (headline, kind) => {
     expect(nonArticleKind(headline)).toBe(kind);
   });
@@ -50,6 +58,10 @@ describe('nonArticleKind', () => {
     'Oliver Glasner delivers verdict on a lively draw',
     'Chiesa earns first minutes of 2026-27 season for Liverpool in 3-0 Man City defeat',
     'Man City blow Liverpool away at Anfield – but was it all meaningless?',
+    // Words that merely contain "acca", and a bet that is a figure of speech.
+    'Accrington Stanley sign striker on loan',
+    'Club 3 report 7 1f2e3acca5-90ab',
+    'Arsenal’s best bet up front is Havertz, says Arteta',
   ])('%s is an article', (headline) => {
     expect(nonArticleKind(headline)).toBeNull();
   });

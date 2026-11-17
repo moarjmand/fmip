@@ -19,6 +19,9 @@ export interface NonArticleRule {
 
 const START = '(^|[^A-Za-z])';
 const END = '([^A-Za-z]|$)';
+/** A word between neither letters nor digits: "acca", never the "3acca5" of an id. */
+const WORD_START = '(^|[^A-Za-z0-9])';
+const WORD_END = '([^A-Za-z0-9]|$)';
 
 export const NON_ARTICLE_RULES: readonly NonArticleRule[] = [
   // "Liverpool vs Manchester City LIVE: Cherki adds third", "LIVE! Arsenal v Spurs".
@@ -38,8 +41,15 @@ export const NON_ARTICLE_RULES: readonly NonArticleRule[] = [
     pattern: `${START}(how to watch|where to watch|where to stream|streaming and tv information|what tv channel|what channel is|listen live)${END}`,
     caseSensitive: false,
   },
-  // "Best Kalshi promo code CBSSPORTS55: Earn $55 bonus ...", "... $150 bonus bets ...".
-  { kind: 'betting_offer', pattern: `${START}(promo code|bonus bets)${END}`, caseSensitive: false },
+  // "Best Kalshi promo code CBSSPORTS55: Earn $55 bonus ...", "... $150 bonus bets ...",
+  // and the tipsters' pages (T-1862): "Football accumulator tips for Tuesday November 17:
+  // Back our Nations League acca at 8-1", "... betting tips", "best bets", "free bets",
+  // "odds boost".
+  {
+    kind: 'betting_offer',
+    pattern: `${WORD_START}(promo code|bonus bets|betting tips|accumulator tips|acca|best bets|free bets|odds boost)${WORD_END}`,
+    caseSensitive: false,
+  },
 ];
 
 const COMPILED = NON_ARTICLE_RULES.map((rule) => ({
