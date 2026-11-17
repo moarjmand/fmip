@@ -161,6 +161,59 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     }
   });
 
+  it('orders people who match equally by their line-ups, before an exact namesake; teams still lead (T-1851)', async () => {
+    const team = randomUUID();
+    const club = randomUUID();
+    const famous = randomUUID();
+    const known = randomUUID();
+    const namesake = randomUUID();
+    const name = `Wombatwick${RUN}`;
+    await pool.query(
+      `INSERT INTO team (id, name, short_name, code, kind, gender, country_id)
+       VALUES ($1, $2, NULL, NULL, 'club', 'men', $4), ($3, $5, NULL, NULL, 'club', 'men', $4)`,
+      // "Zz ..." sorts after every person by name: it leads only as a team.
+      [team, name, club, ENGLAND, `Zz ${name}`],
+    );
+    await pool.query(
+      `INSERT INTO person (id, full_name, known_as) VALUES
+         ($1, $4, NULL), ($2, $5, NULL), ($3, $6, NULL)`,
+      [famous, known, namesake, `Lionel ${name}`, `Rayane ${name}`, name],
+    );
+    // Two line-ups for the famous one, one for the next, none for the namesake.
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture_participant ORDER BY id LIMIT 2`,
+    );
+    expect(rows).toHaveLength(2);
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role) VALUES
+         ($1, $3, 'starter'), ($2, $3, 'bench'), ($1, $4, 'starter')`,
+      [rows[0]!.id, rows[1]!.id, famous, known],
+    );
+    try {
+      const q = encodeURIComponent(name.toLowerCase());
+      const ids: string[] = [team, club, famous, known, namesake];
+      const found = (await search(`q=${q}&types=team,person&limit=25`)).results
+        .map((r) => r.id)
+        .filter((id) => ids.includes(id));
+      // All five score 1; by name alone the namesake would lead the people.
+      expect(found).toEqual([team, club, famous, known, namesake]);
+      // A short page keeps both clubs: well-known players never push a team out
+      // (review round 1).
+      const short = (await search(`q=${q}&types=team,person&limit=2`)).results.map((r) => r.id);
+      expect(short).toEqual([team, club]);
+      // One place left for people: the famous one takes it (the line-ups are
+      // counted exactly when a person can still reach the page, review round 2).
+      const three = (await search(`q=${q}&types=team,person&limit=3`)).results.map((r) => r.id);
+      expect(three).toEqual([team, club, famous]);
+    } finally {
+      await pool.query(`DELETE FROM lineup WHERE person_id = ANY($1::uuid[])`, [[famous, known]]);
+      await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
+        [famous, known, namesake],
+      ]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[team, club]]);
+    }
+  });
+
   it("names each team's domestic league and ground, and says when it holds neither (T-1803)", async () => {
     const season = randomUUID();
     const stage = randomUUID();

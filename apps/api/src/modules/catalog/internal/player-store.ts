@@ -1,5 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  CompetitionKind,
+  CompetitionScope,
   Covered,
   PlayerAvailability,
   PlayerClub,
@@ -408,6 +410,8 @@ export class PostgresPlayerStore {
       competition_id: string;
       competition_name: string;
       competition_short_name: string | null;
+      competition_kind: CompetitionKind;
+      competition_scope: CompetitionScope;
       team_id: string;
       team_name: string;
       starts: string;
@@ -472,6 +476,7 @@ export class PostgresPlayerStore {
        )
        SELECT se.id AS season_id, season_display_label(se.label, se.start_date) AS season_label,
               c.id AS competition_id, c.name AS competition_name, c.short_name AS competition_short_name,
+              c.kind AS competition_kind, c.scope AS competition_scope,
               t.id AS team_id, t.name AS team_name,
               k.starts::text, k.sub_appearances::text, k.goals::text, k.assists::text,
               k.yellow_cards::text, k.red_cards::text, k.matches_played::text,
@@ -490,6 +495,8 @@ export class PostgresPlayerStore {
         id: r.competition_id,
         name: r.competition_name,
         short_name: r.competition_short_name,
+        kind: r.competition_kind,
+        scope: r.competition_scope,
       },
       team: { id: r.team_id, name: r.team_name },
       starts: Number(r.starts),

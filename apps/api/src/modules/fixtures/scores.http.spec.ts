@@ -263,4 +263,48 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('GET /scores'
       fields: { to: expect.any(String), tz: expect.any(String) },
     });
   });
+
+  it("gives a national team without a code of its own its country's FIFA code (T-1858)", async () => {
+    // France 2-1 Türkiye, 2026-11-16: the card read FR and TÜ. A club with no
+    // code keeps none, whatever its country.
+    const { rows: countries } = await pool.query<{ id: string; code: string }>(
+      `SELECT id, code FROM country WHERE code IN ('FRA', 'TUR')`,
+    );
+    const country = (code: string) => countries.find((c) => c.code === code)?.id;
+    const [france, turkiye, club] = [randomUUID(), randomUUID(), randomUUID()];
+    const [national, clubMatch] = [randomUUID(), randomUUID()];
+    await pool.query(
+      `INSERT INTO team (id, name, code, kind, country_id, gender) VALUES
+         ($1, 'France', NULL, 'national', $4, 'men'),
+         ($2, 'Türkiye', NULL, 'national', $5, 'men'),
+         ($3, 'Club Without Code', NULL, 'club', $4, 'men')`,
+      [france, turkiye, club, country('FRA'), country('TUR')],
+    );
+    try {
+      await pool.query(
+        `INSERT INTO fixture (id, season_id, kickoff_at, status) VALUES
+           ($1, $3, TIMESTAMPTZ '2087-01-20 19:45:00+00', 'scheduled'),
+           ($2, $3, TIMESTAMPTZ '2087-01-20 15:00:00+00', 'scheduled')`,
+        [national, clubMatch, PL_2024],
+      );
+      await pool.query(
+        `INSERT INTO fixture_participant (fixture_id, team_id, side) VALUES
+           ($1, $3, 'home'), ($1, $4, 'away'), ($2, $5, 'home'), ($2, $6, 'away')`,
+        [national, clubMatch, france, turkiye, club, LIVERPOOL],
+      );
+      const body = (await get('from=2087-01-20&to=2087-01-20&tz=UTC')).json() as ScoresResponse;
+      const cards = body.groups.flatMap((g) => g.fixtures);
+      expect(cards.find((c) => c.id === national)).toMatchObject({
+        home: { id: france, code: 'FRA' },
+        away: { id: turkiye, code: 'TUR' },
+      });
+      expect(cards.find((c) => c.id === clubMatch)).toMatchObject({
+        home: { id: club, code: null },
+        away: { id: LIVERPOOL, code: 'LIV' },
+      });
+    } finally {
+      await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [[national, clubMatch]]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[france, turkiye, club]]);
+    }
+  });
 });

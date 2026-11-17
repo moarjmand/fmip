@@ -13,6 +13,7 @@ import { freshnessOf } from './freshness';
 import { liveAnsweredAtSql } from './live-answer';
 import { scoreConflictOf, withheld } from './score-conflict';
 import { scoreDisputeOf } from './score-dispute';
+import { teamCodeSql } from './team-code';
 
 /** A card plus the country its competition belongs to, for grouping. */
 export interface ScoredRow {
@@ -211,9 +212,9 @@ export class PostgresScoresStore {
               s.stage_id, s.stage_name, s.stage_kind,
               s.venue_id, s.venue_name, s.venue_city, s.scores_coverage,
               h.team_id AS home_id, th.name AS home_name, th.short_name AS home_short_name,
-              th.code AS home_code,
+              ${teamCodeSql('th')} AS home_code,
               a.team_id AS away_id, ta.name AS away_name, ta.short_name AS away_short_name,
-              ta.code AS away_code,
+              ${teamCodeSql('ta')} AS away_code,
               (SELECT jsonb_object_agg(sc.kind, jsonb_build_object('home', sc.home, 'away', sc.away))
                  FROM fixture_score sc WHERE sc.fixture_id = s.id) AS scores,
               (SELECT jsonb_agg(jsonb_build_object(
