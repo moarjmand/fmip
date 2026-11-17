@@ -104,6 +104,10 @@ test.describe('competitions menu', () => {
   test('closes on Esc and hands focus back', async ({ page }) => {
     await page.goto('/en/scores');
     const trigger = page.getByTestId('nav-competitions');
+    // Until the page is hydrated the entry is the server's link; the button
+    // that opens the panel replaces it, and a focus given to the link before
+    // that is lost with it (T-1861). Wait for the button.
+    await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await trigger.focus();
     await page.keyboard.press('Enter');
     await expect(page.getByTestId('competitions-menu-filter')).toBeFocused();
