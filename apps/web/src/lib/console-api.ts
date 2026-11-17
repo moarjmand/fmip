@@ -8,6 +8,7 @@ import type {
   ConsoleCalendar,
   ConsoleCalendarPush,
   ConsoleCanvas,
+  ConsoleCanvasKey,
   ConsoleChecklist,
   ConsoleCommand,
   ConsoleConversation,
@@ -180,5 +181,9 @@ export const consoleCalendarPush = () => consoleCall<ConsoleCalendarPush>('calen
 export const consoleSocial = () => consoleCall<SocialConsoleView>('social');
 /** The pre-launch checklist (T-1840, D-428): both lists, their items, notes and history, and the people. */
 export const consoleChecklist = () => consoleCall<ConsoleChecklist>('checklist');
-/** The business model canvas (T-1856, D-441): live cards in block order, the bin, the newest changes, the people. */
-export const consoleCanvas = () => consoleCall<ConsoleCanvas>('canvas');
+/**
+ * One business model canvas (T-1856, D-441; T-1872, D-448: Claude's or the
+ * teammate's): live cards in block order, the bin, the newest changes, the people.
+ */
+export const consoleCanvas = (canvas: ConsoleCanvasKey = 'claude') =>
+  consoleCall<ConsoleCanvas>(`canvas?canvas=${encodeURIComponent(canvas)}`);

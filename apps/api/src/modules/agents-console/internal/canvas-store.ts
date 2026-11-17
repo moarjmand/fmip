@@ -1,6 +1,7 @@
 /**
  * The business model canvas's Postgres store (T-1856, D-441): cards and the
- * canvas's history, every change a person makes with its event row(s) and
+ * canvas's history, per canvas (T-1872, D-448: every read and write names
+ * `claude` or `teammate`, and a card of the other canvas is missing), every change a person makes with its event row(s) and
  * its `console_audit` row carrying the whole card before and after, in the
  * same transaction (rule 10). Nothing deletes a row: removal is
  * `deleted_at`, and the bin restores.
@@ -13,6 +14,7 @@ import type {
   ConsoleCanvasCardPatch,
   ConsoleCanvasEvent,
   ConsoleCanvasField,
+  ConsoleCanvasKey,
   ConsoleCanvasPerson,
   ConsoleCanvasTag,
   ConsoleMe,
@@ -41,6 +43,7 @@ export type CanvasOutcome =
 
 interface CardRow {
   id: string;
+  canvas: ConsoleCanvasKey;
   block: ConsoleCanvasBlock;
   position: number;
   tag: ConsoleCanvasTag;
@@ -58,7 +61,7 @@ interface CardRow {
 
 /** A card with who removed it and its newest event's actor and time (`console_canvas_event_card`). */
 const CARD_SELECT = `
-  SELECT c.id, c.block, c.position, c.tag, c.text_fa, c.text_en, c.note_fa, c.note_en, c.source,
+  SELECT c.id, c.canvas, c.block, c.position, c.tag, c.text_fa, c.text_en, c.note_fa, c.note_en, c.source,
          c.created_at, c.deleted_at, d.display_name AS removed_by,
          last.actor AS last_actor, last.created_at AS last_at
     FROM console_canvas_card c
@@ -75,6 +78,7 @@ const BLOCK_ORDER = `ARRAY[${CONSOLE_CANVAS_BLOCKS.map((b) => `'${b}'`).join(', 
 
 const cardOf = (row: CardRow): ConsoleCanvasCard => ({
   id: row.id,
+  canvas: row.canvas,
   block: row.block,
   position: row.position,
   tag: row.tag,
@@ -102,8 +106,14 @@ const stateOf = (row: CardRow): CardState => ({
   source: row.source,
 });
 
-/** The audit row's picture of a card: all a person can change, its place, and whether it is removed. */
-const auditOf = (state: CardState, position: number, removed: boolean) => ({
+/** The audit row's picture of a card: its canvas, all a person can change, its place, and whether it is removed. */
+const auditOf = (
+  canvas: ConsoleCanvasKey,
+  state: CardState,
+  position: number,
+  removed: boolean,
+) => ({
+  canvas,
   ...state,
   position,
   removed,
@@ -113,16 +123,20 @@ const auditOf = (state: CardState, position: number, removed: boolean) => ({
 export class PostgresCanvasStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
 
-  /** The live cards in block order, the bin, the newest changes and the people. */
-  async canvas(): Promise<ConsoleCanvas> {
+  /** One canvas's live cards in block order, its bin, its newest changes, and the people. */
+  async canvas(canvas: ConsoleCanvasKey): Promise<ConsoleCanvas> {
     const [live, removed, history, people] = await Promise.all([
       this.pool.query<CardRow>(
         `${CARD_SELECT}
-          WHERE c.deleted_at IS NULL
+          WHERE c.canvas = $1 AND c.deleted_at IS NULL
           ORDER BY array_position(${BLOCK_ORDER}, c.block), c.position, c.created_at, c.id`,
+        [canvas],
       ),
       this.pool.query<CardRow>(
-        `${CARD_SELECT} WHERE c.deleted_at IS NOT NULL ORDER BY c.deleted_at DESC, c.id`,
+        `${CARD_SELECT}
+          WHERE c.canvas = $1 AND c.deleted_at IS NOT NULL
+          ORDER BY c.deleted_at DESC, c.id`,
+        [canvas],
       ),
       this.pool.query<Omit<ConsoleCanvasEvent, 'created_at'> & { created_at: Date }>(
         `SELECT e.id, e.card_id, e.kind, e.field, u.display_name AS actor, e.previous, e.next,
@@ -130,9 +144,10 @@ export class PostgresCanvasStore {
            FROM console_canvas_event e
            JOIN console_user u ON u.id = e.actor_id
            JOIN console_canvas_card c ON c.id = e.card_id
+          WHERE e.canvas = $1
           ORDER BY e.created_at DESC, e.id DESC
-          LIMIT $1`,
-        [CONSOLE_CANVAS_HISTORY_SIZE],
+          LIMIT $2`,
+        [canvas, CONSOLE_CANVAS_HISTORY_SIZE],
       ),
       this.pool.query<ConsoleCanvasPerson>(
         `SELECT id, username, display_name, owner
@@ -140,6 +155,7 @@ export class PostgresCanvasStore {
       ),
     ]);
     return {
+      canvas,
       cards: live.rows.map(cardOf),
       removed: removed.rows.map(cardOf),
       history: history.rows.map((e) => ({ ...e, created_at: e.created_at.toISOString() })),
@@ -147,17 +163,23 @@ export class PostgresCanvasStore {
     };
   }
 
-  /** A new card, last in its block. */
-  async createCard(input: CardState, actor: ConsoleMe): Promise<CanvasOutcome> {
+  /** A new card, last in its block of its canvas. */
+  async createCard(
+    canvas: ConsoleCanvasKey,
+    input: CardState,
+    actor: ConsoleMe,
+  ): Promise<CanvasOutcome> {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
-      const position = await this.nextIn(client, input.block);
+      const position = await this.nextIn(client, canvas, input.block);
       const { rows } = await client.query<{ id: string }>(
         `INSERT INTO console_canvas_card
-           (block, position, tag, text_fa, text_en, note_fa, note_en, source, created_by, updated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9) RETURNING id`,
+           (canvas, block, position, tag, text_fa, text_en, note_fa, note_en, source,
+            created_by, updated_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $10) RETURNING id`,
         [
+          canvas,
           input.block,
           position,
           input.tag,
@@ -170,7 +192,16 @@ export class PostgresCanvasStore {
         ],
       );
       const id = rows[0]!.id;
-      await this.event(client, id, actor, 'created', null, null, input.text_fa || input.text_en);
+      await this.event(
+        client,
+        canvas,
+        id,
+        actor,
+        'created',
+        null,
+        null,
+        input.text_fa || input.text_en,
+      );
       await writeConsoleAudit(client, {
         actorId: actor.id,
         actorName: actor.username,
@@ -178,7 +209,7 @@ export class PostgresCanvasStore {
         targetType: 'canvas_card',
         targetId: id,
         reason: 'card added',
-        next: auditOf(input, position, false),
+        next: auditOf(canvas, input, position, false),
       });
       return { kind: 'ok', card: await this.cardById(client, id) };
     });
@@ -191,6 +222,7 @@ export class PostgresCanvasStore {
    * nothing writes nothing; one that would leave no text is refused.
    */
   async patchCard(
+    canvas: ConsoleCanvasKey,
     id: string,
     patch: ConsoleCanvasCardPatch,
     actor: ConsoleMe,
@@ -198,14 +230,16 @@ export class PostgresCanvasStore {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
-      const before = await this.liveForUpdate(client, id);
+      const before = await this.liveForUpdate(client, canvas, id);
       if (before === null) return { kind: 'missing' };
       const changes = changesOf(stateOf(before), patch);
       if (changes.length === 0) return { kind: 'ok', card: cardOf(before) };
       const after: CardState = { ...stateOf(before), ...patch };
       if (!hasText(after)) return { kind: 'invalid', reason: NEEDS_TEXT };
       const position =
-        after.block === before.block ? before.position : await this.nextIn(client, after.block);
+        after.block === before.block
+          ? before.position
+          : await this.nextIn(client, canvas, after.block);
       await client.query(
         `UPDATE console_canvas_card
             SET block = $2, position = $3, tag = $4, text_fa = $5, text_en = $6,
@@ -227,6 +261,7 @@ export class PostgresCanvasStore {
       for (const change of changes)
         await this.event(
           client,
+          canvas,
           id,
           actor,
           change.kind,
@@ -241,27 +276,32 @@ export class PostgresCanvasStore {
         targetType: 'canvas_card',
         targetId: id,
         reason: changedReason(changes),
-        previous: auditOf(stateOf(before), before.position, false),
-        next: auditOf(after, position, false),
+        previous: auditOf(canvas, stateOf(before), before.position, false),
+        next: auditOf(canvas, after, position, false),
       });
       return { kind: 'ok', card: await this.cardById(client, id) };
     });
   }
 
   /** Swaps a card with its neighbour in its block; at either end nothing moves and nothing is written. */
-  async moveCard(id: string, direction: 'up' | 'down', actor: ConsoleMe): Promise<CanvasOutcome> {
+  async moveCard(
+    canvas: ConsoleCanvasKey,
+    id: string,
+    direction: 'up' | 'down',
+    actor: ConsoleMe,
+  ): Promise<CanvasOutcome> {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
-      const before = await this.liveForUpdate(client, id);
+      const before = await this.liveForUpdate(client, canvas, id);
       if (before === null) return { kind: 'missing' };
       // Every live card of the block in its order, locked, numbered again
       // from 1 so two cards with one place (a restore) still move.
       const { rows } = await client.query<{ id: string }>(
         `SELECT id FROM console_canvas_card
-          WHERE block = $1 AND deleted_at IS NULL
+          WHERE canvas = $1 AND block = $2 AND deleted_at IS NULL
           ORDER BY position, created_at, id FOR UPDATE`,
-        [before.block],
+        [canvas, before.block],
       );
       const ids = rows.map((r) => r.id);
       const order = reordered(ids, id, direction);
@@ -278,7 +318,7 @@ export class PostgresCanvasStore {
         id,
         actor.id,
       ]);
-      await this.event(client, id, actor, 'moved', null, String(from), String(to));
+      await this.event(client, canvas, id, actor, 'moved', null, String(from), String(to));
       await writeConsoleAudit(client, {
         actorId: actor.id,
         actorName: actor.username,
@@ -286,26 +326,26 @@ export class PostgresCanvasStore {
         targetType: 'canvas_card',
         targetId: id,
         reason: `moved ${direction}`,
-        previous: auditOf(stateOf(before), from, false),
-        next: auditOf(stateOf(before), to, false),
+        previous: auditOf(canvas, stateOf(before), from, false),
+        next: auditOf(canvas, stateOf(before), to, false),
       });
       return { kind: 'ok', card: await this.cardById(client, id) };
     });
   }
 
   /** Takes a card off the canvas into the bin; its row, place and history stay. */
-  async removeCard(id: string, actor: ConsoleMe): Promise<CanvasOutcome> {
+  async removeCard(canvas: ConsoleCanvasKey, id: string, actor: ConsoleMe): Promise<CanvasOutcome> {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
-      const before = await this.liveForUpdate(client, id);
+      const before = await this.liveForUpdate(client, canvas, id);
       if (before === null) return { kind: 'missing' };
       await client.query(
         `UPDATE console_canvas_card
             SET deleted_at = now(), deleted_by = $2, updated_by = $2 WHERE id = $1`,
         [id, actor.id],
       );
-      await this.event(client, id, actor, 'removed', null, null, null);
+      await this.event(client, canvas, id, actor, 'removed', null, null, null);
       await writeConsoleAudit(client, {
         actorId: actor.id,
         actorName: actor.username,
@@ -313,8 +353,8 @@ export class PostgresCanvasStore {
         targetType: 'canvas_card',
         targetId: id,
         reason: 'card removed',
-        previous: auditOf(stateOf(before), before.position, false),
-        next: auditOf(stateOf(before), before.position, true),
+        previous: auditOf(canvas, stateOf(before), before.position, false),
+        next: auditOf(canvas, stateOf(before), before.position, true),
       });
       return { kind: 'ok', card: await this.cardById(client, id) };
     });
@@ -324,13 +364,17 @@ export class PostgresCanvasStore {
    * Brings a removed card back to its place in its block (the cards from
    * that place on move one down), so an undo puts it where it was.
    */
-  async restoreCard(id: string, actor: ConsoleMe): Promise<CanvasOutcome> {
+  async restoreCard(
+    canvas: ConsoleCanvasKey,
+    id: string,
+    actor: ConsoleMe,
+  ): Promise<CanvasOutcome> {
     return this.transaction(async (client) => {
       const limited = await this.overCeiling(client, actor);
       if (limited !== null) return limited;
       const { rows } = await client.query<CardRow>(
-        `${CARD_SELECT} WHERE c.id = $1 FOR UPDATE OF c`,
-        [id],
+        `${CARD_SELECT} WHERE c.id = $1 AND c.canvas = $2 FOR UPDATE OF c`,
+        [id, canvas],
       );
       const before = rows[0];
       if (before === undefined) return { kind: 'missing' };
@@ -338,15 +382,15 @@ export class PostgresCanvasStore {
         return { kind: 'refused', reason: 'That card is on the canvas, not in the bin.' };
       await client.query(
         `UPDATE console_canvas_card SET position = position + 1
-          WHERE block = $1 AND deleted_at IS NULL AND position >= $2`,
-        [before.block, before.position],
+          WHERE canvas = $1 AND block = $2 AND deleted_at IS NULL AND position >= $3`,
+        [canvas, before.block, before.position],
       );
       await client.query(
         `UPDATE console_canvas_card
             SET deleted_at = NULL, deleted_by = NULL, updated_by = $2 WHERE id = $1`,
         [id, actor.id],
       );
-      await this.event(client, id, actor, 'restored', null, null, null);
+      await this.event(client, canvas, id, actor, 'restored', null, null, null);
       await writeConsoleAudit(client, {
         actorId: actor.id,
         actorName: actor.username,
@@ -354,8 +398,8 @@ export class PostgresCanvasStore {
         targetType: 'canvas_card',
         targetId: id,
         reason: 'card restored',
-        previous: auditOf(stateOf(before), before.position, true),
-        next: auditOf(stateOf(before), before.position, false),
+        previous: auditOf(canvas, stateOf(before), before.position, true),
+        next: auditOf(canvas, stateOf(before), before.position, false),
       });
       return { kind: 'ok', card: await this.cardById(client, id) };
     });
@@ -368,24 +412,36 @@ export class PostgresCanvasStore {
     return cardOf(rows[0]!);
   }
 
-  private async liveForUpdate(client: PoolClient, id: string): Promise<CardRow | null> {
+  /** A live card of this canvas, locked; one of the other canvas is missing. */
+  private async liveForUpdate(
+    client: PoolClient,
+    canvas: ConsoleCanvasKey,
+    id: string,
+  ): Promise<CardRow | null> {
     const { rows } = await client.query<CardRow>(
-      `${CARD_SELECT} WHERE c.id = $1 AND c.deleted_at IS NULL FOR UPDATE OF c`,
-      [id],
+      `${CARD_SELECT}
+        WHERE c.id = $1 AND c.canvas = $2 AND c.deleted_at IS NULL FOR UPDATE OF c`,
+      [id, canvas],
     );
     return rows[0] ?? null;
   }
 
-  private async nextIn(client: PoolClient, block: ConsoleCanvasBlock): Promise<number> {
+  private async nextIn(
+    client: PoolClient,
+    canvas: ConsoleCanvasKey,
+    block: ConsoleCanvasBlock,
+  ): Promise<number> {
     const { rows } = await client.query<{ position: number }>(
-      `SELECT position FROM console_canvas_card WHERE block = $1 AND deleted_at IS NULL`,
-      [block],
+      `SELECT position FROM console_canvas_card
+        WHERE canvas = $1 AND block = $2 AND deleted_at IS NULL`,
+      [canvas, block],
     );
     return nextPosition(rows.map((r) => r.position));
   }
 
   private async event(
     client: PoolClient,
+    canvas: ConsoleCanvasKey,
     cardId: string,
     actor: ConsoleMe,
     kind: ConsoleCanvasEvent['kind'],
@@ -395,9 +451,11 @@ export class PostgresCanvasStore {
   ): Promise<void> {
     await client.query(
       // clock_timestamp(), not now(): the rows of one change keep the order they were written in.
-      `INSERT INTO console_canvas_event (card_id, actor_id, kind, field, previous, next, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, clock_timestamp())`,
-      [cardId, actor.id, kind, field, previous, next],
+      // The canvas is the card's own (a foreign key on the two).
+      `INSERT INTO console_canvas_event
+         (canvas, card_id, actor_id, kind, field, previous, next, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, clock_timestamp())`,
+      [canvas, cardId, actor.id, kind, field, previous, next],
     );
   }
 

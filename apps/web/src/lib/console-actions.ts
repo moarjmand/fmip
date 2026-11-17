@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import type { ConsoleCanvasKey } from '@fmip/contracts';
 import { dayToIso, isoToDay, jalaliMonthLength, jalaliToDay } from '@fmip/contracts/console';
 import { apiErrorWords } from '@/app/console/words';
 import { applyConsoleCookie, consoleCall } from './console-api';
@@ -587,40 +588,64 @@ export interface CanvasCardFields {
   source?: string;
 }
 
+/** Which canvas a control writes to (T-1872, D-448); the API refuses any other word. */
+type CanvasKey = ConsoleCanvasKey;
+
 const canvasCard = (id: string) => `canvas/cards/${encodeURIComponent(id)}`;
 
 async function canvasCall(
+  canvas: CanvasKey,
   path: string,
   method: 'POST' | 'PATCH',
   body: unknown,
   fallback: string,
 ): Promise<CanvasResult> {
-  const result = await consoleCall<{ id: string }>(path, { method, body });
+  const result = await consoleCall<{ id: string }>(`${path}?canvas=${encodeURIComponent(canvas)}`, {
+    method,
+    body,
+  });
   revalidatePath('/console', 'layout');
   return result.ok
     ? { ok: true, error: null, id: result.data.id }
     : { ok: false, error: apiErrorWords(result.error?.message, fallback), id: null };
 }
 
-/** A new card, last in its block. */
-export async function createCanvasCard(input: CanvasCardFields): Promise<CanvasResult> {
-  return canvasCall('canvas/cards', 'POST', input, 'کارت اضافه نشد.');
+/** A new card, last in its block of that canvas. */
+export async function createCanvasCard(
+  canvas: CanvasKey,
+  input: CanvasCardFields,
+): Promise<CanvasResult> {
+  return canvasCall(canvas, 'canvas/cards', 'POST', input, 'کارت اضافه نشد.');
 }
 
 /** A change to a card's block, tag, texts, notes or source. */
-export async function updateCanvasCard(id: string, patch: CanvasCardFields): Promise<CanvasResult> {
-  return canvasCall(canvasCard(id), 'PATCH', patch, 'تغییر کارت ذخیره نشد.');
+export async function updateCanvasCard(
+  canvas: CanvasKey,
+  id: string,
+  patch: CanvasCardFields,
+): Promise<CanvasResult> {
+  return canvasCall(canvas, canvasCard(id), 'PATCH', patch, 'تغییر کارت ذخیره نشد.');
 }
 
-export async function moveCanvasCard(id: string, direction: 'up' | 'down'): Promise<CanvasResult> {
-  return canvasCall(`${canvasCard(id)}/move`, 'POST', { direction }, 'جابه‌جایی انجام نشد.');
+export async function moveCanvasCard(
+  canvas: CanvasKey,
+  id: string,
+  direction: 'up' | 'down',
+): Promise<CanvasResult> {
+  return canvasCall(
+    canvas,
+    `${canvasCard(id)}/move`,
+    'POST',
+    { direction },
+    'جابه‌جایی انجام نشد.',
+  );
 }
 
 /** Into the bin; `restoreCanvasCard` is its undo. */
-export async function removeCanvasCard(id: string): Promise<CanvasResult> {
-  return canvasCall(`${canvasCard(id)}/remove`, 'POST', {}, 'کارت حذف نشد.');
+export async function removeCanvasCard(canvas: CanvasKey, id: string): Promise<CanvasResult> {
+  return canvasCall(canvas, `${canvasCard(id)}/remove`, 'POST', {}, 'کارت حذف نشد.');
 }
 
-export async function restoreCanvasCard(id: string): Promise<CanvasResult> {
-  return canvasCall(`${canvasCard(id)}/restore`, 'POST', {}, 'کارت بازگردانده نشد.');
+export async function restoreCanvasCard(canvas: CanvasKey, id: string): Promise<CanvasResult> {
+  return canvasCall(canvas, `${canvasCard(id)}/restore`, 'POST', {}, 'کارت بازگردانده نشد.');
 }
