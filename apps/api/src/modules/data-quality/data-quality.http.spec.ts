@@ -29,6 +29,8 @@ const COMPETITION = randomUUID();
 const SEASON = randomUUID();
 /** A second season of the same competition, which no sweep here is narrowed to. */
 const OTHER_SEASON = randomUUID();
+/** A third season, for the watchdog's quiet short line-ups (T-1873). */
+const QUIET_SEASON = randomUUID();
 const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
 const UNITED = '00000000-0000-4000-8000-000000000601';
 const MADRID = '00000000-0000-4000-8000-000000000603';
@@ -236,7 +238,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
     await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`dq-${RUN}-%`]);
     // Findings on a fixture or a season go with it (ON DELETE CASCADE).
     await pool.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [Object.values(fixtures)]);
-    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [[SEASON, OTHER_SEASON]]);
+    await pool.query(`DELETE FROM season WHERE id = ANY($1::uuid[])`, [
+      [SEASON, OTHER_SEASON, QUIET_SEASON],
+    ]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [COMPETITION]);
     await pool.end();
     await app.close();
@@ -702,5 +706,102 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
       [SEASON],
     );
     expect(await proposals()).toEqual([]);
+  });
+
+  // Last: its fixtures are in the spec's map, which mine() reads.
+  it('leaves out of the watchdog a short line-up on a live match or under limited or delayed line-ups, never a goal disagreement (T-1873)', async () => {
+    await pool.query(
+      `INSERT INTO season (id, competition_id, label, start_date, end_date, is_current)
+       VALUES ($1, $2, '2032/33', DATE '2032-08-01', DATE '2033-06-30', false)`,
+      [QUIET_SEASON, COMPETITION],
+    );
+    const kickoff = '2031-05-01T15:00:00Z';
+    const threeStarters = (fixtureId: string) =>
+      pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role)
+         SELECT p.id, person, 'starter' FROM fixture_participant p, unnest($2::uuid[]) AS person
+          WHERE p.fixture_id = $1 AND p.side = 'home'`,
+        [fixtureId, PEOPLE],
+      );
+    const shortFinished = await fixture(
+      'quietFinished',
+      LIVERPOOL,
+      UNITED,
+      kickoff,
+      'finished',
+      QUIET_SEASON,
+    );
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 0, 0)`,
+      [shortFinished],
+    );
+    await threeStarters(shortFinished);
+    const shortLive = await fixture('quietLive', MADRID, PERSEPOLIS, kickoff, 'live', QUIET_SEASON);
+    await threeStarters(shortLive);
+    // A live match whose score has a goal its timeline does not.
+    const goalsLive = await fixture('quietGoals', UNITED, MADRID, kickoff, 'live', QUIET_SEASON);
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'current', 1, 0)`,
+      [goalsLive],
+    );
+    await pool.query(
+      `INSERT INTO incident (fixture_id, participant_id, person_id, kind, minute, sequence)
+       SELECT $1, p.id, $2, 'yellow_card', 20, 1 FROM fixture_participant p
+        WHERE p.fixture_id = $1 AND p.side = 'home'`,
+      [goalsLive, PEOPLE[0]],
+    );
+
+    await dataQuality.sweep(new Date(), QUIET_SEASON);
+    const at = new Date('2031-05-01T16:00:00Z');
+    const count = async () => (await dataQuality.liveContradictions(at, QUIET_SEASON)).open;
+
+    // All three are found and wait on the page, unreviewed.
+    const { rows: found } = await pool.query<{ check_kind: string; fixture_id: string }>(
+      `SELECT check_kind, fixture_id FROM data_quality_finding
+        WHERE season_id = $1 AND resolved_at IS NULL AND reviewed_at IS NULL
+        ORDER BY check_kind, fixture_id`,
+      [QUIET_SEASON],
+    );
+    expect(found).toEqual([
+      { check_kind: 'goals_disagree', fixture_id: goalsLive },
+      ...[shortFinished, shortLive]
+        .sort()
+        .map((id) => ({ check_kind: 'lineup_not_eleven', fixture_id: id })),
+    ]);
+    // The live match's short line-up is not counted; the finished one's and
+    // the goal disagreement on a live match are.
+    expect(await count()).toBe(2);
+
+    // Line-ups declared limited, then delayed: the finished match's short
+    // line-up is not counted either; the goal disagreement still is.
+    await pool.query(
+      `INSERT INTO coverage_profile (season_id, module, state, provider) VALUES ($1, 'lineups', 'limited', 'api_football')`,
+      [QUIET_SEASON],
+    );
+    expect(await count()).toBe(1);
+    await pool.query(
+      `UPDATE coverage_profile SET state = 'delayed' WHERE season_id = $1 AND module = 'lineups'`,
+      [QUIET_SEASON],
+    );
+    expect(await count()).toBe(1);
+    // Incidents declared limited do not quiet a goal disagreement.
+    await pool.query(
+      `INSERT INTO coverage_profile (season_id, module, state, provider) VALUES ($1, 'incidents', 'limited', 'api_football')`,
+      [QUIET_SEASON],
+    );
+    expect(await count()).toBe(1);
+
+    // Line-ups available again, and the live match over still short: both
+    // short line-ups count.
+    await pool.query(
+      `UPDATE coverage_profile SET state = 'available' WHERE season_id = $1 AND module = 'lineups'`,
+      [QUIET_SEASON],
+    );
+    await pool.query(`UPDATE fixture SET status = 'finished' WHERE id = $1`, [shortLive]);
+    await pool.query(
+      `INSERT INTO fixture_score (fixture_id, kind, home, away) VALUES ($1, 'full_time', 0, 0)`,
+      [shortLive],
+    );
+    expect(await count()).toBe(3);
   });
 });

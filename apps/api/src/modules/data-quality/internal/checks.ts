@@ -424,3 +424,13 @@ export function checkFreshness(
  */
 export const LIVE_HORIZON_MINUTES = 6 * 60;
 export const LIVE_MIN_AGE_MINUTES = 10;
+
+/**
+ * T-1873 (D-447): a short line-up is not an alarm on a match still being
+ * played -- the feed sends line-ups in parts during a match -- nor on a season
+ * whose `lineups` coverage is already declared one of these states, where the
+ * page already says the line-ups are not complete (rule 3). Such findings stay
+ * open and unreviewed on the admin page; only the watchdog does not count them.
+ * Every other check, `goals_disagree` among them, counts as before.
+ */
+export const ALARM_QUIET_LINEUP_COVERAGE = ['limited', 'delayed'] as const;
