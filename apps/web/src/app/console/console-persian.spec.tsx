@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CALENDAR, CALENDAR_PUSH } from './calendar.fixture';
-import { CANVAS } from './canvas.fixture';
+import { CANVAS, TEAMMATE_EMPTY } from './canvas.fixture';
 import { CHECKLIST } from './checklist.fixture';
 import { MODEL_LAB, MODEL_REPORT } from './model-report.fixture';
 import { PROVIDERS } from './providers.fixture';
@@ -115,7 +115,8 @@ vi.mock('@/lib/console-api', () => {
     // T-1840: the pre-launch checklist, the seed's Persian text.
     consoleChecklist: () => ok(CHECKLIST),
     // T-1856: the business model canvas in its Persian view, with a card written in English only.
-    consoleCanvas: () => ok(CANVAS),
+    // T-1872: the teammate's canvas, empty, when the page asks for it.
+    consoleCanvas: (canvas?: string) => ok(canvas === 'teammate' ? TEAMMATE_EMPTY : CANVAS),
     consoleCommands: () =>
       ok({
         commands: [
@@ -873,6 +874,15 @@ describe('the Persian-only scan', () => {
       'the business model canvas',
       async () =>
         render((await import('./(app)/canvas/page')).default({ searchParams: params({}) })),
+    ],
+    [
+      'the teammate’s business model canvas, empty (T-1872)',
+      async () =>
+        render(
+          (await import('./(app)/canvas/page')).default({
+            searchParams: params({ canvas: 'teammate' }),
+          }),
+        ),
     ],
     [
       'the business model canvas, filtered by a tag',

@@ -1,9 +1,15 @@
-import type { ConsoleCanvasCard, ConsoleCanvasEvent, ConsoleCanvasTag } from '@fmip/contracts';
+import type {
+  ConsoleCanvasCard,
+  ConsoleCanvasEvent,
+  ConsoleCanvasKey,
+  ConsoleCanvasTag,
+} from '@fmip/contracts';
 import { CONSOLE_CANVAS_BLOCKS } from '@fmip/contracts/console';
 import { CanvasCard, NewCard, RestoreButton } from './canvas-card';
 import {
   BLOCK_WORDS,
   type CanvasLang,
+  CANVAS_NAMES,
   CANVAS_WORDS,
   TAG_TONE,
   TAG_WORDS,
@@ -21,6 +27,8 @@ import {
  * The business model canvas's server-drawn pieces (T-1856, D-441): the sheet
  * with its nine numbered cells and their cards (`canvas.css` lays them out),
  * the bin of removed cards with their restore, and the canvas's history.
+ * One canvas at a time (T-1872): Claude's or the teammate's. Compact (T-1872):
+ * tight cells, small headings, so the nine fit far more on one screen.
  */
 
 /**
@@ -32,16 +40,20 @@ export function CanvasBoard({
   cards,
   lang,
   tag,
+  canvas = 'claude',
 }: {
   cards: readonly ConsoleCanvasCard[];
   lang: CanvasLang;
   tag: ConsoleCanvasTag | undefined;
+  canvas?: ConsoleCanvasKey;
 }) {
   const w = CANVAS_WORDS[lang];
   return (
     <div className="canvas-sheet overflow-hidden rounded-card border border-strong bg-surface">
-      <p className="flex flex-wrap justify-between gap-x-4 gap-y-1 border-b border-strong px-4 py-2 text-xs text-caption">
-        <span>{w.sheetHead}</span>
+      <p className="flex flex-wrap justify-between gap-x-4 gap-y-1 border-b border-strong px-3 py-1.5 text-xs text-caption">
+        <span>
+          {w.sheetHead} · {CANVAS_NAMES[canvas][lang]}
+        </span>
         <span>{w.sheetOrder}</span>
       </p>
       <div className="canvas-board">
@@ -56,20 +68,20 @@ export function CanvasBoard({
               aria-labelledby={headingId}
               data-area={meta.area}
               data-testid="canvas-block"
-              className="canvas-block flex min-h-44 min-w-0 flex-col gap-2.5 bg-surface p-3"
+              className="canvas-block flex min-h-28 min-w-0 flex-col gap-1.5 bg-surface p-2"
             >
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-1.5">
                 <span
-                  className="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-pill border border-strong px-1.5 text-xs font-bold text-muted"
+                  className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-pill border border-strong px-1 text-xs font-bold text-muted"
                   aria-label={lang === 'fa' ? `خانه‌ی ${num(meta.n, lang)}` : `Cell ${meta.n}`}
                 >
                   {num(meta.n, lang)}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 id={headingId} className="text-sm font-bold leading-6 text-fg">
+                  <h2 id={headingId} className="text-sm font-bold leading-5 text-fg">
                     {blockName(block, lang)}
                   </h2>
-                  <p className="text-xs leading-5 text-caption">
+                  <p className="text-xs leading-4 text-caption">
                     {lang === 'fa' ? meta.qfa : meta.qen}
                   </p>
                 </div>
@@ -79,7 +91,7 @@ export function CanvasBoard({
                   {tag === undefined ? w.emptyBlock : w.emptyFiltered}
                 </p>
               ) : (
-                <ol className="canvas-cards flex flex-col gap-2">
+                <ol className="canvas-cards flex flex-col gap-1.5">
                   {shown.map((card) => {
                     const place = all.findIndex((c) => c.id === card.id);
                     return (
@@ -115,7 +127,7 @@ export function CanvasBin({
   return (
     <section
       aria-labelledby="canvas-bin"
-      className="flex flex-col gap-3 rounded-card border border-default bg-surface p-4"
+      className="flex flex-col gap-2 rounded-card border border-default bg-surface p-3"
       data-print="hide"
       data-testid="canvas-bin"
     >
@@ -172,15 +184,17 @@ export function CanvasBin({
 export function CanvasHistory({
   history,
   lang,
+  canvas = 'claude',
 }: {
   history: readonly ConsoleCanvasEvent[];
   lang: CanvasLang;
+  canvas?: ConsoleCanvasKey;
 }) {
   const w = CANVAS_WORDS[lang];
   return (
     <section
       aria-labelledby="canvas-history"
-      className="flex flex-col gap-3 rounded-card border border-default bg-surface p-4"
+      className="flex flex-col gap-2 rounded-card border border-default bg-surface p-3"
       data-print="hide"
       data-testid="canvas-history"
     >
@@ -191,7 +205,9 @@ export function CanvasHistory({
         <p className="text-xs text-caption">{w.historyNote}</p>
       </div>
       {history.length === 0 ? (
-        <p className="text-sm text-caption">{w.historyEmpty}</p>
+        <p className="text-sm text-caption">
+          {canvas === 'claude' ? w.historyEmpty : w.historyEmptyTeammate}
+        </p>
       ) : (
         <ol className="flex max-h-[32rem] flex-col gap-2 overflow-y-auto border-s-2 border-default ps-3">
           {history.map((event) => {
