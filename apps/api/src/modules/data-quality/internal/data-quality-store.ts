@@ -3,6 +3,7 @@ import type { DataQualityCheck } from '@fmip/contracts';
 import type { Pool, PoolClient } from 'pg';
 import { PG_POOL } from '../../../database/database.module';
 import {
+  ALARM_QUIET_LINEUP_COVERAGE,
   DUPLICATE_WINDOW_DAYS,
   SWAPPED_WINDOW_HOURS,
   type Finding,
@@ -13,6 +14,7 @@ import {
   type MappingRow,
   type PairRow,
   type ScoreKindsRow,
+  STARTERS,
 } from './checks';
 import type { CoverageCandidateRow } from './coverage-proposals';
 
@@ -197,8 +199,17 @@ export class DataQualityStore {
   /**
    * The watchdog's count (T-821): open, unreviewed findings about a match
    * that is live or kicked off since `horizon`, first seen before `seenBefore`.
+   * A short line-up (fewer than eleven starters) on a live match, or in a
+   * season whose line-ups are declared limited or delayed, is not counted
+   * (T-1873, D-447); more than eleven always is. `seasonId`
+   * narrows the count to one season's fixtures, for a test; `null` is all.
    */
-  async liveContradictions(horizon: Date, seenBefore: Date, now: Date): Promise<number> {
+  async liveContradictions(
+    horizon: Date,
+    seenBefore: Date,
+    now: Date,
+    seasonId: string | null = null,
+  ): Promise<number> {
     const { rows } = await this.pool.query<{ n: number }>(
       `SELECT count(*)::int AS n
          FROM data_quality_finding d
@@ -208,8 +219,25 @@ export class DataQualityStore {
           AND d.first_seen_at <= $2
           -- Kicked off within the horizon, never still to come (T-1473): a
           -- finding on next month's fixture is not about a match today.
-          AND (f.status = 'live' OR (f.kickoff_at >= $1 AND f.kickoff_at <= $3))`,
-      [horizon, seenBefore, now],
+          AND (f.status = 'live' OR (f.kickoff_at >= $1 AND f.kickoff_at <= $3))
+          AND ($4::uuid IS NULL OR f.season_id = $4::uuid)
+          -- A line-up sent in parts during a match, or in a season already
+          -- said to have limited or delayed line-ups, is not an alarm -- when
+          -- it is short. More than eleven starters is a fault, not a gap.
+          AND NOT (
+            d.check_kind = 'lineup_not_eleven'
+            AND (SELECT count(*) FROM lineup l
+                   JOIN fixture_participant p ON p.id = l.participant_id
+                  WHERE p.fixture_id = d.fixture_id
+                    AND p.team_id = d.team_id
+                    AND l.role = 'starter') < $6
+            AND (f.status = 'live' OR EXISTS (
+              SELECT 1 FROM coverage_profile cp
+               WHERE cp.season_id = f.season_id
+                 AND cp.module = 'lineups'
+                 AND cp.state = ANY ($5::text[])))
+          )`,
+      [horizon, seenBefore, now, seasonId, [...ALARM_QUIET_LINEUP_COVERAGE], STARTERS],
     );
     return rows[0]?.n ?? 0;
   }

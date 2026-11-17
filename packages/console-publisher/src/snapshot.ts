@@ -176,6 +176,16 @@ export interface FindingLine {
 
 const SEVERITIES: ConsoleSeverity[] = ['critical', 'major', 'minor', 'info'];
 const STATUSES: ConsoleFindingStatus[] = ['open', 'fixed', 'wontfix', 'duplicate'];
+/**
+ * The team charter's own words for a closed finding (T-1870): `resolved` is a
+ * fix someone re-checked, `accepted` is known and explained with nothing to do.
+ * Every other charter status (`new`, `open`, `decide`, `fixed-unverified`)
+ * still wants someone, so it stays open.
+ */
+const CHARTER_STATUSES: Readonly<Record<string, ConsoleFindingStatus>> = {
+  resolved: 'fixed',
+  accepted: 'wontfix',
+};
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 
 /** Every finding once, the latest line of each id winning; files in date order. */
@@ -186,7 +196,8 @@ export function findingsFrom(lines: readonly FindingLine[]): ConsoleFinding[] {
     const agent = text(record.agent);
     if (id === '' || agent === '') continue;
     const severity = SEVERITIES.find((s) => s === record.severity) ?? 'info';
-    const status = STATUSES.find((s) => s === record.status) ?? 'open';
+    const status =
+      STATUSES.find((s) => s === record.status) ?? CHARTER_STATUSES[text(record.status)] ?? 'open';
     const parts = [
       text(record.evidence),
       text(record.likely_cause) === '' ? '' : `Likely cause: ${text(record.likely_cause)}`,
