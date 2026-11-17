@@ -653,8 +653,15 @@
  * shades (`scroll`) at an end, so nothing shows when the table fits. Both
  * edges are drawn the same, so it reads the same right to left. For a box
  * on `bg-surface` (a match centre card).
+ *
+ * The box is positioned (T-1860): an `sr-only` caption or form line in a
+ * static cell is absolutely positioned, and without a positioned box it took
+ * its containing block from the page, so the box neither scrolled nor
+ * clipped it. On /fa at 375px the standings' Form cell starts off the
+ * screen's left edge, and its read-out widened the page by 40px.
  */
 @utility scroll-cue {
+  position: relative;
   background:
     linear-gradient(to right, var(--color-surface) 40%, transparent) left center / 2.5rem 100%
       no-repeat local,
