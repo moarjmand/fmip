@@ -59,7 +59,7 @@
     }
   ],
   "inputs": {
-    "model_version": "dixon-coles-elo@0.6.0",
+    "model_version": "dixon-coles-elo@0.7.0",
     "fit_date": "2025-02-28",
     "matches_used": 145,
     "elo_used": true,

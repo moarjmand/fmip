@@ -378,9 +378,11 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
 def test_the_promotion_moved_files_and_renamed_no_version() -> None:
     """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/.
     D-410 (T-1151): 0.7.0's went from candidates/ to published/ and 0.6.0's to retired/,
-    each under the version its stored forecasts carry; nothing is left in shadow."""
-    assert list(load_candidates()) == []
-    assert load_candidate() is None
+    each under the version its stored forecasts carry; nothing was left in shadow.
+    D-450 (T-1876): dixon-coles-elo@0.9.0, 0.7.0 recalibrated, is the one candidate since."""
+    assert list(load_candidates()) == ["dixon-coles-elo-0.9.0"]
+    newest = load_candidate()
+    assert newest is not None and newest.id == "dixon-coles-elo@0.9.0"
     assert (
         load_published()
         == PUBLISHED

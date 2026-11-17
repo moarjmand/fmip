@@ -23,6 +23,7 @@ export const VERSION_ORDER = [
   '0.6.0',
   '0.7.0',
   '0.8.0',
+  '0.9.0',
 ] as const;
 export type VersionNumber = (typeof VERSION_ORDER)[number];
 
@@ -100,6 +101,14 @@ export const MODEL_VERSIONS: Record<VersionNumber, ModelVersionNote> = {
     decision: 'D-329',
     delta:
       'همان 0.7.0 با وزن زمانی و مهار تازه برای نُه لیگ؛ روی فصل کنارگذاشته از معیار رد نشد و هرگز به shadow نرفت.',
+  },
+  '0.9.0': {
+    number: '0.9.0',
+    fate: 'shadow',
+    decision: 'D-450',
+    delta:
+      'همان 0.7.0 با یک گام تنظیم سه احتمال: دما و جمله‌ی مساوی، یک بار روی کارنامه‌ی مسابقه‌های 2026-10-10 تا 2026-11-17 برازش و به نیمه کاهش داده شد؛ تیم برتر کمی بالاتر، مساوی کمی پایین‌تر.',
+    rule: 'D-139',
   },
 };
 
@@ -229,6 +238,12 @@ export const PIPELINE_STEPS: PipelineStep[] = [
     title: 'جدول پواسون تا ۱۰ گل',
     detail: 'از میانگین گل هر طرف، احتمال هر نتیجه و جمع آن‌ها',
   },
+  {
+    from: '0.9.0',
+    title: 'تنظیم سه احتمال',
+    detail:
+      'دما ۱٫۰۴ و جمله‌ی مساوی −۰٫۱۲، ثابت و نیمه‌قدرت (D-450)؛ گل مورد انتظار همان جدول',
+  },
 ];
 
 export const PIPELINE_OUTPUTS: { title: string; detail: string }[] = [
@@ -297,6 +312,7 @@ export const MODEL_MATRIX: MatrixRow[] = [
       '0.6.0': 'و لیگ ایران',
       '0.7.0': 'و دو لیگ تازه',
       '0.8.0': 'و نُه لیگ دیگر',
+      '0.9.0': 'همان 0.7.0',
     },
   },
   {
@@ -320,6 +336,12 @@ export const MODEL_MATRIX: MatrixRow[] = [
     title: 'اصلاح کم‌گل و جدول پواسون',
     technical: 'rho, Poisson',
     span: { from: '0.1.0' },
+  },
+  {
+    title: 'تنظیم سه احتمال',
+    technical: 'calibration',
+    span: { from: '0.9.0' },
+    values: { '0.9.0': 'دما و مساوی، نیمه‌قدرت' },
   },
   {
     title: 'ترکیب اصلی',

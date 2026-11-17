@@ -37,6 +37,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from .calibration import Calibration, read_calibration
 from .dixon_coles import DEFAULT_ELO_WEIGHT, DEFAULT_RIDGE, DEFAULT_XI, ELO_SCALE
 
 
@@ -129,6 +130,10 @@ class ModelVersion:
     #: The divisions this version forecasts (T-1442, D-233); ``None``:
     #: ``LEGACY_DIVISIONS``, what every version before it forecast.
     divisions: frozenset[str] | None = field(default=None, hash=False, compare=False)
+    #: The map applied to the three probabilities after the score table (D-450,
+    #: T-1876); ``None``: the table's probabilities as they are, as every version
+    #: before ``dixon-coles-elo@0.9.0``.
+    calibration: Calibration | None = None
 
     @property
     def id(self) -> str:
@@ -147,6 +152,7 @@ class ModelVersion:
         body["per_division"] = {d: list(c) for d, c in self.per_division.items()}
         body["cross_league"] = None if self.cross_league is None else self.cross_league.as_dict()
         body["divisions"] = None if self.divisions is None else sorted(self.divisions)
+        body["calibration"] = None if self.calibration is None else self.calibration.as_dict()
         return {"id": self.id, **body}
 
 
@@ -213,7 +219,8 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
     everything it does not name is ``BASELINE``'s (0.1.0's). ``xi``, ``ridge``
     and ``elo_weight`` at the top level (T-1368, D-186) replace 0.1.0's
     defaults: ``xi`` and ``ridge`` for every division the file does not list
-    under ``per_division``, ``elo_weight`` everywhere.
+    under ``per_division``, ``elo_weight`` everywhere. ``calibration`` (D-450)
+    is the frozen map of the three probabilities, checked by ``read_calibration``.
     """
     if path is None:
         candidates = load_candidates()
@@ -245,6 +252,8 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         malformed = sorted(d for d in divisions if not DIVISION_CODE.match(d))
         if malformed or not divisions:
             raise ValueError(f"divisions must be division codes such as E0, not {malformed}")
+    raw_calibration = body.get("calibration")
+    calibration = None if raw_calibration is None else read_calibration(raw_calibration)
     if (
         not per_division
         and (xi, ridge, elo_weight) == (BASELINE.xi, BASELINE.ridge, BASELINE.elo_weight)
@@ -253,6 +262,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         and lineup_beta is None
         and elo_prior == BASELINE.elo_prior
         and divisions is None
+        and calibration is None
     ):
         return None
     return ModelVersion(
@@ -269,6 +279,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         cross_league=cross_league,
         elo_prior=elo_prior,
         divisions=divisions,
+        calibration=calibration,
     )
 
 
