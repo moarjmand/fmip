@@ -33,7 +33,7 @@ from pathlib import Path
 import psycopg
 
 from ..model.own_elo import RULES, EloMatch, compute, for_division
-from ..model.version import PUBLISHED, ModelVersion, load_candidate
+from ..model.version import ModelVersion, backtest_version
 from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .walk_forward import BacktestMatch, BacktestResult, ScoredForecast, scorecard, walk_forward
@@ -236,13 +236,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--history-from", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument("--note", default="", help="where and on what data this was run")
+    parser.add_argument(
+        "--candidate",
+        help="the version scored: 'published', or a candidate's name (default: the newest "
+        "candidate a backtest can score, else the published version; T-1876)",
+    )
     args = parser.parse_args(argv)
 
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    version = load_candidate() or PUBLISHED
+    try:
+        version = backtest_version(args.candidate)
+    except (LookupError, ValueError) as error:
+        print(error, file=sys.stderr)
+        return 2
     divisions = args.divisions or sorted(version.per_division)
     window = (args.window_from, args.window_to)
 

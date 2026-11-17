@@ -15862,6 +15862,204 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 **Consequences.** `NewsItemSignals` gains `url`; `PostgresNewsReadStore.listed`, `PostgresFollowingFeedStore.stories` and `PostgresCommunitySearchStore.stories` pass the shown article's address they already read. No API contract, migration, environment variable or dependency changes. Thirteen files with the specs and docs, above section 3's six, for D-429's reason: one rule, three readers and a job. An English feed's page in a section this list does not know (a new publisher's `/showbiz/`-like name) passes until its name is added.
 
+## D-450 — Recalibrating the published model's three probabilities: a temperature and a draw term, half strength, fitted once on the live record and judged once on matches not yet played
+
+**Status:** Accepted · 2026-11-17 (the maintainer, in chat: option 2, a temperature with a draw term, at half strength, the fitted parameters halved and the factor fixed; drafted by the model scientist before any run) · **Task:** T-1876 · **Follows:** D-029, D-082, D-139, D-140, D-209, D-303, D-308, D-329, D-334, D-336 (its one-look amendment, T-1720), D-371, D-410 · **Finding:** mod-2026-10-31-03
+
+**Context.**
+
+*What fails, on the live record.* Measured on 2026-11-17, read-only, through `data-audit/run.sh`. Each match is counted once per version, by its last forecast before kick-off (D-209, D-371). Intervals are 95% Wilson intervals. Matches are treated as independent, though one weekend's matches are not.
+
+- **The published `dixon-coles-elo@0.7.0`** (D-410), whole pre-kick-off record: 673 matches kicked off 2026-10-22 to 2026-11-14 (670 shadow, 3 published). Log loss 0.9487.
+
+  | Band | Matches | Said | Seen [95%] | Watch rule |
+  |---|---|---|---|---|
+  | draw 20–30% | 485 | 25.0 | 20.2 [16.9, 24.0] | fails (the interval excludes "said") |
+  | away 40–50% | 101 | 44.4 | 60.4 [50.6, 69.4] | fails (16.0 points) |
+  | home 50–60% (lead) | 97 | 54.6 | 69.1 [59.3, 77.4] | below the 100-match count |
+  | draws, all | 673 | 24.8 | 19.9 [17.1, 23.1] | |
+  | the favourite, all | 673 | 51.6 | 58.4 [54.6, 62.1] | |
+  | the underdog, all | 673 | 23.7 | 21.7 [18.7, 25.0] | |
+
+- **The retired 0.6.0's published record:** 864 matches, 2026-10-10 to 2026-11-13, of which 502 are also 0.7.0's; 1,035 matches in the two together. The same two bands fail:
+  - draw 20–30%: 628 matches, said 25.0, seen 18.5 [15.6, 21.7];
+  - away 40–50%: 126 matches, said 44.2, seen 59.5 [50.8, 67.7].
+- **The shape is under-confidence, not a side bias.**
+  - The favourite is under-forecast in every band from 30% to 70% (0.7.0: 37.6→45.9, 44.8→50.4, 54.6→65.1, 64.4→73.2, on 111, 248, 169 and 82 matches), and calibrated above 70% (78.0→74.6, 63 matches).
+  - Draws are over-forecast at every gap between the sides, most where it is 0.25–0.45: 24.6 said, 16.7 seen [12.1, 22.6], 192 matches.
+  - Home and away move together: home said 41.6, seen 44.4; away said 33.6, seen 35.7.
+  - The away 40–50% band has no counterpart among home favourites at 40–50% (45.1 said, 43.5 seen, 147 matches). Its neighbour, away 30–40%, goes the other way (34.8 said, 28.6 seen, 147 matches). About seventeen bands are tested per version, so part of that one band's 16 points is likely chance.
+- **It is in every group** (0.7.0):
+
+  | Group | Matches | Draw said | Draw seen |
+  |---|---|---|---|
+  | the eleven main football-data leagues | 291 | 24.2 | 18.2 |
+  | other leagues | 187 | 27.0 | 22.5 |
+  | cups | 195 | 23.5 | 20.0 |
+
+  Away 40–50% in the three groups: 52.4, 72.0 and 61.8 seen, on 42, 25 and 34 matches.
+
+*Why development did not see it.*
+- T-1657's run (D-308) found the draw calibrated within 1.5 points in every gap band on 2024/25: 3,783 matches in the eleven main divisions (`E:/FMIP/lab-local/reports/dixon-coles-elo-0.7.0/inputs_draw_calibration_2024-08-01..2025-06-30.md`). A correction fitted there had nothing to correct (−0.0001 [−0.0018, +0.0016]).
+- Two things differ now.
+  1. **The season scores more.** The main eleven's 2026/27 matches average 3.06 goals (1,159 matches in `training.match`), against 2.75–2.86 in each of the three seasons before. On the live record the forecasts said 2.87 goals a match and 3.10 were scored: 0.7.0, 673 matches, standard error 0.07. 0.6.0 said 2.88 and saw 3.13.
+     - Scaling every forecast's expected goals by the measured ratio (1.080) lowers the mean draw by 1.2 points and lifts the favourite by about 1 point.
+     - So a lagging goal level explains about a quarter of the draw deficit. That part should persist while the season stays high-scoring.
+  2. **A stretch of very few draws since the live record began.**
+     - The same main leagues drew 25.2% of 638 matches from August to 2026-10-09, and 19.2% of 521 from 2026-10-10 (October 20.5%, November so far 16.8%).
+     - The three seasons before drew 25.8% [25.0, 26.6] overall (11,395 matches), and 22.5–26.8% in each October and November.
+     - Other leagues (26.2% against 26.6%) and the cups (23.0% against 21.6%) are near their usual rates this season.
+     - No model could have forecast the stretch. Whether it continues is the open question.
+
+*What is already spent.*
+- D-308's formulation failed on 2024/25 (D-329). That window shows no bias, so it cannot develop a correction for this one.
+- The 2025-07-01..2026-10-31 holdout was used once by T-1660's candidate (D-329: no second try).
+- As for xG form (D-334), the honest test is forward: matches none of which exist today.
+
+**The hypothesis.**
+- **H1:** the published model is under-confident this season, with draws too high and favourites too low. A fixed map fitted on the live record to date will lower the log loss of matches played after the map is frozen.
+- **H0:** the deficit was mostly a stretch, and a map fitted on it will not help later matches, or will hurt them.
+
+The decision is built so that the forward window chooses between them, and so that being wrong under H0 costs little.
+
+**Options** (each acts on the three probabilities after the Dixon–Coles table; expected goals and every other input stay as they are, as in D-308).
+
+1. **A draw-odds shift.**
+   - Formula: `logit p_d' = logit p_d + a`; home and away keep their ratio. One parameter, pooled over every competition.
+   - It is D-308's family without its gap terms, fitted on the live record rather than on the backtest.
+   - *For:* the least variance; it targets the largest single deficit.
+   - *Against:* it reaches the favourite only by passing on the freed draw mass in proportion, about half of the favourite's 6.8 points. It cannot lower the underdog. The only time this family was run, it failed.
+2. **A temperature with a draw term** (recommended).
+   - Formula: `p_k' ∝ p_k^T · exp(β_k)`, with `β_home = 0`, `β_away = 0` and `β_draw` free. Two parameters, `T` and `β_draw`, pooled.
+   - The log-likelihood is a multinomial logit, linear in `(T, β_draw)` with `log p_k` as the feature. It is concave and is maximised by Newton's method.
+   - `T > 1` sharpens: it lifts the favourite and lowers the underdog and the draw in one move, the shape measured above. `β_draw` sets the draw's level apart.
+   - *A home/away term (`β_away` free)* was considered and is left out. The aggregates show no side asymmetry (+2.8 and +2.1 points). The one away band has no home counterpart, so a side term would fit that band's noise.
+   - *For:* two parameters for the two patterns the record shows. It is monotone and smooth, never gives 0 or 1, and keeps each match's order of outcomes except in near ties.
+   - *Against:* one temperature for every competition. It cannot follow a non-monotone band such as away 30–40% against 40–50%.
+3. **Isotonic regression per outcome, then renormalised.**
+   - *For:* it fits any monotone shape.
+   - *Against:*
+     - On about 1,000 matches it draws steps through the very record that showed the bias (D-308 rejected a factor per band for the same reason).
+     - Renormalising undoes each outcome's calibration.
+     - A step at 0 needs a clip constant that nothing here could choose.
+     - The pool-adjacent-violators algorithm would merge the away 30–40% and 40–50% bands, so it cannot represent that spike either.
+   - Not recommended at this sample size.
+
+**Strength: half, fixed now.**
+- The map is fitted by maximum likelihood, then halved in parameter space: `T* = 1 + (T̂ − 1)/2`, `β* = β̂/2`.
+- This gives equal weight to the evidence that the model is calibrated and to the evidence that it is not this season. The first is 2024/25's 3,783 matches and this season's main leagues before 2026-10-10. The second is the live 1,035 matches.
+- It is decided before any fit and is never tuned.
+- A simulation on 0.7.0's 673 forecasts sized this choice. Outcomes were drawn from three assumed truths. The illustrative map, `T` 1.35 and `β_draw` −0.12, was matched to the aggregate deficits. It is not the fit, and no real outcome was scored.
+
+  | Map | Deficit persists: gain, pass at 300 / 1,000 | Half persists | A stretch (H0): cost |
+  |---|---|---|---|
+  | option 2, full | −0.0141; 33% / 79% | −0.0003; 3% / 3% | +0.0151 |
+  | **option 2, half** | **−0.0107; 63% / 99%** | **−0.0038; 12% / 29%** | **+0.0039** |
+  | option 1, full | −0.0068; 18% / 49% | −0.0002; 3% / 3% | +0.0071 |
+  | option 1, half | −0.0051; 35% / 83% | −0.0018; 8% / 16% | +0.0018 |
+
+  - Gain and cost are log loss per match, candidate minus 0.7.0.
+  - "Pass" is the chance that the paired interval lies wholly below zero.
+  - Under H0 no option passes: the chance is 1% or less.
+- The half-strength temperature keeps three quarters of the gain if the deficit persists. It caps the loss under H0 at about 0.4% of the log loss, and it is the one option that still has a chance if only half the deficit persists.
+
+**The development window.**
+- **Which matches.** Every finished match kicked off from 2026-10-10 00:00 to 2026-11-17 23:59 UTC with a pre-kick-off forecast, each once, by its last forecast before kick-off: 0.7.0's where it made one, else 0.6.0's published. They are identical on league matches (D-410), and the map is applied to 0.7.0. Today that is 1,035 matches.
+- **The fitter.** It refuses any kick-off after 2026-11-17 and lists the matches it read by id in its report.
+- **One screen, inside the window, before any shadow.**
+  - Fit on the first two thirds by kick-off, apply at half strength, and score the last third.
+  - Go on only if:
+    - the screened log loss is lower than 0.7.0's (a point estimate: it is a screen, not a verdict);
+    - the fit on the whole window has `T̂ > 1` and `β̂_draw < 0`, the directions H1 predicts.
+  - Under the simulation's truths, the screen (about 345 matches) passes a real effect about 99% of the time and stops about four in five H0 cases before any engineering is spent.
+- **Then:** fit once on the whole window, halve, and freeze the two constants in a new version file. No option is switched after the screen. A failed screen means no candidate.
+
+**The untouched evaluation window.**
+- The candidate's own pre-kick-off shadow record (D-082, D-140): matches kicked off after its first shadow forecast is stored, and never before 2026-11-18.
+- Matches between 2026-11-18 and that first forecast are in neither window.
+- Paired with the published 0.7.0 on the same matches, each match once by each version's last forecast before kick-off.
+- If 0.7.0 stops being the published version before the look, the look uses only matches before the change, if the count was reached. Otherwise the candidate is withdrawn and a new draft is written on the new base.
+
+**The look: once, at 1,000 paired matches.**
+- D-139's 300 is a floor, not a design. At 300 the recommended option would pass a persisting deficit only 63% of the time.
+- At 1,000 it passes 99% of the time, and 29% if half the deficit persists.
+- At roughly 200 to 260 paired matches a week, fewer over the winter breaks, 1,000 is about five to six weeks after the candidate enters shadow: around the watch of 2026-12-28 or 2027-01-04.
+- The one look is taken at the first weekly watch where the count is reached (T-1720's rule, applied here). Before it, the watch reports the count only, with no interval. There is no interim look: a shadow version harms no reader, so no stopping rule is needed.
+
+**Pass: all three, D-139's bar on the live pair.**
+1. Mean log loss, candidate minus 0.7.0, below zero, with the 95% paired percentile bootstrap interval wholly below zero (2,000 resamples of matches, `numpy.random.default_rng(1101)`).
+2. Calibration not demonstrably worse: the ten-bin calibration error, mean over home, draw and away; the same resamples' interval of its rise not wholly above zero.
+3. Worse (higher log loss) in at most a third of the competitions with 50 or more paired matches.
+
+These are reported beside the verdict but are not gates:
+- the draw said and seen, overall and in D-308's four gap bands;
+- the favourite said and seen;
+- the three bands above;
+- the goal level said and scored;
+- the three groups (main eleven, other leagues, cups).
+
+**Failure.**
+- **Screen fails:** no candidate. The finding stays open, and the watch measures the bands again on matches from 2026-11-18 at the 2026-12-28 watch. That is a fresh measurement, not a test.
+- **Any of the three fails at the look:** failed.
+  - The candidate's file moves to `retired/`, and its stored shadow rows stay (rule 5).
+  - If 0.7.0's own draws on the evaluation window are within their interval, the finding is proposed as `accepted`: a stretch of 2026/27's autumn.
+  - Otherwise the next formulation is the mechanism itself: a division goal level that adapts faster than the strengths. It is a term judged by D-139's harness, written as its own draft.
+- **No second look:** only at the maintainer's request, labelled as such, on matches played after the first (D-336's amendment).
+
+**How it would be built and promoted.**
+- **A new version, `dixon-coles-elo@0.9.0`.** 0.8.0 named T-1660's failed candidate (D-329) and is not reused.
+  - It carries 0.7.0's constants unchanged and a `calibration` block: kind `temperature_draw`, the frozen `T*` and `β*_draw`, the window it was fitted on, the match count and the strength, ½.
+  - A test proves that 0.7.0 with no block forecasts exactly as before, and that the block's output sums to 1.
+- **The scoreline table.**
+  - The service rescales the table within each outcome by `p_k'/p_k`, so the most likely score shown stays consistent with the three probabilities.
+  - Expected goals are stored as the base's.
+  - On promotion, the public methodology and the console's model note say a calibration step was added.
+- **Shadow first** (D-082, D-140). Nothing a reader sees changes until promotion.
+- **The verdict** is recorded in the ledger as a `judgements` row: rule `D-139`, condition `paired_improvement`, judged once. It is a proposal to the maintainer, who promotes by D-191's mechanism or does not.
+- **The map is frozen.** A refit, for instance if the season's goal level settles, is a new version with its own draft and its own forward window.
+
+**What it costs.**
+- **Engineering:** one pull request.
+  - The `calibration` block in `fmip_model/model/version.py` and its application in the service.
+  - The fitter, a module in `fmip_model/backtest/` that reads an export of evaluations made read-only on production and writes the two constants.
+  - Tests.
+- **Compute:** seconds for a two-parameter fit on about 1,000 rows. No lab store and no server run. One more shadow forecast per published forecast.
+- **Time:** five to six weeks of club football before the verdict. The maintainer decides twice: this draft, and promotion if it passes.
+- **If wrong and promoted anyway:** about +0.004 log loss per match under H0. The gate exists to prevent that.
+- **Readers:** none until promotion. No stored forecast changes (rule 5). The three products stay apart (rule 6).
+
+**Rejected.**
+- *Fitting on 2024/25 or any backtest window:* it shows no bias, so the correction would be about zero (D-308's run).
+- *A second look at the 2025/26 holdout:* spent (D-329).
+- *A rolling refit on the last weeks' outcomes:* it would chase a five-week stretch, change the forecasts without a new version, and could not be judged on a window it had not seen.
+- *Several options in shadow at once, the best kept:* two shots at one look raise the chance of a false pass. The option is chosen here.
+- *A draw-inflation parameter inside the score model:* it changes D-029's model family, as D-308 rejected.
+- *Fitting per competition or per group:* most competitions have fewer than 50 live matches. The bias has the same sign in all three groups, and D-139's third condition catches harm where a pooled map does not fit.
+- *Full strength:* under H0 it costs about four times the half map's loss, and it gains nothing if only half the deficit persists.
+- *Doing nothing:* leaves a visible miscalibration with a known mechanism (the goal level) untested. The forward test is cheap and decides it either way.
+
+**Limits, stated.**
+- The simulation's map is illustrative, matched to aggregates of the development window. The real fit will differ, and so will the power.
+- Intervals treat matches as independent.
+- The development window mixes 0.6.0 and 0.7.0 forecasts, which differ on cup matches only.
+- Whether production's training history, from 2023/24 in the main divisions, affects sharpness differently from the lab's longer one was not checked.
+- The parked ledger entry `live_calibration_signal` counts forecasts, not matches (1,239 and 1,831). Its figures predate T-1772 and are not used here.
+
+**As built (T-1876, 2026-11-17).**
+- **The export.** `apps/model/fmip_model/backtest/recalibration_export.sql`, run on production through the data audit's read-only runner (`.claude/skills/data-audit/run.sh`: a read-only session, the file inside `BEGIN READ ONLY; ... ROLLBACK;`, the server's copy deleted after the run). 1,035 matches, each once by its last pre-kick-off forecast: 673 by `0.7.0`, 362 by `0.6.0`'s published one. Kick-offs 2026-10-10 10:30 to 2026-11-14 23:30 UTC: no evaluated match of the window kicked off after 2026-11-14 when it was read. The export is committed beside the report (`apps/model/reports/dixon-coles-elo-0.9.0/recalibration_window_2026-10-10..2026-11-17.csv`), so the constants are recomputable from it alone.
+- **The screen: passed.**
+  - Fit on the first 690 by kick-off: `T` 1.024526, `β_draw` −0.299546; at half strength 1.012263 and −0.149773.
+  - The last 345: the stored forecasts' log loss 0.95664, mapped 0.95219 (−0.00445).
+  - The whole window: `T̂` 1.079057, `β̂_draw` −0.247230 (Newton's method, 5 steps; a Nelder–Mead check agrees to six decimals). Both in H1's directions.
+- **Frozen at half strength:** `T*` = 1.0395285, `β*_draw` = −0.123615, in `apps/model/fmip_model/model/candidates/dixon-coles-elo-0.9.0.json`: 0.7.0's file unchanged but for its version, its `source` and the `calibration` block (kind, both pairs, the strength ½, the window and its count, the screen's figures, the decision). Loading refuses a block whose applied pair is not the fitted pair at its strength.
+- **In sample, descriptive only** (the verdict is the forward window's): log loss 0.95376 → 0.94833; the draw said 24.75% → 22.23%, seen 19.90%; the favourite said 51.83% → 53.95%, seen 57.68%.
+- **The fit is not the draft's illustrative map** (`T` 1.35, `β_draw` −0.12): the temperature is about a quarter of it, the draw term about twice. The simulation's power table was sized on the illustrative map, so the chance of a pass at 1,000 matches if the deficit persists is not the 99% it gives; the look stays where it was decided.
+- **Where the map runs.** `fmip_model/model/calibration.py` (`Calibration`, `temperature_draw`, `at_strength`, `read_calibration`); `version.py` reads the block into `ModelVersion.calibration` (`None` for every earlier version); the service's `Forecaster._answer` rescales the score table within each outcome by `p_k'/p_k`, so the most likely scores stay consistent with the three probabilities, and keeps the table's own expected goals. The fitter is `python -m fmip_model.backtest.recalibration --export <csv>`, which writes the report (`reports/dixon-coles-elo-0.9.0/recalibration_2026-10-10..2026-11-17.{md,json}`, every match listed by fixture and forecast id) and the version file only when the screen passes. `tests/test_recalibration.py`.
+- **Not changed.** No stored forecast (rule 5); the published version stays 0.7.0. 0.9.0 is listed by `GET /candidates` once the model service is redeployed, and its shadow forecasts start then; nothing is shown to a reader (rule 6). The backtest harnesses fit and score the score table's probabilities and do not apply a calibration, so none of them may score 0.9.0 under its name (review of PR #937): their default (`load_candidate()`) passes over a candidate with a `calibration` and falls back to the published version; one named (`--candidate`, `--version`, `--candidate-file`, `--against`) is refused before anything is read (`version.backtest_version`, `refuse_calibrated`); every harness takes `published` for the published version. So D-334's xG forward run of 2027-01-05, which names no candidate, scores the published 0.7.0 under its own name.
+- **The loader fixes the strength** to D-450's ½ (`calibration.FIXED_STRENGTH`): a block naming another strength, or a decision that fixed none, is refused.
+- **The weekly watch keeps the one look** (`.claude/skills/model-watch/`): `model-watch.sql`'s `one_look` list names 0.9.0, counts its paired matches from kick-offs on 2026-11-18 only, and withholds every figure of it (its own record and the paired difference and interval) below 1,000 paired matches; D-140's 300 does not apply to it.
+- **The contract examples** (`apps/model/contract/*.example.json`) are compared by the model's test, no longer rewritten on every run while the API's specs read them; `FMIP_WRITE_CONTRACT_EXAMPLES=1` regenerates them, and the API's HTTP spec reads the published version from the example rather than naming it.
+
 ## D-451 — A ground's city is the provider's answer about the ground, not the fixture answer it was queued from (amends D-229 point 4)
 
 **Status:** Accepted · 2026-11-17 (the agent, from finding aud-2026-11-11-01; the maintainer approved correcting it on production 2026-11-17, the coordinator deploys after review) · **Task:** T-1875 · **Amends:** D-229 · **Follows:** D-077, D-326, rules 1-3

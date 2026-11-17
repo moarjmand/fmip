@@ -33,7 +33,7 @@ from typing import Literal
 from ..model.dixon_coles import FittedModel, MatchObservation, fit
 from ..model.lineups import LineupSample, RecordedXi, adjusted, fit_beta
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import PUBLISHED, ModelVersion, load_candidate
+from ..model.version import ModelVersion, backtest_version
 from .inputs import BAR, Bar, paired_bootstrap
 from .metrics import Forecast, Result, log_loss
 
@@ -172,6 +172,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--split", type=date.fromisoformat, required=True)
     parser.add_argument("--until", type=date.fromisoformat, required=True)
     parser.add_argument("--out", type=Path, default=Path("reports"))
+    parser.add_argument(
+        "--candidate",
+        help="the version scored: 'published', or a candidate's name (default: the newest "
+        "candidate a backtest can score, else the published version; T-1876)",
+    )
     args = parser.parse_args(argv)
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -183,7 +188,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     from ..model.data import every_match_before
     from ..model.lineups import xi_before_kickoff
 
-    version = load_candidate() or PUBLISHED
+    try:
+        version = backtest_version(args.candidate)
+    except (LookupError, ValueError) as error:
+        print(error, file=sys.stderr)
+        return 2
     with psycopg.connect(database_url) as conn:
         xis = xi_before_kickoff(conn, args.divisions)
         if args.from_ is not None:

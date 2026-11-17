@@ -184,17 +184,29 @@ class Forecaster:
     def _answer(
         self, request: ForecastRequest, now: datetime, cached: CachedFit, home: str, away: str
     ) -> Forecast:
-        outcome = cached.model.predict(home, away)
+        lam, mu = cached.model.expected_goals(home, away)
+        matrix = score_matrix(lam, mu, cached.model.rho)
         # Line-ups and absences (T-534): only a version that reads them, and
         # only when the API could measure both XIs.
         if self.version.lineup_beta is not None and request.xi_strength is not None:
+            base = outcome_from_matrix(matrix)
             lam, mu = adjusted(
-                outcome.expected_home_goals,
-                outcome.expected_away_goals,
+                base.expected_home_goals,
+                base.expected_away_goals,
                 self.version.lineup_beta,
                 request.xi_strength.home - request.xi_strength.away,
             )
-            outcome = outcome_from_matrix(score_matrix(lam, mu, cached.model.rho))
+            matrix = score_matrix(lam, mu, cached.model.rho)
+        outcome = outcome_from_matrix(matrix)
+        # The version's recalibration of the three probabilities (D-450): the
+        # table rescaled within each outcome, the expected goals the table's own.
+        if self.version.calibration is not None:
+            mapped = outcome_from_matrix(self.version.calibration.rescale(matrix))
+            outcome = replace(
+                mapped,
+                expected_home_goals=outcome.expected_home_goals,
+                expected_away_goals=outcome.expected_away_goals,
+            )
         h, d, a = outcome.rounded(4)
 
         return Forecast(

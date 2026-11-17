@@ -54,7 +54,13 @@ from pathlib import Path
 import psycopg
 
 from ..model.dixon_coles import FittedModel, MatchObservation
-from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
+from ..model.version import (
+    PUBLISHED,
+    ModelVersion,
+    load_candidate,
+    load_candidates,
+    refuse_calibrated,
+)
 from ..training.own_elo import read_matches
 from ..training.sources import FOOTBALL_DATA, season_label
 from .__main__ import load_matches
@@ -645,13 +651,17 @@ def _division_job(job: Job) -> DivisionResult | str:
 
 def choose_reference(proposed: ModelVersion, against: str | None) -> ModelVersion | None:
     """``--against``: a candidate's name, ``published``, or by default the newest
-    candidate in shadow other than the proposal, else the published version."""
+    candidate in shadow other than the proposal, else the published version.
+
+    A version with a ``calibration`` (D-450) is never a default and is refused
+    by name: the harness does not apply it (T-1876)."""
     if against == "published":
-        return PUBLISHED
+        return refuse_calibrated(PUBLISHED)
     candidates = load_candidates()
     if against:
-        return candidates.get(against)
-    others = [c for c in candidates.values() if c.id != proposed.id]
+        named = candidates.get(against)
+        return None if named is None else refuse_calibrated(named)
+    others = [c for c in candidates.values() if c.id != proposed.id and c.calibration is None]
     if not others:
         return PUBLISHED
     return max(others, key=lambda v: tuple(int(p) for p in v.version.split(".")))
@@ -693,7 +703,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{args.candidate_file.name} describes {proposed.id}; name it "
               f"{proposed.name}-{proposed.version}.json", file=sys.stderr)  # fmt: skip
         return 2
-    reference = choose_reference(proposed, args.against)
+    try:
+        refuse_calibrated(proposed)
+        refuse_calibrated(PUBLISHED)  # scored beside them as the published reference
+        reference = choose_reference(proposed, args.against)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 2
     if reference is None:
         print(f"no candidate named {args.against}", file=sys.stderr)
         return 2

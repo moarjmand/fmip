@@ -2,6 +2,7 @@
 and the golden example the apps/api contract test reads."""
 
 import json
+import os
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
@@ -209,32 +210,64 @@ def test_never_fits_past_today() -> None:
     assert result.inputs.fit_date == date(2025, 2, 28)  # yesterday, not the eve of the fixture
 
 
-def test_writes_the_contract_examples_apps_api_reads() -> None:
+#: Set to 1 to rewrite the committed contract examples from what the service emits.
+WRITE_CONTRACT_EXAMPLES = "FMIP_WRITE_CONTRACT_EXAMPLES"
+
+
+def _same_example(committed: object, emitted: object, tolerance: float = 2e-4) -> bool:
+    """Equal as JSON, a float within ``tolerance`` (the last rounded digit of a
+    probability may differ between platforms' optimisers)."""
+    if isinstance(committed, dict) and isinstance(emitted, dict):
+        return committed.keys() == emitted.keys() and all(
+            _same_example(committed[k], emitted[k], tolerance) for k in committed
+        )
+    if isinstance(committed, list) and isinstance(emitted, list):
+        return len(committed) == len(emitted) and all(
+            _same_example(a, b, tolerance) for a, b in zip(committed, emitted, strict=True)
+        )
+    if isinstance(committed, float | int) and isinstance(emitted, float | int):
+        if isinstance(committed, bool) or isinstance(emitted, bool):
+            return committed == emitted
+        return abs(committed - emitted) <= tolerance
+    return committed == emitted
+
+
+def test_the_committed_contract_examples_are_what_the_service_emits() -> None:
     """Golden request and response, deterministic, so the TypeScript side can
-    validate its types against what this service really emits."""
+    validate its types against what this service really emits.
+
+    The test compares; it does not write (T-1876). It used to rewrite the files
+    on every run, while ``apps/api``'s specs read them in the same parallel
+    Turbo run, so the API could read a half-written or a stale file, and a stale
+    committed file (D-410 left ``0.6.0`` in it) passed unnoticed. Regenerate
+    with ``FMIP_WRITE_CONTRACT_EXAMPLES=1 pytest -k contract_examples``.
+    """
     forecaster = Forecaster(FakeSource(seasons=12, with_own_elo=True), clock=lambda: FROZEN_NOW)
     req = ForecastRequest.model_validate(request())
     available = forecaster.forecast(req)
     unavailable = forecaster.forecast(
         ForecastRequest.model_validate(request(away_team_id=REAL_MADRID))
     )
+    emitted = {
+        "forecast-request.example.json": req.model_dump_json(indent=2) + "\n",
+        "forecast-response.example.json": available.model_dump_json(indent=2) + "\n",
+        "forecast-unavailable.example.json": unavailable.model_dump_json(indent=2) + "\n",
+    }
+    if os.environ.get(WRITE_CONTRACT_EXAMPLES) == "1":
+        CONTRACT_DIR.mkdir(exist_ok=True)
+        for name, text in emitted.items():
+            (CONTRACT_DIR / name).write_text(text, encoding="utf-8", newline="\n")
 
-    CONTRACT_DIR.mkdir(exist_ok=True)
-    (CONTRACT_DIR / "forecast-request.example.json").write_text(
-        req.model_dump_json(indent=2) + "\n", encoding="utf-8"
-    )
-    (CONTRACT_DIR / "forecast-response.example.json").write_text(
-        available.model_dump_json(indent=2) + "\n", encoding="utf-8"
-    )
-    (CONTRACT_DIR / "forecast-unavailable.example.json").write_text(
-        unavailable.model_dump_json(indent=2) + "\n", encoding="utf-8"
-    )
-
-    written = json.loads(
-        (CONTRACT_DIR / "forecast-response.example.json").read_text(encoding="utf-8")
-    )
-    assert written["status"] == "available"
-    assert written["inputs"]["data_completeness"] == "available"
+    for name, text in emitted.items():
+        committed = json.loads((CONTRACT_DIR / name).read_text(encoding="utf-8"))
+        assert _same_example(committed, json.loads(text)), (
+            f"contract/{name} is not what the service emits; "
+            f"regenerate it with {WRITE_CONTRACT_EXAMPLES}=1"
+        )
+    response = json.loads(emitted["forecast-response.example.json"])
+    assert response["status"] == "available"
+    assert response["inputs"]["data_completeness"] == "available"
+    assert response["inputs"]["model_version"] == PUBLISHED.id
 
 
 def test_without_a_candidate_the_candidate_route_says_so() -> None:
@@ -378,8 +411,10 @@ def test_a_candidate_file_is_named_after_its_version(tmp_path: Path) -> None:
 def test_the_promotion_moved_files_and_renamed_no_version() -> None:
     """D-191: 0.6.0's file went from candidates/ to published/ and 0.5.0's to retired/.
     D-410 (T-1151): 0.7.0's went from candidates/ to published/ and 0.6.0's to retired/,
-    each under the version its stored forecasts carry; nothing is left in shadow."""
-    assert list(load_candidates()) == []
+    each under the version its stored forecasts carry; nothing was left in shadow.
+    D-450 (T-1876): dixon-coles-elo@0.9.0, 0.7.0 recalibrated, is the one candidate since."""
+    assert list(load_candidates()) == ["dixon-coles-elo-0.9.0"]
+    # A backtest's default passes over a calibrated candidate (T-1876).
     assert load_candidate() is None
     assert (
         load_published()

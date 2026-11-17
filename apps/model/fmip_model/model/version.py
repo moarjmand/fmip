@@ -37,6 +37,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from .calibration import Calibration, read_calibration
 from .dixon_coles import DEFAULT_ELO_WEIGHT, DEFAULT_RIDGE, DEFAULT_XI, ELO_SCALE
 
 
@@ -129,6 +130,10 @@ class ModelVersion:
     #: The divisions this version forecasts (T-1442, D-233); ``None``:
     #: ``LEGACY_DIVISIONS``, what every version before it forecast.
     divisions: frozenset[str] | None = field(default=None, hash=False, compare=False)
+    #: The map applied to the three probabilities after the score table (D-450,
+    #: T-1876); ``None``: the table's probabilities as they are, as every version
+    #: before ``dixon-coles-elo@0.9.0``.
+    calibration: Calibration | None = None
 
     @property
     def id(self) -> str:
@@ -147,6 +152,7 @@ class ModelVersion:
         body["per_division"] = {d: list(c) for d, c in self.per_division.items()}
         body["cross_league"] = None if self.cross_league is None else self.cross_league.as_dict()
         body["divisions"] = None if self.divisions is None else sorted(self.divisions)
+        body["calibration"] = None if self.calibration is None else self.calibration.as_dict()
         return {"id": self.id, **body}
 
 
@@ -206,18 +212,22 @@ def load_candidates(directory: Path = CANDIDATES_DIR) -> dict[str, ModelVersion]
 def load_candidate(path: Path | None = None) -> ModelVersion | None:
     """The candidate version the file describes, or ``None`` when there is none.
 
-    With no path: the newest version in ``candidates/``, the one a backtest
-    means by "the current candidate" unless told another.
+    With no path: the newest version in ``candidates/`` that a backtest can
+    score, the one a backtest means by "the current candidate" unless told
+    another: a version with a ``calibration`` (D-450) is passed over, since the
+    harnesses score the score table's probabilities and do not apply it
+    (T-1876; ``backtest_version`` refuses one by name).
 
     The file names a version and, per division, the constants tuning adopted;
     everything it does not name is ``BASELINE``'s (0.1.0's). ``xi``, ``ridge``
     and ``elo_weight`` at the top level (T-1368, D-186) replace 0.1.0's
     defaults: ``xi`` and ``ridge`` for every division the file does not list
-    under ``per_division``, ``elo_weight`` everywhere.
+    under ``per_division``, ``elo_weight`` everywhere. ``calibration`` (D-450)
+    is the frozen map of the three probabilities, checked by ``read_calibration``.
     """
     if path is None:
-        candidates = load_candidates()
-        return max(candidates.values(), key=_version_key) if candidates else None
+        scorable = [c for c in load_candidates().values() if c.calibration is None]
+        return max(scorable, key=_version_key) if scorable else None
     if not path.exists():
         return None
     body = json.loads(path.read_text(encoding="utf-8"))
@@ -245,6 +255,8 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         malformed = sorted(d for d in divisions if not DIVISION_CODE.match(d))
         if malformed or not divisions:
             raise ValueError(f"divisions must be division codes such as E0, not {malformed}")
+    raw_calibration = body.get("calibration")
+    calibration = None if raw_calibration is None else read_calibration(raw_calibration)
     if (
         not per_division
         and (xi, ridge, elo_weight) == (BASELINE.xi, BASELINE.ridge, BASELINE.elo_weight)
@@ -253,6 +265,7 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         and lineup_beta is None
         and elo_prior == BASELINE.elo_prior
         and divisions is None
+        and calibration is None
     ):
         return None
     return ModelVersion(
@@ -269,7 +282,51 @@ def load_candidate(path: Path | None = None) -> ModelVersion | None:
         cross_league=cross_league,
         elo_prior=elo_prior,
         divisions=divisions,
+        calibration=calibration,
     )
+
+
+#: The name a backtest harness takes for the published version (T-1876).
+PUBLISHED_NAME = "published"
+
+
+def refuse_calibrated(version: ModelVersion) -> ModelVersion:
+    """``version`` itself, unless it recalibrates its probabilities (D-450).
+
+    The backtest harnesses fit and score the score table's probabilities and
+    do not apply a version's ``calibration``, so a report under such a
+    version's name would carry another version's numbers (T-1876).
+    """
+    if version.calibration is not None:
+        raise ValueError(
+            f"{version.id} recalibrates its three probabilities after the score table (D-450); "
+            "the backtest harnesses do not apply a calibration, so they cannot score it: "
+            f"name another version, such as {PUBLISHED_NAME!r} if that one has none"
+        )
+    return version
+
+
+def backtest_version(name: str | None = None) -> ModelVersion:
+    """The version a backtest harness scores (T-1876).
+
+    ``None``: the newest candidate a backtest can score (``load_candidate()``),
+    else the published version. ``published`` (or the published file's stem):
+    the published version. Otherwise a candidate's stem, such as
+    ``dixon-coles-elo-0.9.0``. A version with a ``calibration`` is refused
+    (``refuse_calibrated``); an unknown name is a ``LookupError``.
+    """
+    if name is None:
+        version = load_candidate() or PUBLISHED
+    elif name in (PUBLISHED_NAME, f"{PUBLISHED.name}-{PUBLISHED.version}"):
+        version = PUBLISHED
+    else:
+        candidates = load_candidates()
+        if name not in candidates:
+            raise LookupError(
+                f"no version {name!r}: {PUBLISHED_NAME!r} or one of {sorted(candidates)}"
+            )
+        version = candidates[name]
+    return refuse_calibrated(version)
 
 
 def _cross_league(cross: Mapping[str, object]) -> CrossLeague:

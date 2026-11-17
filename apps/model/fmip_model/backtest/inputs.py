@@ -69,7 +69,7 @@ from ..inputs import (
 )
 from ..model.dixon_coles import FittedModel, MatchObservation
 from ..model.poisson import outcome_from_matrix, score_matrix
-from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
+from ..model.version import PUBLISHED, ModelVersion, backtest_version, refuse_calibrated
 from ..training.own_elo import read_matches
 from .__main__ import load_matches
 from .elo_prior import OwnEloByDay, last_cached_clubelo
@@ -951,7 +951,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument("--note", default="", help="where and on what data this was run")
     parser.add_argument(
-        "--candidate", help="a candidate's name (T-1102); default: the newest version in shadow"
+        "--candidate",
+        help="the version the input is added to: 'published', or a candidate's name (T-1102); "
+        "default: the newest candidate a backtest can score, else the published (T-1876)",
     )
     parser.add_argument(
         "--calibration-from",
@@ -969,11 +971,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    candidate = (
-        load_candidates().get(args.candidate) if args.candidate else load_candidate() or PUBLISHED
-    )
-    if candidate is None:
-        print(f"no candidate {args.candidate} to add an input to", file=sys.stderr)
+    try:
+        refuse_calibrated(PUBLISHED)  # scored beside it as the published reference
+        candidate = backtest_version(args.candidate)
+    except (LookupError, ValueError) as error:
+        print(error, file=sys.stderr)
         return 2
     window = (args.window_from, args.window_to)
     history_from = args.history_from or args.window_from - timedelta(days=730)
