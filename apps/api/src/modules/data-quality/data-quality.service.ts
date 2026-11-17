@@ -235,9 +235,13 @@ export class DataQualityService {
    * unreviewed findings about a match live or kicked off in the last six
    * hours, open for ten minutes or more; and the oldest of the swept checks'
    * newest runs, so a sweep that stopped reads as not known rather than fine.
+   * A short line-up on a live match or in a season whose line-ups are
+   * declared limited or delayed is left to the page (T-1873, D-447).
+   * `seasonId` narrows the count to one season, as `sweep` does, for a test.
    */
   async liveContradictions(
     now: Date = new Date(),
+    seasonId: string | null = null,
   ): Promise<{ open: number; sweptAt: Date | null }> {
     const [runs, open] = await Promise.all([
       this.store.checkRuns(),
@@ -245,6 +249,7 @@ export class DataQualityService {
         new Date(now.getTime() - LIVE_HORIZON_MINUTES * 60_000),
         new Date(now.getTime() - LIVE_MIN_AGE_MINUTES * 60_000),
         now,
+        seasonId,
       ),
     ]);
     let sweptAt: Date | null = null;

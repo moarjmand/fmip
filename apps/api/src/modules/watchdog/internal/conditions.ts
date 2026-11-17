@@ -717,6 +717,8 @@ export function deliveryChannel(
  * findings about a match live or kicked off in the last six hours, open for
  * ten minutes or more (the data-quality boundary counts them). One is a match
  * whose page contradicts itself right now; three is a feed doing it widely.
+ * A short line-up on a live match, or in a season whose line-ups are declared
+ * limited or delayed, is not counted (T-1873, D-447): the page lists it.
  *
  * `unknown` when the sweep has never run or its newest run is older than
  * three of its five-minute intervals: no findings from a sweep that stopped is
