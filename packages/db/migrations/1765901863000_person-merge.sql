@@ -36,6 +36,9 @@
 --     the line-up and the other the statistics and events of the same side
 --     in the same match (one human split over two ids). A coach appearance is
 --     not a line-up appearance (a player-coach is legitimate);
+--   * refuses a pair that one incident names together (one id as the person,
+--     the other as the related person: a substitution with one off and the
+--     other on, an assist to the other's goal): two humans again;
 --   * re-points every foreign-key column referencing `person` (24 columns in
 --     22 tables, except `panel_post.link_person_id`, which is members'
 --     writing and stays on the tombstone), the polymorphic `followed_entity`,
@@ -44,7 +47,10 @@
 --     ids alike), so the provider's next answer for the loser's id lands on
 --     the survivor;
 --   * on a unique-key collision keeps the survivor's row and moves the
---     loser's into `person_merge_moved`;
+--     loser's into `person_merge_moved`; so too a loser's row that exactly
+--     repeats one of the survivor's in a table without such a key (a closed
+--     club spell, a coaching spell, a transfer: the same facts the provider
+--     gave under both ids), so the survivor's page lists it once;
 --   * fills only the survivor's empty profile fields from the loser (D-220);
 --   * writes `audit_log` (`person.merge`, target the loser): actor, time,
 --     reason, the previous value and the counts moved (rule 10).
@@ -52,23 +58,35 @@
 -- whose they are, and a line-up stamped "updated today" years after the
 -- match would be the stale-looking-current that rule 4 forbids. That is the
 -- one change to `set_updated_at()` below: it leaves `updated_at` alone while
--- the transaction-local setting `fmip.keep_updated_at` is `on`, which only
--- these two functions set, and only for their own statements.
+-- the setting `fmip.keep_updated_at` holds the id of the CURRENT transaction,
+-- which only these two functions write (transaction-local, and cleared at
+-- their end). A value set any other way, for a session, a role or a
+-- database, names no running transaction and never matches, so it cannot
+-- switch the stamping off.
 --
 -- `merge_person_undo(merge, actor, reason)` puts every re-pointed key back,
 -- restores every deleted row as it was, clears the profile fields the merge
 -- filled (when nobody changed them since) and writes `person.unmerge`. It is
 -- refused once the survivor has itself been merged further (undo that one
 -- first). Rows the provider wrote for the survivor after the merge stay with
--- the survivor.
+-- the survivor. An archived follow is not restored for a member whose
+-- account has since been deleted (D-094) or no longer exists. The undo is
+-- for recent merges: a column added later to an archived table, NOT NULL
+-- without a value in the archived row, makes an old merge's undo fail
+-- loudly rather than guess.
 --
 -- Never touched: `input_snapshot`, `forecast`, predictions, settlements and
 -- ratings, none of which names a person (rules 5 and 8); `message.card_id`,
--- `panel_post.link_person_id` and `audit_log.target_id`, which keep the
--- tombstone; `training.fixture_lineup`, which every load replaces whole.
+-- `panel_post.link_person_id`, `audit_log.target_id` and
+-- `console_audit.target_id`, which keep the tombstone;
+-- `unresolved_entity.resolved_internal_id`, the review queue's history,
+-- rewritten at the id's next sighting; `training.fixture_lineup` and
+-- `training.absence`, which every load replaces whole.
 --
 -- New tables and functions only; nothing to backfill. The production repair
--- of the existing groups is T-1867, after review.
+-- of the existing groups is T-1867, after review. The down section refuses
+-- once any merge exists: dropping the tables then would leave tombstones with
+-- no redirect and no way back.
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION set_updated_at()
@@ -77,9 +95,13 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   -- T-1863: `merge_person` and `merge_person_undo` move rows between persons
-  -- without changing their facts, and keep their timestamps.
-  IF current_setting('fmip.keep_updated_at', true) = 'on' THEN
-    RETURN NEW;
+  -- without changing their facts, and keep their timestamps. They write the
+  -- current transaction's id; anything else (a session-wide 'on' included)
+  -- never matches.
+  IF coalesce(current_setting('fmip.keep_updated_at', true), '') <> '' THEN
+    IF current_setting('fmip.keep_updated_at', true) = pg_current_xact_id()::text THEN
+      RETURN NEW;
+    END IF;
   END IF;
   NEW.updated_at = now();
   RETURN NEW;
@@ -87,7 +109,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION set_updated_at() IS
-  'Trigger function: stamps NEW.updated_at with now(), except while the transaction-local setting fmip.keep_updated_at is on (person merges, T-1863). Attach BEFORE UPDATE on any table with an updated_at column.';
+  'Trigger function: stamps NEW.updated_at with now(), except while the setting fmip.keep_updated_at holds the current transaction''s id (written only by the person merge functions, T-1863). Attach BEFORE UPDATE on any table with an updated_at column.';
 
 CREATE TABLE person_merge (
   id                   uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -203,7 +225,7 @@ COMMENT ON TABLE person_not_duplicate IS
   'T-1863, D-446: a pair of persons a person judged to be two humans (low id first). Never a merge candidate; merge_person refuses it.';
 
 -- The match whose line-up (starting XI or bench) names both persons, if any:
--- the one reason two persons are certainly two humans.
+-- two people on one team sheet are two humans.
 CREATE FUNCTION person_shared_lineup_fixture(p_a uuid, p_b uuid) RETURNS uuid
 LANGUAGE sql
 STABLE
@@ -215,6 +237,19 @@ AS $$
     JOIN lineup lb ON lb.participant_id = pb.id
    WHERE la.person_id = p_a
      AND lb.person_id = p_b
+   LIMIT 1
+$$;
+
+-- The incident that names both persons together, one as its person and the
+-- other as its related person (a substitution, an assist), if any: two
+-- humans again. Incidents that name only one of them are no evidence.
+CREATE FUNCTION person_shared_incident(p_a uuid, p_b uuid) RETURNS uuid
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT id FROM incident
+   WHERE (person_id = p_a AND related_person_id = p_b)
+      OR (person_id = p_b AND related_person_id = p_a)
    LIMIT 1
 $$;
 
@@ -342,6 +377,12 @@ BEGIN
       p_from, p_into, v_shared
       USING ERRCODE = 'PL024', HINT = 'shared_lineup';
   END IF;
+  v_shared := person_shared_incident(p_from, p_into);
+  IF v_shared IS NOT NULL THEN
+    RAISE EXCEPTION 'persons % and % are named together by incident %: two people',
+      p_from, p_into, v_shared
+      USING ERRCODE = 'PL024', HINT = 'shared_incident';
+  END IF;
 
   -- What the survivor's empty profile fields will take from the loser (D-220).
   v_filled := jsonb_strip_nulls(jsonb_build_object(
@@ -351,7 +392,7 @@ BEGIN
     'height_cm',      CASE WHEN v_survivor.height_cm IS NULL THEN v_loser.height_cm END,
     'preferred_foot', CASE WHEN v_survivor.preferred_foot IS NULL THEN v_loser.preferred_foot END));
 
-  PERFORM set_config('fmip.keep_updated_at', 'on', true);
+  PERFORM set_config('fmip.keep_updated_at', pg_current_xact_id()::text, true);
 
   INSERT INTO person_merge (id, from_person_id, into_person_id, actor_id, reason, survivor_updated_at, filled)
   VALUES (v_merge, p_from, p_into, p_actor, p_reason, v_survivor.updated_at, v_filled);
@@ -361,11 +402,30 @@ BEGIN
                                't.undone_at IS NULL', p_from, p_into);
   IF v_n > 0 THEN v_moved := v_moved || jsonb_build_object('person_merge.into_person_id', v_n); END IF;
 
-  -- 2. Collisions: the survivor's row stays, the loser's is kept aside.
+  -- 2. Collisions: the survivor's row stays, the loser's is kept aside. The
+  --    unique keys first; then, in the tables without one, a loser's row
+  --    that repeats a survivor's row in every column but its id, its
+  --    person and its timestamps.
   FOR r IN SELECT * FROM (VALUES
     ('player_spell', 'person_id',
      't.person_id = $2 AND t.end_date IS NULL AND EXISTS (SELECT 1 FROM player_spell s
         WHERE s.person_id = $3 AND s.team_id = t.team_id AND s.end_date IS NULL)'),
+    ('player_spell', 'person_id',
+     't.person_id = $2 AND EXISTS (SELECT 1 FROM player_spell s
+        WHERE s.person_id = $3
+          AND to_jsonb(s) - ARRAY[''id'', ''person_id'', ''created_at'', ''updated_at'']
+            = to_jsonb(t) - ARRAY[''id'', ''person_id'', ''created_at'', ''updated_at''])'),
+    ('coach_spell', 'person_id',
+     't.person_id = $2 AND EXISTS (SELECT 1 FROM coach_spell s
+        WHERE s.person_id = $3
+          AND to_jsonb(s) - ARRAY[''id'', ''person_id'', ''fetched_at'']
+            = to_jsonb(t) - ARRAY[''id'', ''person_id'', ''fetched_at''])'),
+    ('transfer_listing', 'subject_person_id',
+     't.subject_person_id = $2 AND EXISTS (SELECT 1 FROM transfer_listing s
+        WHERE s.subject_person_id = $3
+          AND s.person_id IS NOT DISTINCT FROM (CASE WHEN t.person_id = $2 THEN $3 ELSE t.person_id END)
+          AND to_jsonb(s) - ARRAY[''id'', ''subject_person_id'', ''person_id'', ''fetched_at'']
+            = to_jsonb(t) - ARRAY[''id'', ''subject_person_id'', ''person_id'', ''fetched_at''])'),
     ('fixture_player_stat', 'person_id',
      't.person_id = $2 AND EXISTS (SELECT 1 FROM fixture_player_stat s
         WHERE s.person_id = $3 AND s.participant_id = t.participant_id AND s.metric = t.metric)'),
@@ -404,7 +464,7 @@ BEGIN
   ) AS c (tbl, col, cond)
   LOOP
     v_n := person_merge__remove(v_merge, r.tbl, r.col, 'collision', r.cond, p_from, p_into);
-    IF v_n > 0 THEN v_removed := v_removed || jsonb_build_object(r.tbl, v_n); END IF;
+    IF v_n > 0 THEN v_removed := v_removed || jsonb_build_object(r.tbl, coalesce((v_removed ->> r.tbl)::integer, 0) + v_n); END IF;
   END LOOP;
 
   -- 3. The loser's provider-ask records go, so the jobs ask again by every id.
@@ -477,13 +537,13 @@ BEGIN
   RETURNING id INTO v_audit;
   UPDATE person_merge SET audit_log_id = v_audit WHERE id = v_merge;
 
-  PERFORM set_config('fmip.keep_updated_at', 'off', true);
+  PERFORM set_config('fmip.keep_updated_at', '', true);
   RETURN v_merge;
 END;
 $$;
 
 COMMENT ON FUNCTION merge_person(uuid, uuid, uuid, text) IS
-  'T-1863, D-446: merges the loser (from) into the survivor (into) in one audited transaction and returns the merge id; refuses two persons on one match''s line-up (PL024, hint shared_lineup).';
+  'T-1863, D-446: merges the loser (from) into the survivor (into) in one audited transaction and returns the merge id; refuses two persons on one match''s line-up or named together by one incident (PL024, hints shared_lineup, shared_incident).';
 
 CREATE FUNCTION merge_person_undo(p_merge uuid, p_actor uuid, p_reason text)
 RETURNS void
@@ -529,7 +589,7 @@ BEGIN
       USING ERRCODE = 'PL024', HINT = 'survivor_merged';
   END IF;
 
-  PERFORM set_config('fmip.keep_updated_at', 'on', true);
+  PERFORM set_config('fmip.keep_updated_at', pg_current_xact_id()::text, true);
 
   -- Re-pointed keys go back, newest group first.
   FOR g IN
@@ -571,9 +631,14 @@ BEGIN
        SELECT r.* FROM person_merge_moved mv
         CROSS JOIN LATERAL jsonb_populate_record(NULL::%I, mv.row) r
         WHERE mv.merge_id = $1 AND mv.table_name = %L
-          AND mv.action IN (''collision'', ''fetch_state'')
+          AND mv.action IN (''collision'', ''fetch_state'') %s
         ORDER BY mv.id',
-      g.table_name, g.table_name, g.table_name)
+      g.table_name, g.table_name, g.table_name,
+      -- A follow comes back only for a member who still has an account
+      -- (D-094: a deleted account's follows are gone and stay gone).
+      CASE WHEN g.table_name = 'followed_entity' THEN
+        'AND EXISTS (SELECT 1 FROM user_account u WHERE u.id = r.user_id AND u.status <> ''deleted'')'
+      ELSE '' END)
     USING p_merge;
     GET DIAGNOSTICS v_n = ROW_COUNT;
     v_restored := v_restored || jsonb_build_object(g.table_name || ' (restored rows)', v_n);
@@ -609,7 +674,7 @@ BEGIN
          undo_audit_log_id = v_audit
    WHERE id = p_merge;
 
-  PERFORM set_config('fmip.keep_updated_at', 'off', true);
+  PERFORM set_config('fmip.keep_updated_at', '', true);
 END;
 $$;
 
@@ -618,12 +683,24 @@ COMMENT ON FUNCTION merge_person_undo(uuid, uuid, text) IS
 
 -- Down Migration
 
+-- Once a merge exists, dropping these tables would leave its tombstone with
+-- no redirect and no way back: undo the merges first, or keep the migration.
+DO $$
+BEGIN
+  IF to_regclass('person_merge') IS NOT NULL AND EXISTS (SELECT 1 FROM person_merge) THEN
+    RAISE EXCEPTION 'person_merge holds % merges; the T-1863 migration is not rolled back over them',
+      (SELECT count(*) FROM person_merge);
+  END IF;
+END
+$$;
+
 DROP FUNCTION IF EXISTS merge_person_undo(uuid, uuid, text);
 DROP FUNCTION IF EXISTS merge_person(uuid, uuid, uuid, text);
 DROP FUNCTION IF EXISTS person_merge__remove(uuid, text, text, text, text, uuid, uuid);
 DROP FUNCTION IF EXISTS person_merge__repoint(uuid, text, text, text, uuid, uuid);
 DROP FUNCTION IF EXISTS person_merged_into(uuid);
 DROP FUNCTION IF EXISTS person_shared_lineup_fixture(uuid, uuid);
+DROP FUNCTION IF EXISTS person_shared_incident(uuid, uuid);
 DROP TABLE IF EXISTS person_not_duplicate;
 DROP TABLE IF EXISTS person_merge_moved;
 DROP TABLE IF EXISTS person_merge;
