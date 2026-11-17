@@ -15752,6 +15752,21 @@ The notification: title «درخواست تازه از <filer's display name>»,
 **As built (T-1856, 2026-11-16).** Three details the decision left open, chosen in the build: (a) the classic layout, its breakpoints and the A3 landscape print sheet are a page-only stylesheet, `app/console/canvas.css` (as `about.css` is for the About page), because `grid-template-areas` and a named `@page` are not utilities; the named page keeps the A3 size off every other console page; (b) a restore puts the card back in its old place in its block (the cards from there move one down), so the undo of a removal is a true undo, and a card moved to another block goes last there; (c) a card's footer names the actor and time of its newest event, so moving a neighbour never makes a card look edited; a seed card with no event says «پرکردن اولیه» / "First fill". (d) the print sheet is the canvas at half size without each card's footer and source (both stay on the page and in the JSON), which is what fits the seed's 55 cards on one A3 landscape page; a much fuller canvas runs onto a second page. The words JSON and PDF join the Persian scan's technical terms for the download and print buttons. Errors from the API stay Persian in the English view, as the console's messages do.
 
 
+## D-444 — `/ask` answers a question that is wholly a known name with the search, and asks the model only for the rest, without a second try
+
+**Status:** Accepted · 2026-11-17 (the maintainer, in chat: «بله، طراحی کن», then through the coordinator «ادامه بدهیم همه کارهای باقی مانده را الان انجام دهیم») · **Task:** T-1859 · **Follows:** D-435, T-420 to T-422, T-838
+
+**Context.** After T-1842 and T-1845 the search page's entity rows waited on `/ask`, which put every question to the language model before searching. Measured live on 2026-11-17 against the API: "Salah" and "Liverpool" 0.56 s with the model against 0.07–0.08 s for the plain search, with the same rows; from the third question in a row Mistral's free plan answered 429, the adapter paused a second and tried once more, and the page waited 1.3–1.5 s for the keyword rows it would have had in 0.05–0.3 s. The model's plan is shared with the briefing, the moderation assistant and the match summaries, so every name searched spent their quota too.
+
+**Decision.**
+1. **The keyword search runs first, for every question** (all entity kinds, 20 rows). When its top row scores at least `KNOWN_NAME_SCORE` (0.9), the whole question is a name the search knows and those rows are the answer, with `reason: 'known_name'` (a new `AskReason`) and `interpretation` `not_supplied`; no model is asked. The score is `word_similarity` of the question within a name or alias, or 1 for a prefix, an exact alias, short name or code, so at 0.9 nearly every trigram of the question sits in one name ("Salah", "Man Utd", "پرسپولیس", "Premier League"), while a word beside a name ("liverpool players", 0.56) or two names ("Barca vs Real Madrid", 0.57) still goes to the model.
+2. **The ceilings (T-838) are taken only just before the model is asked**, through a callback the controller hands the service, so a name searched never counts against a reader's questions.
+3. **The model's failure paths reuse the first search's rows** instead of searching again.
+4. **`/ask` asks the model with `retryWhenBusy: false`**, a new optional field of `CompletionRequest`: the chat-completions adapter takes a 429 as the failure at once, so a reader waits for one call, never a pause and a second. Every other caller keeps the retry (the default); the Anthropic SDK keeps its own.
+
+**Consequences.** A known name's rows are all kinds (the model would have narrowed "Salah" to people); the page's sections show what was found. A question costs one extra keyword search (about 0.1 s) before the model. `data-reason="known_name"` on the results says which path answered.
+
+
 ## D-445 — People in search are ordered, among equal matches, by the line-ups the site holds for them
 
 **Status:** Accepted · 2026-11-17 (the maintainer, through the coordinator: «ادامه بدهیم همه کارهای باقی مانده را الان انجام دهیم», for T-1851 as D-435 point 3 left it) · **Task:** T-1851 · **Follows:** D-039, D-435, T-1481

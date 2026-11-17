@@ -25,13 +25,29 @@ const PER_NAME = 10;
 const FALLBACK_LIMIT = 20;
 
 /**
- * Natural-language search (E42, T-420 to T-422). The model reads the
- * question into a structured intent; the search that exists answers it;
- * the page says how the question was read. Every way the reading can fail
- * -- no model, an unreadable answer, no name found, a failed call -- ends
- * in the same place: the question searched as keywords, with the reason
- * beside the results. Nothing here is on the critical path and nothing here
- * invents an entity: a result is a row the search found by id.
+ * The search's score at or above which the whole question is a name the
+ * search already knows (T-1859, D-444). The score is `word_similarity` of the
+ * question within a name or alias, or 1 for a prefix, an exact alias, short
+ * name or code: at 0.9 nearly every trigram of the question sits in one name,
+ * so there is nothing left for the model to read ("Salah", "Man Utd",
+ * "پرسپولیس"), while a word beside the name ("liverpool players", 0.56) or two
+ * names ("Barca vs Real Madrid", 0.57) still goes to the model.
+ */
+export const KNOWN_NAME_SCORE = 0.9;
+
+/** What the caller runs just before the model is asked: its ceilings (T-838). It may throw. */
+export type BeforeModel = () => Promise<void>;
+
+/**
+ * Natural-language search (E42, T-420 to T-422). The question is searched as
+ * keywords first; when the whole of it is a name the search knows, those rows
+ * are the answer and no model is asked (T-1859, D-444). Otherwise the model
+ * reads the question into a structured intent and the search that exists
+ * answers it. Every way the reading can fail -- no model, an unreadable
+ * answer, no name found, a failed call -- ends in the same place: the
+ * question's keyword rows, with the reason beside them. Nothing here is on
+ * the critical path and nothing here invents an entity: a result is a row the
+ * search found by id.
  */
 @Injectable()
 export class AskService {
@@ -41,27 +57,40 @@ export class AskService {
   ) {}
 
   /**
-   * Whether a question would be put to the model at all. Without one, `/ask`
-   * is the keyword search and costs nothing, so its ceilings do not apply
-   * (T-838).
+   * `beforeModel` runs only when the model is about to be asked -- never for
+   * a known name or without a model -- so a name searched costs no ceiling.
    */
-  usesModel(): boolean {
-    return !this.intelligence.describe().absent;
-  }
+  async ask(question: string, beforeModel: BeforeModel = async () => {}): Promise<AskResponse> {
+    const plain = await this.search.search({
+      q: question,
+      types: [...SEARCH_ENTITY_TYPES],
+      limit: FALLBACK_LIMIT,
+    });
+    const keywords = (reason: AskReason): AskResponse => ({
+      question,
+      interpretation: { coverage: 'not_supplied', last_updated_at: null, data: null },
+      reason,
+      results: plain.results,
+    });
+    const top = plain.results[0];
+    if (top !== undefined && top.score >= KNOWN_NAME_SCORE) return keywords('known_name');
+    if (this.intelligence.describe().absent) return keywords('no_model');
 
-  async ask(question: string): Promise<AskResponse> {
-    if (this.intelligence.describe().absent) return this.keywords(question, 'no_model');
+    await beforeModel();
     const answer = await this.intelligence.complete({
       system: INTENT_SYSTEM,
       prompt: question,
       maxTokens: MAX_TOKENS,
+      // A reader is waiting: a busy model is the keyword rows at once, not a
+      // second try a second later (T-1859).
+      retryWhenBusy: false,
     });
-    if (answer.outcome === 'absent') return this.keywords(question, 'no_model');
-    if (answer.outcome === 'failed') return this.keywords(question, 'failed');
-    if (answer.completion.stop !== 'end_turn') return this.keywords(question, 'unreadable');
+    if (answer.outcome === 'absent') return keywords('no_model');
+    if (answer.outcome === 'failed') return keywords('failed');
+    if (answer.completion.stop !== 'end_turn') return keywords('unreadable');
     const intent = readIntent(answer.completion.text);
-    if (intent === null) return this.keywords(question, 'unreadable');
-    if (intent.names.length === 0) return this.keywords(question, 'nothing_named');
+    if (intent === null) return keywords('unreadable');
+    if (intent.names.length === 0) return keywords('nothing_named');
 
     const types = intent.types.length === 0 ? [...SEARCH_ENTITY_TYPES] : intent.types;
     const found = new Map<string, SearchResult>();
@@ -83,20 +112,6 @@ export class AskService {
       },
       reason: null,
       results,
-    };
-  }
-
-  private async keywords(question: string, reason: AskReason): Promise<AskResponse> {
-    const page = await this.search.search({
-      q: question,
-      types: [...SEARCH_ENTITY_TYPES],
-      limit: FALLBACK_LIMIT,
-    });
-    return {
-      question,
-      interpretation: { coverage: 'not_supplied', last_updated_at: null, data: null },
-      reason,
-      results: page.results,
     };
   }
 }

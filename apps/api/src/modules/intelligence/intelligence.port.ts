@@ -29,6 +29,13 @@ export interface CompletionRequest {
   /** The grounded document the model answers from. */
   prompt: string;
   maxTokens: number;
+  /**
+   * Whether a "too many requests" answer is tried once more after the pause
+   * the server names (the default). A caller a reader is waiting on passes
+   * `false` and takes the failure at once (T-1859). The chat-completions
+   * adapter honours it; the Anthropic SDK keeps its own retries.
+   */
+  retryWhenBusy?: boolean;
 }
 
 export interface LanguageModel {
