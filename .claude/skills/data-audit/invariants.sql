@@ -261,6 +261,26 @@ WITH x AS (
 SELECT 'I3 sides_malformed', 'critical', count(*), string_agg(label, '; ') FILTER (WHERE rn <= 5)
   FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
 
+-- V1 (T-1875, D-451): a ground shows the city the provider's latest answer about the ground gave.
+-- A city differing from it is a write that went wrong (production's Mestalla in "Valdivia", 142
+-- matches). `to_jsonb(vf)->>'city'` reads the column added by migration 1765901875000 without
+-- failing the file on a database that does not have it yet (then V1 is 0 and V2 counts all).
+WITH x AS (
+  SELECT v.name || ' (' || coalesce(v.city, 'no city') || ', answer ' || (to_jsonb(vf) ->> 'city') || ')' AS label
+    FROM venue v JOIN venue_detail_fetch vf ON vf.venue_id = v.id
+   WHERE to_jsonb(vf) ->> 'city' IS NOT NULL AND v.city IS DISTINCT FROM to_jsonb(vf) ->> 'city')
+SELECT 'V1 ground_city_not_its_answer', 'major', count(*), string_agg(label, '; ') FILTER (WHERE rn <= 5)
+  FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
+
+-- V2 (T-1875): grounds with matches whose city no answer about the ground has confirmed yet: the
+-- city is still the one fixture answer it was queued from. Info: it falls as the monthly club and
+-- ground pass describes each ground again after the T-1875 deploy.
+SELECT 'V2 ground_city_unconfirmed', 'info', count(*), ''
+  FROM venue v
+ WHERE EXISTS (SELECT 1 FROM fixture f WHERE f.venue_id = v.id)
+   AND NOT EXISTS (SELECT 1 FROM venue_detail_fetch vf
+                    WHERE vf.venue_id = v.id AND to_jsonb(vf) ->> 'city' IS NOT NULL);
+
 -- M1 (rule 5): a published forecast's three probabilities do not sum to one.
 WITH x AS (
   SELECT fc.id, fc.fixture_id || ' ' || (fc.p_home + fc.p_draw + fc.p_away) AS label

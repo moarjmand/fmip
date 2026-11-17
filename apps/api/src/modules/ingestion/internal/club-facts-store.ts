@@ -21,8 +21,10 @@ const providerId = (type: string, internal: string) => `
  *
  * A fact the answer leaves out keeps the stored one: an answer that says
  * less is not a correction. A fact it gives replaces the stored one, so a
- * renovated ground's capacity or a club's move is picked up on refresh.
- * Every write compares first, so an unchanged row is not written.
+ * renovated ground's capacity or a club's move is picked up on refresh; a
+ * ground's city too (T-1875, D-451), since the one stored at adoption is
+ * what a single fixture answer said. Every write compares first, so an
+ * unchanged row is not written.
  */
 export class ClubFactsStore implements ClubFactsSource {
   constructor(private readonly pool: Pool) {}
@@ -155,7 +157,7 @@ export class ClubFactsStore implements ClubFactsSource {
         kept.clubsWritten += rowCount ?? 0;
         if (entry.venue === null || venueId === undefined) continue;
         if (await writeVenue(client, venueId, entry.venue)) kept.venuesWritten += 1;
-        await describedByTeam(client, provider, venueId);
+        await describedByTeam(client, provider, venueId, entry.venue.city);
         if (entry.venue.imageUrl !== null) {
           kept.images.push(venueImage(venueId, entry.venue.imageUrl));
         }
@@ -190,12 +192,13 @@ export class ClubFactsStore implements ClubFactsSource {
       await client.query('BEGIN');
       const written = venue === null ? false : await writeVenue(client, venueId, venue);
       await client.query(
-        `INSERT INTO venue_detail_fetch (provider, venue_id, failures, answered_at, answered_by)
-         VALUES ($1, $2, 0, now(), $3)
+        `INSERT INTO venue_detail_fetch
+           (provider, venue_id, failures, answered_at, answered_by, city)
+         VALUES ($1, $2, 0, now(), $3, $4)
          ON CONFLICT (provider, venue_id) DO UPDATE
            SET asked_at = now(), failures = 0, answered_at = now(),
-               answered_by = EXCLUDED.answered_by`,
-        [provider, venueId, venue === null ? 'none' : 'venue'],
+               answered_by = EXCLUDED.answered_by, city = EXCLUDED.city`,
+        [provider, venueId, venue === null ? 'none' : 'venue', venue?.city ?? null],
       );
       await client.query('COMMIT');
       return written;
@@ -213,10 +216,12 @@ function venueImage(venueId: string, url: string): ImageNote {
 }
 
 /**
- * The ground's address, capacity and surface from the answer, each kept as
- * stored when the answer leaves it out; the city only where none is stored
- * (the catalogue's spelling stands). The name is the catalogue's and is
- * never touched. True when the row changed.
+ * The ground's address, capacity, surface and city from the answer about it,
+ * each kept as stored when the answer leaves it out. The city replaces the
+ * stored one (T-1875, D-451): the provider's record of the ground, asked by
+ * its id, outranks the one fixture answer it was queued from, which named
+ * Valencia's ground in "Valdivia". The name is the catalogue's and is never
+ * touched. True when the row changed.
  */
 async function writeVenue(
   client: PoolClient,
@@ -228,28 +233,32 @@ async function writeVenue(
         SET address = COALESCE($2::text, address),
             capacity = COALESCE($3::integer, capacity),
             surface = COALESCE($4::text, surface),
-            city = COALESCE(city, $5::text)
+            city = COALESCE($5::text, city)
       WHERE id = $1
         AND (address, capacity, surface, city) IS DISTINCT FROM
             (COALESCE($2::text, address), COALESCE($3::integer, capacity),
-             COALESCE($4::text, surface), COALESCE(city, $5::text))`,
+             COALESCE($4::text, surface), COALESCE($5::text, city))`,
     [venueId, venue.address, venue.capacity, venue.surface, venue.city],
   );
   return (rowCount ?? 0) > 0;
 }
 
-/** A club's entry described the ground: it counts as answered, without moving `asked_at`. */
+/**
+ * A club's entry described the ground: it counts as answered, without moving
+ * `asked_at`, and the city it gave is recorded (T-1875) for the audit's V1.
+ */
 async function describedByTeam(
   client: PoolClient,
   provider: Provider,
   venueId: string,
+  city: string | null,
 ): Promise<void> {
   await client.query(
-    `INSERT INTO venue_detail_fetch (provider, venue_id, failures, answered_at, answered_by)
-     VALUES ($1, $2, 0, now(), 'team')
+    `INSERT INTO venue_detail_fetch (provider, venue_id, failures, answered_at, answered_by, city)
+     VALUES ($1, $2, 0, now(), 'team', $3)
      ON CONFLICT (provider, venue_id) DO UPDATE
-       SET failures = 0, answered_at = now(), answered_by = 'team'`,
-    [provider, venueId],
+       SET failures = 0, answered_at = now(), answered_by = 'team', city = EXCLUDED.city`,
+    [provider, venueId, city],
   );
 }
 
