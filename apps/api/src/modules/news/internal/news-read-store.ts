@@ -812,6 +812,7 @@ export class PostgresNewsReadStore {
         summary: r.summary,
         categories: r.categories ?? [],
         feedUrl: r.feed_url,
+        url: r.url,
         searched: r.searched,
         filedTo: (entities.get(r.story_id) ?? []).map((e) => e.entity_type),
       }) === null;

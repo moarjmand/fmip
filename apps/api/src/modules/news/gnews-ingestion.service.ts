@@ -3,6 +3,7 @@ import {
   type Transport,
   articleUrlKey,
   gnewsSearchFor,
+  notFootballPageOf,
   otherCodeOf,
   readGNews,
   siteHost,
@@ -82,7 +83,10 @@ export function redact(text: string, apiKey: string): string {
  * the two searches of `GNEWS_SEARCHES` in turn, by the day's requests so far
  * (T-1400, D-215), and an item whose own words name another code of football
  * (`otherCodeOf`: American, Gaelic, Australian, rugby league, another sport,
- * school and college sport -- T-1669, D-321) is not written.
+ * school and college sport -- T-1669, D-321) is not written, nor one whose
+ * address is in the publisher's television, showbiz, lifestyle or school
+ * sport section or whose headline names I'm A Celebrity (`notFootballPageOf`,
+ * T-1874, D-449).
  * Each run is a `news_fetch` row of the GNews source -- opened before the
  * request, closed with the outcome -- so the console's news sources page
  * shows when GNews was last asked and what it said, and the day's ceiling is
@@ -211,10 +215,16 @@ export class GNewsIngestionService {
     let duplicates = 0;
     let refused = 0;
     let otherCode = 0;
+    let notFootballPage = 0;
     for (const [index, item] of items.entries()) {
       // Another sport that shares the word (T-1400, D-215): not football news here.
       if (otherCodeOf(item.headline, item.summary) !== null) {
         otherCode += 1;
+        continue;
+      }
+      // The publisher's TV, showbiz or school sport section (T-1874, D-449).
+      if (notFootballPageOf(item.url, item.headline) !== null) {
+        notFootballPage += 1;
         continue;
       }
       const key = keys[index];
@@ -241,13 +251,14 @@ export class GNewsIngestionService {
       if (await this.writer.writeItem(publisher, item, null)) written += 1;
     }
 
-    if (duplicates > 0 || refused > 0 || otherCode > 0) {
+    if (duplicates > 0 || refused > 0 || otherCode > 0 || notFootballPage > 0) {
       this.log.log('gnews items left out', {
         event: 'news.gnews_left_out',
         source: aggregator.id,
         already_carried: duplicates,
         publisher_dropped: refused,
         other_code: otherCode,
+        not_football_page: notFootballPage,
         search: search.country === null ? 'soccer' : `football_${search.country}`,
       });
     }

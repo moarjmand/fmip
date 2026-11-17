@@ -486,6 +486,20 @@ export const OTHER_CODE_RULES: readonly OtherCodeRule[] = [
     caseSensitive: true,
     despiteSoccer: true,
   },
+  // T-1874 (D-449): the US states' school and college athletic associations
+  // production's school round-ups named ("PIAA District 3 girls soccer
+  // playoffs", "2026 NJSIAA boys soccer state tournament brackets", "NJAC
+  // announces field hockey awards"), in capitals, and the USA Today Network's
+  // high-school brand, "Hometeam", as one capitalised word ("Vote for the
+  // Hometeam Playoff Performer of the Week, presented by the YMCA of Central
+  // Massachusetts"). Not "home team", football's own words, nor "YMCA" or
+  // "Performer of the Week" alone.
+  {
+    code: 'school_sport',
+    pattern: words('PIAA|MIAA|NJSIAA|IHSA|IHSAA|OHSAA|NJAC|Hometeam'),
+    caseSensitive: true,
+    despiteSoccer: true,
+  },
   {
     code: 'school_sport',
     pattern: words(
