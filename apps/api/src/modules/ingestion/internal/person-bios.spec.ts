@@ -9,6 +9,7 @@ import {
   MAX_PEOPLE_BIOS_BATCH,
   PEOPLE_BIOS_BATCH,
   bioFromProfile,
+  combineBioAnswers,
   countryOf,
   peopleBiosBatch,
   profileAgrees,
@@ -321,5 +322,96 @@ describe('the bio pass', () => {
       adapter: adapterAnswering(() => ok(null)),
     });
     expect(nobody.idle).toBe('no player is owed a bio ask');
+  });
+});
+
+describe('a player holding several provider ids (T-1866)', () => {
+  const both = (n: number, more: string[]): BioPerson => ({ ...player(n), moreExternalIds: more });
+
+  it('asks by each id and records one answer, each field from the lowest id that gives it', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20'])];
+    const calls: string[] = [];
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      adapter: adapterAnswering(
+        (id) =>
+          id === '10'
+            ? ok(salah({ heightCm: 175 }))
+            : ok(salah({ heightCm: 180, dateOfBirth: '1992-06-15', preferredFoot: 'left' })),
+        calls,
+      ),
+    });
+    expect(calls).toEqual(['10', '20']);
+    expect(sweep).toMatchObject({ asked: 2, answered: 1, written: 1, refused: [] });
+    expect(store.answers).toHaveLength(1);
+    expect(store.answers[0]?.personId).toBe('p10');
+    expect(store.answers[0]?.answer).toMatchObject({
+      outcome: 'readable',
+      fields: { height_cm: 175, date_of_birth: '1992-06-15', preferred_foot: 'left' },
+    });
+  });
+
+  it('counts each id against the allowance, and passes over a player whose ids do not fit', async () => {
+    const store = new FakeStore();
+    store.due = [player(1), both(10, ['20']), player(3)];
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      batch: 2,
+      adapter: adapterAnswering(() => ok(salah())),
+      requestsToday: 0,
+    });
+    expect(store.limit).toBe(2);
+    // The store gives two people for two asks; player 1 takes one, and player
+    // 10's two ids do not fit in the one left, so he waits for the next run.
+    expect(sweep.asked).toBe(1);
+    expect(store.answers.map((a) => a.personId)).toEqual(['p1']);
+  });
+
+  it('records nothing as answered when one id is refused, so both are asked again', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20'])];
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      adapter: adapterAnswering((id) =>
+        id === '20'
+          ? { ok: false, error: { kind: 'http', message: 'HTTP 500' }, requests: 1 }
+          : ok(salah({ heightCm: 175 })),
+      ),
+    });
+    expect(sweep).toMatchObject({ asked: 2, answered: 0, refused: ['person 20: http: HTTP 500'] });
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual(['p10']);
+  });
+
+  it('combines one answer as it is, and falls back to the first outcome when none is readable', () => {
+    const one = bioFromProfile(['M. Salah'], salah({ heightCm: 175 }), COUNTRIES, NOW);
+    expect(combineBioAnswers([one])).toBe(one);
+    const none = bioFromProfile(['M. Salah'], null, COUNTRIES, NOW);
+    const differs = bioFromProfile(['A. Other'], salah(), COUNTRIES, NOW);
+    expect(combineBioAnswers([none, differs])).toMatchObject({
+      outcome: 'no_profile',
+      fields: {},
+    });
+    const unmatched = bioFromProfile(
+      ['M. Salah'],
+      salah({ nationality: { name: 'Atlantis', code: null } }),
+      COUNTRIES,
+      NOW,
+    );
+    const egypt = bioFromProfile(
+      ['M. Salah'],
+      salah({ nationality: { name: 'Egypt', code: 'EGY' } }),
+      COUNTRIES,
+      NOW,
+    );
+    expect(combineBioAnswers([unmatched, egypt])).toMatchObject({
+      fields: { nationality_id: 'c-egy' },
+      unmatchedNationality: null,
+    });
+    expect(combineBioAnswers([unmatched, none]).unmatchedNationality).toBe('Atlantis');
   });
 });

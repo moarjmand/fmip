@@ -9,6 +9,8 @@ import {
   type CareerAsk,
   type PlayerSeasonsStore,
   type SeasonAsk,
+  combineCareers,
+  combineSeasonLines,
   PLAYER_SEASONS_BATCH,
   playerSeasonsAllowance,
   playerSeasonsBatch,
@@ -198,5 +200,147 @@ describe('the player seasons sweep', () => {
     expect((await sweepPlayerSeasons({ ...base, adapter, store })).idle).toBe(
       'no player is owed a season or a career ask',
     );
+  });
+});
+
+describe('a player holding several provider ids (T-1866)', () => {
+  const at = (competition: string, team: string, appearances: number) =>
+    ({
+      competition: { externalId: competition, name: competition },
+      team: { externalId: team, name: team },
+      seasonYear: 2026,
+      appearances,
+    }) as NormalisedPlayerSeasonLine;
+  const club = (team: string, seasonYears: number[]): NormalisedCareerEntry => ({
+    team: { externalId: team, name: team },
+    seasonYears,
+  });
+
+  it('asks the season and the career by each id, and saves both answers once under the one person', async () => {
+    const saved: { personId: string; lines: NormalisedPlayerSeasonLine[] }[] = [];
+    const careers: NormalisedCareerEntry[][] = [];
+    const { store, calls } = fakeStore(
+      [{ personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 }],
+      [{ personId: 'p1', externalId: '10', moreExternalIds: ['20'] }],
+    );
+    store.saveSeason = async (_p, ask, lines) => {
+      saved.push({ personId: ask.personId, lines });
+      return { kept: lines.length, unmapped: 0 };
+    };
+    store.saveCareer = async (_p, _ask, entries) => {
+      careers.push(entries);
+      return { kept: entries.length, unmapped: 0 };
+    };
+    const { adapter, asked } = fakeAdapter((what) => {
+      if (what === 'season 10') return ok([at('league', 'old-club', 9)]);
+      if (what === 'season 20') return ok([at('league', 'new-club', 4), at('cup', 'new-club', 1)]);
+      if (what === 'career 10') return ok([club('old-club', [2025, 2024])]);
+      return ok([club('new-club', [2026]), club('old-club', [2025, 2023])]);
+    });
+    const sweep = await sweepPlayerSeasons({ ...base, adapter, store });
+    expect(asked).toEqual(['season 10 2026', 'season 20 2026', 'career 10', 'career 20']);
+    expect(sweep).toMatchObject({ asked: 4, answered: 2, refused: [] });
+    expect(saved).toEqual([
+      {
+        personId: 'p1',
+        lines: [at('league', 'old-club', 9), at('league', 'new-club', 4), at('cup', 'new-club', 1)],
+      },
+    ]);
+    expect(careers).toEqual([[club('old-club', [2025, 2024, 2023]), club('new-club', [2026])]]);
+    expect(calls).toEqual([
+      'seasonsDue 10 2026-10-20T06:00:00.000Z 2026-10-19T12:00:00.000Z',
+      'careersDue 8 2026-09-20T12:00:00.000Z',
+    ]);
+  });
+
+  it('counts each id against the batch, and leaves a player whose ids do not fit for the next run', async () => {
+    const { store, calls } = fakeStore(
+      [
+        { personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 },
+        { personId: 'p2', externalId: '30', moreExternalIds: ['40'], seasonYear: 2026 },
+      ],
+      [{ personId: 'p3', externalId: '50' }],
+    );
+    const { adapter, asked } = fakeAdapter(() => ok([]));
+    const sweep = await sweepPlayerSeasons({ ...base, adapter, store, batch: 3 });
+    // p1's two ids fit in three; p2's two do not, and the one left goes to a career.
+    expect(asked).toEqual(['season 10 2026', 'season 20 2026', 'career 50']);
+    expect(sweep.asked).toBe(3);
+    expect(calls.filter((c) => c.startsWith('careersDue'))).toEqual([
+      'careersDue 1 2026-09-20T12:00:00.000Z',
+    ]);
+  });
+
+  it('stays within the bulk share of the budget with every id counted', async () => {
+    const { store } = fakeStore(
+      [
+        { personId: 'p1', externalId: '10', moreExternalIds: ['20', '21'], seasonYear: 2026 },
+        { personId: 'p2', externalId: '30', seasonYear: 2026 },
+      ],
+      [],
+    );
+    const { adapter, asked } = fakeAdapter(() => ok([]));
+    // 70% of 100 is 70; 68 are spent, so two asks are left: p1's three ids do
+    // not fit, and p2's one does.
+    const sweep = await sweepPlayerSeasons({
+      ...base,
+      adapter,
+      store,
+      budget: 100,
+      requestsToday: 68,
+    });
+    expect(asked).toEqual(['season 30 2026']);
+    expect(sweep.asked).toBe(1);
+  });
+
+  it('saves nothing when one id is refused, so a later ask is by each id again', async () => {
+    const { store, calls } = fakeStore(
+      [{ personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 }],
+      [],
+    );
+    const { adapter, asked } = fakeAdapter((what) =>
+      what === 'season 20'
+        ? { ok: false, error: { kind: 'http', message: 'HTTP 500' }, requests: 1 }
+        : ok([at('league', 'old-club', 9)]),
+    );
+    const sweep = await sweepPlayerSeasons({ ...base, adapter, store });
+    expect(asked).toEqual(['season 10 2026', 'season 20 2026']);
+    expect(sweep).toMatchObject({ asked: 2, answered: 0 });
+    expect(sweep.refused).toEqual(['person 20 season 2026: http: HTTP 500']);
+    expect(calls.filter((c) => c.startsWith('save'))).toEqual([]);
+    expect(calls.filter((c) => c.startsWith('mark'))).toEqual(['markSeason 10']);
+  });
+
+  it('spaces every ask, the second id included', async () => {
+    const { store } = fakeStore(
+      [
+        { personId: 'p1', externalId: '10', moreExternalIds: ['20'], seasonYear: 2026 },
+        { personId: 'p2', externalId: '30', seasonYear: 2026 },
+      ],
+      [],
+    );
+    const { adapter } = fakeAdapter(() => ok([]));
+    const waits: number[] = [];
+    await sweepPlayerSeasons({
+      ...base,
+      adapter,
+      store,
+      gapMs: 250,
+      wait: async (ms) => {
+        waits.push(ms);
+      },
+    });
+    expect(waits).toEqual([250, 250]);
+  });
+
+  it("combines one answer as it is, and keeps the lowest id's line where both report it", () => {
+    const one = [at('league', 'club', 3), at('league', 'club', 5)];
+    expect(combineSeasonLines([one])).toBe(one);
+    expect(combineSeasonLines([[at('league', 'club', 3)], [at('league', 'club', 5)]])).toEqual([
+      at('league', 'club', 3),
+    ]);
+    const career = [club('a', [2026]), club('a', [2025])];
+    expect(combineCareers([career])).toBe(career);
+    expect(combineCareers([[], []])).toEqual([]);
   });
 });

@@ -19,6 +19,11 @@
  * `INGESTION_PLAYER_SEASONS_BATCH` asks a run, none once the day's requests
  * reach the bulk share of the budget, none past `PLAYER_SEASONS_RUN_MS`, and
  * `PLAYER_SEASONS_ASK_GAP_MS` between two asks (T-1405).
+ *
+ * A player holding several of the provider's ids (a merged duplicate, T-1866)
+ * is asked by each, in one go, and the answers are saved together under the
+ * one person: each id is one request against the allowance, and a player
+ * whose ids do not fit waits for the next run.
  */
 
 import type {
@@ -28,6 +33,7 @@ import type {
   Provider,
   ProviderAdapter,
 } from '@fmip/ingestion';
+import { asksWithin, everyExternalId, type PersonExternalIds } from './person-ids';
 
 /** The default number of asks one run makes. */
 export const PLAYER_SEASONS_BATCH = 100;
@@ -67,18 +73,57 @@ export function playerSeasonsAllowance(seen: {
   return Math.max(0, Math.min(seen.batch, ceiling - seen.requestsToday));
 }
 
-/** A player and season owed an ask. */
-export interface SeasonAsk {
+/** A player and season owed an ask, by each of his provider ids. */
+export interface SeasonAsk extends PersonExternalIds {
   personId: string;
-  externalId: string;
   /** The year the season starts in. */
   seasonYear: number;
 }
 
-/** A player owed a career ask. */
-export interface CareerAsk {
+/** A player owed a career ask, by each of his provider ids. */
+export interface CareerAsk extends PersonExternalIds {
   personId: string;
-  externalId: string;
+}
+
+/**
+ * One season's lines from each of a player's ids, as one answer (T-1866). A
+ * competition and team both ids report keeps the line of the id asked first
+ * (the lowest), as the store's insert would; one answer is returned as it is.
+ */
+export function combineSeasonLines(
+  answers: NormalisedPlayerSeasonLine[][],
+): NormalisedPlayerSeasonLine[] {
+  if (answers.length === 1) return answers[0] ?? [];
+  const seen = new Set<string>();
+  const lines: NormalisedPlayerSeasonLine[] = [];
+  for (const line of answers.flat()) {
+    const key = [line.competition.externalId, line.team.externalId, line.seasonYear].join(' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * A career from each of a player's ids, as one answer (T-1866): one entry per
+ * team, its seasons the union, newest first. One answer is returned as it is.
+ */
+export function combineCareers(answers: NormalisedCareerEntry[][]): NormalisedCareerEntry[] {
+  if (answers.length === 1) return answers[0] ?? [];
+  const byTeam = new Map<string, { entry: NormalisedCareerEntry; years: Set<number> }>();
+  for (const entry of answers.flat()) {
+    const held = byTeam.get(entry.team.externalId);
+    if (held === undefined) {
+      byTeam.set(entry.team.externalId, { entry, years: new Set(entry.seasonYears) });
+    } else {
+      for (const year of entry.seasonYears) held.years.add(year);
+    }
+  }
+  return [...byTeam.values()].map(({ entry, years }) => ({
+    team: entry.team,
+    seasonYears: [...years].sort((a, b) => b - a),
+  }));
 }
 
 /** What one answer kept and left out. */
@@ -188,53 +233,76 @@ export async function sweepPlayerSeasons(input: {
     retryBeforeIso: new Date(now.getTime() - PLAYER_SEASONS_RETRY_HOURS * HOUR_MS).toISOString(),
     answeredBeforeIso: new Date(now.getTime() - CAREER_REFRESH_DAYS * 24 * HOUR_MS).toISOString(),
   };
-  const seasons = await store.seasonsDue(provider, at, PLAYER_SEASONS_MAX_FAILURES, allowance);
+  // Each of a player's ids is one request: the asks kept are those whose ids
+  // fit in the allowance (T-1866). With one id each, the store's limit does.
+  const seasons = asksWithin(
+    await store.seasonsDue(provider, at, PLAYER_SEASONS_MAX_FAILURES, allowance),
+    allowance,
+  );
+  const left = allowance - seasons.requests;
   const careers =
-    seasons.length < allowance
-      ? await store.careersDue(
-          provider,
-          at,
-          PLAYER_SEASONS_MAX_FAILURES,
-          allowance - seasons.length,
-        )
-      : [];
+    left > 0
+      ? asksWithin(await store.careersDue(provider, at, PLAYER_SEASONS_MAX_FAILURES, left), left)
+      : { asks: [], requests: 0, deferred: 0 };
   const due: Ask[] = [
-    ...seasons.map((ask) => ({ kind: 'season' as const, ask })),
-    ...careers.map((ask) => ({ kind: 'career' as const, ask })),
+    ...seasons.asks.map((ask) => ({ kind: 'season' as const, ask })),
+    ...careers.asks.map((ask) => ({ kind: 'career' as const, ask })),
   ];
   if (due.length === 0) {
     return { ...sweep, idle: 'no player is owed a season or a career ask' };
   }
 
-  /** One ask, its answer saved: the requests it cost, and what was kept or why not. */
+  /**
+   * One ask by each of the player's ids, the answers saved together under
+   * the one person only when every id answered (T-1866): the requests it
+   * cost, and what was kept or why not.
+   */
   const askOne = async (
     item: Ask,
   ): Promise<
     | { requests: number; ok: true; kept: Kept }
-    | { requests: number; ok: false; error: AdapterError }
+    | { requests: number; ok: false; externalId: string; error: AdapterError }
   > => {
-    if (item.kind === 'season') {
-      const r = await getSeason(item.ask.externalId, String(item.ask.seasonYear));
-      if (!r.ok) return r;
-      const kept = await store.saveSeason(provider, item.ask, r.data, r.fetchedAt);
-      return { requests: r.requests, ok: true, kept };
+    let requests = 0;
+    // The oldest answer dates the rows, so none is shown fresher than it is.
+    let fetchedAt: string | null = null;
+    const seasonLines: NormalisedPlayerSeasonLine[][] = [];
+    const careers: NormalisedCareerEntry[][] = [];
+    for (const [index, externalId] of everyExternalId(item.ask).entries()) {
+      if (index > 0) await wait(gapMs);
+      if (item.kind === 'season') {
+        const r = await getSeason(externalId, String(item.ask.seasonYear));
+        requests += r.requests;
+        if (!r.ok) return { requests, ok: false, externalId, error: r.error };
+        seasonLines.push(r.data);
+        if (fetchedAt === null || r.fetchedAt < fetchedAt) fetchedAt = r.fetchedAt;
+      } else {
+        const r = await getCareer(externalId);
+        requests += r.requests;
+        if (!r.ok) return { requests, ok: false, externalId, error: r.error };
+        careers.push(r.data);
+        if (fetchedAt === null || r.fetchedAt < fetchedAt) fetchedAt = r.fetchedAt;
+      }
     }
-    const r = await getCareer(item.ask.externalId);
-    if (!r.ok) return r;
-    const kept = await store.saveCareer(provider, item.ask, r.data, r.fetchedAt);
-    return { requests: r.requests, ok: true, kept };
+    const stamped = fetchedAt ?? now.toISOString();
+    const kept =
+      item.kind === 'season'
+        ? await store.saveSeason(provider, item.ask, combineSeasonLines(seasonLines), stamped)
+        : await store.saveCareer(provider, item.ask, combineCareers(careers), stamped);
+    return { requests, ok: true, kept };
   };
 
   const deadline = clock() + (input.runMs ?? PLAYER_SEASONS_RUN_MS);
   for (const [index, item] of due.entries()) {
     if (index > 0) await wait(gapMs);
+    // The run's clock is read before each player: his ids are asked together.
     if (clock() >= deadline) break;
     const result = await askOne(item);
     sweep.asked += result.requests;
     if (!result.ok) {
       const what = item.kind === 'season' ? `season ${item.ask.seasonYear}` : 'career';
       const { error } = result;
-      sweep.refused.push(`person ${item.ask.externalId} ${what}: ${error.kind}: ${error.message}`);
+      sweep.refused.push(`person ${result.externalId} ${what}: ${error.kind}: ${error.message}`);
       // The plan, or our own budget, has said no: nothing else is asked this
       // run, and the refusal says nothing about this player.
       if (error.kind === 'quota') break;

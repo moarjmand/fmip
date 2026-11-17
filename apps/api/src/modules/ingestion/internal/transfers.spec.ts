@@ -5,6 +5,7 @@ import {
   type TransferAsk,
   type TransfersStore,
   TRANSFERS_BATCH,
+  combineMoves,
   sweepTransfers,
   transfersAllowance,
   transfersBatch,
@@ -194,5 +195,99 @@ describe('sweepTransfers', () => {
       'api_football has no transfers',
     );
     expect(asked).toEqual([]);
+  });
+});
+
+describe('a player holding several provider ids (T-1866)', () => {
+  const move = (date: string, from: string | null, to: string): NormalisedTransfer => ({
+    player: { externalId: 'x', name: 'Player' },
+    date,
+    kind: 'free',
+    fee: null,
+    from: from === null ? null : { externalId: from, name: from },
+    to: { externalId: to, name: to },
+  });
+  const both = (n: number, more: string[]): TransferAsk => ({
+    ...person(n),
+    moreExternalIds: more,
+  });
+
+  it('asks by each id and saves both answers once under the one person', async () => {
+    const saved: { id: string; moves: NormalisedTransfer[] }[] = [];
+    const { store, calls } = fakeStore([], [both(10, ['20'])]);
+    store.save = async (_p, ask, moves) => {
+      saved.push({ id: ask.id, moves });
+      return moves.length;
+    };
+    const { adapter, asked } = fakeAdapter((what) =>
+      what === 'person 10'
+        ? ok([move('2019-07-01', 'a', 'b')])
+        : ok([move('2024-01-10', 'b', 'c'), move('2019-07-01', 'a', 'b')]),
+    );
+    const { pacer, waits } = fakePacer(() => 0);
+    const sweep = await sweepTransfers({ ...base, adapter, store, pacer });
+    expect(asked).toEqual(['person 10', 'person 20']);
+    expect(sweep).toEqual({ asked: 2, answered: 1, written: 2, refused: [] });
+    expect(saved).toEqual([
+      { id: 'p10', moves: [move('2019-07-01', 'a', 'b'), move('2024-01-10', 'b', 'c')] },
+    ]);
+    // The second id is paced like any other ask (the first ask of a run waits for none).
+    expect(waits).toEqual([500]);
+    expect(calls.filter((c) => c.startsWith('due'))).toEqual([
+      'due team 10 2026-09-21T12:00:00.000Z 2026-10-20T12:00:00.000Z',
+      'due person 10 2026-09-21T12:00:00.000Z 2026-10-20T12:00:00.000Z',
+    ]);
+  });
+
+  it('counts each id against the batch, and leaves a player whose ids do not fit', async () => {
+    const { store } = fakeStore([team(1)], [both(10, ['20']), person(30)]);
+    const { adapter, asked } = fakeAdapter(() => ok([]));
+    const { pacer } = fakePacer(() => 0);
+    const sweep = await sweepTransfers({ ...base, adapter, store, pacer, batch: 2 });
+    // The club takes one of two; the player's two ids do not fit in the one left.
+    expect(asked).toEqual(['team 1']);
+    expect(sweep.asked).toBe(1);
+  });
+
+  it('stays within the bulk share of the budget with every id counted', async () => {
+    const { store } = fakeStore([], [both(10, ['20']), person(30)]);
+    const { adapter, asked } = fakeAdapter(() => ok([]));
+    const { pacer } = fakePacer(() => 0);
+    // 25% of 100 is 25; 22 are spent, so three asks are left.
+    const sweep = await sweepTransfers({
+      ...base,
+      adapter,
+      store,
+      pacer,
+      budget: 100,
+      requestsToday: 22,
+    });
+    expect(asked).toEqual(['person 10', 'person 20', 'person 30']);
+    expect(sweep.asked).toBe(3);
+  });
+
+  it('saves nothing when one id is refused, and stops at a quota refusal', async () => {
+    const { store, calls } = fakeStore([], [both(10, ['20']), both(30, ['40'])]);
+    const { adapter, asked } = fakeAdapter((what) =>
+      what === 'person 20'
+        ? { ok: false, error: { kind: 'http', message: 'HTTP 500' }, requests: 1 }
+        : what === 'person 40'
+          ? { ok: false, error: { kind: 'quota', message: 'rateLimit' }, requests: 1 }
+          : ok([move('2019-07-01', 'a', 'b')]),
+    );
+    const { pacer } = fakePacer(() => 0);
+    const sweep = await sweepTransfers({ ...base, adapter, store, pacer });
+    expect(asked).toEqual(['person 10', 'person 20', 'person 30', 'person 40']);
+    expect(sweep.refused).toEqual(['person 20: http: HTTP 500', 'person 40: quota: rateLimit']);
+    expect(calls.filter((c) => c.startsWith('save'))).toEqual([]);
+    expect(calls.filter((c) => c.startsWith('mark'))).toEqual(['mark person 10']);
+  });
+
+  it('combines one answer as it is', () => {
+    const one = [move('2019-07-01', 'a', 'b'), move('2019-07-01', 'a', 'b')];
+    expect(combineMoves([one])).toBe(one);
+    expect(
+      combineMoves([[move('2019-07-01', null, 'b')], [move('2019-07-01', null, 'b')]]),
+    ).toEqual([move('2019-07-01', null, 'b')]);
   });
 });

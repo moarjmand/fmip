@@ -26,6 +26,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the transfer
     unmappedTeam: randomUUID(),
     starter: randomUUID(),
     unmappedPerson: randomUUID(),
+    merged: randomUUID(),
     fixture: randomUUID(),
   };
   const ext = (n: string) => `t1440-${RUN}-${n}`;
@@ -113,7 +114,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the transfer
     if (pool === undefined) return;
     await pool.query(`DELETE FROM fixture WHERE id = $1`, [id.fixture]);
     await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [`t1440-${RUN}-%`]);
-    await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [people]);
+    await pool.query(`DELETE FROM provider_mapping WHERE external_id = $1`, [`coach:t1440-${RUN}`]);
+    await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[...people, id.merged]]);
     await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [teams]);
     await pool.query(`DELETE FROM season WHERE id = $1`, [id.season]);
     await pool.query(`DELETE FROM competition WHERE id = $1`, [id.league]);
@@ -242,5 +244,61 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the transfer
       [id.away],
     );
     expect(fetch.rows).toEqual([{ failures: 0, moves: 0 }]);
+  });
+
+  it('owes a player holding several ids an ask by each player id, the lowest first, never a coach id, and keeps both answers under him (T-1866)', async () => {
+    await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'T-1866 Merged')`, [
+      id.merged,
+    ]);
+    for (const external of [ext('merged-b'), ext('merged-a'), `coach:t1440-${RUN}`]) {
+      await pool.query(
+        `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+         VALUES ('api_football', 'person', $1, $2)`,
+        [external, id.merged],
+      );
+    }
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role)
+       SELECT fp.id, $2, 'bench' FROM fixture_participant fp
+        WHERE fp.fixture_id = $1 AND fp.side = 'home'`,
+      [id.fixture, id.merged],
+    );
+    const due = (await store.due(PROVIDER, 'person', at(), 5, 50_000)).filter(
+      (a) => a.id === id.merged,
+    );
+    expect(due).toEqual([
+      {
+        subject: 'person',
+        id: id.merged,
+        externalId: ext('merged-a'),
+        moreExternalIds: [ext('merged-b')],
+      },
+    ]);
+    // The sweep saves the moves of both ids at once; each names its own id.
+    const [ask] = due;
+    if (ask === undefined) throw new Error('the merged player is owed an ask');
+    expect(
+      await store.save(
+        PROVIDER,
+        ask,
+        [
+          move({ player: { externalId: ext('merged-a'), name: 'T. Merged' }, date: '2019-07-01' }),
+          move({ player: { externalId: ext('merged-b'), name: 'T. Merged' }, date: '2024-01-10' }),
+        ],
+        '2026-10-21T00:00:00Z',
+      ),
+    ).toBe(2);
+    const rows = await pool.query(
+      `SELECT person_id, transfer_date::text AS date FROM transfer_listing
+        WHERE subject_person_id = $1 ORDER BY transfer_date`,
+      [id.merged],
+    );
+    expect(rows.rows).toEqual([
+      { person_id: id.merged, date: '2019-07-01' },
+      { person_id: id.merged, date: '2024-01-10' },
+    ]);
+    await pool.query(`DELETE FROM transfer_listing WHERE subject_person_id = $1`, [id.merged]);
+    await pool.query(`DELETE FROM person_transfer_fetch WHERE person_id = $1`, [id.merged]);
+    await pool.query(`DELETE FROM lineup WHERE person_id = $1`, [id.merged]);
   });
 });

@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import type { NormalisedCareerEntry, NormalisedPlayerSeasonLine, Provider } from '@fmip/ingestion';
+import { personExternalIds, playerIdsLateral } from './person-ids';
 import type { CareerAsk, Kept, PlayerSeasonsStore, SeasonAsk } from './player-seasons';
 
 /**
@@ -20,11 +21,8 @@ const PLAYED = `
      AND f.status = 'finished' AND f.kickoff_at < $2
    GROUP BY 1, 2`;
 
-/** The provider's id for the person, the lowest when there are two. */
-const PERSON_ID = `
-  CROSS JOIN LATERAL (
-    SELECT min(pm.external_id) AS external_id FROM provider_mapping pm
-     WHERE pm.internal_id = p.person_id AND pm.entity_type = 'person' AND pm.provider = $1) m`;
+/** Every player id the provider gave the person, the lowest first (T-1866). */
+const PERSON_IDS = playerIdsLateral('p.person_id');
 
 /**
  * The `player_seasons` job's SQL (T-1431, D-223): who is owed an ask, the ask
@@ -43,16 +41,16 @@ export class PlayerSeasonStore implements PlayerSeasonsStore {
     if (limit <= 0) return [];
     const { rows } = await this.pool.query<{
       person_id: string;
-      external_id: string;
+      external_ids: string[];
       season_year: number;
     }>(
       `WITH played AS (${PLAYED})
-       SELECT p.person_id, m.external_id, p.season_year
+       SELECT p.person_id, m.external_ids, p.season_year
          FROM played p
-         ${PERSON_ID}
+         ${PERSON_IDS}
          LEFT JOIN player_season_fetch sf
            ON sf.provider = $1 AND sf.person_id = p.person_id AND sf.season_year = p.season_year
-        WHERE m.external_id IS NOT NULL
+        WHERE m.external_ids IS NOT NULL
           AND p.season_year BETWEEN 1870 AND 2100
           AND (sf.person_id IS NULL
                OR (p.last_kickoff > coalesce(sf.answered_at, '-infinity'::timestamptz)
@@ -64,7 +62,7 @@ export class PlayerSeasonStore implements PlayerSeasonsStore {
     );
     return rows.map((r) => ({
       personId: r.person_id,
-      externalId: r.external_id,
+      ...personExternalIds(r.external_ids),
       seasonYear: r.season_year,
     }));
   }
@@ -76,14 +74,14 @@ export class PlayerSeasonStore implements PlayerSeasonsStore {
     limit: number,
   ): Promise<CareerAsk[]> {
     if (limit <= 0) return [];
-    const { rows } = await this.pool.query<{ person_id: string; external_id: string }>(
+    const { rows } = await this.pool.query<{ person_id: string; external_ids: string[] }>(
       `WITH played AS (
          SELECT person_id, max(last_kickoff) AS last_kickoff FROM (${PLAYED}) x GROUP BY 1)
-       SELECT p.person_id, m.external_id
+       SELECT p.person_id, m.external_ids
          FROM played p
-         ${PERSON_ID}
+         ${PERSON_IDS}
          LEFT JOIN player_career_fetch cf ON cf.provider = $1 AND cf.person_id = p.person_id
-        WHERE m.external_id IS NOT NULL
+        WHERE m.external_ids IS NOT NULL
           AND (cf.person_id IS NULL
                OR (cf.failures = 0 AND cf.answered_at < $5)
                OR (cf.failures > 0 AND cf.failures < $4 AND cf.asked_at < $3))
@@ -91,7 +89,7 @@ export class PlayerSeasonStore implements PlayerSeasonsStore {
         LIMIT $6`,
       [provider, at.playedBeforeIso, at.retryBeforeIso, maxFailures, at.answeredBeforeIso, limit],
     );
-    return rows.map((r) => ({ personId: r.person_id, externalId: r.external_id }));
+    return rows.map((r) => ({ personId: r.person_id, ...personExternalIds(r.external_ids) }));
   }
 
   async markSeasonAsked(provider: Provider, ask: SeasonAsk): Promise<void> {

@@ -227,4 +227,39 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the people b
     );
     expect(rows[0]).toEqual({ attempts: 2, answered_at: null });
   });
+
+  it('owes a player holding several ids an ask by each player id, the lowest first, never a coach id (T-1866)', async () => {
+    const merged = randomUUID();
+    ids.push(merged);
+    await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'M. Erged')`, [merged]);
+    for (const external of [ext('merged-b'), ext('merged-a'), `coach:${ext('merged')}`]) {
+      await pool.query(
+        `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+         VALUES ('api_football', 'person', $1, $2)`,
+        [external, merged],
+      );
+    }
+    expect((await due()).filter((x) => x.personId === merged)).toEqual([
+      {
+        personId: merged,
+        externalId: ext('merged-a'),
+        moreExternalIds: [ext('merged-b')],
+        names: ['M. Erged'],
+      },
+    ]);
+    // A person with one id reads exactly as before: no list of more.
+    const single = randomUUID();
+    ids.push(single);
+    await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'S. Ingle')`, [single]);
+    await pool.query(
+      `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+       VALUES ('api_football', 'person', $1, $2)`,
+      [ext('single'), single],
+    );
+    expect((await due()).find((x) => x.personId === single)).toEqual({
+      personId: single,
+      externalId: ext('single'),
+      names: ['S. Ingle'],
+    });
+  });
 });
