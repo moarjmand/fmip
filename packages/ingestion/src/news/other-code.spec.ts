@@ -166,6 +166,23 @@ describe('otherCodeOf', () => {
       'school_sport',
     ],
     ['Prep girls soccer: Greear’s clutch brace lifts Monroe at districts', null, 'school_sport'],
+    // T-1874 (D-449): the states' school and college associations and the
+    // USA Today Network's high-school brand, from production's GNews items.
+    [
+      'Vote for the Hometeam Playoff Performer of the Week, presented by the YMCA of Central Massachusetts',
+      null,
+      'school_sport',
+    ],
+    ['PIAA soccer: Conrad Weiser boys advance with 1-0 win over Midd-West', null, 'school_sport'],
+    ['Projected seeds for 2026 NJSIAA boys soccer state tournament', null, 'school_sport'],
+    ['Wellesley girls soccer surges to top of latest MIAA power rankings', null, 'school_sport'],
+    [
+      'Here are IHSA playoff boys soccer pairings for Suburban Life-area teams',
+      null,
+      'school_sport',
+    ],
+    ['Vliet named NJAC goalkeeper of the year, six Ospreys honored', null, 'school_sport'],
+    ['South Bend area 2026 IHSAA boys soccer regional semifinal results', null, 'school_sport'],
     [
       'Champion Chevrolet Boys Athlete of the Week, Oct. 12-18: Vote now!',
       'Football, soccer, cross country and tennis stars are in the running ...',
@@ -189,6 +206,14 @@ describe('otherCodeOf', () => {
     // A round-up that says soccer stays, whatever else it lists, unless it
     // says it is school or college sport (T-1669, D-321).
     ['Top Performances of the Week in Bucks County soccer, field hockey, golf', null],
+    // "home team" in two words, a player or team of the week, a charity:
+    // football's own words, not T-1874's markers (the second to fourth stood
+    // on production; the others are written for the spec).
+    ['Arsenal the home team to beat as Emirates fortress holds again', null],
+    ['⭐️ Champions League: the player of the week is…', null],
+    ['Premier League Team of the Week: Erling Haaland, Gabriel Magalhaes, Diogo Dalot', null],
+    ['Nations League: the night’s 3️⃣ standout performers 🌟', null],
+    ['Club’s YMCA partnership brings free football sessions to the town', null],
     // Words both codes use are not markers (the first and third stood on
     // production; the others are written for the spec).
     ['Premier League panel backs controversial Elliot Anderson handball decision', null],

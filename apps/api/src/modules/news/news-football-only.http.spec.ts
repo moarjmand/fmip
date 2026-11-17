@@ -13,6 +13,9 @@ import { NO_FILTERS, PostgresNewsReadStore } from './internal/news-read-store';
  * club of ours under the publisher's «منهای فوتبال > والیبال» section is left
  * out of the lists, the Following feed and story search, beside a football
  * report filed to the same club. Nothing is deleted.
+ *
+ * T-1874 (D-449): an English feed's story at a showbiz address, filed to the
+ * same club, is left out of the three beside the club's football report.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -33,6 +36,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
     categories: string[],
     filed: boolean,
     minutesAgo: number,
+    url = `https://fo.test/${RUN}/${stories.length}`,
   ): Promise<string> {
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO story DEFAULT VALUES RETURNING id`,
@@ -41,13 +45,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
     const article = await pool.query<{ id: string }>(
       `INSERT INTO article (source_id, story_id, external_id, url, fetched_at)
        VALUES ($1, $2, $3, $4, now() - make_interval(mins => $5)) RETURNING id`,
-      [
-        source,
-        storyId,
-        `fo-${stories.length}-${RUN}`,
-        `https://fo.test/${RUN}/${stories.length}`,
-        minutesAgo,
-      ],
+      [source, storyId, `fo-${stories.length}-${RUN}`, url, minutesAgo],
     );
     const articleId = article.rows[0]!.id;
     await pool.query(
@@ -80,6 +78,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
   let pgpl: string;
   let volleyball: string;
   let report: string;
+  let english: string;
+  let showbiz: string;
+  let englishReport: string;
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
@@ -97,6 +98,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
       ).rows[0]!.id;
     general = await source(`General ${RUN}`, 'https://www.tehrantimes.com/rss/tp/699', 'en');
     persian = await source(`Persian ${RUN}`, `https://fo.test/${RUN}.xml`, 'fa');
+    english = await source(`English ${RUN}`, `https://fo.test/${RUN}-en.xml`, 'en');
 
     chess = await story(
       general,
@@ -143,15 +145,36 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
       true,
       5,
     );
+    showbiz = await story(
+      english,
+      'en',
+      `Footballford star's wife floods him with love amid major career first ${RUN}`,
+      null,
+      [],
+      true,
+      6,
+      `https://www.fo.test/news/showbiz-news/${RUN}-wife-floods-34822252`,
+    );
+    englishReport = await story(
+      english,
+      'en',
+      `Footballford star scores twice in derby win ${RUN}`,
+      null,
+      [],
+      true,
+      7,
+      `https://www.fo.test/sport/football/football-news/${RUN}-derby-34822253`,
+    );
   }, 60_000);
 
   afterAll(async () => {
     await pool.query(`UPDATE story SET promoted_article_id = NULL WHERE id = ANY($1::uuid[])`, [
       stories,
     ]);
-    await pool.query(`DELETE FROM article WHERE source_id = ANY($1::uuid[])`, [[general, persian]]);
+    const sources = [general, persian, english];
+    await pool.query(`DELETE FROM article WHERE source_id = ANY($1::uuid[])`, [sources]);
     await pool.query(`DELETE FROM story WHERE id = ANY($1::uuid[])`, [stories]);
-    await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [[general, persian]]);
+    await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [sources]);
     await pool.query(`DELETE FROM team WHERE id = $1`, [TEAM]);
     await pool.end();
   }, 60_000);
@@ -194,11 +217,40 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
     expect(found).not.toContain(volleyball);
   });
 
+  it('leaves a showbiz section out even when filed, in the lists, the feed and search (T-1874)', async () => {
+    const lists = (
+      await new PostgresNewsReadStore(pool).latest({ ...NO_FILTERS, team: TEAM }, 'en', null, 40)
+    ).cards.map((c) => c.story_id);
+    expect(lists).toContain(englishReport);
+    expect(lists).not.toContain(showbiz);
+
+    const fed = (
+      await new PostgresFollowingFeedStore(pool).stories(
+        [TEAM],
+        [],
+        {
+          since: new Date(Date.now() - 3_600_000).toISOString(),
+          until: new Date(Date.now() + 60_000).toISOString(),
+        },
+        randomUUID(),
+        'en',
+      )
+    ).map((r) => r.story_id);
+    expect(fed).toContain(englishReport);
+    expect(fed).not.toContain(showbiz);
+
+    const found = (
+      await new PostgresCommunitySearchStore(pool).stories(`Footballford star ${RUN}`, 10, 'en')
+    ).map((r) => r.story_id);
+    expect(found).toContain(englishReport);
+    expect(found).not.toContain(showbiz);
+  });
+
   it('deletes nothing', async () => {
     const { rows } = await pool.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM article WHERE story_id = ANY($1::uuid[])`,
-      [[chess, noSport, volleyball]],
+      [[chess, noSport, volleyball, showbiz]],
     );
-    expect(rows[0]!.n).toBe(3);
+    expect(rows[0]!.n).toBe(4);
   });
 });
