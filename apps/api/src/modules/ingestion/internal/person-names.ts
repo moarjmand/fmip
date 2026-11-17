@@ -28,6 +28,13 @@
  * back to back, fifty profiles went out in two seconds and the provider
  * refused that run, and the live and standings ticks after it, with its
  * per-minute "rateLimit".
+ *
+ * A person holding several of the provider's player ids (a merged duplicate,
+ * T-1863) is asked by each, in one go, as the bio pass and the seasons,
+ * careers and transfers jobs ask (T-1866, T-1868): each id is one request
+ * against the allowance, and the answers are recorded as one
+ * (`combineNameAnswers`) -- or not at all when one id is refused or the run's
+ * time ends between two of them.
  */
 
 import {
@@ -36,6 +43,7 @@ import {
   type Provider,
   type ProviderAdapter,
 } from '@fmip/ingestion';
+import { asksWithin, everyExternalId, type PersonExternalIds } from './person-ids';
 
 /** The default number of profiles one run asks for. */
 export const PEOPLE_NAMES_BATCH = 50;
@@ -67,10 +75,9 @@ export function peopleNamesBatch(raw: string | undefined): number {
 export type PersonNameOutcome =
   'written' | 'no_profile' | 'family_name_differs' | 'initial_differs' | 'name_kept';
 
-/** A person the job may ask about: our id, the provider's, and the name we store. */
-export interface ShortNamedPerson {
+/** A person the job may ask about: our id, each of the provider's, and the name we store. */
+export interface ShortNamedPerson extends PersonExternalIds {
   personId: string;
-  externalId: string;
   storedName: string;
 }
 
@@ -263,6 +270,49 @@ export function fullNameFromProfile(
   };
 }
 
+/** A profile that is not of the stored short form: the name rule's own "not him". */
+const DISAGREES: ReadonlySet<PersonNameOutcome> = new Set<PersonNameOutcome>([
+  'family_name_differs',
+  'initial_differs',
+]);
+
+/**
+ * The answers of each of a person's ids, lowest first, as one (T-1868). Pure.
+ * A profile under one id that is not of the stored short form is recorded
+ * as it is, and nothing is written: under a merged person that is the sign
+ * of a wrong merge, never hidden by another id's clean answer. Otherwise the
+ * full name when every id that gives one gives the same; two different full
+ * names keep the stored one (`name_kept`); with none, the first answer's
+ * outcome. One answer is returned as it is.
+ */
+export function combineNameAnswers(
+  answers: PersonNameAnswer[],
+  externalIds: string[] = [],
+): PersonNameAnswer {
+  const [first, ...rest] = answers;
+  if (first === undefined) throw new Error('a name needs at least one answer');
+  if (rest.length === 0) return first;
+  const detail = answers.map((a, i) => `id ${externalIds[i] ?? i + 1}: ${a.detail}`).join('; ');
+  const disagrees = answers.find((a) => DISAGREES.has(a.outcome));
+  if (disagrees !== undefined) {
+    return { outcome: disagrees.outcome, detail, profileName: disagrees.profileName };
+  }
+  const written = answers.filter((a) => a.outcome === 'written' && a.fullName !== undefined);
+  const [chosen] = written;
+  if (chosen === undefined) {
+    return { outcome: first.outcome, detail, profileName: first.profileName };
+  }
+  const name = foldName(chosen.fullName ?? '');
+  if (written.some((a) => foldName(a.fullName ?? '') !== name)) {
+    return {
+      outcome: 'name_kept',
+      detail: `the ids' profiles give different full names; ${detail}`,
+      profileName: chosen.profileName,
+    };
+  }
+  return { ...chosen, detail };
+}
+
 // -- The sweep. --------------------------------------------------------------
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -315,36 +365,49 @@ export async function sweepPeopleNames(input: {
       idle: `the day's requests are at ${input.bulkPercent}% of the budget (bulk tier)`,
     };
   }
-  const due = await store.peopleNamesDue(
-    provider,
-    new Date(now.getTime() - PEOPLE_NAMES_RETRY_HOURS * HOUR_MS).toISOString(),
-    PEOPLE_NAMES_MAX_ATTEMPTS,
+  // Each of a person's ids is one request: the people kept are those whose
+  // ids fit in the allowance (T-1868). With one id each, the store's limit does.
+  const { asks: due } = asksWithin(
+    await store.peopleNamesDue(
+      provider,
+      new Date(now.getTime() - PEOPLE_NAMES_RETRY_HOURS * HOUR_MS).toISOString(),
+      PEOPLE_NAMES_MAX_ATTEMPTS,
+      allowance,
+    ),
     allowance,
   );
   if (due.length === 0)
     return { ...sweep, idle: 'no person stored under a short name is owed an ask' };
 
   const deadline = clock() + (input.runMs ?? PEOPLE_NAMES_RUN_MS);
-  for (const [index, person] of due.entries()) {
-    if (index > 0) await wait(gapMs);
-    if (clock() >= deadline) break;
-    const result = await adapter.getPersonProfile(person.externalId);
-    sweep.asked += result.requests;
-    if (!result.ok) {
-      sweep.refused.push(
-        `person ${person.externalId}: ${result.error.kind}: ${result.error.message}`,
-      );
-      // The plan, or our own budget, has said no: nobody else is asked this run.
-      // The refusal says nothing about this person, so it costs them no attempt.
-      if (result.error.kind === 'quota') break;
-      await store.markPersonNameAsked(provider, person.personId);
-      continue;
+  let first = true;
+  people: for (const person of due) {
+    const externalIds = everyExternalId(person);
+    const answers: PersonNameAnswer[] = [];
+    for (const externalId of externalIds) {
+      if (!first) await wait(gapMs);
+      first = false;
+      // The run's clock is read before every ask. A person whose ids are not
+      // all asked in time has nothing recorded, and is asked whole next run.
+      if (clock() >= deadline) break people;
+      const result = await adapter.getPersonProfile(externalId);
+      sweep.asked += result.requests;
+      if (!result.ok) {
+        sweep.refused.push(`person ${externalId}: ${result.error.kind}: ${result.error.message}`);
+        // The plan, or our own budget, has said no: nobody else is asked this run.
+        // The refusal says nothing about this person, so it costs them no attempt.
+        if (result.error.kind === 'quota') break people;
+        // Nothing is recorded as answered unless every id answered.
+        await store.markPersonNameAsked(provider, person.personId);
+        continue people;
+      }
+      answers.push(fullNameFromProfile(person.storedName, result.data));
     }
     sweep.answered += 1;
     const outcome = await store.recordPersonNameAnswer(
       provider,
       person,
-      fullNameFromProfile(person.storedName, result.data),
+      combineNameAnswers(answers, externalIds),
     );
     if (outcome === 'written') sweep.written += 1;
     else sweep.kept[outcome] = (sweep.kept[outcome] ?? 0) + 1;

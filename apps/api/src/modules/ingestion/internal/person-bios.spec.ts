@@ -387,15 +387,77 @@ describe('a player holding several provider ids (T-1866)', () => {
     expect(store.asked).toEqual(['p10']);
   });
 
+  it('stops the run at a quota refusal on the second id, with nothing recorded (T-1868)', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20']), player(3)];
+    const calls: string[] = [];
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      adapter: adapterAnswering(
+        (id) =>
+          id === '20'
+            ? { ok: false, error: { kind: 'quota', message: 'rateLimit' }, requests: 1 }
+            : ok(salah({ heightCm: 175 })),
+        calls,
+      ),
+    });
+    expect(calls).toEqual(['10', '20']);
+    expect(sweep).toMatchObject({ asked: 2, answered: 0, written: 0 });
+    expect(sweep.refused).toEqual(['person 20: quota: rateLimit']);
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual([]);
+  });
+
+  it('reads the run clock before the second id: out of time, nothing recorded (T-1868)', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20']), player(3)];
+    const calls: string[] = [];
+    let t = 0;
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      clock: () => t,
+      runMs: 15_000,
+      adapter: adapterAnswering(() => {
+        t += 20_000;
+        return ok(salah({ heightCm: 175 }));
+      }, calls),
+    });
+    expect(calls).toEqual(['10']);
+    expect(sweep).toMatchObject({ asked: 1, answered: 0, refused: [] });
+    expect(store.answers).toEqual([]);
+    expect(store.asked).toEqual([]);
+  });
+
+  it('records name_differs from one id even when another answers cleanly (T-1868)', async () => {
+    const store = new FakeStore();
+    store.due = [both(10, ['20'])];
+    const sweep = await sweepPeopleBios({
+      ...base,
+      store,
+      adapter: adapterAnswering((id) =>
+        id === '10'
+          ? ok(salah({ heightCm: 175 }))
+          : ok({ ...salah(), shortName: 'P. Guardiola', name: null }),
+      ),
+    });
+    expect(sweep).toMatchObject({ asked: 2, answered: 1, written: 0 });
+    expect(sweep.kept).toEqual({ name_differs: 1 });
+    expect(store.answers[0]?.answer).toMatchObject({ outcome: 'name_differs', fields: {} });
+    expect(store.answers[0]?.answer.detail).toMatch(/^id 10: the profile gives height_cm; id 20: /);
+  });
+
   it('combines one answer as it is, and falls back to the first outcome when none is readable', () => {
     const one = bioFromProfile(['M. Salah'], salah({ heightCm: 175 }), COUNTRIES, NOW);
     expect(combineBioAnswers([one])).toBe(one);
     const none = bioFromProfile(['M. Salah'], null, COUNTRIES, NOW);
     const differs = bioFromProfile(['A. Other'], salah(), COUNTRIES, NOW);
     expect(combineBioAnswers([none, differs])).toMatchObject({
-      outcome: 'no_profile',
+      outcome: 'name_differs',
       fields: {},
     });
+    expect(combineBioAnswers([none, none])).toMatchObject({ outcome: 'no_profile', fields: {} });
     const unmatched = bioFromProfile(
       ['M. Salah'],
       salah({ nationality: { name: 'Atlantis', code: null } }),

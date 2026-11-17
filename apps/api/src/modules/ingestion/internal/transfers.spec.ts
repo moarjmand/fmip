@@ -283,6 +283,25 @@ describe('a player holding several provider ids (T-1866)', () => {
     expect(calls.filter((c) => c.startsWith('mark'))).toEqual(['mark person 10']);
   });
 
+  it('reads the run clock before the second id: out of time, nothing saved or marked (T-1868)', async () => {
+    const { store, calls } = fakeStore([], [both(10, ['20']), person(30)]);
+    const { adapter, asked } = fakeAdapter(() => ok([move('2019-07-01', 'a', 'b')]));
+    let now = 0;
+    const clock = () => now;
+    const pacer = new AskPacer(500, clock, async (ms) => {
+      now += ms;
+    });
+    const tick = adapter.getPlayerTransfers!.bind(adapter);
+    adapter.getPlayerTransfers = async (id: string) => {
+      now += 20_000;
+      return tick(id);
+    };
+    const sweep = await sweepTransfers({ ...base, adapter, store, pacer, clock, runMs: 15_000 });
+    expect(asked).toEqual(['person 10']);
+    expect(sweep).toEqual({ asked: 1, answered: 0, written: 0, refused: [] });
+    expect(calls.filter((c) => c.startsWith('save') || c.startsWith('mark'))).toEqual([]);
+  });
+
   it('combines one answer as it is', () => {
     const one = [move('2019-07-01', 'a', 'b'), move('2019-07-01', 'a', 'b')];
     expect(combineMoves([one])).toBe(one);

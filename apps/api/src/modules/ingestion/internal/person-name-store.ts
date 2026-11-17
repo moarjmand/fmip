@@ -6,6 +6,7 @@ import type {
   PersonNamesStore,
   ShortNamedPerson,
 } from './person-names';
+import { personExternalIds, playerIdsLateral } from './person-ids';
 
 /**
  * A Latin initial (or several), then a Latin letter: the provider's short
@@ -38,16 +39,14 @@ export class PersonNameStore implements PersonNamesStore {
     if (limit <= 0) return [];
     const { rows } = await this.pool.query<{
       person_id: string;
-      external_id: string;
+      external_ids: string[];
       full_name: string;
     }>(
-      `SELECT p.id AS person_id, m.external_id, p.full_name
+      `SELECT p.id AS person_id, m.external_ids, p.full_name
          FROM person p
-        CROSS JOIN LATERAL (
-          SELECT min(pm.external_id) AS external_id FROM provider_mapping pm
-           WHERE pm.internal_id = p.id AND pm.entity_type = 'person' AND pm.provider = $1) m
+        ${playerIdsLateral('p.id')}
          LEFT JOIN person_name_fetch f ON f.provider = $1 AND f.person_id = p.id
-        WHERE m.external_id IS NOT NULL
+        WHERE m.external_ids IS NOT NULL
           AND p.full_name ~ $5
           AND p.known_as IS NULL
           AND f.answered_at IS NULL
@@ -56,9 +55,9 @@ export class PersonNameStore implements PersonNamesStore {
           -- A coach is not asked for a player's profile: his number is in the
           -- provider's coach id space (T-1439, D-230), and the same number is
           -- another man's player profile.
-          -- Known as a coach by the id itself (T-1473): one adopted from a
-          -- line-up has neither a match nor a spell recorded yet.
-          AND m.external_id NOT LIKE 'coach:%'
+          -- Known as a coach by the id itself (T-1473), which the lateral
+          -- leaves out: one adopted from a line-up has neither a match nor a
+          -- spell recorded yet. Every player id is asked (T-1868).
           AND NOT EXISTS (SELECT 1 FROM fixture_participant fp WHERE fp.coach_id = p.id)
           AND NOT EXISTS (SELECT 1 FROM coach_spell cs WHERE cs.person_id = p.id)
           AND NOT EXISTS (
@@ -72,7 +71,7 @@ export class PersonNameStore implements PersonNamesStore {
     );
     return rows.map((r) => ({
       personId: r.person_id,
-      externalId: r.external_id,
+      ...personExternalIds(r.external_ids),
       storedName: r.full_name,
     }));
   }
