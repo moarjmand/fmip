@@ -38,8 +38,15 @@ export const NON_ARTICLE_RULES: readonly NonArticleRule[] = [
     pattern: `${START}(how to watch|where to watch|where to stream|streaming and tv information|what tv channel|what channel is|listen live)${END}`,
     caseSensitive: false,
   },
-  // "Best Kalshi promo code CBSSPORTS55: Earn $55 bonus ...", "... $150 bonus bets ...".
-  { kind: 'betting_offer', pattern: `${START}(promo code|bonus bets)${END}`, caseSensitive: false },
+  // "Best Kalshi promo code CBSSPORTS55: Earn $55 bonus ...", "... $150 bonus bets ...",
+  // and the tipsters' pages (T-1862): "Football accumulator tips for Tuesday November 17:
+  // Back our Nations League acca at 8-1", "... betting tips", "best bets", "free bets",
+  // "odds boost".
+  {
+    kind: 'betting_offer',
+    pattern: `${START}(promo code|bonus bets|betting tips|accumulator tips|acca|best bets|free bets|odds boost)${END}`,
+    caseSensitive: false,
+  },
 ];
 
 const COMPILED = NON_ARTICLE_RULES.map((rule) => ({
