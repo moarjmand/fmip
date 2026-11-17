@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import {
+  competitionOrderGroup,
   TEAM_AVERAGE_METRICS,
   type CompetitionKind,
   type CompetitionScope,
@@ -450,19 +451,11 @@ export interface RankedTeamSeason extends TeamSeason {
 }
 
 /**
- * The groups of the team page's order (T-1764, D-379), first to last: the
- * domestic league, then continental and international competitions (a
- * league or a cup), then domestic cups, super cups, qualifying competitions
- * and friendlies.
+ * The groups of the team page's order (T-1764, D-379): the contracts' one
+ * rule (`competitionOrderGroup`, shared with the player comparison since
+ * T-1857).
  */
-export function orderGroup(kind: CompetitionKind, scope: CompetitionScope): number {
-  if (kind === 'league' && scope === 'domestic') return 0;
-  if ((kind === 'league' || kind === 'cup') && scope !== 'domestic') return 1;
-  if (kind === 'cup') return 2;
-  if (kind === 'super_cup') return 3;
-  if (kind === 'qualifying') return 4;
-  return 5;
-}
+export const orderGroup = competitionOrderGroup;
 
 /**
  * The team page's order of a club's competitions (T-1764, D-379), set once

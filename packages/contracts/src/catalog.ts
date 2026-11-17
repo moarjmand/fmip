@@ -593,6 +593,23 @@ export type CompetitionKind = 'league' | 'cup' | 'super_cup' | 'qualifying' | 'f
 /** Where a competition is played from: one country, one confederation, or the world. */
 export type CompetitionScope = 'domestic' | 'continental' | 'international';
 
+/**
+ * The groups of a club's competitions, first to last (T-1764, D-379): the
+ * domestic league, then continental and international competitions (a
+ * league or a cup), then domestic cups, super cups, qualifying competitions
+ * and friendlies. One rule for every reader that has to choose "the first"
+ * competition: the API's order of a team page (`teamSeasonOrder`) and the
+ * player comparison's default (T-1857).
+ */
+export function competitionOrderGroup(kind: CompetitionKind, scope: CompetitionScope): number {
+  if (kind === 'league' && scope === 'domestic') return 0;
+  if ((kind === 'league' || kind === 'cup') && scope !== 'domestic') return 1;
+  if (kind === 'cup') return 2;
+  if (kind === 'super_cup') return 3;
+  if (kind === 'qualifying') return 4;
+  return 5;
+}
+
 export interface TeamCompetition {
   /**
    * `logo`: from our own origin (T-1617). `kind` and `scope` (T-1764,
@@ -868,7 +885,20 @@ export interface PlayerSpell {
 /** What our line-ups and incidents say about one season with one team in one competition. */
 export interface PlayerSeasonRecord {
   season: { id: string; label: string };
-  competition: { id: string; name: string; short_name: string | null };
+  /**
+   * `kind` and `scope` (T-1857, D-379): our catalogue's own fields, the ones
+   * the player comparison orders a season's competitions by
+   * (`competitionOrderGroup`), so it opens on the domestic league rather than
+   * a cup. Always sent by the API; optional like the page's other later
+   * additions.
+   */
+  competition: {
+    id: string;
+    name: string;
+    short_name: string | null;
+    kind?: CompetitionKind;
+    scope?: CompetitionScope;
+  };
   /** `crest`: from our own origin (T-1617). */
   team: { id: string; name: string; crest?: EntityMedia };
   starts: number;
