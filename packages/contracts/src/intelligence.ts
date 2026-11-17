@@ -112,7 +112,7 @@ export type AskReason =
   | 'failed'
   /**
    * The whole question is a name the search knows: its keyword rows are the
-   * answer and no model was asked (T-1861, D-442).
+   * answer and no model was asked (T-1859, D-444).
    */
   | 'known_name';
 

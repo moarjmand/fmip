@@ -23,7 +23,7 @@ export const ASK_REFUSAL = {
  * `GET /ask?q=` (T-421): a question, read by the model when there is one,
  * answered by the search. Public.
  *
- * A question that is not wholly a name the search knows (T-1861, D-442) is
+ * A question that is not wholly a name the search knows (T-1859, D-444) is
  * a model call from the plan the briefing, the moderation assistant and the
  * match summaries share, so it is limited before the call
  * (T-838, D-103's gap): a member per account (`ask`, in `rate_window`), a
@@ -57,7 +57,7 @@ export class AskController {
     }
     // The ceilings are taken only when the model is about to be asked: a
     // name the search knows, or a deployment with no model, costs nothing
-    // (T-1861, D-442).
+    // (T-1859, D-444).
     return this.ask.ask(question, async () => {
       const member = await this.identity.authenticate(
         parseCookies(request.headers.cookie)[SESSION_COOKIE],
