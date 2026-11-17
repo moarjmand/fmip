@@ -109,7 +109,12 @@ export type AskReason =
   /** The model read the question and found no name in it: searched as keywords. */
   | 'nothing_named'
   /** The model could not be reached: searched as keywords. */
-  | 'failed';
+  | 'failed'
+  /**
+   * The whole question is a name the search knows: its keyword rows are the
+   * answer and no model was asked (T-1859, D-444).
+   */
+  | 'known_name';
 
 /** `GET /ask?q=`. */
 export interface AskResponse {
