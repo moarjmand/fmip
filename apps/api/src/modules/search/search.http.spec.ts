@@ -161,6 +161,49 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     }
   });
 
+  it('orders people who match equally by their line-ups, before an exact namesake; an exact team still leads (T-1851)', async () => {
+    const team = randomUUID();
+    const famous = randomUUID();
+    const known = randomUUID();
+    const namesake = randomUUID();
+    const name = `Wombatwick${RUN}`;
+    await pool.query(
+      `INSERT INTO team (id, name, short_name, code, kind, gender, country_id)
+       VALUES ($1, $2, NULL, NULL, 'club', 'men', $3)`,
+      [team, name, ENGLAND],
+    );
+    await pool.query(
+      `INSERT INTO person (id, full_name, known_as) VALUES
+         ($1, $4, NULL), ($2, $5, NULL), ($3, $6, NULL)`,
+      [famous, known, namesake, `Lionel ${name}`, `Rayane ${name}`, name],
+    );
+    // Two line-ups for the famous one, one for the next, none for the namesake.
+    const { rows } = await pool.query<{ id: string }>(
+      `SELECT id FROM fixture_participant ORDER BY id LIMIT 2`,
+    );
+    expect(rows).toHaveLength(2);
+    await pool.query(
+      `INSERT INTO lineup (participant_id, person_id, role) VALUES
+         ($1, $3, 'starter'), ($2, $3, 'bench'), ($1, $4, 'starter')`,
+      [rows[0]!.id, rows[1]!.id, famous, known],
+    );
+    try {
+      const found = (
+        await search(`q=${encodeURIComponent(name.toLowerCase())}&types=team,person&limit=25`)
+      ).results
+        .map((r) => r.id)
+        .filter((id) => ([team, famous, known, namesake] as string[]).includes(id));
+      // All four score 1; by name alone the namesake would lead the people.
+      expect(found).toEqual([team, famous, known, namesake]);
+    } finally {
+      await pool.query(`DELETE FROM lineup WHERE person_id = ANY($1::uuid[])`, [[famous, known]]);
+      await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
+        [famous, known, namesake],
+      ]);
+      await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
+    }
+  });
+
   it("names each team's domestic league and ground, and says when it holds neither (T-1803)", async () => {
     const season = randomUUID();
     const stage = randomUUID();

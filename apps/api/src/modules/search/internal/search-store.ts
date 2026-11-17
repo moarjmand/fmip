@@ -59,6 +59,12 @@ export async function queryAtMinSimilarity<R extends QueryResultRow>(
  * Liverpool and City of Liverpool, both scoring 1 on the word, before
  * Liverpool), then name. Inactive teams and competitions are left out.
  *
+ * T-1851 (D-443): people who match equally well are ordered by how many
+ * line-ups the site holds for them, the measure of how well known a player
+ * is ("kane": Harry Kane, 347 line-ups, before Christopher Kane, 109); it
+ * goes before a person's exact name, while a team or competition named
+ * exactly still leads its score band.
+ *
  * T-1842: every branch first narrows its table by the trigram GIN indexes
  * (`<%`, word similarity at {@link MIN_SIMILARITY}, set for this transaction
  * only, and the prefix `LIKE`), so a search reads the few rows that can match
@@ -238,9 +244,22 @@ const SEARCH_SQL = `
      WHERE score >= $4 AND name IS NOT NULL
      ORDER BY type, id, score DESC, exact DESC, matched_on, alias
   ),
+  -- Among people who match equally well, the one the site has seen in more
+  -- line-ups first, even before an obscure namesake whose name is exactly the
+  -- query ("messi": Lionel Messi before a "Messi"); a team or competition
+  -- named exactly still leads its band (T-1851, D-443). An index-only count
+  -- on lineup_person_id_idx, for people only.
+  known AS (
+    SELECT best.*,
+           CASE WHEN best.type = 'person'
+                THEN (SELECT count(*) FROM lineup l WHERE l.person_id = best.id)
+                ELSE 0
+           END AS lineups
+      FROM best
+  ),
   page AS (
-    SELECT * FROM best
-     ORDER BY round(score::numeric, 3) DESC, exact DESC, name, type, id
+    SELECT * FROM known
+     ORDER BY round(score::numeric, 3) DESC, (exact AND type <> 'person') DESC, lineups DESC, exact DESC, name, type, id
      LIMIT $3
   )
   SELECT type, id, name,
@@ -253,4 +272,4 @@ const SEARCH_SQL = `
          END AS secondary,
          matched_on, alias, round(score::numeric, 3)::text AS score
     FROM page
-   ORDER BY round(page.score::numeric, 3) DESC, page.exact DESC, page.name, page.type, page.id`;
+   ORDER BY round(page.score::numeric, 3) DESC, (page.exact AND page.type <> 'person') DESC, page.lineups DESC, page.exact DESC, page.name, page.type, page.id`;
