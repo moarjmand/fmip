@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto';
 import type { NormalisedFixture, NormalisedTeamFacts, NormalisedVenueFacts } from '@fmip/ingestion';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ClubFactsStore } from './club-facts-store';
+import { ClubFactsStore, answeredCity } from './club-facts-store';
 import { IngestStore, type PollTarget, type RefResolver } from './ingest-store';
 
 /**
  * The club-and-ground pass's SQL on a database (T-1438, D-229): which
  * seasons and grounds are owed an ask, what a season's teams write -- a
- * club's founding year and home ground, the ground's facts, never a national
- * team's, never an id nobody mapped -- and the referee written as plain name
- * text by the fixture writer.
+ * club's founding year and home ground, the ground's facts (its city from
+ * the answer, T-1875), never a national team's, never an id nobody mapped --
+ * and the referee written as plain name text by the fixture writer.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -86,6 +86,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           `SELECT name, city, address, capacity, surface, latitude, longitude
              FROM venue WHERE id = $1`,
           [venueId],
+        )
+      ).rows[0];
+
+    const recordedCity = async (venueId: string) =>
+      (
+        await pool.query<{ answered_by: string | null; city: string | null }>(
+          `SELECT answered_by, city FROM venue_detail_fetch WHERE provider = $1 AND venue_id = $2`,
+          [PROVIDER, venueId],
         )
       ).rows[0];
 
@@ -198,8 +206,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await club(id.club)).toEqual({ founded_year: 1878, home_venue_id: id.ground });
       expect(await club(id.other)).toEqual({ founded_year: null, home_venue_id: null });
       expect(await club(id.nation)).toEqual({ founded_year: null, home_venue_id: null });
-      // The catalogue's name stands; a city fills only where none is stored;
-      // no coordinates are invented.
+      // The catalogue's name stands; the answer's city is written; no
+      // coordinates are invented.
       expect(await venueRow(id.ground)).toEqual({
         name: 'Old Trafford',
         city: 'Manchester',
@@ -212,6 +220,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // The current season is answered, and the ground counts as described.
       expect((await seasonsDue()).map((a) => a.seasonId)).toEqual([id.past]);
       expect((await venuesDue()).map((a) => a.venueId)).toEqual([id.neutral]);
+    });
+
+    it("replaces the city the ground was queued with by the answer's, and records it (T-1875)", async () => {
+      // As production's Mestalla: adopted from a fixture answer that said
+      // "Valdivia"; the provider's entry for the ground says otherwise.
+      await pool.query(`UPDATE venue SET city = 'Valdivia' WHERE id = $1`, [id.ground]);
+      const kept = await store.saveSeasonTeams(PROVIDER, id.current, [entry('club')]);
+      expect(kept).toMatchObject({ venuesWritten: 1 });
+      expect(await venueRow(id.ground)).toMatchObject({ name: 'Old Trafford', city: 'Manchester' });
+      expect(await recordedCity(id.ground)).toEqual({ answered_by: 'team', city: 'Manchester' });
+      // An answer that names no city keeps the stored one, and records none.
+      await store.saveSeasonTeams(PROVIDER, id.current, [
+        entry('club', { venue: ground({ city: null }) }),
+      ]);
+      expect(await venueRow(id.ground)).toMatchObject({ city: 'Manchester' });
+      expect(await recordedCity(id.ground)).toEqual({ answered_by: 'team', city: null });
+      await store.saveSeasonTeams(PROVIDER, id.current, [entry('club')]);
+    });
+
+    it('keeps the stored city when the answer gives a placeholder, and records none (T-1875)', async () => {
+      for (const junk of ['N/A', '-', 'TBC', 'Unknown', '12345']) {
+        await store.saveSeasonTeams(PROVIDER, id.current, [
+          entry('club', { venue: ground({ city: junk }) }),
+        ]);
+        expect(await venueRow(id.ground)).toMatchObject({ city: 'Manchester' });
+        expect(await recordedCity(id.ground)).toEqual({ answered_by: 'team', city: null });
+      }
+      await store.saveSeasonTeams(PROVIDER, id.current, [entry('club')]);
+      expect(await recordedCity(id.ground)).toEqual({ answered_by: 'team', city: 'Manchester' });
+    });
+
+    it('refuses a recorded city on an answer that described nothing (T-1875)', async () => {
+      await expect(
+        pool.query(
+          `UPDATE venue_detail_fetch SET answered_by = 'none', city = 'Manchester' WHERE venue_id = $1`,
+          [id.ground],
+        ),
+      ).rejects.toThrow(/venue_detail_fetch_city_answered/);
     });
 
     it('writes nothing the second time, and keeps a fact an answer leaves out', async () => {
@@ -253,18 +299,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           ground({ externalId: ext('neutral'), surface: 'hybrid', city: 'London', address: null }),
         ),
       ).toBe(true);
+      // The answer about the ground by its id gives its city (T-1875).
       expect(await venueRow(id.neutral)).toMatchObject({
-        city: 'Wembley',
+        city: 'London',
         capacity: 76212,
         surface: 'hybrid',
         address: null,
       });
+      expect(await recordedCity(id.neutral)).toEqual({ answered_by: 'venue', city: 'London' });
+      // No entry: nothing is written, the stored city stands, none is recorded.
       expect(await store.saveVenue(PROVIDER, id.neutral, null)).toBe(false);
+      expect(await venueRow(id.neutral)).toMatchObject({ city: 'London' });
       const { rows } = await pool.query(
-        `SELECT failures, answered_by FROM venue_detail_fetch WHERE venue_id = $1`,
+        `SELECT failures, answered_by, city FROM venue_detail_fetch WHERE venue_id = $1`,
         [id.neutral],
       );
-      expect(rows).toEqual([{ failures: 0, answered_by: 'none' }]);
+      expect(rows).toEqual([{ failures: 0, answered_by: 'none', city: null }]);
       expect(await venuesDue()).toEqual([]);
       expect(await venuesDue({ answeredBeforeIso: LATER })).toHaveLength(2);
     });
@@ -364,3 +414,37 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
   },
 );
+
+describe('answeredCity (T-1875)', () => {
+  it('keeps a city, trimmed', () => {
+    expect(answeredCity(' Valencia ')).toBe('Valencia');
+    expect(answeredCity('Saint Paul')).toBe('Saint Paul');
+    expect(answeredCity('Bandar-e Anzali')).toBe('Bandar-e Anzali');
+    expect(answeredCity('Łódź')).toBe('Łódź');
+  });
+
+  it('reads a placeholder or a value with no letter as no city', () => {
+    for (const junk of [
+      null,
+      '',
+      '  ',
+      'N/A',
+      'n/a',
+      'NA',
+      '-',
+      '--',
+      '?',
+      'TBC',
+      'tba',
+      'TBD',
+      'Unknown',
+      'none',
+      'NULL',
+      '12345',
+      '0',
+      '-/-',
+    ]) {
+      expect(answeredCity(junk)).toBeNull();
+    }
+  });
+});
