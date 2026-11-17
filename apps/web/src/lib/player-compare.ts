@@ -1,4 +1,9 @@
-import type { CoverageState, PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
+import {
+  type CoverageState,
+  type PlayerPage,
+  type PlayerSeasonRecord,
+  competitionOrderGroup,
+} from '@fmip/contracts';
 import { formatNumber } from '@/i18n/format';
 import { type MessageKey, plural } from '@/i18n/messages';
 import { coverageText, pageLocale, say } from './competition';
@@ -67,8 +72,23 @@ function rowsOf(record: PlayerPage['record']): readonly PlayerSeasonRecord[] {
 }
 
 /**
+ * A competition's place within a season (T-1857, D-379): the contracts' one
+ * rule, the domestic league first and friendlies last; a record without our
+ * catalogue's `kind` and `scope` after every one that has them.
+ */
+function groupOf(competition: PlayerSeasonRecord['competition']): number {
+  return competition.kind === undefined || competition.scope === undefined
+    ? Number.MAX_SAFE_INTEGER
+    : competitionOrderGroup(competition.kind, competition.scope);
+}
+
+/**
  * Every season-and-competition either player has a record in, each once,
- * newest season first (by label, numerically), then by competition name.
+ * newest season first (by label, numerically); within a season in the team
+ * page's order (T-1857, D-379: domestic league, continental and
+ * international, domestic cups, super cups, qualifying, friendlies), then by
+ * competition name and id. Before T-1857 a season was by name alone, so
+ * "EFL Cup" came before "Premier League" and `resolveScope` opened on it.
  */
 export function scopesOf(a: PlayerPage['record'], b: PlayerPage['record']): CompareScope[] {
   const keysA = new Set(rowsOf(a).map((r) => scopeKey(r.season.id, r.competition.id)));
@@ -87,14 +107,18 @@ export function scopesOf(a: PlayerPage['record'], b: PlayerPage['record']): Comp
   return [...scopes.values()].sort(
     (x, y) =>
       y.season.label.localeCompare(x.season.label, 'en', { numeric: true }) ||
-      x.competition.name.localeCompare(y.competition.name, 'en'),
+      groupOf(x.competition) - groupOf(y.competition) ||
+      x.competition.name.localeCompare(y.competition.name, 'en') ||
+      (x.competition.id < y.competition.id ? -1 : x.competition.id > y.competition.id ? 1 : 0),
   );
 }
 
 /**
  * The scope the page shows: the one asked for when either player has it,
- * else the newest one both share (the blueprint compares within a
- * competition), else everything on record (`null`).
+ * else the first one both share in `scopesOf`'s order -- the newest season
+ * they share, its domestic league when they share one (T-1857, D-379; the
+ * blueprint compares within a competition) -- else everything on record
+ * (`null`).
  */
 export function resolveScope(
   requested: string | null,

@@ -201,6 +201,7 @@ export type {
   UpdateProfileRequest,
 } from './profile';
 export {
+  competitionOrderGroup,
   KNOCKOUT_ROUNDS,
   LEADERS_MINUTES_MAX,
   LEADERS_MINUTES_PRESETS,

@@ -1,4 +1,9 @@
-import type { PlayerPage, PlayerSeasonRecord } from '@fmip/contracts';
+import type {
+  CompetitionKind,
+  CompetitionScope,
+  PlayerPage,
+  PlayerSeasonRecord,
+} from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   REASON,
@@ -34,6 +39,8 @@ function row(
       id: competition,
       name: competition === LEAGUE ? 'League' : 'Cup',
       short_name: null,
+      kind: competition === LEAGUE ? 'league' : 'cup',
+      scope: 'domestic',
     },
     team: { id: 't1', name: 'T1' },
     starts: 3,
@@ -79,10 +86,10 @@ describe('scopes', () => {
   it('lists every season-and-competition once, newest first, marking the shared ones', () => {
     const scopes = scopesOf(a, b);
     expect(scopes.map((s) => [s.season.label, s.competition.name, s.shared])).toEqual([
-      ['2025/26', 'Cup', false],
       ['2025/26', 'League', false],
-      ['2024/25', 'Cup', false],
+      ['2025/26', 'Cup', false],
       ['2024/25', 'League', true],
+      ['2024/25', 'Cup', false],
     ]);
   });
 
@@ -99,6 +106,68 @@ describe('scopes', () => {
     expect(resolveScope(readScope({ season: S25, competition: unknown }), scopes)?.key).toBe(
       `${S24}:${LEAGUE}`,
     );
+  });
+
+  describe('the default competition (T-1857, D-379)', () => {
+    const UCL = '00000000-0000-4000-8000-00000000000d';
+    const FRIENDLIES = '00000000-0000-4000-8000-00000000000e';
+    const named = (
+      season: string,
+      id: string,
+      name: string,
+      kind: CompetitionKind,
+      scope: CompetitionScope,
+    ): PlayerSeasonRecord =>
+      row(season, id, {
+        competition: { id, name, short_name: null, kind, scope },
+      });
+    const efl = (season: string) => named(season, CUP, 'EFL Cup', 'cup', 'domestic');
+    const pl = (season: string) => named(season, LEAGUE, 'Premier League', 'league', 'domestic');
+    const ucl = (season: string) =>
+      named(season, UCL, 'UEFA Champions League', 'league', 'continental');
+    const friendlies = (season: string) =>
+      named(season, FRIENDLIES, 'Friendlies', 'friendly', 'international');
+
+    it('opens on the domestic league a season shares, not the cup its name sorts before', () => {
+      // Max Dowman v Bukayo Saka, 2026-11-17: both in the EFL Cup, the
+      // Premier League and the Champions League; the page opened on the cup.
+      const a = record([efl(S25), ucl(S25), pl(S25)]);
+      const b = record([pl(S25), efl(S25), ucl(S25)]);
+      const scopes = scopesOf(a, b);
+      expect(scopes.map((s) => s.competition.name)).toEqual([
+        'Premier League',
+        'UEFA Champions League',
+        'EFL Cup',
+      ]);
+      expect(resolveScope(null, scopes)?.key).toBe(`${S25}:${LEAGUE}`);
+    });
+
+    it('takes the next group when the league is not shared, friendlies last', () => {
+      const a = record([friendlies(S25), efl(S25), ucl(S25), pl(S25)]);
+      const b = record([friendlies(S25), efl(S25), ucl(S25)]);
+      const scopes = scopesOf(a, b);
+      expect(scopes.map((s) => [s.competition.name, s.shared])).toEqual([
+        ['Premier League', false],
+        ['UEFA Champions League', true],
+        ['EFL Cup', true],
+        ['Friendlies', true],
+      ]);
+      expect(resolveScope(null, scopes)?.key).toBe(`${S25}:${UCL}`);
+    });
+
+    it('keeps the newest shared season first: a cup this season over a league last season', () => {
+      const a = record([efl(S25), pl(S24)]);
+      const b = record([efl(S25), pl(S24)]);
+      expect(resolveScope(null, scopesOf(a, b))?.key).toBe(`${S25}:${CUP}`);
+    });
+
+    it('puts a competition without our kind and scope after every one with them', () => {
+      const bare = row(S25, UCL, {
+        competition: { id: UCL, name: 'A Cup', short_name: null },
+      });
+      const scopes = scopesOf(record([bare, efl(S25)]), record([bare, efl(S25)]));
+      expect(scopes.map((s) => s.competition.name)).toEqual(['EFL Cup', 'A Cup']);
+    });
   });
 
   it('falls back to everything on record when nothing is shared', () => {
@@ -264,8 +333,8 @@ describe('the folded filter and the bars (T-1804, D-402)', () => {
     const grouped = scopesBySeason(scopesOf(a, b));
     expect(grouped.map((g) => g.season.label)).toEqual(['2025/26', '2024/25']);
     expect(grouped[0]?.scopes.map((s) => [s.competition.name, s.shared])).toEqual([
-      ['Cup', false],
       ['League', true],
+      ['Cup', false],
     ]);
     expect(grouped[1]?.scopes).toHaveLength(1);
     expect(scopesBySeason([])).toEqual([]);
