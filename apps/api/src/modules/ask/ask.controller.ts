@@ -23,8 +23,9 @@ export const ASK_REFUSAL = {
  * `GET /ask?q=` (T-421): a question, read by the model when there is one,
  * answered by the search. Public.
  *
- * Every question is a model call from the plan the briefing, the moderation
- * assistant and the match summaries share, so it is limited before the call
+ * A question that is not wholly a name the search knows (T-1857, D-442) is
+ * a model call from the plan the briefing, the moderation assistant and the
+ * match summaries share, so it is limited before the call
  * (T-838, D-103's gap): a member per account (`ask`, in `rate_window`), a
  * guest per address as the web app forwards it (`ask_ip`, in
  * `auth_rate_window` under the address's HMAC, D-093). Past either ceiling
@@ -54,7 +55,10 @@ export class AskController {
         message: `q must be between ${MIN_LENGTH} and ${MAX_LENGTH} characters.`,
       } satisfies ApiError);
     }
-    if (this.ask.usesModel()) {
+    // The ceilings are taken only when the model is about to be asked: a
+    // name the search knows, or a deployment with no model, costs nothing
+    // (T-1857, D-442).
+    return this.ask.ask(question, async () => {
       const member = await this.identity.authenticate(
         parseCookies(request.headers.cookie)[SESSION_COOKIE],
       );
@@ -65,7 +69,6 @@ export class AskController {
       if (!taken.ok) {
         refuseOverRate(reply, taken, ASK_REFUSAL[member !== null ? 'member' : 'address']);
       }
-    }
-    return this.ask.ask(question);
+    });
   }
 }

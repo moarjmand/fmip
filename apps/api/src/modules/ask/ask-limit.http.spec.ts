@@ -89,8 +89,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the ceilings
     return application;
   }
 
-  const ask = (application: NestFastifyApplication, headers: Record<string, string> = {}) =>
-    application.inject({ method: 'GET', url: '/ask?q=Liverpool%20next', headers });
+  const ask = (
+    application: NestFastifyApplication,
+    headers: Record<string, string> = {},
+    q = 'Liverpool next',
+  ) => application.inject({ method: 'GET', url: `/ask?q=${encodeURIComponent(q)}`, headers });
 
   const refusalsToday = async (action: string): Promise<number> => {
     const { rows } = await pool.query<{ count: number }>(
@@ -190,6 +193,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the ceilings
 
     // Signed out, the same reader is a guest again, counted by address.
     expect((await ask(app, { 'x-fmip-client-ip': address() })).statusCode).toBe(200);
+  });
+
+  it('does not count a known name against the ceiling: no model is asked for it (T-1857)', async () => {
+    const ip = address();
+    const calls = asked.length;
+    for (let i = 0; i < CEILING + 2; i += 1) {
+      expect((await ask(app, { 'x-fmip-client-ip': ip }, 'Liverpool')).statusCode).toBe(200);
+    }
+    expect(asked.length).toBe(calls);
+    // The address's whole ceiling is still there for a question.
+    for (let i = 0; i < CEILING; i += 1) {
+      expect((await ask(app, { 'x-fmip-client-ip': ip })).statusCode).toBe(200);
+    }
+    expect((await ask(app, { 'x-fmip-client-ip': ip })).statusCode).toBe(429);
   });
 
   it('does not limit a deployment with no model: the keyword search costs nothing', async () => {

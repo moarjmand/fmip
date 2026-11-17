@@ -26,7 +26,8 @@ import type {
  * truncation comes back as an outcome, never as prose cut off mid-sentence.
  * A free tier answers 429 when it is asked too fast; that is retried once
  * after the pause the server names (capped), and then it is a failure the
- * caller records. Two things learned on Mistral's free plan on 2026-09-19
+ * caller records -- at once, with no retry, for a caller that asks so
+ * (`retryWhenBusy: false`, T-1857). Two things learned on Mistral's free plan on 2026-09-19
  * are handled here rather than documented away: a model that does not take
  * `reasoning_effort` says so with a 400 naming the field, and the adapter
  * drops the field for the rest of the process and sends again; and a model
@@ -114,7 +115,7 @@ export class ChatCompletionsModel implements LanguageModel {
         `${this.provider} answered HTTP 429 with a request limit of zero: ${this.preset.model} is not in this workspace's plan (on Mistral's free plan the Ministral models answer; set INTELLIGENCE_MODEL)`,
       );
     }
-    if (response.status === 429) {
+    if (response.status === 429 && request.retryWhenBusy !== false) {
       await this.pause(retryAfterMs(response.headers.get('retry-after')));
       response = await this.send(this.bodyFor(request));
     }

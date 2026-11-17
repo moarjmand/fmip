@@ -17,10 +17,11 @@ import { readIntent } from './ask.service';
 /**
  * Natural-language search through the API (T-420 to T-422), with a scripted
  * model against the seed: a readable intent finds Liverpool by id and says
- * how the question was read; an unreadable answer, a refusal and a call
- * that fails each fall back to keywords with the reason; a deployment with
- * no model is keyword search with one sentence more; and the reading is
- * strict about what it accepts.
+ * how the question was read; a question that is wholly a name the search
+ * knows is answered by the search with no model asked (T-1857); an
+ * unreadable answer, a refusal and a call that fails each fall back to
+ * keywords with the reason; a deployment with no model is keyword search
+ * with one sentence more; and the reading is strict about what it accepts.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const LIVERPOOL = '00000000-0000-4000-8000-000000000602';
@@ -124,25 +125,47 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('ask', () => 
     expect(request.system).toContain('Do not answer the question');
   });
 
+  it('answers a question that is wholly a known name with the search, asking no model (T-1857)', async () => {
+    const before = asked.length;
+    for (const q of ['Liverpool', 'liverpool', 'Liverp']) {
+      const { status, body } = await ask(app, q);
+      expect(status).toBe(200);
+      expect(body).toMatchObject({
+        interpretation: { coverage: 'not_supplied', data: null },
+        reason: 'known_name',
+      });
+      expect(body.results[0]!.id, q).toBe(LIVERPOOL);
+    }
+    expect(asked.length).toBe(before);
+  });
+
+  it('asks the model without a second try when a word stands beside the name (T-1857)', async () => {
+    script = { ...script, text: '{"names":["Liverpool"],"types":["person"]}', stop: 'end_turn' };
+    const before = asked.length;
+    await ask(app, 'Liverpool players');
+    expect(asked.length).toBe(before + 1);
+    expect(asked[asked.length - 1]!.retryWhenBusy).toBe(false);
+  });
+
   it('falls back to keywords with the reason when the answer is unreadable, refused, or the call fails', async () => {
     script = { ...script, text: 'Liverpool are playing Everton.', stop: 'end_turn' };
-    expect((await ask(app, 'Liverpool')).body).toMatchObject({
+    expect((await ask(app, 'Liverpool players')).body).toMatchObject({
       interpretation: { coverage: 'not_supplied', data: null },
       reason: 'unreadable',
     });
     script = { ...script, text: '', stop: 'refusal' };
-    expect((await ask(app, 'Liverpool')).body.reason).toBe('unreadable');
+    expect((await ask(app, 'Liverpool players')).body.reason).toBe('unreadable');
     script = { ...script, text: '{"names":[],"types":["team"]}', stop: 'end_turn' };
     expect((await ask(app, 'Who is the best?')).body.reason).toBe('nothing_named');
     fail = true;
-    const failed = await ask(app, 'Liverpool');
+    const failed = await ask(app, 'Liverpool players');
     fail = false;
     expect(failed.body.reason).toBe('failed');
     expect(failed.body.results.map((r) => r.id)).toContain(LIVERPOOL);
   });
 
   it('is keyword search with one sentence more on a deployment with no model, and refuses a question that is not one', async () => {
-    const { body } = await ask(absent, 'Liverpool');
+    const { body } = await ask(absent, 'Liverpool players');
     expect(body.reason).toBe('no_model');
     expect(body.interpretation.coverage).toBe('not_supplied');
     expect(body.results.map((r) => r.id)).toContain(LIVERPOOL);

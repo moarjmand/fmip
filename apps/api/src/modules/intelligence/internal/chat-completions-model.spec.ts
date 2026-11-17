@@ -146,6 +146,21 @@ describe('ChatCompletionsModel', () => {
     expect(retryAfterMs('soon')).toBe(1_000);
   });
 
+  it('takes a 429 as the failure at once, with no pause or second try, when the caller asks so (T-1857)', async () => {
+    paused.length = 0;
+    const { fetchLike, sent } = scripted([
+      { status: 429, body: { message: 'too fast' }, headers: { 'retry-after': '2' } },
+      answer('stop'),
+    ]);
+    const model = new ChatCompletionsModel(mistral, fetchLike, pause);
+    await expect(model.complete({ ...request, retryWhenBusy: false })).rejects.toThrow(
+      /mistral answered HTTP 429/,
+    );
+    expect(sent).toHaveLength(1);
+    expect(paused).toEqual([]);
+    expect(sent[0]!.body).not.toHaveProperty('retryWhenBusy');
+  });
+
   it('throws on any other failure, naming the status, for the service to record as failed', async () => {
     const { fetchLike } = scripted([
       { status: 429, body: { message: 'still too fast' } },
