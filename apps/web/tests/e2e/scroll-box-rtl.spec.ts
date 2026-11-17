@@ -10,8 +10,10 @@ import { type Page, expect, test } from '@playwright/test';
  * carry an `sr-only` read-out (`FormSquares`). `sr-only` is absolutely
  * positioned, the cell is static, and the box was not positioned, so the
  * read-out took its containing block from the page: the box neither scrolled
- * nor clipped it and the page grew to hold it. In English the Form cell
- * starts inside the screen, so nothing showed.
+ * nor clipped it and the page grew to hold it. On the real English page the
+ * Form cell happens to start inside the screen, so nothing showed there; the
+ * probe below is wider, so its Form cell starts off the screen in every
+ * direction, and each locale failed without the fix.
  *
  * This build has no API, so no table: the table's box is drawn here as
  * `StandingsTable` draws it (the card that clips, the `scroll-cue` box, a

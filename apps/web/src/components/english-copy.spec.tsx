@@ -225,6 +225,9 @@ describe('the player statistics table on a phone (T-1395)', () => {
     expect(body).toContain('var(--color-surface)');
     expect(body).toContain('local');
     expect(body).toMatch(/at 0 50%[\s\S]*at 100% 50%/);
+    // Positioned, so an `sr-only` line inside it scrolls and clips with it
+    // rather than widening the page (T-1860).
+    expect(body).toContain('position: relative;');
   });
 });
 
