@@ -24,13 +24,13 @@ type Props = { searchParams: Promise<{ canvas?: Param; lang?: Param; tag?: Param
 const one = (value: Param): string | undefined => (Array.isArray(value) ? value[0] : value);
 
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
-/** Compact on a wide screen with a fine pointer; any touch keeps the 44 px target (T-1872). */
-const COMPACT = 'lg:min-h-8 lg:pointer-coarse:min-h-touch';
+/** Compact on a wide screen without a touch pointer; any touch keeps the 44 px target (T-1872). */
+const COMPACT = 'lg:min-h-8 lg:any-pointer-coarse:min-h-touch';
 const CHIP = `inline-flex min-h-touch items-center gap-1.5 whitespace-nowrap rounded-pill border px-3 text-sm ${COMPACT} ${FOCUS}`;
 const CHIP_ON = 'border-accent bg-surface-raised font-bold text-fg';
 const CHIP_OFF = 'border-default bg-surface text-muted hover:text-fg';
-const BUTTON = `inline-flex min-h-touch items-center justify-center whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised lg:min-h-9 lg:pointer-coarse:min-h-touch ${FOCUS}`;
-const TAB = `inline-flex min-h-touch items-center whitespace-nowrap rounded-pill border px-4 text-sm font-bold lg:min-h-9 lg:pointer-coarse:min-h-touch ${FOCUS}`;
+const BUTTON = `inline-flex min-h-touch items-center justify-center whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised lg:min-h-9 lg:any-pointer-coarse:min-h-touch ${FOCUS}`;
+const TAB = `inline-flex min-h-touch items-center whitespace-nowrap rounded-pill border px-4 text-sm font-bold lg:min-h-9 lg:any-pointer-coarse:min-h-touch ${FOCUS}`;
 const TAB_ON = 'border-fg bg-fg text-canvas';
 const TAB_OFF = 'border-default bg-surface text-muted hover:border-strong hover:text-fg';
 
@@ -82,7 +82,8 @@ export default async function ConsoleCanvasPage({ searchParams }: Props) {
             role="tab"
             id={`canvas-tab-${key}`}
             aria-selected={key === canvas}
-            aria-controls="canvas-panel"
+            // The panel shows the chosen canvas only; the other tab opens its own page.
+            aria-controls={key === canvas ? 'canvas-panel' : undefined}
             tabIndex={key === canvas ? 0 : -1}
             className={`${TAB} ${key === canvas ? TAB_ON : TAB_OFF}`}
             data-testid="canvas-tab"
@@ -136,7 +137,14 @@ export default async function ConsoleCanvasPage({ searchParams }: Props) {
     <div className="canvas-page flex flex-col gap-3" {...english} data-testid="canvas-page">
       <CanvasToasts lang={lang} canvas={canvas}>
         {head}
+        {/*
+         * Keyed by the canvas: a tab is the same route with another
+         * `?canvas=`, and React keeps the client state of a page whose search
+         * changes, so without the key an open «افزودن کارت» draft would stay
+         * and save to the other canvas.
+         */}
         <div
+          key={canvas}
           id="canvas-panel"
           role="tabpanel"
           aria-labelledby={`canvas-tab-${canvas}`}

@@ -54,16 +54,17 @@ import {
  * canvases' tabs (T-1872). Every write is a server action naming the
  * page's canvas; the page redraws from the server after it.
  *
- * Compact (T-1872): on a wide screen with a mouse the controls are 28 to
- * 36 px (WCAG 2.2's 24 px minimum target); on a phone, a tablet or any touch
- * screen they stay the 44 px touch target.
+ * Compact (T-1872): on a wide screen with only a mouse or trackpad the
+ * controls are 28 to 36 px (WCAG 2.2's 24 px minimum target); on a phone, a
+ * tablet or any screen with a touch pointer (`any-pointer-coarse`, so a
+ * touch laptop with a trackpad too) they stay the 44 px touch target.
  */
 
 const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus';
 /** Smaller only on a wide screen with a fine pointer; any touch keeps 44 px. */
 const COMPACT_ICON =
-  'lg:min-h-7 lg:min-w-7 lg:pointer-coarse:min-h-touch lg:pointer-coarse:min-w-touch';
-const COMPACT = 'lg:min-h-9 lg:pointer-coarse:min-h-touch';
+  'lg:min-h-7 lg:min-w-7 lg:any-pointer-coarse:min-h-touch lg:any-pointer-coarse:min-w-touch';
+const COMPACT = 'lg:min-h-9 lg:any-pointer-coarse:min-h-touch';
 const ICON = `inline-flex min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 ${COMPACT_ICON} ${FOCUS}`;
 const SECONDARY = `inline-flex min-h-touch items-center justify-center gap-1.5 whitespace-nowrap rounded-control border border-strong bg-surface px-3 text-sm text-fg hover:bg-surface-raised disabled:opacity-50 ${COMPACT} ${FOCUS}`;
 const PRIMARY = `inline-flex min-h-touch items-center justify-center rounded-control bg-brand px-4 text-sm font-bold text-on-brand disabled:opacity-60 ${COMPACT} ${FOCUS}`;
@@ -80,6 +81,23 @@ interface Toast {
 const ToastContext = createContext<(toast: Toast | null) => void>(() => undefined);
 /** The canvas the page shows (T-1872); every control writes to it. */
 const CanvasKeyContext = createContext<ConsoleCanvasKey>('claude');
+
+/** The canvas the controls under `CanvasToasts` write to. */
+export const useCanvasKey = (): ConsoleCanvasKey => useContext(CanvasKeyContext);
+
+/**
+ * The canvas's server actions bound to one canvas (T-1872): every control
+ * writes through these, so a write always names the page's canvas.
+ */
+export function canvasActions(canvas: ConsoleCanvasKey) {
+  return {
+    create: (fields: CanvasCardFields) => createCanvasCard(canvas, fields),
+    update: (id: string, patch: CanvasCardFields) => updateCanvasCard(canvas, id, patch),
+    move: (id: string, direction: 'up' | 'down') => moveCanvasCard(canvas, id, direction),
+    remove: (id: string) => removeCanvasCard(canvas, id),
+    restore: (id: string) => restoreCanvasCard(canvas, id),
+  };
+}
 
 /**
  * The canvas's toast: one message at a time, with an action (the undo of a
@@ -153,28 +171,43 @@ export function CanvasToasts({
 // --- The two canvases' tabs ------------------------------------------------------------
 
 /**
- * The tab list's keys (T-1872): the arrows move between the two tabs in the
- * reading direction (in Persian the left arrow is the next tab), Home and End
- * go to the first and last. The tabs themselves are server-drawn links; the
- * chosen one is in the tab order, the other is reached by the arrows, and
- * Enter opens it.
+ * What a key does on the tab list (T-1872), for the tab at `at` of `count`:
+ * a tab to move the focus to (the arrows in the reading direction, wrapping;
+ * in Persian the left arrow is the next tab; Home and End), `'open'` (Space
+ * or Enter opens the focused tab, a link), or `null` (not the list's key).
+ */
+export function tabKey(
+  key: string,
+  at: number,
+  count: number,
+  rtl: boolean,
+): number | 'open' | null {
+  if (at < 0 || count === 0) return null;
+  const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
+  const back = rtl ? 'ArrowRight' : 'ArrowLeft';
+  if (key === forward) return (at + 1) % count;
+  if (key === back) return (at - 1 + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  if (key === ' ' || key === 'Spacebar') return 'open';
+  return null;
+}
+
+/**
+ * The tab list (T-1872): the tabs are server-drawn links; the chosen one is
+ * in the tab order, the other is reached by the arrows, and Space or Enter
+ * opens it (Enter is the link's own).
  */
 export function CanvasTabKeys({ label, children }: { label: string; children: ReactNode }) {
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const tabs = [...event.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')];
     const at = tabs.findIndex((tab) => tab === globalThis.document.activeElement);
-    if (at < 0) return;
     const rtl = globalThis.getComputedStyle(event.currentTarget).direction === 'rtl';
-    const forward = rtl ? 'ArrowLeft' : 'ArrowRight';
-    const back = rtl ? 'ArrowRight' : 'ArrowLeft';
-    let to: number | null = null;
-    if (event.key === forward) to = (at + 1) % tabs.length;
-    else if (event.key === back) to = (at - 1 + tabs.length) % tabs.length;
-    else if (event.key === 'Home') to = 0;
-    else if (event.key === 'End') to = tabs.length - 1;
+    const to = tabKey(event.key, at, tabs.length, rtl);
     if (to === null) return;
     event.preventDefault();
-    tabs[to]?.focus();
+    if (to === 'open') tabs[at]?.click();
+    else tabs[to]?.focus();
   };
   return (
     <div role="tablist" aria-label={label} className="flex gap-1.5" onKeyDown={onKeyDown}>
@@ -240,7 +273,7 @@ export function CanvasCard({
 }) {
   const w = CANVAS_WORDS[lang];
   const toast = useContext(ToastContext);
-  const canvas = useContext(CanvasKeyContext);
+  const act = canvasActions(useCanvasKey());
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -261,7 +294,7 @@ export function CanvasCard({
           lang={lang}
           initial={card}
           onCancel={() => setEditing(false)}
-          onSave={(patch) => updateCanvasCard(canvas, card.id, patch)}
+          onSave={(patch) => act.update(card.id, patch)}
           onSaved={() => setEditing(false)}
         />
       </li>
@@ -304,7 +337,7 @@ export function CanvasCard({
             aria-label={w.up}
             title={w.up}
             disabled={pending || first}
-            onClick={() => run(() => moveCanvasCard(canvas, card.id, 'up'))}
+            onClick={() => run(() => act.move(card.id, 'up'))}
           >
             <Icon name="up" />
           </button>
@@ -314,7 +347,7 @@ export function CanvasCard({
             aria-label={w.down}
             title={w.down}
             disabled={pending || last}
-            onClick={() => run(() => moveCanvasCard(canvas, card.id, 'down'))}
+            onClick={() => run(() => act.move(card.id, 'down'))}
           >
             <Icon name="down" />
           </button>
@@ -326,7 +359,7 @@ export function CanvasCard({
             disabled={pending}
             onClick={() =>
               run(
-                () => removeCanvasCard(canvas, card.id),
+                () => act.remove(card.id),
                 () =>
                   toast({
                     words: w.removed,
@@ -334,7 +367,7 @@ export function CanvasCard({
                       label: w.undo,
                       // The undo says how it went: a refused restore leaves the card in the bin.
                       run: () =>
-                        void restoreCanvasCard(canvas, card.id).then(
+                        void act.restore(card.id).then(
                           (result) =>
                             toast({
                               words: result.ok ? w.restored : (result.error ?? w.restoreFailed),
@@ -581,7 +614,7 @@ const EMPTY = { text_fa: '', text_en: '', note_fa: '', note_en: '', source: '' }
 /** A block's «افزودن کارت»: the editor, empty, with the block chosen; a new card is an assumption. */
 export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: CanvasLang }) {
   const [open, setOpen] = useState(false);
-  const canvas = useContext(CanvasKeyContext);
+  const act = canvasActions(useCanvasKey());
   const w = CANVAS_WORDS[lang];
   if (open)
     return (
@@ -589,7 +622,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
         lang={lang}
         initial={{ ...EMPTY, block, tag: 'assumption' }}
         onCancel={() => setOpen(false)}
-        onSave={(fields) => createCanvasCard(canvas, { block, tag: 'assumption', ...fields })}
+        onSave={(fields) => act.create({ block, tag: 'assumption', ...fields })}
         onSaved={() => setOpen(false)}
       />
     );
@@ -598,7 +631,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
       type="button"
       onClick={() => setOpen(true)}
       data-print="hide"
-      className={`inline-flex min-h-touch items-center gap-1.5 self-start rounded-control border border-dashed border-strong px-2.5 text-xs font-bold text-muted hover:text-fg lg:min-h-8 lg:pointer-coarse:min-h-touch ${FOCUS}`}
+      className={`inline-flex min-h-touch items-center gap-1.5 self-start rounded-control border border-dashed border-strong px-2.5 text-xs font-bold text-muted hover:text-fg lg:min-h-8 lg:any-pointer-coarse:min-h-touch ${FOCUS}`}
     >
       <Icon name="plus" />
       {w.add}
@@ -610,7 +643,7 @@ export function NewCard({ block, lang }: { block: ConsoleCanvasBlock; lang: Canv
 export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
   const w = CANVAS_WORDS[lang];
   const toast = useContext(ToastContext);
-  const canvas = useContext(CanvasKeyContext);
+  const act = canvasActions(useCanvasKey());
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   return (
@@ -621,7 +654,7 @@ export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
         disabled={pending}
         onClick={() =>
           start(async () => {
-            const result = await restoreCanvasCard(canvas, id);
+            const result = await act.restore(id);
             if (result.ok) toast({ words: w.restored });
             else setError(result.error);
           })
@@ -639,7 +672,7 @@ export function RestoreButton({ id, lang }: { id: string; lang: CanvasLang }) {
 /** The canvas's live cards as a JSON file, made in the browser from what the page already has. */
 export function JsonDownload({ cards, lang }: { cards: ConsoleCanvasCard[]; lang: CanvasLang }) {
   const w = CANVAS_WORDS[lang];
-  const canvas = useContext(CanvasKeyContext);
+  const canvas = useCanvasKey();
   return (
     <button
       type="button"

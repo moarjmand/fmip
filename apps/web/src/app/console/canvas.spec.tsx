@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ReactNode } from 'react';
+import { type ReactElement, type ReactNode, isValidElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CANVAS, ENGLISH_ONLY, PARTNER, REMOVED, SEGMENT, TEAMMATE_EMPTY } from './canvas.fixture';
-import { CardEditor } from './canvas-card';
+import { CanvasToasts, CardEditor, canvasActions, tabKey, useCanvasKey } from './canvas-card';
 import { canvasJson, cardText, historyWords, tagCounts } from './canvas-words';
 
 /**
@@ -20,7 +20,11 @@ import { canvasJson, cardText, historyWords, tagCounts } from './canvas-words';
  * 44 px target on any touch screen.
  */
 
-const state = vi.hoisted(() => ({ answer: null as unknown, asked: [] as unknown[] }));
+const state = vi.hoisted(() => ({
+  answer: null as unknown,
+  asked: [] as unknown[],
+  calls: [] as unknown[][],
+}));
 
 vi.mock('next/headers', () => ({
   cookies: async () => ({ get: () => undefined, set: () => undefined }),
@@ -34,13 +38,19 @@ vi.mock('@/app/console/console-link', () => ({
   ),
 }));
 vi.mock('@/lib/console-actions', () => {
-  const done = async () => ({ ok: true, error: null, id: null });
+  // Each action records what it was called with (T-1872: the canvas first).
+  const done =
+    (name: string) =>
+    async (...args: unknown[]) => {
+      state.calls.push([name, ...args]);
+      return { ok: true, error: null, id: null };
+    };
   return {
-    createCanvasCard: done,
-    updateCanvasCard: done,
-    moveCanvasCard: done,
-    removeCanvasCard: done,
-    restoreCanvasCard: done,
+    createCanvasCard: done('create'),
+    updateCanvasCard: done('update'),
+    moveCanvasCard: done('move'),
+    removeCanvasCard: done('remove'),
+    restoreCanvasCard: done('restore'),
   };
 });
 vi.mock('@/lib/console-api', () => ({
@@ -62,6 +72,7 @@ const count = (html: string, needle: string) => html.split(needle).length - 1;
 beforeEach(() => {
   state.answer = { ok: true, status: 200, data: CANVAS, setCookie: null };
   state.asked = [];
+  state.calls = [];
 });
 
 describe('the layout', () => {
@@ -299,6 +310,8 @@ describe('the two canvases (T-1872)', () => {
     expect(claude).toContain('aria-selected="true"');
     expect(claude).toContain('tabindex="0"');
     expect(claude).toContain('aria-controls="canvas-panel"');
+    // The panel is the chosen canvas's; the other tab controls no panel here.
+    expect(teammate).not.toContain('aria-controls');
     expect(claude).toContain('>بوم Claude</a>');
     expect(teammate).toContain('href="/canvas?canvas=teammate"');
     expect(teammate).toContain('aria-selected="false"');
@@ -365,18 +378,123 @@ describe('the two canvases (T-1872)', () => {
   });
 });
 
+describe('the canvas each control writes to (T-1872)', () => {
+  /** The element with this id in the page's tree, as React holds it before rendering. */
+  const find = (node: unknown, id: string): ReactElement | null => {
+    if (Array.isArray(node)) {
+      for (const child of node) {
+        const found = find(child, id);
+        if (found !== null) return found;
+      }
+      return null;
+    }
+    if (!isValidElement(node)) return null;
+    const props = node.props as { id?: string; children?: unknown };
+    if (props.id === id) return node;
+    return find(props.children, id);
+  };
+
+  it('keys the panel by its canvas, so a tab change drops an open draft instead of saving it to the other canvas', async () => {
+    const render = async (p: Record<string, string>) =>
+      (await import('./(app)/canvas/page')).default({ searchParams: params(p) });
+    const claude = find(await render({}), 'canvas-panel');
+    state.answer = { ok: true, status: 200, data: TEAMMATE_EMPTY, setCookie: null };
+    const teammate = find(await render({ canvas: 'teammate' }), 'canvas-panel');
+    expect(claude?.key).toBe('claude');
+    expect(teammate?.key).toBe('teammate');
+  });
+
+  it('hands the page’s canvas to the controls, Claude’s when none is given', () => {
+    function Probe() {
+      return <i>{useCanvasKey()}</i>;
+    }
+    expect(
+      renderToStaticMarkup(
+        <CanvasToasts lang="fa" canvas="teammate">
+          <Probe />
+        </CanvasToasts>,
+      ),
+    ).toContain('<i>teammate</i>');
+    expect(
+      renderToStaticMarkup(
+        <CanvasToasts lang="fa">
+          <Probe />
+        </CanvasToasts>,
+      ),
+    ).toContain('<i>claude</i>');
+  });
+
+  it('sends that canvas first to every server action', async () => {
+    const act = canvasActions('teammate');
+    const id = SEGMENT.id;
+    await act.create({ block: 'channels', text_fa: 'x' });
+    await act.update(id, { tag: 'risk' });
+    await act.move(id, 'up');
+    await act.remove(id);
+    await act.restore(id);
+    await canvasActions('claude').move(id, 'down');
+    expect(state.calls).toEqual([
+      ['create', 'teammate', { block: 'channels', text_fa: 'x' }],
+      ['update', 'teammate', id, { tag: 'risk' }],
+      ['move', 'teammate', id, 'up'],
+      ['remove', 'teammate', id],
+      ['restore', 'teammate', id],
+      ['move', 'claude', id, 'down'],
+    ]);
+  });
+
+  it('calls the server actions only through the bound ones', () => {
+    // Every control goes through `canvasActions(useCanvasKey())`, never an action by itself.
+    const source = readFileSync(join(__dirname, 'canvas-card.tsx'), 'utf8');
+    for (const action of [
+      'createCanvasCard',
+      'updateCanvasCard',
+      'moveCanvasCard',
+      'removeCanvasCard',
+      'restoreCanvasCard',
+    ])
+      // A word boundary: `removeCanvasCard(` holds `moveCanvasCard(`.
+      expect(source.match(new RegExp(`\\b${action}\\(`, 'g')), action).toHaveLength(1);
+    expect(count(source, 'canvasActions(useCanvasKey())')).toBe(3);
+  });
+});
+
+describe('the tab list’s keys (T-1872)', () => {
+  it('moves by the arrows in the reading direction, wrapping, with Home and End', () => {
+    // Persian, right to left: the left arrow is the next tab.
+    expect(tabKey('ArrowLeft', 0, 2, true)).toBe(1);
+    expect(tabKey('ArrowRight', 1, 2, true)).toBe(0);
+    expect(tabKey('ArrowLeft', 1, 2, true)).toBe(0);
+    // English, left to right.
+    expect(tabKey('ArrowRight', 0, 2, false)).toBe(1);
+    expect(tabKey('ArrowLeft', 0, 2, false)).toBe(1);
+    expect(tabKey('Home', 1, 2, true)).toBe(0);
+    expect(tabKey('End', 0, 2, false)).toBe(1);
+  });
+
+  it('opens the focused tab with Space, and leaves every other key alone', () => {
+    expect(tabKey(' ', 1, 2, true)).toBe('open');
+    expect(tabKey('Spacebar', 0, 2, false)).toBe('open');
+    expect(tabKey('Enter', 0, 2, false)).toBeNull();
+    expect(tabKey('Tab', 0, 2, false)).toBeNull();
+    expect(tabKey('ArrowDown', 0, 2, false)).toBeNull();
+    // Focus outside the tabs: nothing.
+    expect(tabKey('ArrowLeft', -1, 2, true)).toBeNull();
+  });
+});
+
 describe('compact (T-1872)', () => {
   it('shrinks the controls only on a wide screen with a fine pointer; touch keeps 44 px', async () => {
     const html = await page();
     // A card's controls: 44 px, 28 px from lg, 44 px again on any coarse pointer.
     expect(html).toContain(
-      'min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 lg:min-h-7 lg:min-w-7 lg:pointer-coarse:min-h-touch lg:pointer-coarse:min-w-touch',
+      'min-h-touch min-w-touch items-center justify-center rounded-control text-muted hover:bg-surface hover:text-fg disabled:opacity-40 lg:min-h-7 lg:min-w-7 lg:any-pointer-coarse:min-h-touch lg:any-pointer-coarse:min-w-touch',
     );
     // Every tag chip, tab and button is 44 px below lg.
     for (const testid of ['canvas-tag-filter', 'canvas-tab', 'canvas-lang']) {
       const tag = new RegExp(`<a[^>]*data-testid="${testid}"[^>]*>`).exec(html)?.[0] ?? '';
       expect(tag, testid).toContain('min-h-touch');
-      expect(tag, testid).toContain('lg:pointer-coarse:min-h-touch');
+      expect(tag, testid).toContain('lg:any-pointer-coarse:min-h-touch');
     }
     // Tighter cells and smaller card text.
     expect(html).toContain('canvas-block flex min-h-28 min-w-0 flex-col gap-1.5 bg-surface p-2');
