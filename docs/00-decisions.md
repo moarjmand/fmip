@@ -3747,6 +3747,8 @@ marked reviewed that are about a match that is live or kicked off in the last
 **six hours**, and have been open for at least **ten minutes** (two sweeps):
 `degraded` at **1**, `failing` at **3**. Older findings are the admin page's,
 not an alert.
+*Amended by D-447 (T-1873):* a short line-up (fewer than eleven starters) on a live match, or in a season
+whose `lineups` coverage is `limited` or `delayed`, is not counted.
 
 **Why.** Five minutes because a sweep reads every stored fixture, and doing
 that every minute would be most of the database's work for nothing new, while
@@ -15800,6 +15802,44 @@ The notification: title «درخواست تازه از <filer's display name>»,
 **Rejected.** *Automatic merges of strong candidates*: fastest, but a wrong merge is invisible (D-077's reason) and twins and common names in one club fit every signal. *An alias link between two kept rows*: every read would union two ids for ever. *Deleting the loser*: members' cards and panel links would have to be rewritten. *Matching at adoption*: D-079. *Refusing any shared match (statistics, events, coach)*: it would refuse exactly the split-id pairs the merge exists for.
 
 **Consequences.** Migration `1765901863000_person-merge.sql`: tables `person_merge`, `person_merge_moved`, `person_not_duplicate`; functions `merge_person`, `merge_person_undo`, `person_merged_into`, `person_shared_lineup_fixture`, `person_shared_incident`; `set_updated_at()` honours `fmip.keep_updated_at` when it holds the current transaction's id. T-1867 re-runs the "nothing references the loser" check after each batch, since an ingestion transaction that read the loser's mapping before a merge committed can still write one row to it. `catalog.mjs` gains `--person-candidates`, `--merge-people`, `--unmerge`, `--not-duplicate` and `data-quality/internal/checks.ts` a check (T-1864); `GET /players/:id` and `GET /coaches/:id` may answer `moved_to` and the pages redirect (T-1865); the ingestion stores ask by every id (T-1866). The existing groups are repaired by T-1867 in batches, after review. Rows the provider writes for the survivor after a merge stay with the survivor when it is undone.
+
+## D-447 — The watchdog's `data_quality` count leaves short line-ups on a live match, or under limited or delayed line-ups, to the admin page
+
+**Status:** Accepted · 2026-11-17 (agent, under the standing delegation, from the ops finding `ops-2026-11-15-01`) · **Task:** T-1873 · **Amends:** D-097 (the watchdog paragraph) · **Follows:** D-109, D-250
+
+**Context.** From 12:26 UTC on 2026-11-17 the watchdog's `data_quality` condition was `failing` with 26 open, unreviewed findings about matches of the last six hours: 23 `lineup_not_eleven` (10 on matches still live, 13 on matches finished that afternoon) and 3 `goals_disagree`. Every one of the 23 was in a season whose `lineups` coverage is already declared `limited` (African Cup of Nations qualifiers and internationals' friendlies on API-Football), so the match page already says its line-ups are incomplete (rule 3). The provider often sends a line-up in parts during a match. An alarm that fires on what the page already declares is noise that hides the findings that matter, such as a goal the timeline does not have.
+
+**Decision.**
+1. The watchdog's count (`DataQualityStore.liveContradictions`) does not count a `lineup_not_eleven` finding whose side has **fewer** than eleven stored starters when its match is `live`, or when the match's season has a `lineups` coverage row whose state is `limited` or `delayed` (`ALARM_QUIET_LINEUP_COVERAGE` in `apps/api/src/modules/data-quality/internal/checks.ts`).
+2. Such findings are not reviewed or changed: they stay open and unreviewed on the data-quality page, for a person to review there, alone or by T-912's batch. They are only left out of the alarm.
+3. Every other check counts exactly as D-097 says. `goals_disagree` counts even on a live match and even when the season's `incidents` coverage is `limited`: a score its timeline does not explain is a contradiction a reader sees.
+4. A short line-up on a finished match in a season whose line-ups are `available` (or have no coverage row) still counts within the six hours: that is a line-up the page presents as complete. So does one in a season whose line-ups are `not_supplied`: line-ups were not expected there at all, so a short one is not an announced gap. A side with **more** than eleven starters always counts, live or under any coverage: a line-up write replaces the whole list, so a twelfth starter is a fault, not a part sent early.
+
+**Rejected.** *Marking such findings reviewed automatically with a recorded reason*: it writes a review nobody made, needs an actor for the audit row (rule 10), and would hide the finding from the page's open-and-unreviewed view that the coverage proposals (D-109) and the ended-seasons command (T-1662) read. *Dropping `lineup_not_eleven` from the alarm altogether*: a short line-up on a match whose line-ups are declared complete is still worth an alert. *Raising the thresholds*: a match day's 23 short line-ups would still outnumber any threshold that keeps one goal disagreement visible.
+
+**Consequences.** One clause in the count's SQL and a constant; the threshold (`degraded` 1, `failing` 3), the six-hour horizon and the ten-minute age are unchanged. The System page's note for the condition is unchanged. `data-quality.http.spec.ts` covers a live short line-up, `limited` and `delayed` line-ups, `limited` incidents not quieting a goal disagreement, a live side with twelve starters still counting under `limited` line-ups, and a short line-up counting again once its match is over with line-ups `available`. On 2026-11-17 the count would have been 3 (the goal disagreements), still `failing`.
+
+## D-448 — Two business model canvases in the console: Claude's and the teammate's, as two tabs keyed by `canvas`; the page compact
+
+**Status:** Accepted · 2026-11-17 (the maintainer, in chat: two tabs, one the canvas Claude filled and one the teammate fills himself, with the same nine blocks and card features; the page «جمع و جورتر») · **Task:** T-1872 · **Amends:** D-441
+
+**Context.** D-441 built one canvas, seeded with Claude's 55 cards. The maintainer wants the teammate to draw his own canvas beside it, not edit Claude's, and the page tighter so the nine blocks show more on one screen.
+
+**Decision.**
+1. **A canvas is a key, `claude` or `teammate`** (a CHECK), on `console_canvas_card.canvas` and `console_canvas_event.canvas`, added by a new migration (`1765901872000_console-canvas-key.sql`; D-441's migration is shipped and untouched). The column's default `claude` backfilled every existing card and event as Postgres added it (no UPDATE, no trigger; production held 55 cards and no events). The default stays, so the API version before this one, during a rollout, still writes Claude's canvas. A foreign key on `(card_id, canvas)` to the card's `(id, canvas)` keeps an event on its card's canvas. D-441's three read indexes are replaced by the same ones per canvas. The down migration refuses while a teammate card exists.
+2. **`console_audit` is not rewritten** (immutable, rule 10). Its canvas rows name the card by `target_id`, and that card now says `claude`. New audit rows carry `canvas` in the card before and after.
+3. **Every route takes `?canvas=`**; none (or empty) is `claude`, so every link and the API's callers from before keep Claude's canvas. Any other word, or the key named twice, is 400. A card route (`PATCH`, `move`, `remove`, `restore`) on a card of the other canvas is 404, so a page open on one tab never changes the other. Places, the bin, the history (the newest 100 per canvas), the JSON download and the print are per canvas. Both console accounts edit both canvases, as today. The `console_canvas` ceiling stays one per person across both (300 an hour).
+4. **The page has two tabs**, «بوم Claude» and «بوم هم‌تیمی» (English: "Claude's canvas", "Teammate's canvas"), an ARIA tab list of links (the chosen tab in the tab order and the only one with `aria-controls`, since the panel shows its canvas alone; the arrows in the reading direction, Home and End; Space or Enter opens a tab) over the canvas panel, which is keyed by the canvas so a tab change drops any open draft rather than saving it to the other canvas (Next keeps a page's client state when only its search changes); the URL keeps the tab (`?canvas=teammate`, Claude's has none) and the language (`?lang=en`); a tab drops the tag filter. The teammate's canvas starts empty with a short hint how to add a card; its lede is its own, and Claude's foot about the seed's figures shows on Claude's tab only. The print sheet's head names the canvas.
+5. **Compact**: the title, tabs and language on one line, the tag filters with the JSON and print on one line; cells at 8 px padding and gaps, block headings at 20 px line height, card text 13 px on 20 px, notes 12 px on 18 px; the tag and the card's controls share the card's first line. The controls are 28 px (icons) and 32 to 36 px (buttons, chips, tabs) only from 1024 px wide on a screen with no touch pointer (`lg:` with `lg:any-pointer-coarse:` back to 44 px), so a phone, a tablet or any screen with touch, a touch laptop with a trackpad included, keeps the 44 px target; 28 px is above WCAG 2.2's 24 px minimum. Colours are unchanged (the approved AA pairs). Logical CSS only (rule 7).
+
+**Rejected.**
+- *A second pair of tables for the teammate*: the same rules, store and routes twice; one key keeps one engine.
+- *A path segment (`/console/canvas/teammate/...`)*: every old route and the rate-limit inventory's route list would change; a query keeps them.
+- *Ignoring the key on card routes (the card already knows its canvas)*: a stale tab could change the other canvas unseen; matching both makes it a 404.
+- *Rewriting old audit rows to name the canvas*: `console_audit` is immutable; the card resolves it.
+
+**Consequences.** About ten source files, above section 3's six, as D-441 was, because the maintainer asked for one change across the page end to end. No new environment variable, no new dependency. More canvases would be a new key in the CHECK and the contract.
+
 
 ## D-449 — Football only also by the publisher's page section: television, showbiz, culture, lifestyle and school sport (amends D-429)
 

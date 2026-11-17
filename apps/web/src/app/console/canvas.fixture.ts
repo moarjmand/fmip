@@ -5,7 +5,8 @@ import type { ConsoleCanvas, ConsoleCanvasCard, ConsoleCanvasEvent } from '@fmip
  * a few of the seed's cards (one of every tag, in four blocks, verbatim), a
  * card written in English only, one a person changed, a removed card in the
  * bin, and a history with every kind of change; for `canvas.spec.tsx` and
- * the Persian scan.
+ * the Persian scan. `TEAMMATE_EMPTY` is the teammate's canvas as it starts
+ * (T-1872): no card, no bin, no history.
  */
 
 let n = 0;
@@ -13,6 +14,7 @@ const card = (overrides: Partial<ConsoleCanvasCard>): ConsoleCanvasCard => {
   n += 1;
   return {
     id: `dddddddd-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    canvas: 'claude',
     block: 'customer_segments',
     position: 1,
     tag: 'assumption',
@@ -135,6 +137,7 @@ const HISTORY: ConsoleCanvasEvent[] = [
 ];
 
 export const CANVAS: ConsoleCanvas = {
+  canvas: 'claude',
   cards: [SEGMENT, ENGLISH_ONLY, PARTNER, RISK, COST],
   removed: [REMOVED],
   history: HISTORY,
@@ -152,4 +155,13 @@ export const CANVAS: ConsoleCanvas = {
       owner: false,
     },
   ],
+};
+
+/** The teammate's canvas as it starts (T-1872): empty, the same people. */
+export const TEAMMATE_EMPTY: ConsoleCanvas = {
+  canvas: 'teammate',
+  cards: [],
+  removed: [],
+  history: [],
+  people: CANVAS.people,
 };

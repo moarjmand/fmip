@@ -3,11 +3,14 @@ import type {
   ConsoleCanvasCardPatch,
   ConsoleCanvasEventKind,
   ConsoleCanvasField,
+  ConsoleCanvasKey,
   ConsoleCanvasTag,
 } from '@fmip/contracts';
 import {
   CONSOLE_CANVAS_BLOCKS,
+  CONSOLE_CANVAS_DEFAULT_KEY,
   CONSOLE_CANVAS_FIELDS,
+  CONSOLE_CANVAS_KEYS,
   CONSOLE_CANVAS_NOTE_MAX,
   CONSOLE_CANVAS_SOURCE_MAX,
   CONSOLE_CANVAS_TAGS,
@@ -15,7 +18,8 @@ import {
 } from '@fmip/contracts/console';
 
 /**
- * The business model canvas's pure part (T-1856, D-441): what a person may
+ * The business model canvas's pure part (T-1856, D-441): which canvas a
+ * route names (T-1872, D-448); what a person may
  * write -- a new card, a change, a move up or down -- with its lengths; where
  * a new card goes in its block; and which changes a patch really makes, as
  * the history records them. Nothing here touches the database.
@@ -68,6 +72,20 @@ function checkField(field: ConsoleCanvasField, value: unknown): Checked<string> 
   if (trimmed.length > MAX[field])
     return { ok: false, reason: `${NAME[field]} is at most ${MAX[field]} characters.` };
   return { ok: true, value: trimmed };
+}
+
+const KEY_REASON = `canvas is one of ${CONSOLE_CANVAS_KEYS.join(', ')}.`;
+
+/**
+ * The canvas a route names by `?canvas=` (T-1872): none, or an empty one, is
+ * Claude's, so every link from before the second canvas still opens it; a
+ * key named twice, or one that is no canvas, is refused.
+ */
+export function checkCanvasKey(value: unknown): Checked<ConsoleCanvasKey> {
+  if (value === undefined || value === '') return { ok: true, value: CONSOLE_CANVAS_DEFAULT_KEY };
+  if ((CONSOLE_CANVAS_KEYS as readonly unknown[]).includes(value))
+    return { ok: true, value: value as ConsoleCanvasKey };
+  return { ok: false, reason: KEY_REASON };
 }
 
 const BLOCK_REASON = `block is one of ${CONSOLE_CANVAS_BLOCKS.join(', ')}.`;

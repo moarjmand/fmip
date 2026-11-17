@@ -21,6 +21,12 @@ import { PostgresConsoleStore } from './internal/console-store';
  * deletes a row; bad input changes nothing; and a person is held to the
  * hourly ceiling. Everything it adds is removed afterwards, and the seed's
  * places it touched are put back.
+ *
+ * T-1872 (D-448): two canvases. The migration put every existing card and
+ * event on Claude's (`claude`); every route takes `?canvas=`, none is
+ * Claude's; the teammate's canvas has its own cards, places, bin and history;
+ * a card route on the other canvas's card is 404; a key that is no canvas is
+ * 400; the audit row names the canvas; the ceiling is one across both.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -308,6 +314,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console canv
     ]);
     // The whole card, before and after.
     expect(audit[1]!.previous).toEqual({
+      canvas: 'claude',
       block: 'channels',
       tag: 'assumption',
       text_fa: `کارت آزمایشی ${RUN}`,
@@ -333,6 +340,193 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console canv
     expect(kept).toHaveLength(1);
     // Twenty calls, each a transaction: more than five seconds beside the other specs.
   }, 30_000);
+
+  it('backfilled every card and event to Claude’s canvas, and keeps an event on its card’s canvas', async () => {
+    // The seed (and anything written before the migration) is Claude's.
+    const { rows: seed } = await pool.query<{ canvas: string; n: number }>(
+      `SELECT canvas, count(*)::int AS n FROM console_canvas_card
+        WHERE created_by IS NULL GROUP BY canvas`,
+    );
+    expect(seed).toEqual([{ canvas: 'claude', n: 55 }]);
+    // Old writers (the API before T-1872, during a rollout) land on Claude's canvas.
+    const { rows: defaults } = await pool.query<{ table_name: string; column_default: string }>(
+      `SELECT table_name, column_default FROM information_schema.columns
+        WHERE column_name = 'canvas'
+          AND table_name IN ('console_canvas_card', 'console_canvas_event')
+        ORDER BY table_name`,
+    );
+    expect(defaults).toEqual([
+      { table_name: 'console_canvas_card', column_default: "'claude'::text" },
+      { table_name: 'console_canvas_event', column_default: "'claude'::text" },
+    ]);
+    // No event names another canvas than its card's: the foreign key refuses one.
+    const { rows: astray } = await pool.query<{ n: number }>(
+      `SELECT count(*)::int AS n FROM console_canvas_event e
+         JOIN console_canvas_card c ON c.id = e.card_id WHERE e.canvas <> c.canvas`,
+    );
+    expect(astray[0]!.n).toBe(0);
+    const card = (await read()).cards[0]!;
+    await expect(
+      pool.query(
+        `INSERT INTO console_canvas_event (canvas, card_id, actor_id, kind)
+         VALUES ('teammate', $1, $2, 'removed')`,
+        [card.id, users[0]],
+      ),
+    ).rejects.toThrow(/console_canvas_event_card_canvas/);
+    await expect(
+      pool.query(`UPDATE console_canvas_card SET canvas = 'mine' WHERE id = $1`, [card.id]),
+    ).rejects.toThrow(/console_canvas_card_canvas/);
+  });
+
+  it('keeps the teammate’s canvas apart: its own cards, places, bin and history, on every route', async () => {
+    const claudeBefore = await read();
+    expect(claudeBefore.canvas).toBe('claude');
+    expect(claudeBefore.cards.every((c) => c.canvas === 'claude')).toBe(true);
+    // `?canvas=claude` is the same canvas as none.
+    expect((await call<ConsoleCanvas>('GET', '?canvas=claude')).body.cards).toEqual(
+      claudeBefore.cards,
+    );
+
+    const teammate = await call<ConsoleCanvas>('GET', '?canvas=teammate');
+    expect(teammate.status).toBe(200);
+    expect(teammate.body.canvas).toBe('teammate');
+    // None of Claude's seed is on it.
+    expect(teammate.body.cards.every((c) => c.canvas === 'teammate')).toBe(true);
+    expect(teammate.body.cards.some((c) => claudeBefore.cards.some((k) => k.id === c.id))).toBe(
+      false,
+    );
+    const channels = teammate.body.cards.filter((c) => c.block === 'channels');
+
+    const first = await call<ConsoleCanvasCard>('POST', '/cards?canvas=teammate', {
+      block: 'channels',
+      text_en: `Teammate one ${RUN}`,
+    });
+    expect(first.status).toBe(201);
+    expect(first.body).toMatchObject({
+      canvas: 'teammate',
+      block: 'channels',
+      // Its place counts the teammate's channels only, not Claude's six.
+      position: Math.max(0, ...channels.map((c) => c.position)) + 1,
+    });
+    const second = await call<ConsoleCanvasCard>('POST', '/cards?canvas=teammate', {
+      block: 'channels',
+      text_fa: `کارت دوم ${RUN}`,
+    });
+    expect(second.body.position).toBe(first.body.position + 1);
+    const id = second.body.id;
+
+    // A card route on the other canvas's card is no card, and changes nothing.
+    const claudeCard = claudeBefore.cards[0]!;
+    expect((await call('PATCH', `/cards/${id}`, { tag: 'risk' })).status).toBe(404);
+    expect((await call('POST', `/cards/${id}/move`, { direction: 'up' })).status).toBe(404);
+    expect((await call('POST', `/cards/${id}/remove`, {})).status).toBe(404);
+    expect(
+      (await call('PATCH', `/cards/${claudeCard.id}?canvas=teammate`, { tag: 'risk' })).status,
+    ).toBe(404);
+    expect((await call('POST', `/cards/${claudeCard.id}/remove?canvas=teammate`, {})).status).toBe(
+      404,
+    );
+
+    const edited = await call<ConsoleCanvasCard>('PATCH', `/cards/${id}?canvas=teammate`, {
+      tag: 'risk',
+    });
+    expect(edited.body).toMatchObject({ canvas: 'teammate', tag: 'risk' });
+    const up = await call<ConsoleCanvasCard>('POST', `/cards/${id}/move?canvas=teammate`, {
+      direction: 'up',
+    });
+    expect(up.body.position).toBe(first.body.position);
+    const removed = await call<ConsoleCanvasCard>(
+      'POST',
+      `/cards/${id}/remove?canvas=teammate`,
+      {},
+    );
+    expect(removed.status).toBe(200);
+    // The bin is the canvas's own.
+    const binned = (await call<ConsoleCanvas>('GET', '?canvas=teammate')).body;
+    expect(binned.removed.some((c) => c.id === id)).toBe(true);
+    expect((await read()).removed.some((c) => c.id === id)).toBe(false);
+    expect((await call('POST', `/cards/${id}/restore`, {})).status).toBe(404);
+    const restored = await call<ConsoleCanvasCard>(
+      'POST',
+      `/cards/${id}/restore?canvas=teammate`,
+      {},
+    );
+    expect(restored.status).toBe(200);
+    expect(restored.body).toMatchObject({ canvas: 'teammate', removed_at: null });
+
+    // The history is the canvas's own; Claude's says nothing of the teammate's cards.
+    const after = (await call<ConsoleCanvas>('GET', '?canvas=teammate')).body;
+    expect(
+      after.history
+        .filter((e) => e.card_id === id)
+        .map((e) => e.kind)
+        .reverse(),
+    ).toEqual(['created', 'tagged', 'moved', 'removed', 'restored']);
+    const claudeAfter = await read();
+    expect(claudeAfter.history.some((e) => e.card_id === id || e.card_id === first.body.id)).toBe(
+      false,
+    );
+    // Claude's canvas is as it was.
+    expect(claudeAfter.cards.map((c) => [c.id, c.position])).toEqual(
+      claudeBefore.cards.map((c) => [c.id, c.position]),
+    );
+    const { rows: events } = await pool.query<{ canvas: string }>(
+      `SELECT DISTINCT canvas FROM console_canvas_event WHERE card_id = $1`,
+      [id],
+    );
+    expect(events).toEqual([{ canvas: 'teammate' }]);
+
+    // The audit row names the canvas, before and after.
+    const { rows: audit } = await pool.query<{
+      action: string;
+      previous: Record<string, unknown> | null;
+      next: Record<string, unknown> | null;
+    }>(
+      `SELECT action, previous, next FROM console_audit
+        WHERE target_type = 'canvas_card' AND target_id = $1 ORDER BY created_at, id`,
+      [id],
+    );
+    expect(audit.map((a) => a.action)).toEqual([
+      'canvas.card_created',
+      'canvas.card_changed',
+      'canvas.card_moved',
+      'canvas.card_removed',
+      'canvas.card_restored',
+    ]);
+    expect(audit[0]!.next).toMatchObject({ canvas: 'teammate', block: 'channels' });
+    expect(audit[1]!.previous).toMatchObject({ canvas: 'teammate', tag: 'assumption' });
+    expect(audit[1]!.next).toMatchObject({ canvas: 'teammate', tag: 'risk' });
+  }, 30_000);
+
+  it('refuses a key that is no canvas on every route, before anything is written', async () => {
+    const card = (await read()).cards[0]!;
+    for (const q of ['?canvas=mine', '?canvas=teammate&canvas=claude', '?canvas=Claude']) {
+      const refusals = await Promise.all([
+        call<ApiError>('GET', q),
+        call<ApiError>('POST', `/cards${q}`, { block: 'channels', text_en: `Never ${RUN}` }),
+        call<ApiError>('PATCH', `/cards/${card.id}${q}`, { tag: 'risk' }),
+        call<ApiError>('POST', `/cards/${card.id}/move${q}`, { direction: 'down' }),
+        call<ApiError>('POST', `/cards/${card.id}/remove${q}`, {}),
+        call<ApiError>('POST', `/cards/${card.id}/restore${q}`, {}),
+      ]);
+      for (const refused of refusals) {
+        expect(refused.status).toBe(400);
+        expect(refused.body.message).toBe('canvas is one of claude, teammate.');
+      }
+    }
+    // Without a session the answer is still 401, whatever the key.
+    expect((await call('GET', '?canvas=mine', undefined, null)).status).toBe(401);
+    expect((await call('GET', '?canvas=teammate', undefined, null)).status).toBe(401);
+    expect(
+      (await call('POST', '/cards?canvas=teammate', { block: 'channels', text_en: 'x' }, null))
+        .status,
+    ).toBe(401);
+    expect((await read()).cards.find((c) => c.id === card.id)).toEqual(card);
+    const { rows } = await pool.query(`SELECT 1 FROM console_canvas_card WHERE text_en = $1`, [
+      `Never ${RUN}`,
+    ]);
+    expect(rows).toHaveLength(0);
+  });
 
   it('refuses bad input and a card that is none, changing nothing', async () => {
     const card = (await read()).cards[0]!;
@@ -370,6 +564,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console canv
       expect(refused.status).toBe(429);
       expect(refused.body.error).toBe('rate_limited');
       expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
+      // One ceiling across both canvases (T-1872).
+      const elsewhere = await call<ApiError>('POST', '/cards?canvas=teammate', {
+        block: 'channels',
+        text_en: `Ceiling ${RUN}`,
+      });
+      expect(elsewhere.status).toBe(429);
     } finally {
       await pool.query(`UPDATE rate_limit SET per_hour = 300 WHERE action = 'console_canvas'`);
     }
