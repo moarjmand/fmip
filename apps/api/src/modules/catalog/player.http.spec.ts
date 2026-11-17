@@ -193,7 +193,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('player page'
     expect(page.record.data).toEqual([
       {
         season: { id: SEASON, label: '2025/26' },
-        competition: { id: COMPETITION, name: `Test League ${RUN}`, short_name: 'TL' },
+        // Our catalogue's kind and scope, the comparison's order (T-1857, D-379).
+        competition: {
+          id: COMPETITION,
+          name: `Test League ${RUN}`,
+          short_name: 'TL',
+          kind: 'league',
+          scope: 'domestic',
+        },
         // The club's crest from our own origin, or said not supplied (T-1617).
         team: {
           id: TEAMS.alpha,
