@@ -127,12 +127,26 @@ describe('findings', () => {
         },
       },
       { file: '2026-11-01.jsonl', record: { id: 'x', agent: '' } },
+      // The charter's words (T-1870): resolved and accepted close a finding.
+      { file: '2026-11-01.jsonl', record: { id: 'r', agent: 'qa-engineer', status: 'resolved' } },
+      { file: '2026-11-01.jsonl', record: { id: 'a', agent: 'security', status: 'accepted' } },
+      {
+        file: '2026-11-01.jsonl',
+        record: { id: 'u', agent: 'qa-engineer', status: 'fixed-unverified' },
+      },
+      { file: '2026-11-01.jsonl', record: { id: 'd', agent: 'data-auditor', status: 'decide' } },
       {
         file: '2026-11-01.jsonl',
         record: { id: 'qa-1', agent: 'qa-engineer', severity: 'loud', title: 'A page' },
       },
     ]);
-    expect(findings).toHaveLength(2);
+    expect(findings).toHaveLength(6);
+    expect(['r', 'a', 'u', 'd'].map((id) => findings.find((f) => f.id === id)?.status)).toEqual([
+      'fixed',
+      'wontfix',
+      'open',
+      'open',
+    ]);
     expect(findings.find((f) => f.id === 'ops-1')).toMatchObject({
       severity: 'minor',
       status: 'fixed',
