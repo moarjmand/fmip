@@ -304,8 +304,9 @@ export const ENTERTAINMENT_SECTIONS: readonly string[] = [
 /**
  * A publisher whose `tv` directory is its video section, not television:
  * The Independent's "independent.co.uk/tv/" carries its football shows (Copa
- * Independent, Adam Clery's analysis) from its own football feed. Its other
- * sections under it ("/tv/culture/") still count.
+ * Independent, Adam Clery's analysis) from its own football feed. Only as the
+ * path's first directory: its television news, "/arts-entertainment/tv/news/",
+ * still counts, and so do the sections under the video one ("/tv/culture/").
  */
 export const VIDEO_SECTIONS: readonly { host: string; section: string }[] = [
   { host: 'independent.co.uk', section: 'tv' },
@@ -402,7 +403,9 @@ export function notFootballPageOf(url: string | null, headline: string): NotFoot
     if (page.dirs.some((d) => SCHOOL_SPORT.has(d) || SCHOOL_SPORT_SECTION.test(d))) {
       return 'school_sport_section';
     }
-    if (page.dirs.some((d) => ENTERTAINMENT.has(d) && d !== video?.section)) {
+    if (
+      page.dirs.some((d, depth) => ENTERTAINMENT.has(d) && !(depth === 0 && d === video?.section))
+    ) {
       return 'entertainment_section';
     }
   }

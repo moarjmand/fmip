@@ -575,11 +575,26 @@ describe('notFootballPageOf', () => {
     expect(notFootballPageOf(url, headline)).toBeNull();
   });
 
-  it('still counts a section under the Independent’s video section', () => {
+  it('exempts the Independent’s video section only as the first directory', () => {
+    // Written for the spec (review of PR #934): a section under the video one,
+    // and the Independent's television news, where `tv` is not the first.
     expect(
       notFootballPageOf(
         'https://www.independent.co.uk/tv/culture/some-show-b3000000.html',
         'A football star’s new show',
+      ),
+    ).toBe('entertainment_section');
+    expect(
+      notFootballPageOf(
+        'https://www.independent.co.uk/arts-entertainment/tv/news/rooney-jungle-b3000001.html',
+        'Wayne Rooney enters the jungle',
+      ),
+    ).toBe('entertainment_section');
+    // Another publisher's first-level `tv` is not exempt.
+    expect(
+      notFootballPageOf(
+        'https://notindependent.co.uk/tv/acfc/some-show-b3000002.html',
+        'Why Florian Wirtz is Liverpool’s biggest problem',
       ),
     ).toBe('entertainment_section');
   });
