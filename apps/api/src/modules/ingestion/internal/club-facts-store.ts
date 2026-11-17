@@ -157,7 +157,7 @@ export class ClubFactsStore implements ClubFactsSource {
         kept.clubsWritten += rowCount ?? 0;
         if (entry.venue === null || venueId === undefined) continue;
         if (await writeVenue(client, venueId, entry.venue)) kept.venuesWritten += 1;
-        await describedByTeam(client, provider, venueId, entry.venue.city);
+        await describedByTeam(client, provider, venueId, answeredCity(entry.venue.city));
         if (entry.venue.imageUrl !== null) {
           kept.images.push(venueImage(venueId, entry.venue.imageUrl));
         }
@@ -198,7 +198,7 @@ export class ClubFactsStore implements ClubFactsSource {
          ON CONFLICT (provider, venue_id) DO UPDATE
            SET asked_at = now(), failures = 0, answered_at = now(),
                answered_by = EXCLUDED.answered_by, city = EXCLUDED.city`,
-        [provider, venueId, venue === null ? 'none' : 'venue', venue?.city ?? null],
+        [provider, venueId, venue === null ? 'none' : 'venue', answeredCity(venue?.city ?? null)],
       );
       await client.query('COMMIT');
       return written;
@@ -209,6 +209,40 @@ export class ClubFactsStore implements ClubFactsSource {
       client.release();
     }
   }
+}
+
+/**
+ * Placeholders a feed writes where it has no city (T-1875 review): compared
+ * lower-cased, after trimming.
+ */
+const NOT_A_CITY = new Set([
+  'n/a',
+  'n.a.',
+  'na',
+  '-',
+  '--',
+  '?',
+  'tbc',
+  'tba',
+  'tbd',
+  'unknown',
+  'none',
+  'null',
+  'undefined',
+]);
+
+/**
+ * The city an answer gives, or `null` when it gives none: blank, a
+ * placeholder ("N/A", "-", "TBC", "Unknown") or no letter at all (digits or
+ * punctuation only). Since the answer's city replaces the stored one (D-451),
+ * a placeholder kept as a city would overwrite a real one; as "no city" it
+ * keeps the stored city and records nothing.
+ */
+export function answeredCity(value: string | null): string | null {
+  if (value === null) return null;
+  const city = value.trim();
+  if (city === '' || NOT_A_CITY.has(city.toLowerCase())) return null;
+  return /\p{L}/u.test(city) ? city : null;
 }
 
 function venueImage(venueId: string, url: string): ImageNote {
@@ -238,7 +272,7 @@ async function writeVenue(
         AND (address, capacity, surface, city) IS DISTINCT FROM
             (COALESCE($2::text, address), COALESCE($3::integer, capacity),
              COALESCE($4::text, surface), COALESCE($5::text, city))`,
-    [venueId, venue.address, venue.capacity, venue.surface, venue.city],
+    [venueId, venue.address, venue.capacity, venue.surface, answeredCity(venue.city)],
   );
   return (rowCount ?? 0) > 0;
 }
