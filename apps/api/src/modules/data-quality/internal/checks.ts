@@ -431,6 +431,8 @@ export const LIVE_MIN_AGE_MINUTES = 10;
  * whose `lineups` coverage is already declared one of these states, where the
  * page already says the line-ups are not complete (rule 3). Such findings stay
  * open and unreviewed on the admin page; only the watchdog does not count them.
- * Every other check, `goals_disagree` among them, counts as before.
+ * Only a short line-up (fewer than `STARTERS`): more than eleven starters is
+ * a fault in a write that replaces the whole list, and always counts. Every
+ * other check, `goals_disagree` among them, counts as before.
  */
 export const ALARM_QUIET_LINEUP_COVERAGE = ['limited', 'delayed'] as const;
