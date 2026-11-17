@@ -201,6 +201,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
       // (review round 1).
       const short = (await search(`q=${q}&types=team,person&limit=2`)).results.map((r) => r.id);
       expect(short).toEqual([team, club]);
+      // One place left for people: the famous one takes it (the line-ups are
+      // counted exactly when a person can still reach the page, review round 2).
+      const three = (await search(`q=${q}&types=team,person&limit=3`)).results.map((r) => r.id);
+      expect(three).toEqual([team, club, famous]);
     } finally {
       await pool.query(`DELETE FROM lineup WHERE person_id = ANY($1::uuid[])`, [[famous, known]]);
       await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
