@@ -7,8 +7,10 @@ import { expect, test, type Page } from '@playwright/test';
  * (T-1779, D-386), through the whole stack. The seed's days are fixed --
  * 5 January 2025 is played and 1 January 2099 is never today -- and "today"
  * is the web server's own clock, so this journey stores one scheduled match
- * of its own two hours from now and removes it afterwards (CI runs the
- * journeys one at a time). The viewer's zone is chosen so that it is about
+ * of its own two hours from now and removes it afterwards. CI runs the
+ * journeys one at a time; a local run of the journeys in parallel may let
+ * another file (the moments rail) see that match while it is stored, so run
+ * them with `--workers=1` locally too. The viewer's zone is chosen so that it is about
  * ten in the morning there: the kick-off is always later the same day.
  *
  * - "Nothing is in play right now.", then "Next kick-off · today" with the
@@ -83,14 +85,17 @@ test.describe('the Live view with a match still to come today (T-1779)', () => {
          ('00000000-0000-4000-8000-000000000ae1', $1, $2, 'home'),
          ('00000000-0000-4000-8000-000000000ae2', $1, $3, 'away')
        ON CONFLICT (id) DO NOTHING`,
-      [NEXT_MATCH, MANCHESTER_UNITED, LIVERPOOL],
+      [NEXT_MATCH, LIVERPOOL, MANCHESTER_UNITED],
     );
   });
 
   test.afterAll(async () => {
-    await db.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [NEXT_MATCH]);
-    await db.query(`DELETE FROM fixture WHERE id = $1`, [NEXT_MATCH]);
-    await db.end();
+    try {
+      await db.query(`DELETE FROM fixture_participant WHERE fixture_id = $1`, [NEXT_MATCH]);
+      await db.query(`DELETE FROM fixture WHERE id = $1`, [NEXT_MATCH]);
+    } finally {
+      await db.end();
+    }
   });
 
   test('names the next kick-off as the list’s own row, and leads to the day (1280 px)', async ({
@@ -118,6 +123,7 @@ test.describe('the Live view with a match still to come today (T-1779)', () => {
 
     // The founder's analysis and its two links are not about live.
     await expect(page.getByTestId('matches-analysis')).toHaveCount(0);
+    // A match is left today, so not the none-left sentence.
     await expect(page.getByTestId('live-none-left')).toHaveCount(0);
 
     // 44px targets: the row's Pick and the way to the day.
