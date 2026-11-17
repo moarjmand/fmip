@@ -59,7 +59,7 @@ export async function queryAtMinSimilarity<R extends QueryResultRow>(
  * Liverpool and City of Liverpool, both scoring 1 on the word, before
  * Liverpool), then name. Inactive teams and competitions are left out.
  *
- * T-1851 (D-443): people who match equally well are ordered by how many
+ * T-1851 (D-445): people who match equally well are ordered by how many
  * line-ups the site holds for them, the measure of how well known a player
  * is ("kane": Harry Kane, 347 line-ups, before Christopher Kane, 109); it
  * goes before a person's exact name. Within a score band teams and
@@ -249,7 +249,7 @@ const SEARCH_SQL = `
   -- line-ups first, even before an obscure namesake whose name is exactly the
   -- query ("messi": Lionel Messi before a "Messi"). Within a score band the
   -- teams and competitions come first, the exact name leading, so no number
-  -- of well-known players pushes a club off the page (T-1851, D-443, review
+  -- of well-known players pushes a club off the page (T-1851, D-445, review
   -- round 1). An index-only count on lineup_person_id_idx, for people only.
   -- Where each row would stand if people were not yet ordered among
   -- themselves: a person whose band already has $3 rows ahead of its people

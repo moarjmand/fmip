@@ -15752,7 +15752,7 @@ The notification: title «درخواست تازه از <filer's display name>»,
 **As built (T-1856, 2026-11-16).** Three details the decision left open, chosen in the build: (a) the classic layout, its breakpoints and the A3 landscape print sheet are a page-only stylesheet, `app/console/canvas.css` (as `about.css` is for the About page), because `grid-template-areas` and a named `@page` are not utilities; the named page keeps the A3 size off every other console page; (b) a restore puts the card back in its old place in its block (the cards from there move one down), so the undo of a removal is a true undo, and a card moved to another block goes last there; (c) a card's footer names the actor and time of its newest event, so moving a neighbour never makes a card look edited; a seed card with no event says «پرکردن اولیه» / "First fill". (d) the print sheet is the canvas at half size without each card's footer and source (both stay on the page and in the JSON), which is what fits the seed's 55 cards on one A3 landscape page; a much fuller canvas runs onto a second page. The words JSON and PDF join the Persian scan's technical terms for the download and print buttons. Errors from the API stay Persian in the English view, as the console's messages do.
 
 
-## D-443 — People in search are ordered, among equal matches, by the line-ups the site holds for them
+## D-445 — People in search are ordered, among equal matches, by the line-ups the site holds for them
 
 **Status:** Accepted · 2026-11-17 (the maintainer, through the coordinator: «ادامه بدهیم همه کارهای باقی مانده را الان انجام دهیم», for T-1851 as D-435 point 3 left it) · **Task:** T-1851 · **Follows:** D-039, D-435, T-1481
 
