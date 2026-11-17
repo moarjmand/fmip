@@ -970,6 +970,31 @@ header:has(#competitions-menu:not([hidden])) {
 }
 
 /*
+ * The agents console's menu (T-1871, `app/console/console-nav.tsx`), the
+ * same way: below 1024px a disclosure whose «فهرست» summary opens the list
+ * as a panel, with or without JavaScript; from 1024px the <details> and its
+ * content slot are no box, so the list is the side column itself and the
+ * summary is hidden. A browser that cannot style `::details-content` keeps
+ * the summary in the column, and the menu still opens.
+ */
+@media (width >= 64rem) {
+  @supports selector(::details-content) {
+    .console-menu,
+    .console-menu::details-content {
+      display: contents;
+    }
+
+    .console-menu::details-content {
+      content-visibility: visible;
+    }
+
+    .console-menu > summary {
+      display: none;
+    }
+  }
+}
+
+/*
  * The register page (T-1737, D-358): its own Create account is the view's one
  * filled button, so the header's, which would lead to this same page, is not
  * drawn there. By CSS because the layout draws the header and does not know

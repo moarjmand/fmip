@@ -44,6 +44,7 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers(),
 }));
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/findings',
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -1031,6 +1032,24 @@ describe('the Persian-only scan', () => {
       const { metadata } = (await import(path)) as { metadata: { title: string } };
       expect(englishWords(`<p>${metadata.title}</p>`), path).toEqual([]);
     }
+  });
+
+  it('lays the menu out as a sticky, scrolling column at the inline-start edge (T-1871)', async () => {
+    const html = await render((await import('./(app)/layout')).default({ children: <p>بدنه</p> }));
+    const header = /<header [^>]*>/.exec(html)?.[0] ?? '';
+    expect(header).toContain('lg:sticky');
+    expect(header).toContain('lg:h-dvh');
+    expect(header).toContain('lg:w-64');
+    expect(header).toContain('lg:border-e');
+    // The header comes first, so in a right-to-left document it stands on the right.
+    expect(html.indexOf('<header')).toBeLessThan(html.indexOf('<main'));
+    expect(html).toMatch(/<main [^>]*lg:flex-1/);
+    expect(html).toContain('aria-label="منوی کنسول"');
+    expect(html).toMatch(/<a [^>]*aria-current="page"[^>]*>.*?یافته‌ها/);
+    for (const label of ['نمای کلی', 'بوم کسب‌وکار', 'شبکه‌های اجتماعی', 'کارنامه‌ی کنسول']) {
+      expect(html).toContain(label);
+    }
+    expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right|border-l|border-r)-/);
   });
 
   it('keeps the document Persian and right to left', () => {
