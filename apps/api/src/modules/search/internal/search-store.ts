@@ -62,8 +62,9 @@ export async function queryAtMinSimilarity<R extends QueryResultRow>(
  * T-1851 (D-443): people who match equally well are ordered by how many
  * line-ups the site holds for them, the measure of how well known a player
  * is ("kane": Harry Kane, 347 line-ups, before Christopher Kane, 109); it
- * goes before a person's exact name, while a team or competition named
- * exactly still leads its score band.
+ * goes before a person's exact name. Within a score band teams and
+ * competitions come before people (an exact name first), so well-known
+ * players never push a club off a short page.
  *
  * T-1842: every branch first narrows its table by the trigram GIN indexes
  * (`<%`, word similarity at {@link MIN_SIMILARITY}, set for this transaction
@@ -246,20 +247,30 @@ const SEARCH_SQL = `
   ),
   -- Among people who match equally well, the one the site has seen in more
   -- line-ups first, even before an obscure namesake whose name is exactly the
-  -- query ("messi": Lionel Messi before a "Messi"); a team or competition
-  -- named exactly still leads its band (T-1851, D-443). An index-only count
-  -- on lineup_person_id_idx, for people only.
-  known AS (
+  -- query ("messi": Lionel Messi before a "Messi"). Within a score band the
+  -- teams and competitions come first, the exact name leading, so no number
+  -- of well-known players pushes a club off the page (T-1851, D-443, review
+  -- round 1). An index-only count on lineup_person_id_idx, for people only.
+  -- Where each row would stand if people were not yet ordered among
+  -- themselves: a person whose band already has $3 rows ahead of its people
+  -- cannot reach the page, so its line-ups are never counted ("ma": the
+  -- clubs fill the page and thousands of people are skipped).
+  placed AS (
     SELECT best.*,
-           CASE WHEN best.type = 'person'
-                THEN (SELECT count(*) FROM lineup l WHERE l.person_id = best.id)
+           rank() OVER (ORDER BY round(score::numeric, 3) DESC, (type <> 'person') DESC) AS place
+      FROM best
+  ),
+  known AS (
+    SELECT placed.*,
+           CASE WHEN placed.type = 'person' AND placed.place <= $3
+                THEN (SELECT count(*) FROM lineup l WHERE l.person_id = placed.id)
                 ELSE 0
            END AS lineups
-      FROM best
+      FROM placed
   ),
   page AS (
     SELECT * FROM known
-     ORDER BY round(score::numeric, 3) DESC, (exact AND type <> 'person') DESC, lineups DESC, exact DESC, name, type, id
+     ORDER BY round(score::numeric, 3) DESC, (exact AND type <> 'person') DESC, (type <> 'person') DESC, lineups DESC, exact DESC, name, type, id
      LIMIT $3
   )
   SELECT type, id, name,
@@ -272,4 +283,4 @@ const SEARCH_SQL = `
          END AS secondary,
          matched_on, alias, round(score::numeric, 3)::text AS score
     FROM page
-   ORDER BY round(page.score::numeric, 3) DESC, (page.exact AND page.type <> 'person') DESC, page.lineups DESC, page.exact DESC, page.name, page.type, page.id`;
+   ORDER BY round(page.score::numeric, 3) DESC, (page.exact AND page.type <> 'person') DESC, (page.type <> 'person') DESC, page.lineups DESC, page.exact DESC, page.name, page.type, page.id`;

@@ -161,16 +161,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
     }
   });
 
-  it('orders people who match equally by their line-ups, before an exact namesake; an exact team still leads (T-1851)', async () => {
+  it('orders people who match equally by their line-ups, before an exact namesake; teams still lead (T-1851)', async () => {
     const team = randomUUID();
+    const club = randomUUID();
     const famous = randomUUID();
     const known = randomUUID();
     const namesake = randomUUID();
     const name = `Wombatwick${RUN}`;
     await pool.query(
       `INSERT INTO team (id, name, short_name, code, kind, gender, country_id)
-       VALUES ($1, $2, NULL, NULL, 'club', 'men', $3)`,
-      [team, name, ENGLAND],
+       VALUES ($1, $2, NULL, NULL, 'club', 'men', $4), ($3, $5, NULL, NULL, 'club', 'men', $4)`,
+      // "Zz ..." sorts after every person by name: it leads only as a team.
+      [team, name, club, ENGLAND, `Zz ${name}`],
     );
     await pool.query(
       `INSERT INTO person (id, full_name, known_as) VALUES
@@ -188,19 +190,23 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('entity searc
       [rows[0]!.id, rows[1]!.id, famous, known],
     );
     try {
-      const found = (
-        await search(`q=${encodeURIComponent(name.toLowerCase())}&types=team,person&limit=25`)
-      ).results
+      const q = encodeURIComponent(name.toLowerCase());
+      const ids: string[] = [team, club, famous, known, namesake];
+      const found = (await search(`q=${q}&types=team,person&limit=25`)).results
         .map((r) => r.id)
-        .filter((id) => ([team, famous, known, namesake] as string[]).includes(id));
-      // All four score 1; by name alone the namesake would lead the people.
-      expect(found).toEqual([team, famous, known, namesake]);
+        .filter((id) => ids.includes(id));
+      // All five score 1; by name alone the namesake would lead the people.
+      expect(found).toEqual([team, club, famous, known, namesake]);
+      // A short page keeps both clubs: well-known players never push a team out
+      // (review round 1).
+      const short = (await search(`q=${q}&types=team,person&limit=2`)).results.map((r) => r.id);
+      expect(short).toEqual([team, club]);
     } finally {
       await pool.query(`DELETE FROM lineup WHERE person_id = ANY($1::uuid[])`, [[famous, known]]);
       await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
         [famous, known, namesake],
       ]);
-      await pool.query(`DELETE FROM team WHERE id = $1`, [team]);
+      await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[team, club]]);
     }
   });
 
