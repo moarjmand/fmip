@@ -23,6 +23,12 @@
  * Its budget is the `people_names` job's: the bulk tier (D-183), the run's
  * wall-clock limit and the gap between two asks are shared with the names
  * pass, and `INGESTION_PEOPLE_BIOS_BATCH` caps the asks a run.
+ *
+ * A player holding several of the provider's ids (a merged duplicate, T-1866)
+ * is asked by each, in one go, and the answers are recorded as one: each id
+ * is one request against the allowance, a field is offered by the lowest id
+ * that gives it (`combineBioAnswers`), and the store still fills only the
+ * fields we do not hold.
  */
 
 import {
@@ -41,6 +47,7 @@ import {
   fullNameFromProfile,
   peopleNamesAllowance,
 } from './person-names';
+import { asksWithin, everyExternalId, type PersonExternalIds } from './person-ids';
 
 /** The default number of bio asks one run makes. */
 export const PEOPLE_BIOS_BATCH = 60;
@@ -59,10 +66,9 @@ export function peopleBiosBatch(raw: string | undefined): number {
 /** What the pass did with an answered profile. Mirrors `person_bio_fetch_outcome_check`. */
 export type PersonBioOutcome = 'written' | 'nothing_new' | 'no_profile' | 'name_differs';
 
-/** A player the pass may ask about, with every name we know them by. */
-export interface BioPerson {
+/** A player the pass may ask about, by each of his provider ids, with every name we know them by. */
+export interface BioPerson extends PersonExternalIds {
   personId: string;
-  externalId: string;
   /** `full_name`, `known_as`, and the short form the names job replaced, when there is one. */
   names: string[];
 }
@@ -202,6 +208,39 @@ export function bioFromProfile(
   };
 }
 
+/**
+ * The answers of each of a player's ids, lowest first, as one (T-1866). Pure.
+ * When any is readable: each field from the first readable answer that
+ * offers it, a nationality we could not match only when no answer gave one
+ * we could, and the outcome `readable`. Otherwise the first answer's outcome.
+ * One answer is returned as it is.
+ */
+export function combineBioAnswers(answers: PersonBioAnswer[]): PersonBioAnswer {
+  const [first, ...rest] = answers;
+  if (first === undefined) throw new Error('a bio needs at least one answer');
+  if (rest.length === 0) return first;
+  const detail = answers.map((a, i) => `id ${i + 1}: ${a.detail}`).join('; ');
+  const readable = answers.filter((a) => a.outcome === 'readable');
+  if (readable.length === 0) return { ...first, detail };
+  const fields: BioFields = {};
+  for (const answer of readable) {
+    for (const [field, value] of Object.entries(answer.fields)) {
+      if (value !== undefined && !(field in fields)) {
+        (fields as Record<string, unknown>)[field] = value;
+      }
+    }
+  }
+  return {
+    outcome: 'readable',
+    detail,
+    fields,
+    unmatchedNationality:
+      fields.nationality_id !== undefined
+        ? null
+        : (readable.find((a) => a.unmatchedNationality !== null)?.unmatchedNationality ?? null),
+  };
+}
+
 // -- The pass. ---------------------------------------------------------------
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -241,34 +280,44 @@ export async function sweepPeopleBios(input: {
   }
   const deadline = clock() + (input.runMs ?? PEOPLE_NAMES_RUN_MS);
   if (clock() >= deadline) return { ...sweep, idle: 'the names pass used the run' };
-  const due = await store.peopleBiosDue(
-    provider,
-    new Date(now.getTime() - PEOPLE_NAMES_RETRY_HOURS * HOUR_MS).toISOString(),
-    PEOPLE_NAMES_MAX_ATTEMPTS,
+  // Each of a player's ids is one request: the people kept are those whose
+  // ids fit in the allowance (T-1866). With one id each, the store's limit does.
+  const { asks: due } = asksWithin(
+    await store.peopleBiosDue(
+      provider,
+      new Date(now.getTime() - PEOPLE_NAMES_RETRY_HOURS * HOUR_MS).toISOString(),
+      PEOPLE_NAMES_MAX_ATTEMPTS,
+      allowance,
+    ),
     allowance,
   );
   if (due.length === 0) return { ...sweep, idle: 'no player is owed a bio ask' };
   const countries = await store.countries();
 
-  for (const person of due) {
-    // Spaced from the ask before, the names pass's last one included.
-    await wait(gapMs);
-    if (clock() >= deadline) break;
-    const result = await adapter.getPersonProfile(person.externalId);
-    sweep.asked += result.requests;
-    if (!result.ok) {
-      sweep.refused.push(
-        `person ${person.externalId}: ${result.error.kind}: ${result.error.message}`,
-      );
-      if (result.error.kind === 'quota') break;
-      await store.markPersonBioAsked(provider, person.personId);
-      continue;
+  people: for (const person of due) {
+    const answers: PersonBioAnswer[] = [];
+    for (const [index, externalId] of everyExternalId(person).entries()) {
+      // Spaced from the ask before, the names pass's last one included.
+      await wait(gapMs);
+      // The run's clock is read before each player: his ids are asked together.
+      if (index === 0 && clock() >= deadline) break people;
+      const result = await adapter.getPersonProfile(externalId);
+      sweep.asked += result.requests;
+      if (!result.ok) {
+        sweep.refused.push(`person ${externalId}: ${result.error.kind}: ${result.error.message}`);
+        if (result.error.kind === 'quota') break people;
+        // Nothing is recorded as answered unless every id answered, so the
+        // next ask is by each of them again.
+        await store.markPersonBioAsked(provider, person.personId);
+        continue people;
+      }
+      answers.push(bioFromProfile(person.names, result.data, countries, now));
     }
     sweep.answered += 1;
     const outcome = await store.recordPersonBioAnswer(
       provider,
       person.personId,
-      bioFromProfile(person.names, result.data, countries, now),
+      combineBioAnswers(answers),
     );
     if (outcome === 'written') sweep.written += 1;
     else sweep.kept[outcome] = (sweep.kept[outcome] ?? 0) + 1;

@@ -8,6 +8,7 @@ import type {
   PersonBioOutcome,
   PersonBiosStore,
 } from './person-bios';
+import { personExternalIds, playerIdsLateral } from './person-ids';
 
 const FIELDS = ['date_of_birth', 'nationality_id', 'height_cm', 'preferred_foot'] as const;
 
@@ -28,30 +29,27 @@ export class PersonBioStore implements PersonBiosStore {
     if (limit <= 0) return [];
     const { rows } = await this.pool.query<{
       person_id: string;
-      external_id: string;
+      external_ids: string[];
       full_name: string;
       known_as: string | null;
       short_name: string | null;
     }>(
-      `SELECT p.id AS person_id, m.external_id, p.full_name, p.known_as,
+      `SELECT p.id AS person_id, m.external_ids, p.full_name, p.known_as,
               n.previous_name AS short_name
          FROM person p
-        CROSS JOIN LATERAL (
-          SELECT min(pm.external_id) AS external_id FROM provider_mapping pm
-           WHERE pm.internal_id = p.id AND pm.entity_type = 'person' AND pm.provider = $1) m
+        ${playerIdsLateral('p.id')}
          LEFT JOIN person_bio_fetch f ON f.provider = $1 AND f.person_id = p.id
          LEFT JOIN person_name_fetch n ON n.provider = $1 AND n.person_id = p.id
                                       AND n.outcome = 'written'
-        WHERE m.external_id IS NOT NULL
+        WHERE m.external_ids IS NOT NULL
           AND (p.date_of_birth IS NULL OR p.nationality_id IS NULL OR p.height_cm IS NULL
                OR p.preferred_foot IS NULL)
           AND f.answered_at IS NULL
           AND (f.asked_at IS NULL OR f.asked_at < $2)
           AND (f.attempts IS NULL OR f.attempts < $3)
           -- A coach is never asked for a player's profile (D-230): by his id,
-          -- which is all one adopted from a line-up has (T-1474), by a match
-          -- he coached, or by a spell.
-          AND m.external_id NOT LIKE 'coach:%'
+          -- which is all one adopted from a line-up has (T-1474) and which
+          -- the lateral leaves out, by a match he coached, or by a spell.
           AND NOT EXISTS (SELECT 1 FROM fixture_participant fp WHERE fp.coach_id = p.id)
           AND NOT EXISTS (SELECT 1 FROM coach_spell cs WHERE cs.person_id = p.id)
           AND NOT EXISTS (SELECT 1 FROM fixture fx WHERE fx.referee_id = p.id)
@@ -62,7 +60,7 @@ export class PersonBioStore implements PersonBiosStore {
     );
     return rows.map((r) => ({
       personId: r.person_id,
-      externalId: r.external_id,
+      ...personExternalIds(r.external_ids),
       names: [r.full_name, r.known_as, r.short_name].filter((n): n is string => n !== null),
     }));
   }

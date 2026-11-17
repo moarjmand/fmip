@@ -13,6 +13,11 @@
  * asks a run, none once the day's requests reach the bulk share of the
  * budget, none past `TRANSFERS_RUN_MS`, and each ask paced by `AskPacer`
  * (T-1422).
+ *
+ * A player holding several of the provider's ids (a merged duplicate, T-1866)
+ * is asked by each, in one go, and the moves are saved together under the one
+ * person: each id is one request against the allowance, and a player whose
+ * ids do not fit waits for the next run. A club is asked by one id.
  */
 
 import {
@@ -23,6 +28,7 @@ import {
   transfersRefreshDays,
 } from '@fmip/ingestion';
 import { AskPacer } from './ask-pacer';
+import { asksWithin, everyExternalId, type PersonExternalIds } from './person-ids';
 
 /** The default number of asks one run makes. */
 export const TRANSFERS_BATCH = 60;
@@ -56,13 +62,31 @@ export function transfersAllowance(seen: {
   return Math.max(0, Math.min(seen.batch, ceiling - seen.requestsToday));
 }
 
-/** A club or a player owed an ask. */
-export interface TransferAsk {
+/** A club or a player owed an ask, by the provider's id (a player's: each of his). */
+export interface TransferAsk extends PersonExternalIds {
   subject: 'team' | 'person';
   /** Our id for the club or the player. */
   id: string;
-  /** The provider's. */
-  externalId: string;
+}
+
+/**
+ * The moves from each of a player's ids, as one answer (T-1866): a move both
+ * ids list (same day, kind and clubs) is kept once, as the id asked first
+ * (the lowest) gave it. One answer is returned as it is.
+ */
+export function combineMoves(answers: NormalisedTransfer[][]): NormalisedTransfer[] {
+  if (answers.length === 1) return answers[0] ?? [];
+  const club = (side: NormalisedTransfer['from']): string =>
+    side === null ? '' : (side.externalId ?? `name:${side.name}`);
+  const seen = new Set<string>();
+  const moves: NormalisedTransfer[] = [];
+  for (const move of answers.flat()) {
+    const key = [move.date, move.kind, club(move.from), club(move.to)].join(' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    moves.push(move);
+  }
+  return moves;
 }
 
 /** When an answer is due again, and when an unanswered ask may be repeated. */
@@ -151,32 +175,53 @@ export async function sweepTransfers(input: {
     ).toISOString(),
     retryBeforeIso: new Date(now.getTime() - TRANSFERS_RETRY_HOURS * HOUR_MS).toISOString(),
   };
-  const teams = await store.due(provider, 'team', at, TRANSFERS_MAX_FAILURES, allowance);
+  // Each of a player's ids is one request: the asks kept are those whose ids
+  // fit in the allowance (T-1866). With one id each, the store's limit does.
+  const teams = asksWithin(
+    await store.due(provider, 'team', at, TRANSFERS_MAX_FAILURES, allowance),
+    allowance,
+  );
+  const left = allowance - teams.requests;
   const people =
-    teams.length < allowance
-      ? await store.due(provider, 'person', at, TRANSFERS_MAX_FAILURES, allowance - teams.length)
-      : [];
-  const due = [...teams, ...people];
+    left > 0
+      ? asksWithin(await store.due(provider, 'person', at, TRANSFERS_MAX_FAILURES, left), left)
+      : { asks: [], requests: 0, deferred: 0 };
+  const due = [...teams.asks, ...people.asks];
   if (due.length === 0) return { ...sweep, idle: 'no club or player is owed a transfers ask' };
 
   const deadline = clock() + (input.runMs ?? TRANSFERS_RUN_MS);
-  for (const ask of due) {
+  subjects: for (const ask of due) {
+    // The run's clock is read before each subject: a player's ids are asked together.
     await pacer.pace();
     if (clock() >= deadline) break;
-    const result =
-      ask.subject === 'team' ? await byTeam(ask.externalId) : await byPlayer(ask.externalId);
-    sweep.asked += result.requests;
-    if (!result.ok) {
-      const error: AdapterError = result.error;
-      sweep.refused.push(`${ask.subject} ${ask.externalId}: ${error.kind}: ${error.message}`);
-      // The plan, or our own budget, has said no: nothing else is asked this
-      // run, and the refusal says nothing about this club or player.
-      if (error.kind === 'quota') break;
-      await store.markAsked(provider, ask);
-      continue;
+    const answers: NormalisedTransfer[][] = [];
+    let fetchedAt: string | null = null;
+    for (const [index, externalId] of everyExternalId(ask).entries()) {
+      if (index > 0) await pacer.pace();
+      const result = ask.subject === 'team' ? await byTeam(externalId) : await byPlayer(externalId);
+      sweep.asked += result.requests;
+      if (!result.ok) {
+        const error: AdapterError = result.error;
+        sweep.refused.push(`${ask.subject} ${externalId}: ${error.kind}: ${error.message}`);
+        // The plan, or our own budget, has said no: nothing else is asked this
+        // run, and the refusal says nothing about this club or player.
+        if (error.kind === 'quota') break subjects;
+        // Nothing is saved unless every id answered: one id's moves alone
+        // would replace the other's.
+        await store.markAsked(provider, ask);
+        continue subjects;
+      }
+      answers.push(result.data);
+      // The oldest answer dates the rows, so none is shown fresher than it is.
+      if (fetchedAt === null || result.fetchedAt < fetchedAt) fetchedAt = result.fetchedAt;
     }
     sweep.answered += 1;
-    sweep.written += await store.save(provider, ask, result.data, result.fetchedAt);
+    sweep.written += await store.save(
+      provider,
+      ask,
+      combineMoves(answers),
+      fetchedAt ?? now.toISOString(),
+    );
   }
   return sweep;
 }

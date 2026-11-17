@@ -29,11 +29,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       starter: randomUUID(),
       bench: randomUUID(),
       unmapped: randomUUID(),
+      merged: randomUUID(),
       fixture: randomUUID(),
       next: randomUUID(),
     };
     const ext = (n: string) => `t1431-${RUN}-${n}`;
     const people: string[] = [id.starter, id.bench, id.unmapped];
+    const peopleAndMerged = [...people, id.merged];
     const at = (
       over: Partial<
         Record<'playedBeforeIso' | 'retryBeforeIso' | 'answeredBeforeIso', string>
@@ -137,7 +139,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       await pool.query(`DELETE FROM provider_mapping WHERE external_id LIKE $1`, [
         `t1431-${RUN}-%`,
       ]);
-      await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [people]);
+      await pool.query(`DELETE FROM provider_mapping WHERE external_id = $1`, [
+        `coach:t1431-${RUN}`,
+      ]);
+      await pool.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [peopleAndMerged]);
       await pool.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [[id.home, id.away]]);
       await pool.query(`DELETE FROM season WHERE id = $1`, [id.season]);
       await pool.query(`DELETE FROM competition WHERE id = ANY($1::uuid[])`, [[id.league, id.cup]]);
@@ -229,6 +234,44 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await bench()).toBe(false);
       expect(await bench({ retryBeforeIso: LATER })).toBe(true);
       expect(await bench({ retryBeforeIso: LATER }, 1)).toBe(false);
+    });
+
+    it('owes a person holding several ids an ask by each player id, the lowest first, never a coach id (T-1866)', async () => {
+      await pool.query(`INSERT INTO person (id, full_name) VALUES ($1, 'T-1866 Merged')`, [
+        id.merged,
+      ]);
+      for (const external of [ext('merged-b'), ext('merged-a'), `coach:t1431-${RUN}`]) {
+        await pool.query(
+          `INSERT INTO provider_mapping (provider, entity_type, external_id, internal_id)
+           VALUES ('api_football', 'person', $1, $2)`,
+          [external, id.merged],
+        );
+      }
+      await pool.query(
+        `INSERT INTO lineup (participant_id, person_id, role)
+         SELECT fp.id, $2, 'bench' FROM fixture_participant fp
+          WHERE fp.fixture_id = $1 AND fp.side = 'home'`,
+        [id.fixture, id.merged],
+      );
+      const merged = async <T extends { personId: string }>(due: Promise<T[]>) =>
+        (await due).filter((a) => a.personId === id.merged);
+      expect(await merged(store.seasonsDue(PROVIDER, at(), 5, 50_000))).toEqual([
+        {
+          personId: id.merged,
+          externalId: ext('merged-a'),
+          moreExternalIds: [ext('merged-b')],
+          seasonYear: 2026,
+        },
+      ]);
+      expect(await merged(store.careersDue(PROVIDER, at(), 5, 50_000))).toEqual([
+        { personId: id.merged, externalId: ext('merged-a'), moreExternalIds: [ext('merged-b')] },
+      ]);
+      // A person with one id reads exactly as before: no list of more.
+      expect((await careersDue()).find((a) => a.personId === id.bench)).toEqual({
+        personId: id.bench,
+        externalId: ext('bench'),
+      });
+      await pool.query(`DELETE FROM lineup WHERE person_id = $1`, [id.merged]);
     });
 
     it('keeps the career teams we know, season by season, and asks again once the answer is old', async () => {

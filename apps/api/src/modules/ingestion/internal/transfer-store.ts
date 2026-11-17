@@ -1,5 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import type { NormalisedTransfer, Provider } from '@fmip/ingestion';
+import { personExternalIds, playerIdsLateral } from './person-ids';
 import type { TransferAsk, TransfersDueAt, TransfersStore } from './transfers';
 
 /** Each club in a fixture of a current season, with that season's latest kick-off. */
@@ -38,19 +39,27 @@ export class TransferStore implements TransfersStore {
     limit: number,
   ): Promise<TransferAsk[]> {
     if (limit <= 0) return [];
-    const [subjects, fetches, key, entity] =
+    // A club is asked by its lowest id; a player by every player id he holds
+    // (T-1866), the lowest first.
+    const [subjects, fetches, key, ids] =
       subject === 'team'
-        ? [CLUBS, 'team_transfer_fetch', 'team_id', 'team']
-        : [PLAYERS, 'person_transfer_fetch', 'person_id', 'person'];
-    const { rows } = await this.pool.query<{ id: string; external_id: string }>(
+        ? [
+            CLUBS,
+            'team_transfer_fetch',
+            'team_id',
+            `CROSS JOIN LATERAL (
+               SELECT array[min(pm.external_id)] AS external_ids FROM provider_mapping pm
+                WHERE pm.internal_id = s.id AND pm.entity_type = 'team' AND pm.provider = $1
+               HAVING count(*) > 0) m`,
+          ]
+        : [PLAYERS, 'person_transfer_fetch', 'person_id', playerIdsLateral('s.id')];
+    const { rows } = await this.pool.query<{ id: string; external_ids: string[] }>(
       `WITH subjects AS (${subjects})
-       SELECT s.id, m.external_id
+       SELECT s.id, m.external_ids
          FROM subjects s
-         CROSS JOIN LATERAL (
-           SELECT min(pm.external_id) AS external_id FROM provider_mapping pm
-            WHERE pm.internal_id = s.id AND pm.entity_type = '${entity}' AND pm.provider = $1) m
+         ${ids}
          LEFT JOIN ${fetches} tf ON tf.provider = $1 AND tf.${key} = s.id
-        WHERE m.external_id IS NOT NULL
+        WHERE m.external_ids IS NOT NULL
           AND (tf.${key} IS NULL
                OR (tf.failures = 0 AND tf.answered_at < $2)
                OR (tf.failures > 0 AND tf.failures < $4 AND tf.asked_at < $3))
@@ -59,7 +68,7 @@ export class TransferStore implements TransfersStore {
         LIMIT $5`,
       [provider, at.answeredBeforeIso, at.retryBeforeIso, maxFailures, limit],
     );
-    return rows.map((r) => ({ subject, id: r.id, externalId: r.external_id }));
+    return rows.map((r) => ({ subject, id: r.id, ...personExternalIds(r.external_ids) }));
   }
 
   async markAsked(provider: Provider, ask: TransferAsk): Promise<void> {
