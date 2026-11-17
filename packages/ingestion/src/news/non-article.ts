@@ -19,6 +19,9 @@ export interface NonArticleRule {
 
 const START = '(^|[^A-Za-z])';
 const END = '([^A-Za-z]|$)';
+/** A word between neither letters nor digits: "acca", never the "3acca5" of an id. */
+const WORD_START = '(^|[^A-Za-z0-9])';
+const WORD_END = '([^A-Za-z0-9]|$)';
 
 export const NON_ARTICLE_RULES: readonly NonArticleRule[] = [
   // "Liverpool vs Manchester City LIVE: Cherki adds third", "LIVE! Arsenal v Spurs".
@@ -44,7 +47,7 @@ export const NON_ARTICLE_RULES: readonly NonArticleRule[] = [
   // "odds boost".
   {
     kind: 'betting_offer',
-    pattern: `${START}(promo code|bonus bets|betting tips|accumulator tips|acca|best bets|free bets|odds boost)${END}`,
+    pattern: `${WORD_START}(promo code|bonus bets|betting tips|accumulator tips|acca|best bets|free bets|odds boost)${WORD_END}`,
     caseSensitive: false,
   },
 ];

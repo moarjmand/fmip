@@ -60,6 +60,7 @@ describe('nonArticleKind', () => {
     'Man City blow Liverpool away at Anfield – but was it all meaningless?',
     // Words that merely contain "acca", and a bet that is a figure of speech.
     'Accrington Stanley sign striker on loan',
+    'Club 3 report 7 1f2e3acca5-90ab',
     'Arsenal’s best bet up front is Havertz, says Arteta',
   ])('%s is an article', (headline) => {
     expect(nonArticleKind(headline)).toBeNull();
