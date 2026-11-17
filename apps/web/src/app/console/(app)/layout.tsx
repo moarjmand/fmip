@@ -49,7 +49,7 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
   );
   // T-1871: the menu is a column at the inline-start edge (the right, in
   // Persian) from 1024px, sticky at the window's height with its own scroll;
-  // below that a bar whose button opens the same list.
+  // below that a bar, and under it a «فهرست» disclosure opening the same list.
   return (
     <div className="lg:flex lg:items-start">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-default bg-surface px-4 py-2 md:px-8 lg:sticky lg:top-0 lg:h-dvh lg:w-64 lg:shrink-0 lg:flex-col lg:flex-nowrap lg:items-stretch lg:gap-3 lg:border-e lg:border-b-0 lg:px-0 lg:py-4">

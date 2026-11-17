@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { ConsoleFinding, ConsoleMessage } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -244,22 +246,42 @@ describe('the console menu (T-1871)', () => {
     expect(html).toContain('۳<span class="sr-only"> درخواست باز</span>');
   });
 
-  it('is a column with its own scroll from 1024px, and a button that opens it below', () => {
+  it('opens below 1024px as a <details>, with every link in the server HTML', () => {
+    const html = menu('/agents/findings');
+    // A disclosure the browser opens without JavaScript, closed at first.
+    const details = /<details [^>]*>/.exec(html)?.[0] ?? '';
+    expect(details).toContain('console-menu');
+    expect(details).not.toMatch(/\sopen(=|\s|>)/);
+    const summary = /<summary [^>]*>/.exec(html)?.[0] ?? '';
+    expect(summary).toContain('min-h-touch');
+    expect(summary).toContain('min-w-touch');
+    expect(html).toMatch(/<summary [^>]*>.*فهرست<\/summary>/);
+    expect(html).not.toContain('<button');
+    // The links are inside the <details>, so they are there before any script runs.
+    const inside = html.slice(html.indexOf('<details'), html.indexOf('</details>'));
+    for (const item of ITEMS) expect(inside).toContain(`href="${item.href}"`);
+  });
+
+  it('is a column with its own scroll from 1024px, and a panel with its own scroll below', () => {
     const html = menu('/agents/findings');
     const navTag = /<nav [^>]*>/.exec(html)?.[0] ?? '';
-    const button = /<button [^>]*>/.exec(html)?.[0] ?? '';
-    // Closed on a phone, always shown from 1024px, scrolling by itself in both.
-    expect(navTag).toMatch(/class="hidden /);
-    expect(navTag).toContain('lg:block');
-    expect(navTag).toContain('overflow-y-auto');
-    expect(navTag).toContain('max-h-[60dvh]');
-    expect(button).toContain('aria-expanded="false"');
-    expect(button).toContain('lg:hidden');
-    expect(button).toContain('min-h-touch');
-    const id = /id="([^"]+)"/.exec(navTag)?.[1];
-    expect(id).toBeTruthy();
-    expect(button).toContain(`aria-controls="${id}"`);
-    expect(html).toContain('فهرست');
+    const list = /<ul [^>]*>/.exec(html)?.[0] ?? '';
+    expect(navTag).toContain('lg:overflow-y-auto');
+    expect(navTag).toContain('lg:flex-1');
+    expect(navTag).toContain('lg:min-h-0');
+    expect(list).toContain('max-h-[60dvh]');
+    expect(list).toContain('overflow-y-auto');
+    expect(list).toContain('lg:max-h-none');
+    // From 1024px the <details> is no box and its summary is hidden.
+    const css = readFileSync(join(__dirname, '..', 'globals.css'), 'utf8');
+    const rule = css.slice(css.indexOf('.console-menu,'));
+    expect(rule).toMatch(
+      /^\.console-menu,\s*\.console-menu::details-content \{\s*display: contents;/,
+    );
+    expect(rule).toContain('.console-menu > summary {\n      display: none;');
+    expect(css.slice(0, css.indexOf('.console-menu,'))).toMatch(
+      /@media \(width >= 64rem\) \{\s*@supports selector\(::details-content\) \{\s*$/,
+    );
     // Logical sides only (rule 7).
     expect(html).not.toMatch(/\b(ml|mr|pl|pr|left|right|border-l|border-r)-/);
   });

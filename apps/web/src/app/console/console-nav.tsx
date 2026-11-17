@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Link from '@/components/ui/link';
 
 /** One menu entry: the console path, its link under the base, its Persian label. */
@@ -31,50 +31,76 @@ export function isCurrent(itemPath: string, current: string): boolean {
   return current === itemPath || current.startsWith(`${itemPath}/`);
 }
 
+/** The width from which the menu is a column (Tailwind's `lg`, `.console-menu` in globals.css). */
+const WIDE = '(width >= 64rem)';
+
 /**
- * The console's menu (T-1871): from 1024px a column at the inline-start edge
- * (the right, in Persian) that scrolls by itself; below that a button that
- * opens the same list as a panel that scrolls. The page shown is marked
- * `aria-current="page"`.
+ * The console's menu (T-1871). Below 1024px a `<details>`: its «فهرست»
+ * summary opens the list as a panel that scrolls, with or without
+ * JavaScript, since the links are in the server's HTML. From 1024px the
+ * `<details>` is no box at all (`.console-menu` in globals.css) and the list
+ * is a column at the inline-start edge (the right, in Persian) that scrolls
+ * by itself; a browser that cannot style a closed `<details>` keeps the
+ * summary there instead. The page shown is marked `aria-current="page"`.
  */
 export function ConsoleNav({ items, base }: { items: readonly ConsoleNavItem[]; base: string }) {
   const [open, setOpen] = useState(false);
-  const toggle = useRef<HTMLButtonElement>(null);
-  const listId = useId();
+  const summary = useRef<HTMLElement>(null);
   const current = consolePathname(usePathname() ?? '/', base);
 
+  // A panel opened on a phone is closed when the window grows into the column.
+  useEffect(() => {
+    const wide = window.matchMedia(WIDE);
+    const close = () => {
+      if (wide.matches) setOpen(false);
+    };
+    wide.addEventListener('change', close);
+    return () => wide.removeEventListener('change', close);
+  }, []);
+
+  // Escape from the summary or a link closes the panel, and focus goes back
+  // to the summary, but only while the summary is shown.
   const closeOnEscape = (event: KeyboardEvent) => {
     if (event.key !== 'Escape' || !open) return;
+    const shown = summary.current !== null && summary.current.getClientRects().length > 0;
+    if (!shown) return;
+    event.preventDefault();
     setOpen(false);
-    toggle.current?.focus();
+    summary.current?.focus();
   };
 
   return (
-    <>
-      <button
-        ref={toggle}
-        type="button"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => setOpen((was) => !was)}
-        className="inline-flex min-h-touch min-w-touch items-center justify-center gap-2 rounded-control border border-strong px-3 text-sm text-fg lg:hidden"
-      >
-        <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current">
-          {open ? (
-            <path d="M5 5l10 10M15 5L5 15" strokeWidth="2" strokeLinecap="round" />
-          ) : (
-            <path d="M3 5h14M3 10h14M3 15h14" strokeWidth="2" strokeLinecap="round" />
-          )}
-        </svg>
-        فهرست
-      </button>
-      <nav
-        id={listId}
-        aria-label="منوی کنسول"
+    <nav
+      aria-label="منوی کنسول"
+      className="order-last basis-full lg:order-none lg:min-h-0 lg:flex-1 lg:basis-auto lg:overflow-y-auto lg:px-3"
+    >
+      <details
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
         onKeyDown={closeOnEscape}
-        className={`${open ? 'block' : 'hidden'} order-last max-h-[60dvh] basis-full overflow-y-auto overscroll-contain border-t border-default pt-2 lg:order-none lg:block lg:max-h-none lg:min-h-0 lg:flex-1 lg:basis-auto lg:border-t-0 lg:px-3 lg:pt-0`}
+        className="console-menu group"
       >
-        <ul className="flex flex-col gap-0.5 pb-2">
+        <summary
+          ref={summary}
+          className="inline-flex min-h-touch min-w-touch cursor-pointer list-none items-center justify-center gap-2 rounded-control border border-strong px-3 text-sm text-fg [&::-webkit-details-marker]:hidden"
+        >
+          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current">
+            <path
+              className="group-open:hidden"
+              d="M3 5h14M3 10h14M3 15h14"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              className="hidden group-open:block"
+              d="M5 5l10 10M15 5L5 15"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          فهرست
+        </summary>
+        <ul className="mt-2 flex max-h-[60dvh] flex-col gap-0.5 overflow-y-auto overscroll-contain border-t border-default py-2 lg:mt-0 lg:max-h-none lg:overflow-visible lg:border-t-0 lg:pt-0">
           {items.map((item) => {
             const here = isCurrent(item.path, current);
             return (
@@ -97,7 +123,7 @@ export function ConsoleNav({ items, base }: { items: readonly ConsoleNavItem[]; 
             );
           })}
         </ul>
-      </nav>
-    </>
+      </details>
+    </nav>
   );
 }
