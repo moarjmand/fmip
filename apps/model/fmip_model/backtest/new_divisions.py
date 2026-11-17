@@ -37,7 +37,7 @@ from pathlib import Path
 
 import psycopg
 
-from ..model.version import PUBLISHED, ModelVersion, load_candidate, load_candidates
+from ..model.version import PUBLISHED, ModelVersion, backtest_version, load_candidate
 from .compare import UNIFORM, DivisionResult, Job, Scores, _division_job, scores_of
 from .inputs import BAR, Group, division_groups, paired_bootstrap
 
@@ -210,7 +210,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--candidate", help="a candidate's name; default: the newest in shadow")
+    parser.add_argument(
+        "--candidate",
+        help="a candidate's name; default: the newest candidate a backtest can score (T-1876)",
+    )
     parser.add_argument("--divisions", nargs="+", help="default: those the published lacks")
     parser.add_argument("--from", dest="window_from", type=date.fromisoformat,
                         default=DEFAULT_FROM)  # fmt: skip
@@ -224,7 +227,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not database_url:
         print("DATABASE_URL is not set", file=sys.stderr)
         return 2
-    candidate = load_candidates().get(args.candidate) if args.candidate else load_candidate()
+    try:
+        candidate = backtest_version(args.candidate) if args.candidate else load_candidate()
+    except (LookupError, ValueError) as error:
+        print(error, file=sys.stderr)
+        return 2
     if candidate is None:
         print("no such candidate in fmip_model/model/candidates/", file=sys.stderr)
         return 2

@@ -25,7 +25,21 @@ The method of the `model-scientist` agent. Read `.claude/skills/team-charter/SKI
      "said" (unrounded), or whose interval excludes "said";
    - **promotion readiness (D-140):** a shadow version with 300 or more paired pre-kick-off
      matches. Judge it by D-139's bar on the paired set; the verdict is a proposal to the
-     maintainer, never a promotion.
+     maintainer, never a promotion. Not for a version whose decision fixes its own single look
+     (below): the 300 does not apply to it.
+   - **a version with one fixed look (D-450): `dixon-coles-elo@0.9.0`**, the published 0.7.0
+     recalibrated. Its paired record counts only matches kicked off from 2026-11-18 (and after
+     its first stored shadow forecast), against the published 0.7.0, each match once by each
+     version's last forecast before kick-off. Until 1,000 such paired matches, report the count
+     only: no log loss, Brier, accuracy, difference or interval of it anywhere in the report
+     (`model-watch.sql` withholds them; its `one_look` list names the version). At the first
+     weekly watch where the count is reached, take the one look by D-139's three conditions on
+     those matches (the paired bootstrap, 2,000 resamples, `numpy.random.default_rng(1101)`;
+     calibration not demonstrably worse; worse in at most a third of the competitions with 50
+     or more paired matches), report D-450's descriptive figures beside it, and record it once
+     in `judgements` with `rule` `D-139` and `condition` `paired_improvement`. If 0.7.0 stops
+     being the published version first, count only matches before the change (D-450). No
+     second look unless the maintainer asks, labelled, on matches played after the first.
    - **a coverage version (D-336):** when a shadow version is the published one plus new
      divisions (0.7.0 is 0.6.0 plus eleven), the paired test cannot separate them, because their
      forecasts on the shared divisions are identical. Promote-ready when (a) 300 or more paired

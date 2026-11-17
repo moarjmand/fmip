@@ -34,6 +34,10 @@ from numpy.typing import NDArray
 KIND = "temperature_draw"
 #: D-450's strength, decided before any fit and never tuned.
 HALF = 0.5
+#: The strength each decision fixed before its fit (D-450: half). A block must
+#: name one of these decisions and carry exactly its strength, so a file cannot
+#: drift to another strength without a decision that says so.
+FIXED_STRENGTH: Mapping[str, float] = {"D-450": HALF}
 #: How closely the applied pair must equal the fitted one at the strength: the
 #: file stores both rounded, so equality is to the rounding, not exact.
 TOLERANCE = 1e-7
@@ -144,17 +148,31 @@ def read_calibration(block: Mapping[str, object]) -> Calibration:
     window = block.get("window")
     if not isinstance(fitted, Mapping) or not isinstance(window, Mapping):
         raise ValueError("calibration must name its fitted pair and its window")
-    calibration = Calibration(
-        temperature=float(str(block["temperature"])),
-        beta_draw=float(str(block["beta_draw"])),
-        fitted_temperature=float(str(fitted["temperature"])),
-        fitted_beta_draw=float(str(fitted["beta_draw"])),
-        strength=float(str(block["strength"])),
-        window_from=date.fromisoformat(str(window["from"])),
-        window_to=date.fromisoformat(str(window["to"])),
-        matches=int(str(window["matches"])),
-        decision=str(block.get("decision", "")),
-    )
+    try:
+        calibration = Calibration(
+            temperature=float(str(block["temperature"])),
+            beta_draw=float(str(block["beta_draw"])),
+            fitted_temperature=float(str(fitted["temperature"])),
+            fitted_beta_draw=float(str(fitted["beta_draw"])),
+            strength=float(str(block["strength"])),
+            window_from=date.fromisoformat(str(window["from"])),
+            window_to=date.fromisoformat(str(window["to"])),
+            matches=int(str(window["matches"])),
+            decision=str(block.get("decision", "")),
+        )
+    except KeyError as error:  # a version file's problems are ValueErrors, as the loader's
+        raise ValueError(f"calibration lacks {error.args[0]!r}") from error
+    fixed = FIXED_STRENGTH.get(calibration.decision)
+    if fixed is None:
+        raise ValueError(
+            f"calibration.decision must be one that fixed a strength {sorted(FIXED_STRENGTH)}, "
+            f"not {calibration.decision!r}"
+        )
+    if calibration.strength != fixed:
+        raise ValueError(
+            f"calibration.strength is fixed at {fixed} by {calibration.decision}, "
+            f"not {calibration.strength}"
+        )
     if calibration.temperature <= 0 or calibration.fitted_temperature <= 0:
         raise ValueError("calibration temperatures must be positive")
     if calibration.window_to < calibration.window_from or calibration.matches <= 0:

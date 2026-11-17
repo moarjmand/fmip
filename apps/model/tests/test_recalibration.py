@@ -2,6 +2,7 @@
 
 import json
 import math
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
@@ -10,6 +11,13 @@ import numpy as np
 import pytest
 from test_service import FROZEN_NOW, FakeSource, request
 
+from fmip_model.backtest.compare import choose_reference
+from fmip_model.backtest.compare import main as compare_main
+from fmip_model.backtest.cross_league import variants_main
+from fmip_model.backtest.elo_prior import main as elo_prior_main
+from fmip_model.backtest.inputs import main as inputs_main
+from fmip_model.backtest.lineups import main as lineups_main
+from fmip_model.backtest.new_divisions import main as new_divisions_main
 from fmip_model.backtest.recalibration import (
     BASE_FILE,
     WINDOW_FROM,
@@ -34,8 +42,10 @@ from fmip_model.model.poisson import outcome_from_matrix, score_matrix
 from fmip_model.model.version import (
     CANDIDATES_DIR,
     PUBLISHED,
+    backtest_version,
     load_candidate,
     load_candidates,
+    refuse_calibrated,
 )
 from fmip_model.service.contract import ForecastRequest
 from fmip_model.service.forecaster import Forecaster
@@ -141,6 +151,14 @@ def test_a_file_whose_applied_pair_is_not_the_fitted_one_at_its_strength_is_refu
         read_calibration(wrong)
     with pytest.raises(ValueError, match="kind"):
         read_calibration({**block, "kind": "isotonic"})
+    # D-450 fixed the strength at a half: the full pair at strength 1 is refused too.
+    full = {**block, "strength": 1.0, "temperature": 1.4, "beta_draw": -0.4}
+    with pytest.raises(ValueError, match="fixed at 0.5 by D-450"):
+        read_calibration(full)
+    with pytest.raises(ValueError, match="decision"):
+        read_calibration({**block, "decision": "D-999"})
+    with pytest.raises(ValueError, match="lacks 'beta_draw'"):
+        read_calibration({k: v for k, v in block.items() if k != "beta_draw"})
 
 
 # --- the score table ---
@@ -322,3 +340,69 @@ def test_0_9_0_answers_0_7_0_s_forecast_mapped_with_the_same_expected_goals() ->
     assert (p.home, p.draw, p.away) == pytest.approx(expected, abs=1e-4)
     assert p.home + p.draw + p.away == pytest.approx(1.0, abs=1e-9)
     assert p.draw < base.probabilities.draw
+
+
+# --- the backtest harnesses do not apply a calibration (T-1876) ---
+
+CALIBRATED = "dixon-coles-elo-0.9.0"
+
+
+def test_a_backtest_defaults_to_a_version_it_can_score() -> None:
+    """0.9.0 is the newest candidate, but a backtest's default passes over it."""
+    assert load_candidate() is None
+    assert backtest_version() == PUBLISHED
+    assert backtest_version("published") == PUBLISHED
+    assert backtest_version(f"{PUBLISHED.name}-{PUBLISHED.version}") == PUBLISHED
+
+
+def test_a_backtest_refuses_a_calibrated_version_by_name() -> None:
+    with pytest.raises(ValueError, match="D-450"):
+        backtest_version(CALIBRATED)
+    with pytest.raises(LookupError, match="published"):
+        backtest_version("dixon-coles-elo-9.9.9")
+    candidate = load_candidate(CANDIDATE_FILE)
+    assert candidate is not None
+    with pytest.raises(ValueError, match="cannot score it"):
+        refuse_calibrated(candidate)
+    with pytest.raises(ValueError, match="D-450"):
+        choose_reference(PUBLISHED, CALIBRATED)
+    assert choose_reference(candidate, None) == PUBLISHED  # never the calibrated default
+
+
+HARNESSES: list[tuple[Callable[[list[str]], int], list[str]]] = [
+    (
+        inputs_main,
+        ["--input", "null", "--divisions", "E0", "--from", "2025-08-01", "--to", "2025-09-01"],
+    ),
+    (
+        elo_prior_main,
+        ["--from", "2025-08-01", "--to", "2025-09-01", "--history-from", "2023-08-01"],
+    ),
+    (lineups_main, ["--divisions", "E0", "--split", "2025-08-01", "--until", "2025-09-01"]),
+    (new_divisions_main, []),
+]
+
+
+@pytest.mark.parametrize(("main", "argv"), HARNESSES)
+def test_every_harness_refuses_the_calibrated_candidate_before_it_reads_anything(
+    main: Callable[[list[str]], int],
+    argv: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # A database that does not exist: the refusal must come before any connection.
+    monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
+    assert main([*argv, "--candidate", CALIBRATED]) == 2
+    assert "D-450" in capsys.readouterr().err
+
+
+def test_the_cross_league_variants_and_compare_refuse_it_too(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
+    assert (
+        variants_main(["--from", "2024-08-01", "--to", "2024-09-01", "--version", CALIBRATED]) == 2
+    )
+    assert "D-450" in capsys.readouterr().err
+    assert compare_main(["--candidate-file", str(CANDIDATE_FILE)]) == 2
+    assert "D-450" in capsys.readouterr().err

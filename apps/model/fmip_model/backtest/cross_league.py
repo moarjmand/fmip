@@ -499,7 +499,8 @@ def variants_main(argv: Sequence[str]) -> int:
     parser.add_argument("--to", dest="end", type=date.fromisoformat, required=True)
     parser.add_argument(
         "--version",
-        help="a version file's stem (default: the newest candidate, as D-139 judges against)",
+        help="'published', or a version file's stem (default: the newest candidate a "
+        "backtest can score, as D-139 judges against; T-1876)",
     )
     parser.add_argument("--out", type=Path, default=Path("reports"))
     parser.add_argument("--note", default="")
@@ -527,11 +528,17 @@ def variants_main(argv: Sequence[str]) -> int:
         if version is None:
             print("no candidate: name a version with --version", file=sys.stderr)
             return 2
-    elif args.version in versions:
-        version = versions[args.version]
     else:
-        print(f"no version {args.version!r}; one of {sorted(versions)}", file=sys.stderr)
-        return 2
+        from ..model.version import backtest_version
+
+        try:
+            version = backtest_version(args.version)
+        except LookupError:
+            print(f"no version {args.version!r}; one of {sorted(versions)}", file=sys.stderr)
+            return 2
+        except ValueError as error:  # a calibrated version (T-1876)
+            print(error, file=sys.stderr)
+            return 2
     if version.cross_league is None:
         print(f"{version.id} has no fit across leagues", file=sys.stderr)
         return 2

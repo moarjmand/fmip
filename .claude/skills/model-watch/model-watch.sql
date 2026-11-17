@@ -10,10 +10,23 @@
 \echo == versions: matches, each once (version | role | matches | log loss | Brier | RPS | accuracy | first kick-off | last kick-off)
 -- The counted matches, one row per match, version and role: a psql variable, since the runner is read-only.
 \set counted 'SELECT DISTINCT ON (e.fixture_id, f.role, mv.model_id) e.fixture_id, f.role, mv.model_id, mv.id AS model_version_id, e.log_loss, e.brier, e.correct, e.outcome, e.evaluated_at, f.p_home::float AS p_home, f.p_draw::float AS p_draw, f.p_away::float AS p_away, f.computed_at, fx.kickoff_at, s.competition_id, ((f.p_home - (e.outcome = ''home'')::int) ^ 2 + (f.p_home + f.p_draw - (e.outcome <> ''away'')::int) ^ 2) / 2 AS rps FROM evaluation e JOIN forecast f ON f.id = e.forecast_id JOIN model_version mv ON mv.id = f.model_version_id JOIN fixture fx ON fx.id = e.fixture_id JOIN season s ON s.id = fx.season_id WHERE e.pre_kickoff AND mv.model_id <> ''none@0.0.0'' ORDER BY e.fixture_id, f.role, mv.model_id, f.computed_at DESC, f.id DESC'
-WITH counted AS (:counted)
-SELECT model_id, role, count(*), round(avg(log_loss), 4), round(avg(brier), 4), round(avg(rps)::numeric, 4),
-       round(100.0 * avg(correct::int), 1), min(kickoff_at)::date, max(kickoff_at)::date
-  FROM counted GROUP BY 1, 2 ORDER BY 2, 1;
+-- Versions whose decision fixes ONE look (T-1876, D-450): the version, the first kick-off its paired
+-- record counts, and the paired count the look is taken at. Until then, while in shadow, the watch
+-- gives counts only: no log loss, Brier, accuracy, difference or interval, and D-140's 300 does not apply.
+\set one_look 'VALUES (''dixon-coles-elo@0.9.0'', TIMESTAMPTZ ''2026-11-18 00:00:00+00'', 1000)'
+WITH one_look(model_id, from_at, look_at) AS (:one_look), counted AS (:counted), v AS (
+  SELECT c.model_id, c.role, count(*) AS n, avg(c.log_loss) AS ll, avg(c.brier) AS b, avg(c.rps) AS rps,
+         avg(c.correct::int) AS acc, min(c.kickoff_at)::date AS first_ko, max(c.kickoff_at)::date AS last_ko,
+         bool_or(c.role = 'shadow' AND o.model_id IS NOT NULL) AS withheld
+    FROM counted c LEFT JOIN one_look o ON o.model_id = c.model_id
+   GROUP BY 1, 2)
+SELECT model_id, role, n,
+       CASE WHEN withheld THEN 'withheld (one look)' ELSE round(ll, 4)::text END,
+       CASE WHEN withheld THEN 'withheld' ELSE round(b, 4)::text END,
+       CASE WHEN withheld THEN 'withheld' ELSE round(rps::numeric, 4)::text END,
+       CASE WHEN withheld THEN 'withheld' ELSE round(100.0 * acc, 1)::text END,
+       first_ko, last_ko
+  FROM v ORDER BY 2, 1;
 
 \echo == the current published version (the one of the newest published forecast)
 SELECT mv.id AS cur_id, mv.model_id AS cur_model
@@ -24,18 +37,30 @@ SELECT mv.id AS cur_id, mv.model_id AS cur_model
 
 \echo == paired: each shadow version against the current published one on the same matches (shadow | n | identical % | published LL | shadow LL | diff [95%] | published Brier | shadow Brier)
 \echo == !! a version being judged under D-336 gets ONE look per condition (T-1720): before its count, report the count only
-WITH counted AS (:counted), d AS (
+\echo == !! dixon-coles-elo@0.9.0 (D-450) gets ONE look, by the three conditions of D-139, at 1,000 paired matches kicked off from 2026-11-18: counted from that day only, figures withheld below the count; the 300 of D-140 does not apply
+WITH one_look(model_id, from_at, look_at) AS (:one_look), counted AS (:counted), d AS (
   SELECT s.model_id, s.log_loss - p.log_loss AS diff, p.log_loss AS pll, s.log_loss AS sll,
          p.brier AS pb, s.brier AS sb,
-         (s.p_home = p.p_home AND s.p_draw = p.p_draw AND s.p_away = p.p_away) AS same
+         (s.p_home = p.p_home AND s.p_draw = p.p_draw AND s.p_away = p.p_away) AS same,
+         o.look_at
     FROM counted s JOIN counted p ON p.fixture_id = s.fixture_id
-   WHERE s.role = 'shadow' AND p.role = 'published' AND p.model_id = :'cur_model')
-SELECT model_id, count(*), round(100.0 * avg(same::int), 1),
-       round(avg(pll), 4), round(avg(sll), 4),
-       round(avg(diff), 5) || ' [' || round(avg(diff) - 1.96 * coalesce(stddev_samp(diff), 0) / sqrt(count(*))::numeric, 5)
-         || ', ' || round(avg(diff) + 1.96 * coalesce(stddev_samp(diff), 0) / sqrt(count(*))::numeric, 5) || ']',
-       round(avg(pb), 4), round(avg(sb), 4)
-  FROM d GROUP BY 1;
+    LEFT JOIN one_look o ON o.model_id = s.model_id
+   WHERE s.role = 'shadow' AND p.role = 'published' AND p.model_id = :'cur_model'
+     AND (o.model_id IS NULL OR s.kickoff_at >= o.from_at)), g AS (
+  SELECT model_id, count(*) AS n, max(look_at) AS look_at, avg(same::int) AS same, avg(pll) AS pll, avg(sll) AS sll,
+         avg(diff) AS diff, coalesce(stddev_samp(diff), 0) AS sd, avg(pb) AS pb, avg(sb) AS sb
+    FROM d GROUP BY 1)
+SELECT model_id,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN n || ' of ' || look_at || ' (counts only)' ELSE n::text END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld' ELSE round(100.0 * same, 1)::text END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld' ELSE round(pll, 4)::text END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld' ELSE round(sll, 4)::text END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld'
+            ELSE round(diff, 5) || ' [' || round(diff - 1.96 * sd / sqrt(n)::numeric, 5)
+                 || ', ' || round(diff + 1.96 * sd / sqrt(n)::numeric, 5) || ']' END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld' ELSE round(pb, 4)::text END,
+       CASE WHEN look_at IS NOT NULL AND n < look_at THEN 'withheld' ELSE round(sb, 4)::text END
+  FROM g ORDER BY 1;
 
 \echo == coverage: finished matches a shadow version forecast that no published version did (shadow | matches)
 WITH counted AS (:counted)

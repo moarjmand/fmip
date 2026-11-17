@@ -155,7 +155,7 @@ that the maintainer decided and D-191 records.
 ## 3. Versions: published, candidates, shadow, promotion
 
 - **The published version** is the one the site shows:
-  `dixon-coles-elo@0.6.0`, the one file of
+  `dixon-coles-elo@0.7.0` (D-410), the one file of
   `apps/model/fmip_model/model/published/` (`PUBLISHED` in
   `fmip_model/model/version.py`; the service refuses to start unless there is
   exactly one). A version's constants never change: a changed constant is a
@@ -166,9 +166,15 @@ that the maintainer decided and D-191 records.
   `DEFAULT_RIDGE = 0.01`, `DEFAULT_ELO_WEIGHT = 0.5`, `ELO_SCALE = 1.0`). A
   file names only what differs from them.
 - **A candidate** is a JSON file in `apps/model/fmip_model/model/candidates/`,
-  named `<name>-<version>.json` (D-140). Today: `dixon-coles-elo@0.7.0`
-  (0.6.0's constants plus eleven divisions, D-233).
-- **Retired versions** (`retired/`, today 0.5.0) once forecast and no longer
+  named `<name>-<version>.json` (D-140). Today: `dixon-coles-elo@0.9.0`
+  (D-450, T-1876): 0.7.0's constants with a `calibration` block, a
+  temperature and a draw term applied to the three probabilities after the
+  score table, fitted once on the live record and frozen at half strength;
+  judged once, at 1,000 paired matches kicked off from 2026-11-18. The
+  backtest harnesses do not apply a calibration: their default passes over
+  such a candidate, they refuse one by name, and each takes `published`
+  (`--candidate published`) for the published version.
+- **Retired versions** (`retired/`, today 0.5.0 and 0.6.0) once forecast and no longer
   do; their files stay so a stored forecast can be traced to its constants.
 - **Shadow.** Once a candidate file is merged and deployed, the model service
   offers it automatically, and the API stores a shadow forecast from every
