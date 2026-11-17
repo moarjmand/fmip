@@ -84,7 +84,13 @@ export function ConsoleNav({ items, base }: { items: readonly ConsoleNavItem[]; 
           ref={summary}
           className="inline-flex min-h-touch min-w-touch cursor-pointer list-none items-center justify-center gap-2 rounded-control border border-strong px-3 text-sm text-fg [&::-webkit-details-marker]:hidden"
         >
-          <svg aria-hidden="true" viewBox="0 0 20 20" className="size-4 fill-none stroke-current">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+          >
             <path
               className="group-open:hidden"
               d="M3 5h14M3 10h14M3 15h14"
