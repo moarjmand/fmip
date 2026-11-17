@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { StoredAbsences, StoredExpectedGoals } from './covered';
 import { freshnessOf } from './freshness';
 import { liveAnsweredAtSql } from './live-answer';
+import { teamCodeSql } from './team-code';
 import type {
   CoverageModule,
   CoverageState,
@@ -165,10 +166,10 @@ export class PostgresMatchCentreStore {
                        WHERE vd.venue_id = f.venue_id AND vd.answered_at IS NOT NULL) AS venue_asked,
               f.referee_name,
               h.id AS home_pid, th.id AS home_id, th.name AS home_name,
-              th.short_name AS home_short_name, th.code AS home_code, h.formation AS home_formation,
+              th.short_name AS home_short_name, ${teamCodeSql('th')} AS home_code, h.formation AS home_formation,
               hc.id AS home_coach_id, COALESCE(hc.known_as, hc.full_name) AS home_coach_name,
               a.id AS away_pid, ta.id AS away_id, ta.name AS away_name,
-              ta.short_name AS away_short_name, ta.code AS away_code, a.formation AS away_formation,
+              ta.short_name AS away_short_name, ${teamCodeSql('ta')} AS away_code, a.formation AS away_formation,
               ac.id AS away_coach_id, COALESCE(ac.known_as, ac.full_name) AS away_coach_name,
               (SELECT jsonb_object_agg(sc.kind, jsonb_build_object('home', sc.home, 'away', sc.away))
                  FROM fixture_score sc WHERE sc.fixture_id = f.id) AS scores,
