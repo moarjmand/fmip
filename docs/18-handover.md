@@ -190,15 +190,16 @@ Refresh it with the same steps whenever a move is planned. It is a snapshot.
 
 ### 6.4 Scheduled tasks (Claude desktop app, on the maintainer's computer)
 
-Checked and refreshed on 2026-11-08 (three prompts updated). Enabled:
+Checked and refreshed on 2026-11-16 by a full audit (report
+`E:\FMIP\ops\reports\ops-release\2026-11-16-scheduled-audit-fa.md`). Enabled:
 
 | Task | When | What |
 |---|---|---|
 | `stadiomind-daily-team` | daily 09:00 Tehran | Agent team's read-only checks and the Persian morning brief |
-| `stadiomind-console-sync` | hourly | Console commands in, snapshot out |
+| `stadiomind-console-sync` | 09:25, 15:25, 21:25 Tehran | Console commands in, snapshot out (hourly before 2026-11-17, cut to save Claude usage) |
 | `stadiomind-dashboard-refresh` | every 3 h | Dashboard snapshot from the server and the lab |
 | `fmip-server-followup` | every 6 h | Server health, backlog, adoption, weekly training reload |
-| `fmip-promotion-watch` | Mondays | The shadow model candidate (0.7.0) against the published version (0.6.0) |
+| `fmip-promotion-watch` | Mondays | Model candidates against the published version; one line while there is none (0.7.0 published, D-410) |
 | `fmip-iran-watch-channels` | daily 10:30 Tehran | Iran league matches' TV channels |
 | `fmip-xg-forward-test-2027-01` | once, 2027-01-05 | D-334's forward test of xG form |
 
@@ -236,39 +237,52 @@ D-382) and the console calendar (T-1788, D-391).
 
 ---
 
-## 7. Open at the time of writing (2026-11-11)
+## 7. Open at the time of writing (2026-11-17)
 
 Status lives in the task files and the memory (`next-session-start.md`, newest
-entry on top). This is only a pointer for the first hour. The server ran
-`d2915a04` (package 8) with only docs merged after it; `check-setup.sh`
-passed; disk 50%.
+entry on top). This is only a pointer for the first hour. The server runs
+`22cfe52b` (#921) with only docs merged after it; `check-setup.sh` passed.
 
-- **Package 9 (single fixes)** is live (69efd773, 2026-11-13). Open
-  follow-ups: the new key events, stats and line-ups show only after full
-  time (drawing them in play needs a match-centre budget decision); stored
-  news summaries spot-checked for the photo-credit cleaning (T-1797).
-- **Package 8's remainder waits for the maintainer's texts:** T-1793 (the
-  rules' "In short" and Persian summary, the contact address, the Privacy page
-  from the business adviser's 2026-11-02 draft after legal review, About's "who"
-  section) and T-1794 (the public founder's page: his floor, the meaning of
-  "Right" after extra time and penalties, a new API list).
-- **Open pull requests:** none after this docs PR. HSTS is six months since
-  2026-11-12 (T-1690, D-407; renumbered from a clash with D-382).
-- **Budgets:** match centre 182.3 of 183 kB (0.7 kB left), scores 166.9 of 170,
-  home 156.4 of 158, competition 157.2 of 158.
+- **Open pull requests:** none. Every unticked row in the task files was
+  triaged on 2026-11-17. What stays open waits for a translator review, a
+  device or a member/founder session, the maintainer's words, or a date.
+- **Site e-mail is down** since 2026-11-01. The SMTP account was the
+  maintainer's Google account, which is disabled (534-5.7.9). The fix is his:
+  either an app password once Google is back (about 2026-12-01), or a
+  transactional service (Brevo) with its DNS records in Cloudflare. In both
+  cases he sets `SMTP_URL` and `DELIVERY_EMAIL_FROM` in the server's `.env`,
+  and the agent then rolls the API out and checks. A mail that is not sent is
+  logged masked, without its link (T-1846, D-430).
+- **Highlightly refuses with "daily limit"** after a few dozen requests a day
+  since about 2026-11-09. Our own count is far under the plan's 5,000, and the
+  watchdog's `highlightly_refused` (T-1855, D-440) raises it. Only the
+  maintainer can read the account panel. 309 Highlightly teams still wait in
+  the mapping queue (54 were mapped on 2026-11-17).
+- **Social publishing (D-427)** is built and drafting, but nothing
+  publishes. The business adviser's review of 2026-11-17
+  (`E:\FMIP\ops\reports\business-adviser\2026-11-17-buffer-terms-review-fa.md`)
+  says no Buffer account until a lawyer answers the sanctions questions.
+- **Waiting for the maintainer's words:**
+  - T-1793: the trust texts.
+  - T-1794: the founder's public page.
+  - T-1802: the xGOT wording (optional).
+  - T-1489: a YouTube key (optional).
+  - T-1785: deferred by him.
+
+  Translator reviews of the Persian strings are his; never remind him.
+- **Parallel sessions collide on numbers and rollouts.** Check origin/main
+  and the open branches for the next free T-/D- number just before using it.
+  Before a rollout, check the server with `ps -eo args | grep "[b]ash
+  deploy/rollout.sh" | grep -v "bash -c"`; a plain `pgrep -f` matches its own
+  ssh command.
 - **A flake to watch:** the journeys test `competitions-menu.spec.ts:104` (Esc
-  hands focus back) failed once on a docs-only PR and passed on rerun.
-- **The maintainer's own steps (purchases, keys, sign-ins; never the agent's):**
-  the Sportmonks Starter trial and token; a YouTube Data API key from a Google
-  account other than the locked one; the Cloudflare record for `agents.` after
-  the Google recovery (about 2026-12-01). Translator reviews of the Persian
-  strings are his; never remind him.
-- **Local leftovers (harmless):** test databases `fmip_t1760`, `fmip_t1764`,
-  `fmip_p5review` in the local compose Postgres (the guard blocks DROP
-  DATABASE); about 25 agent worktrees under `.claude\worktrees\` and the old
-  `E:\FMIP\fmip-*` checkouts (removable with the maintainer's yes).
+  hands focus back) still fails now and then and passes on rerun.
+- **Follow-up noted, not numbered:** four sideways scrollers hold `sr-only`
+  text without a positioned scroll box. None overflows today. They are listed in
+  `E:\FMIP\ops\reports\code-reviewer\2026-11-17-t-1860-fa-standings-overflow.md`.
 - **Backups outside the repo.** `backup/` and `emails/` in the checkout are
-  kept out of git by `.git/info/exclude`. A full copy of `E:\FMIP` and of the
-  Claude folders was made on 2026-11-11 in `E:\Claude Backup\` (its
-  `README.txt` says what is where).
+  kept out of git by `.git/info/exclude`. The repo bundle
+  `backup/fmip-repo-full-history.bundle` and the handover copies of the
+  memory, the scheduled tasks and the agent memory were refreshed on
+  2026-11-17.
 - **Dated checks:** the xG forward test on 2027-01-05.
