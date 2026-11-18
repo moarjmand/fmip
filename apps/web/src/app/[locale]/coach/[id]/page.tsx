@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { fetchCoach, fetchMe } from '@/lib/api';
 import {
   CoachBand,
@@ -11,6 +11,7 @@ import { Stamp } from '@/components/stamp';
 import { Translated } from '@/components/translated';
 import { Notice } from '@/components/ui';
 import { say } from '@/lib/competition';
+import { movedHref } from '@/lib/player';
 import { pageMetadata } from '@/lib/seo';
 import { sessionCookieHeader } from '@/lib/session';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -45,13 +46,19 @@ export async function generateMetadata({
  */
 export default async function CoachPageRoute({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale, id } = await params;
+  const [{ locale, id }, query] = await Promise.all([params, searchParams]);
   if (!UUID.test(id)) notFound();
   const cookie = await sessionCookieHeader();
   const [result, me] = await Promise.all([fetchCoach(id, locale), fetchMe(cookie)]);
+  // A merged-away duplicate (T-1865b, D-453): the survivor's page, for good (308).
+  if (result.ok && result.data.moved_to !== undefined) {
+    permanentRedirect(movedHref(`/${locale}/coach/${result.data.moved_to}`, query));
+  }
   if (!result.ok) {
     if (result.status === 404) notFound();
     return (

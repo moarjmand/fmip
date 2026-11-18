@@ -265,6 +265,27 @@ export function playerTabHref(
   return text === '' ? base : `${base}?${text}`;
 }
 
+/**
+ * Where a merged-away duplicate's page now lives (T-1865b, D-446 point 7,
+ * D-453), for `permanentRedirect`: `path`, the survivor's page, with the
+ * reader's query kept, `replace` setting some of its parameters (the compare
+ * page's `?with=`). A repeated parameter is kept whole, in its order.
+ */
+export function movedHref(
+  path: string,
+  query: Record<string, string | string[] | undefined>,
+  replace: Record<string, string> = {},
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value === undefined || Object.hasOwn(replace, key)) continue;
+    for (const one of Array.isArray(value) ? value : [value]) params.append(key, one);
+  }
+  for (const [key, value] of Object.entries(replace)) params.set(key, value);
+  const text = params.toString();
+  return text === '' ? path : `${path}?${text}`;
+}
+
 /** Matches on the Overview's "last six" (T-1500); the Matches tab has every one the API sent. */
 export const OVERVIEW_PLAYER_MATCHES = 6;
 

@@ -25,6 +25,9 @@ vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('not found');
   },
+  permanentRedirect: (url: string) => {
+    throw new Error(`permanent redirect to ${url}`);
+  },
 }));
 
 const { default: ComparePlayersPage } = await import('./page');
@@ -310,5 +313,37 @@ describe('the picker tells namesakes apart (T-1804, D-402)', () => {
     );
     expect(second).not.toContain('compare-candidate-line');
     expect(second).toContain('Somewhere FC');
+  });
+});
+
+describe('a merged-away player is compared as his survivor (T-1865b, D-453)', () => {
+  const LOSER = '00000000-0000-4000-8000-00000000c0de';
+
+  it('redirects for good when the second player merged away, the query kept', async () => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: id === MBAPPE ? mbappe : { ...unknown, moved_to: UNKNOWN },
+    }));
+    await expect(
+      ComparePlayersPage({
+        params: Promise.resolve({ locale: 'en', id: MBAPPE }),
+        searchParams: Promise.resolve({ with: LOSER, season: 's1' }),
+      }),
+    ).rejects.toThrow(
+      `permanent redirect to /en/player/${MBAPPE}/compare?season=s1&with=${UNKNOWN}`,
+    );
+  });
+
+  it('redirects when the first player merged away, keeping ?with=', async () => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: id === LOSER ? { ...mbappe, moved_to: MBAPPE } : unknown,
+    }));
+    await expect(
+      ComparePlayersPage({
+        params: Promise.resolve({ locale: 'fa', id: LOSER }),
+        searchParams: Promise.resolve({ with: UNKNOWN }),
+      }),
+    ).rejects.toThrow(`permanent redirect to /fa/player/${MBAPPE}/compare?with=${UNKNOWN}`);
   });
 });
