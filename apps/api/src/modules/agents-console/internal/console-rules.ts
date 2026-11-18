@@ -260,6 +260,21 @@ export function replyText(raw: string): string {
   return `${chars.slice(0, CONSOLE_REPLY_MAX - 1).join('')}…`;
 }
 
+/** The longest outcome a command keeps. */
+export const COMMAND_OUTCOME_MAX = 1000;
+
+/**
+ * A command's outcome as the computer sent it on standard input (T-1878),
+ * cut to the longest a command keeps. It is text to show: whatever it holds
+ * (a `$(...)`, a backtick, a quote, a new line) is kept as written.
+ */
+export function outcomeText(raw: string): string {
+  const text = cleanText(raw).trim();
+  const chars = [...text];
+  if (chars.length <= COMMAND_OUTCOME_MAX) return text;
+  return `${chars.slice(0, COMMAND_OUTCOME_MAX - 1).join('')}…`;
+}
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** A board card's fields as sent, or the reason they are wrong. `creating` needs a title and a column. */

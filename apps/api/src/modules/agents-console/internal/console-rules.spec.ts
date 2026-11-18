@@ -7,6 +7,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { parseConsoleArgs } from '../../../cli/agents-console';
 import {
+  COMMAND_OUTCOME_MAX,
   LOCK_AFTER_FAILURES,
   LOCK_MINUTES,
   TEXT_MAX,
@@ -19,6 +20,7 @@ import {
   consoleCookie,
   isConsoleUsername,
   isLocked,
+  outcomeText,
   replyText,
 } from './console-rules';
 
@@ -274,6 +276,33 @@ describe('the command line', () => {
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,
     ).toBe('error');
     expect(parseConsoleArgs(['drop']).kind).toBe('error');
+  });
+
+  it("reads a command's outcome from standard input, never from the arguments (T-1878)", () => {
+    const id = '00000000-0000-4000-8000-000000000001';
+    expect(parseConsoleArgs(['finish-command', '--id', id, '--status', 'failed'])).toEqual({
+      kind: 'finish-command',
+      id,
+      status: 'failed',
+      outcome: null,
+    });
+    // The form before, for one release: still read, never empty.
+    expect(
+      parseConsoleArgs(['finish-command', '--id', id, '--status', 'done', '--outcome', 'paused']),
+    ).toEqual({ kind: 'finish-command', id, status: 'done', outcome: 'paused' });
+    expect(
+      parseConsoleArgs(['finish-command', '--id', id, '--status', 'done', '--outcome', ' ']).kind,
+    ).toBe('error');
+    expect(parseConsoleArgs(['finish-command', '--id', `${id};x`, '--status', 'done']).kind).toBe(
+      'error',
+    );
+    // What a shell would have acted on is text here, kept as written.
+    const hostile = 'The `security` agent timed out; $(touch x)\n"quoted" and \'single\' $HOME';
+    expect(outcomeText(`  ${hostile}\r\n`)).toBe(hostile);
+    expect(outcomeText(' \n ')).toBe('');
+    const cut = outcomeText('y'.repeat(COMMAND_OUTCOME_MAX + 50));
+    expect([...cut]).toHaveLength(COMMAND_OUTCOME_MAX);
+    expect(cut.endsWith('…')).toBe(true);
   });
 
   it('reads the chat commands, the reply never from the arguments (T-1722)', () => {

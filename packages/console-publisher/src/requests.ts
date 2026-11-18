@@ -5,6 +5,7 @@ import type {
   ConsoleRequestList,
   ConsoleRequestStatus,
 } from '@fmip/contracts';
+import { remoteCommand } from './remote.ts';
 
 /**
  * Teammate requests on the maintainer's computer (T-1728, D-354): the pure
@@ -73,20 +74,27 @@ export function parseAskArgs(args: readonly string[]): Parsed<{ id: string; file
   return { ok: true, id, file: file.file };
 }
 
-/** The server command lines, after `cli` (the `docker compose exec ... agents-console.js` prefix). */
+/**
+ * The server command lines, after `cli` (the `docker compose exec ... agents-console.js` prefix).
+ * Each checks its own id and status, then `remoteCommand` checks every word again (T-1878).
+ */
 export function listCommand(cli: string, status: ConsoleRequestStatus | null): string {
-  return status === null ? `${cli} list-requests` : `${cli} list-requests --status ${status}`;
+  if (status !== null && !STATUSES.includes(status)) throw new Error('Not a request status.');
+  return remoteCommand(
+    cli,
+    status === null ? ['list-requests'] : ['list-requests', '--status', status],
+  );
 }
 
 export function resultCommand(cli: string, id: string, status: ResultStatus): string {
   if (!REQUEST_ID.test(id) || !RESULT_STATUSES.includes(status))
     throw new Error('Not a request id or a result status.');
-  return `${cli} request-result --id ${id} --status ${status}`;
+  return remoteCommand(cli, ['request-result', '--id', id, '--status', status]);
 }
 
 export function askCommand(cli: string, id: string): string {
   if (!REQUEST_ID.test(id)) throw new Error('Not a request id.');
-  return `${cli} request-ask --id ${id}`;
+  return remoteCommand(cli, ['request-ask', '--id', id]);
 }
 
 // --- Pictures (T-1731, D-357) -------------------------------------------------
@@ -96,7 +104,7 @@ export const IMAGE_ID = REQUEST_ID;
 /** `request-image --id <id> [--thumb]`: the picture's bytes as base64 on one line. */
 export function imageCommand(cli: string, id: string, thumb = false): string {
   if (!IMAGE_ID.test(id)) throw new Error('Not a picture id.');
-  return `${cli} request-image --id ${id}${thumb ? ' --thumb' : ''}`;
+  return remoteCommand(cli, ['request-image', '--id', id, ...(thumb ? ['--thumb'] : [])]);
 }
 
 const EXTENSIONS: Record<string, string> = {

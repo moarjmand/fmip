@@ -10,13 +10,30 @@ never reaches this computer: every exchange is this computer running
 | `node packages/console-publisher/src/publish.ts build [--out f]` | Writes the snapshot. |
 | `node packages/console-publisher/src/publish.ts publish` | Loads the snapshot on the server. |
 | `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, publishes, prints the run requests. |
-| `node packages/console-publisher/src/publish.ts finish <id> done\|failed "outcome"` | Reports a requested run. |
+| `node packages/console-publisher/src/publish.ts finish <id> done\|failed [--file outcome.txt]` | Reports a requested run, the outcome read from `--file` or standard input (T-1878). |
 | `node packages/console-publisher/src/publish.ts providers-check [file]` | Checks the data providers' comparison (`E:/FMIP/ops/providers/comparison.json` unless a file is named; T-1830, D-423), prints each problem and exits 1 on any. `build`, `publish` and `sync` carry it in the snapshot as `providers`. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
 | `node packages/console-publisher/src/publish.ts chat-reply <message-id> answered\|failed [--file reply.txt]` | Posts one reply, read from `--file` or standard input, and drops the message from the inbox. |
 | `node packages/console-publisher/src/publish.ts requests-pull [--status s]` | Writes the teammate requests to `E:/FMIP/ops/console/requests.json` and prints a short summary (T-1728); downloads the pictures of open and marked requests to `E:/FMIP/ops/console/requests/<request-id>/<position>-<image-id>.webp` and names each one's `local_path` in the file (T-1731). |
 | `node packages/console-publisher/src/publish.ts request-result <request-id> in_progress\|done\|cancelled [--file result.txt]` | Writes a request's result box and status, the text from `--file` or standard input. |
 | `node packages/console-publisher/src/publish.ts request-ask <request-id> [--file question.txt]` | Puts a question for the teammate on a request (`waiting_decision`). |
+
+## What reaches the server's shell (T-1878)
+
+`ssh fmip-prod <command>` hands the command to the server's login shell, which
+expands it. So the command line holds only what `src/remote.ts` lets through:
+the fixed prefix, flag names, ids checked as UUIDs and statuses from a fixed
+list, every word matching `[A-Za-z0-9_-]+`. Any text a person or an agent
+wrote (a command's outcome, a chat reply, a request's result or question)
+goes on standard input, never in the arguments, on both sides: the server's
+`finish-command`, `post-reply`, `request-result` and `request-ask` read it
+there.
+
+`finish` takes its outcome the same way: write it to a file and pass
+`--file <path>`, or pipe it in. The outcome as quoted arguments (the form
+before T-1878) is still read for one release and prints a warning: the local
+shell expands a backtick or a `$(...)` in it before this tool sees it, so a
+scheduled task must not use it.
 
 ## Teammate requests (T-1728, D-354)
 
