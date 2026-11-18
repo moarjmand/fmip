@@ -360,7 +360,7 @@ export class IngestionJobsService {
   private readonly coachStore: CoachStore;
   private readonly transfersBatch = transfersBatch(process.env.INGESTION_TRANSFERS_BATCH);
   private readonly transferStore: TransferStore;
-  /** The squads sweep's photos, by the one rule for a person's several ids (T-1869). */
+  /** Every writer's person photos, by the one rule for a person's several ids (T-1869). */
   private readonly personPhotos: PersonPhotos;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
@@ -386,16 +386,17 @@ export class IngestionJobsService {
     private readonly alerts: MatchAlertsService,
     private readonly media: MediaService,
   ) {
-    this.store = new IngestStore(pool, resolver, media);
+    // One instance, one memory of persons' ids, for every writer of a photo (T-1869).
+    this.personPhotos = new PersonPhotos(pool, media);
+    this.store = new IngestStore(pool, resolver, media, this.personPhotos);
     this.personNames = new PersonNameStore(pool);
     this.personBios = new PersonBioStore(pool);
     this.kitColourStore = new KitColourStore(pool);
     this.playerSeasonStore = new PlayerSeasonStore(pool);
     this.teamSeasonStore = new TeamSeasonStore(pool);
     this.clubFacts = new ClubFactsStore(pool);
-    this.coachStore = new CoachStore(pool, resolver, media);
+    this.coachStore = new CoachStore(pool, resolver, media, this.personPhotos);
     this.transferStore = new TransferStore(pool);
-    this.personPhotos = new PersonPhotos(pool, media);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */

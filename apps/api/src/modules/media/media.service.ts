@@ -38,8 +38,6 @@ export const EMPTY_MEDIA_INDEX: MediaIndex = {
 
 /** How many noted addresses a process remembers, so an unchanged one costs no query. */
 const NOTED_CAP = 50_000;
-/** Remembered for an entity that holds an address other than the one offered (`noteFirst`). */
-const HELD = '\u0000held';
 
 /**
  * The media boundary's public service (T-1320, D-176).
@@ -87,25 +85,25 @@ export class MediaService {
   }
 
   /**
-   * Records an address only where the entity holds none; one already held is
-   * never replaced (T-1869, D-452: a merged person's photo from an id other
-   * than his photo id). Never throws, as `note`.
+   * Records an address only into an empty place: none held, or one the fetch
+   * found to give no usable image a day ago or more; an available image or a
+   * pending address is never replaced (T-1869, D-452: a person with several
+   * provider ids). Never throws, as `note`.
    */
-  async noteFirst(
+  async noteIfEmpty(
     provider: string,
     entityType: MediaEntityType,
     entityId: string,
     sourceUrl: string,
   ): Promise<void> {
     const key = `${entityType}:${entityId}`;
-    // Anything remembered for the entity means an address is held.
-    if (this.noted.has(key)) return;
+    // The address this process last wrote: offering it again fills nothing.
+    if (this.noted.get(key) === `${provider} ${sourceUrl}`) return;
     try {
-      const written = await this.store.noteFirst(provider, entityType, entityId, sourceUrl);
-      if (this.noted.size >= NOTED_CAP) this.noted.clear();
-      // Which address is held, when it is not this one, is not known here; the
-      // marker matches no address, so a later `note` still asks the store.
-      this.noted.set(key, written ? `${provider} ${sourceUrl}` : HELD);
+      if (await this.store.noteIfEmpty(provider, entityType, entityId, sourceUrl)) {
+        if (this.noted.size >= NOTED_CAP) this.noted.clear();
+        this.noted.set(key, `${provider} ${sourceUrl}`);
+      }
     } catch (error) {
       this.log.warn('could not note an image address', {
         event: 'media.note_failed',

@@ -2,27 +2,33 @@ import type { Provider } from '@fmip/ingestion';
 import type { Pool } from 'pg';
 
 /**
- * Which of a person's provider ids his photo comes from (T-1869, D-452).
+ * A person's photo when he holds several provider ids (T-1869, D-452).
  *
  * A merged person (T-1863) holds several of a provider's ids, player and
  * `coach:` alike, and the provider's photo address carries the id it was
- * given under. Noting every mention's address as it came would switch the
- * stored address on each mention under the other id, fetch again and
- * alternate the photo shown. So one rule, for every place that notes a
- * person's photo (the match writes, the squads sweep, the coaches job):
+ * given under; both ids are often mentioned in the same match (D-446: one
+ * holds the line-up, the other the statistics). Noting every mention's address
+ * as it came would switch the stored address on each mention under the other
+ * id, fetch again and alternate the photo shown. So one rule, for every place
+ * that notes a person's photo (the match writes, the squads sweep, the coaches
+ * job):
  *
- * - the person's **photo id** is his lowest id at that provider,
- *   `min(external_id)` over all his mappings, the order the per-person jobs
- *   ask in (`person-ids.ts`);
- * - a mention under the photo id notes its address as it always did, so a new
- *   address there replaces the stored one;
- * - a mention under any other id only fills an empty place: it is noted when
- *   the person has no photo address at all, and never replaces one.
+ * - a person with **one id** is noted as he always was (`MediaService.note`):
+ *   a new address replaces the stored one;
+ * - a person with **several ids** only has an empty place filled
+ *   (`MediaService.noteIfEmpty`): an address is written when he holds none,
+ *   or when the one he holds was found to give no usable image (`not_supplied`
+ *   or `failed`) more than a day ago. An available image, or an address still
+ *   waiting for its fetch, is never replaced.
  *
- * Once an address is held, only the photo id can change it, so mentions under
- * two ids in any order switch it at most once (to the photo id's) and never
- * back. A person with one id is always at his photo id: unchanged. Which
- * hosts are fetched, and what is served, stays the media module's (D-176).
+ * So a merged person's photo, once fetched, stays; one his ids keep offering
+ * in turn never alternates; a merged person whose kept row has no image (a
+ * dead id's silhouette) takes the next id's address; and when no id gives an
+ * image, the addresses are tried at most once a day. Which hosts are fetched,
+ * and what is served, stays the media module's (D-176).
+ *
+ * The person's ids are remembered ten minutes; a mention under an id the
+ * memory does not hold (a merge just made) asks again at once.
  */
 
 /** Where a person's photo address goes. `MediaService`; neither ever throws. */
@@ -34,8 +40,8 @@ export interface PersonPhotoSink {
     entityId: string,
     sourceUrl: string,
   ): Promise<void>;
-  /** Records the address only when the person holds none. */
-  noteFirst(
+  /** Records the address only into an empty place (no address, or one with no usable image). */
+  noteIfEmpty(
     provider: Provider,
     entityType: 'person',
     entityId: string,
@@ -53,13 +59,17 @@ export interface PersonPhotoNoter {
   ): Promise<void>;
 }
 
-/** How long a person's photo id is remembered: a merge is seen within this. */
-export const PHOTO_ID_TTL_MS = 10 * 60 * 1000;
-/** How many persons' photo ids a process remembers. */
-const PHOTO_ID_CAP = 50_000;
+/** How long a person's ids are remembered. */
+export const PERSON_IDS_TTL_MS = 10 * 60 * 1000;
+/** How many persons' ids a process remembers. */
+const PERSON_IDS_CAP = 50_000;
 
+/**
+ * The one instance a process uses (`IngestionJobsService` hands it to every
+ * writer), so every writer sees the same memory of a person's ids.
+ */
 export class PersonPhotos implements PersonPhotoNoter {
-  private readonly photoIds = new Map<string, { id: string | null; at: number }>();
+  private readonly ids = new Map<string, { ids: string[]; at: number }>();
 
   constructor(
     private readonly pool: Pool,
@@ -74,33 +84,35 @@ export class PersonPhotos implements PersonPhotoNoter {
     externalId: string,
     sourceUrl: string,
   ): Promise<void> {
-    let photoId: string | null;
+    let ids: string[];
     try {
-      photoId = await this.photoId(provider, personId);
+      ids = await this.idsOf(provider, personId, externalId);
     } catch {
       return;
     }
-    if (photoId === externalId) {
+    if (ids.length === 1 && ids[0] === externalId) {
       await this.sink.note(provider, 'person', personId, sourceUrl);
     } else {
-      await this.sink.noteFirst(provider, 'person', personId, sourceUrl);
+      await this.sink.noteIfEmpty(provider, 'person', personId, sourceUrl);
     }
   }
 
-  /** The person's lowest id at the provider, remembered for `PHOTO_ID_TTL_MS`. */
-  private async photoId(provider: Provider, personId: string): Promise<string | null> {
+  /** The person's ids at the provider, remembered; asked again for an id the memory lacks. */
+  private async idsOf(provider: Provider, personId: string, externalId: string): Promise<string[]> {
     const key = `${provider} ${personId}`;
     const now = this.clock();
-    const held = this.photoIds.get(key);
-    if (held !== undefined && now - held.at < PHOTO_ID_TTL_MS) return held.id;
-    const { rows } = await this.pool.query<{ photo_id: string | null }>(
-      `SELECT min(external_id) AS photo_id FROM provider_mapping
+    const held = this.ids.get(key);
+    if (held !== undefined && now - held.at < PERSON_IDS_TTL_MS && held.ids.includes(externalId)) {
+      return held.ids;
+    }
+    const { rows } = await this.pool.query<{ ids: string[] | null }>(
+      `SELECT array_agg(external_id ORDER BY external_id) AS ids FROM provider_mapping
         WHERE provider = $1 AND entity_type = 'person' AND internal_id = $2`,
       [provider, personId],
     );
-    const id = rows[0]?.photo_id ?? null;
-    if (this.photoIds.size >= PHOTO_ID_CAP) this.photoIds.clear();
-    this.photoIds.set(key, { id, at: now });
-    return id;
+    const ids = rows[0]?.ids ?? [];
+    if (this.ids.size >= PERSON_IDS_CAP) this.ids.clear();
+    this.ids.set(key, { ids, at: now });
+    return ids;
   }
 }

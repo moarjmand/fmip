@@ -2,7 +2,7 @@ import type { Pool, PoolClient } from 'pg';
 import type { NormalisedCoach, Provider } from '@fmip/ingestion';
 import type { CoachesKept, CoachesStore, TeamAsk, TeamAskReason } from './coaches';
 import type { MediaSink, RefResolver } from './ingest-store';
-import { PersonPhotos } from './person-photo';
+import { type PersonPhotoNoter, PersonPhotos } from './person-photo';
 import { type BioCountry, countryOf } from './person-bios';
 
 /**
@@ -14,14 +14,19 @@ import { type BioCountry, countryOf } from './person-bios';
  */
 export class CoachStore implements CoachesStore {
   /** A coach's photo goes through the one rule for several ids (T-1869, D-452). */
-  private readonly photos: PersonPhotos | null;
+  private readonly photos: PersonPhotoNoter | null;
 
+  /**
+   * `photos` is the process's one `PersonPhotos`, shared with the other
+   * writers (`IngestionJobsService`); without it, one of the store's own.
+   */
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
     media: MediaSink | null = null,
+    photos?: PersonPhotoNoter,
   ) {
-    this.photos = media === null ? null : new PersonPhotos(pool, media);
+    this.photos = photos ?? (media === null ? null : new PersonPhotos(pool, media));
   }
 
   async restoreSplitReferences(provider: Provider): Promise<number> {

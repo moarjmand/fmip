@@ -47,7 +47,7 @@ import type {
 } from '@fmip/ingestion';
 import { PERIOD_KINDS, isPlaceholderPersonName } from '@fmip/ingestion';
 import type { LineupCandidate } from './lineup-asks';
-import { PersonPhotos } from './person-photo';
+import { type PersonPhotoNoter, PersonPhotos } from './person-photo';
 import type { EntityType } from './resolver';
 
 /**
@@ -156,8 +156,8 @@ export interface MediaSink {
     entityId: string,
     sourceUrl: string,
   ): Promise<void>;
-  /** Only where no address is held: a person's photo from another of his ids (T-1869). */
-  noteFirst(
+  /** Only into an empty place: a person with several provider ids (T-1869, D-452). */
+  noteIfEmpty(
     provider: Provider,
     entityType: 'person',
     entityId: string,
@@ -204,14 +204,19 @@ export class IngestStore implements SquadStore {
    */
   private readonly countryOfCompetition = new Map<string, string | null>();
   /** A person's photo goes through the one rule for several ids (T-1869, D-452). */
-  private readonly photos: PersonPhotos | null;
+  private readonly photos: PersonPhotoNoter | null;
 
+  /**
+   * `photos` is the process's one `PersonPhotos`, shared with the other
+   * writers (`IngestionJobsService`); without it, one of the store's own.
+   */
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
     private readonly media: MediaSink | null = null,
+    photos?: PersonPhotoNoter,
   ) {
-    this.photos = media === null ? null : new PersonPhotos(pool, media);
+    this.photos = photos ?? (media === null ? null : new PersonPhotos(pool, media));
   }
 
   /**
