@@ -167,6 +167,73 @@ describe('the person commands, parsed', () => {
     expect(sql.filter((t) => t === 'ROLLBACK')).toHaveLength(1);
   });
 
+  /**
+   * A batch of three pairs over a stand-in connection whose `fail` decides,
+   * per statement and its count so far, whether that statement throws.
+   */
+  async function batchOver(fail: (text: string, seen: Map<string, number>) => boolean) {
+    const sql: string[] = [];
+    const seen = new Map<string, number>();
+    const client = {
+      query: async (text: string) => {
+        sql.push(text);
+        const key = text.split(/\s+/).slice(0, 2).join(' ');
+        seen.set(key, (seen.get(key) ?? 0) + 1);
+        if (fail(text, seen)) throw new Error('Connection terminated unexpectedly');
+        if (text.includes('FROM user_account')) return { rows: [{ id: A, admin: true }] };
+        if (text.startsWith('SELECT merge_person(')) return { rows: [{ id: C }] };
+        return { rows: [], rowCount: 0 };
+      },
+    };
+    const out: string[] = [];
+    const err: string[] = [];
+    const log = console.log;
+    const error = console.error;
+    console.log = (...args: unknown[]) => void out.push(args.join(' '));
+    console.error = (...args: unknown[]) => void err.push(args.join(' '));
+    try {
+      const code = await people.mergePeople(
+        client,
+        { by: 'admin@example.test', reason: 'r', dryRun: false, file: 'pairs.csv', pairs: null },
+        () => [`${A},${B}`, `${C},${B}`, `00000000-0000-4000-8000-00000000000d,${B}`].join('\n'),
+      );
+      return { code, said: out.join('\n'), warned: err.join('\n'), sql };
+    } finally {
+      console.log = log;
+      console.error = error;
+    }
+  }
+
+  it('counts a pair merged when only saying so fails after its COMMIT, and goes on (review n1)', async () => {
+    // The first pair's name lookup, after its commit, fails.
+    const { code, said, warned } = await batchOver(
+      (text, seen) => text.includes('SELECT full_name') && seen.get('SELECT full_name,') === 1,
+    );
+    expect(warned).toMatch(
+      /1\/3 merged --from .* merge id .* \(output failed: Connection terminated/,
+    );
+    expect(warned).not.toMatch(/nothing of this pair was written/);
+    expect(said).toMatch(/2\/3 merged/);
+    expect(said).toMatch(/3\/3 merged/);
+    expect(said).toMatch(/3 pair\(s\) merged, each audited/);
+    expect(code).toBe(0);
+  });
+
+  it('stops at a COMMIT that throws, saying the outcome is unknown rather than nothing written (review n1)', async () => {
+    const { code, said, warned, sql } = await batchOver(
+      (text, seen) => text === 'COMMIT' && seen.get('COMMIT') === 2,
+    );
+    expect(code).toBe(1);
+    expect(said).toMatch(/1\/3 merged/);
+    expect(warned).toMatch(/2\/3 outcome unknown: /);
+    expect(warned).toMatch(/may or may not be merged .*person_merged_into/);
+    expect(warned).not.toMatch(/nothing of this pair was written/);
+    expect(warned).toMatch(/1 pair\(s\) merged before it, 1 not tried/);
+    // The references check ran for the pair known to be merged.
+    expect(sql.some((t) => t.includes('FROM pg_constraint'))).toBe(true);
+    expect(sql.filter((t) => t.startsWith('SELECT merge_person('))).toHaveLength(2);
+  });
+
   it('says each PL024 refusal in the operator’s words', () => {
     expect(people.refusal('shared_lineup', { fixture: C })).toMatch(
       /line-up of one match \(fixture .*\).*never merged.*--not-duplicate/,

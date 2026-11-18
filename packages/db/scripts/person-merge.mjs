@@ -485,29 +485,22 @@ export async function mergePeople(client, options, readFile) {
   try {
     for (const [index, pair] of pairs.entries()) {
       const label = `${index + 1}/${pairs.length}`;
-      if (options.dryRun) await client.query('SAVEPOINT pair');
-      else await client.query('BEGIN');
+      let mergeId;
+      let asked;
+      let summary;
       try {
+        if (options.dryRun) await client.query('SAVEPOINT pair');
+        else await client.query('BEGIN');
         const { rows } = await client.query('SELECT merge_person($1, $2, $3, $4) AS id', [
           pair.from,
           pair.into,
           actor,
           options.reason,
         ]);
-        const asked = await askProfilesAgain(client, [pair.into]);
-        const summary = await mergeSummary(client, rows[0].id);
+        mergeId = rows[0].id;
+        asked = await askProfilesAgain(client, [pair.into]);
+        summary = await mergeSummary(client, mergeId);
         if (options.dryRun) await client.query('RELEASE SAVEPOINT pair');
-        else await client.query('COMMIT');
-        merged.push(pair.from);
-        console.log(
-          `${label} ${options.dryRun ? 'would merge' : 'merged'} ${await personLine(client, pair.from)}` +
-            ` into ${await personLine(client, pair.into)}` +
-            (options.dryRun
-              ? ''
-              : `\n      merge id ${rows[0].id} (for --unmerge --merge ${rows[0].id})`),
-        );
-        for (const line of summary) console.log(line);
-        if (asked > 0) console.log(`      profile answers asked again: ${asked}`);
       } catch (error) {
         // A refusal (PL024) or any other failure (a deadlock with an
         // ingestion transaction, a lost connection) stops the batch the same
@@ -530,6 +523,50 @@ export async function mergePeople(client, options, readFile) {
           detail: message,
         };
         break;
+      }
+
+      // The commit on its own (review n1, round 2): a COMMIT that throws may
+      // or may not have committed (the connection can drop after the server
+      // committed), so the pair is neither "merged" nor "nothing written".
+      if (!options.dryRun) {
+        try {
+          await client.query('COMMIT');
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          stopped = {
+            label,
+            pair,
+            verb: 'outcome unknown',
+            message:
+              `The COMMIT failed, so this pair may or may not be merged (merge id ${mergeId}). ` +
+              `Check with SELECT person_merged_into('${pair.from}') and the person_merge table, ` +
+              `then run the "nothing references the loser" check for ${pair.from} if it was.`,
+            detail: message,
+          };
+          break;
+        }
+      }
+      merged.push(pair.from);
+
+      // What was done, said only now: a failure while saying it (the
+      // connection gone after the commit) does not make a merged pair look
+      // unmerged. It is counted as merged and the batch goes on.
+      try {
+        console.log(
+          `${label} ${options.dryRun ? 'would merge' : 'merged'} ${await personLine(client, pair.from)}` +
+            ` into ${await personLine(client, pair.into)}` +
+            (options.dryRun
+              ? ''
+              : `\n      merge id ${mergeId} (for --unmerge --merge ${mergeId})`),
+        );
+        for (const line of summary) console.log(line);
+        if (asked > 0) console.log(`      profile answers asked again: ${asked}`);
+      } catch (error) {
+        console.error(
+          `${label} ${options.dryRun ? 'would merge' : 'merged'} --from ${pair.from} --into ${pair.into}` +
+            (options.dryRun ? '' : `, merge id ${mergeId}`) +
+            ` (output failed: ${error instanceof Error ? error.message : String(error)})`,
+        );
       }
     }
     if (options.dryRun) await sayReferencesOrSay(client, merged);

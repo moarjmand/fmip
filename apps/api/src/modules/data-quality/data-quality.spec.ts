@@ -521,6 +521,24 @@ describe('person_duplicate_candidate', () => {
     expect(scoped.checks).not.toContain('person_duplicate_candidate');
   });
 
+  it("leaves the hourly person check out of the watchdog's sweep age (review n2)", async () => {
+    const minuteAgo = new Date(NOW.getTime() - 60_000);
+    const fiveAgo = new Date(NOW.getTime() - 5 * 60_000);
+    const runs = new Map<DataQualityCheck, Date>(
+      SWEPT_CHECKS.map((check) => [check, check === 'lineup_not_eleven' ? fiveAgo : minuteAgo]),
+    );
+    runs.set('person_duplicate_candidate', new Date(NOW.getTime() - 2 * 60 * 60_000));
+    const store = { checkRuns: async () => runs, liveContradictions: async () => 0 };
+    const seen = await new DataQualityService(store as never).liveContradictions(NOW);
+    // The oldest of the other swept checks, not the person check's two hours.
+    expect(seen).toEqual({ open: 0, sweptAt: fiveAgo });
+    // And a never-run person check does not make the sweep unknown either.
+    runs.delete('person_duplicate_candidate');
+    expect((await new DataQualityService(store as never).liveContradictions(NOW)).sweptAt).toEqual(
+      fiveAgo,
+    );
+  });
+
   it('keeps one subject whichever way round the pair is read, and never pairs a row with itself', () => {
     const swapped = personDuplicateCandidate({ ...PEOPLE, lowPersonId: HIGH, highPersonId: LOW });
     expect(swapped?.subjectKey).toBe(`${LOW}:${HIGH}`);
