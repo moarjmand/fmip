@@ -34,6 +34,7 @@ describe('player news before anything could be linked (T-1007)', () => {
     const id = randomUUID();
     const body = await controller({
       entityExists: async () => true,
+      personNow: async (id: string) => id,
       lastFetchedAt: async () => null,
       anyPersonLinked: unasked,
       forPerson: unasked,
@@ -49,6 +50,7 @@ describe('player news before anything could be linked (T-1007)', () => {
     const id = randomUUID();
     const body = await controller({
       entityExists: async () => true,
+      personNow: async (id: string) => id,
       lastFetchedAt: async () => '2026-09-29T10:00:00.000Z',
       anyPersonLinked: async () => false,
       forPerson: unasked,

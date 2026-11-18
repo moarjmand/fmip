@@ -16089,4 +16089,6 @@ These are reported beside the verdict but are not gates:
 
 **Rejected.** *`{ moved_to }` alone*: an untyped second shape, and an older reader shows an empty page. *An HTTP redirect from the API*: the web's fetch would follow it silently and never learn to redirect the reader's URL. *404 for a tombstone*: members' cards, panel links and shared URLs would lead nowhere.
 
-**Consequences.** One more indexed lookup per player or coach page read. `GET /players/:id/transfers` and `/provider-seasons` are not resolved: the web redirects before it shows them.
+**What else reads through the merge.** Every read that takes a person's id resolves a tombstone to its survivor the same way, so nothing shows the survivor's name over the tombstone's emptied lists (rule 3): `GET /players/:id/news` (its `entity.id` is the survivor's), the news list's `?player=` filter (echoed as the survivor's id, so a saved `/news?player=<tombstone>` lists the survivor's stories under his name), `GET /players/:id/transfers` and `GET /players/:id/provider-seasons`. Search never returns a tombstone: a hit on its name is the survivor's, with the tombstone's name as the alias that matched when the two differ, one row per survivor, so a spelling only the merged-away id had still finds the man.
+
+**Consequences.** One more indexed lookup per player, coach, player news or news-by-player read; the person part of search joins `person_merge` (a partial unique index on `from_person_id`).

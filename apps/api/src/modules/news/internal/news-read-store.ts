@@ -714,6 +714,20 @@ export class PostgresNewsReadStore {
   }
 
   /**
+   * The person an id now stands for: the survivor when the id is a merged-away
+   * duplicate (a tombstone, T-1865a, D-446 point 7, D-453), else the id. The
+   * merge moved the tombstone's story links to the survivor, so reading the
+   * tombstone's own would list nothing under the survivor's name (rule 3).
+   */
+  async personNow(id: string): Promise<string> {
+    const { rows } = await this.pool.query<{ id: string }>(
+      `SELECT coalesce(person_merged_into($1::uuid), $1::uuid) AS id`,
+      [id],
+    );
+    return rows[0]?.id ?? id;
+  }
+
+  /**
    * A player's related news (T-1007, D-127): stories any of whose reports
    * link the person, newest first, the latest section's cards.
    */

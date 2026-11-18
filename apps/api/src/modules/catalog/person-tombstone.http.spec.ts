@@ -1,12 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { CoachPage, PlayerPage, SearchResponse } from '@fmip/contracts';
+import type {
+  CoachPage,
+  EntityNewsResponse,
+  NewsSectionResponse,
+  PlayerPage,
+  PlayerTransfers,
+  SearchResponse,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { CardStore } from '../conversations/internal/conversations-store';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
+import { CaptureMailer, MAILER } from '../identity/internal/mailer';
+import { NewsModule } from '../news/news.module';
 import { PostgresPanelStore } from '../panel/internal/panel-store';
 import { SearchModule } from '../search/search.module';
 import { CatalogModule } from './catalog.module';
@@ -26,8 +35,10 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
 const PL_2025 = '00000000-0000-4000-8000-000000000302';
 const RUN = randomUUID().slice(0, 8);
-// One rare word, so the search below finds exactly these two persons.
+// One rare word, so the search below finds exactly these persons.
 const NAME = `Quillfeather Tombstone${RUN}`;
+// A third id of the same man, spelled as only that id was.
+const SPELLED = `Vellichor Brandywine${RUN}`;
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
   'tombstone reads (T-1865a)',
@@ -36,6 +47,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     let pool: Pool;
     const survivor = randomUUID();
     const loser = randomUUID();
+    const spelled = randomUUID();
     const teams = [randomUUID(), randomUUID()];
     const fixtures = [randomUUID(), randomUUID()];
     let actor = '';
@@ -44,16 +56,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     const get = <T>(url: string) =>
       app.inject({ method: 'GET', url }).then((r) => ({ status: r.statusCode, body: r.json<T>() }));
-    const found = async () =>
-      (await get<SearchResponse>(`/search?q=${encodeURIComponent(NAME)}&types=person`)).body.results
-        .map((r) => r.id)
-        .filter((id) => id === survivor || id === loser)
-        .sort();
+    const hits = async (q: string) =>
+      (await get<SearchResponse>(`/search?q=${encodeURIComponent(q)}&types=person`)).body.results
+        .filter((r) => ([survivor, loser, spelled] as string[]).includes(r.id))
+        .map((r) => ({ id: r.id, name: r.name, alias: r.alias }));
+    const found = async (q = NAME) => (await hits(q)).map((r) => r.id).sort();
 
     beforeAll(async () => {
       const moduleRef = await Test.createTestingModule({
-        imports: [DatabaseModule, CatalogModule, SearchModule],
+        imports: [DatabaseModule, CatalogModule, SearchModule, NewsModule],
       })
+        .overrideProvider(MAILER)
+        .useValue(new CaptureMailer())
         .overrideProvider(IDENTITY_OPTIONS)
         .useValue({ ...DEFAULT_IDENTITY_OPTIONS, sessionSecret: 'test-secret-'.repeat(4) })
         .compile();
@@ -79,8 +93,21 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // The provider's two ids for one man: the same name on two rows.
       await pool.query(
         `INSERT INTO person (id, full_name, date_of_birth) VALUES
-           ($1, $3, '1990-01-01'), ($2, $3, '1990-01-01')`,
-        [survivor, loser, NAME],
+           ($1, $3, '1990-01-01'), ($2, $3, '1990-01-01'), ($4, $5, '1990-01-01')`,
+        [survivor, loser, NAME, spelled, SPELLED],
+      );
+      // The provider's list of the loser id's moves, read before the merge.
+      await pool.query(
+        `INSERT INTO transfer_listing
+           (source, subject_person_id, person_id, person_name, transfer_date, kind,
+            to_team_id, to_name, fetched_at)
+         VALUES ('api_football', $1, $1, $2, '2024-07-01', 'free', $3, 'T-1865a Home', now())`,
+        [loser, NAME, teams[0]],
+      );
+      await pool.query(
+        `INSERT INTO person_transfer_fetch (provider, person_id, answered_at, moves)
+         VALUES ('api_football', $1, now(), 1)`,
+        [survivor],
       );
       for (const fixture of fixtures) {
         await pool.query(
@@ -131,16 +158,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           // The merge's audit rows and archive are immutable by trigger.
           await client.query(`SET session_replication_role = 'replica'`);
           const audits = await client.query<{ id: string }>(
-            `SELECT audit_log_id AS id FROM person_merge WHERE from_person_id = $1
-             UNION SELECT undo_audit_log_id FROM person_merge WHERE from_person_id = $1`,
-            [loser],
+            `SELECT audit_log_id AS id FROM person_merge WHERE from_person_id = ANY($1::uuid[])
+             UNION SELECT undo_audit_log_id FROM person_merge WHERE from_person_id = ANY($1::uuid[])`,
+            [[loser, spelled]],
           );
           await client.query(
             `DELETE FROM person_merge_moved WHERE merge_id IN
-               (SELECT id FROM person_merge WHERE from_person_id = $1)`,
-            [loser],
+               (SELECT id FROM person_merge WHERE from_person_id = ANY($1::uuid[]))`,
+            [[loser, spelled]],
           );
-          await client.query(`DELETE FROM person_merge WHERE from_person_id = $1`, [loser]);
+          await client.query(`DELETE FROM person_merge WHERE from_person_id = ANY($1::uuid[])`, [
+            [loser, spelled],
+          ]);
+          await client.query(
+            `DELETE FROM person_transfer_fetch WHERE person_id = ANY($1::uuid[])`,
+            [[survivor, loser]],
+          );
+          await client.query(
+            `DELETE FROM transfer_listing WHERE subject_person_id = ANY($1::uuid[])`,
+            [[survivor, loser]],
+          );
           await client.query(`DELETE FROM audit_log WHERE id = ANY($1::uuid[])`, [
             audits.rows.map((r) => r.id).filter((id) => id !== null),
           ]);
@@ -157,7 +194,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
             fixtures,
           ]);
           await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
-          await client.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [[survivor, loser]]);
+          await client.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
+            [survivor, loser, spelled],
+          ]);
           await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [teams]);
           await client.query(`DELETE FROM contributor_grant WHERE user_id = $1`, [actor]);
           await client.query(`DELETE FROM user_account WHERE id = $1`, [actor]);
@@ -172,6 +211,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     it('reads two persons before the merge, neither moved', async () => {
       expect(await found()).toEqual([survivor, loser].sort());
+      expect(await found(SPELLED)).toEqual([spelled]);
       const page = await get<PlayerPage>(`/players/${loser}`);
       expect(page.status).toBe(200);
       expect(page.body.person.id).toBe(loser);
@@ -187,6 +227,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           'T-1865a spec: one man under two ids',
         ])
       ).rows[0]!.id;
+      await pool.query(`SELECT merge_person($1, $2, $3, 'T-1865a spec: a third id')`, [
+        spelled,
+        survivor,
+        actor,
+      ]);
 
       const player = await get<PlayerPage>(`/players/${loser}`);
       expect(player.status).toBe(200);
@@ -210,8 +255,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(ownCoach.body).not.toHaveProperty('moved_to');
     });
 
-    it('leaves the tombstone out of search', async () => {
-      expect(await found()).toEqual([survivor]);
+    it('finds the survivor once, by the names of any of his ids, never the tombstone', async () => {
+      expect(await hits(NAME)).toEqual([{ id: survivor, name: NAME, alias: null }]);
+      // A spelling only a merged-away id had still finds the man.
+      expect(await hits(SPELLED)).toEqual([{ id: survivor, name: NAME, alias: SPELLED }]);
+    });
+
+    it("answers a tombstone's news and transfers with the survivor's (D-453)", async () => {
+      const news = await get<EntityNewsResponse>(`/players/${loser}/news`);
+      expect(news.status).toBe(200);
+      expect(news.body.entity).toEqual({ type: 'person', id: survivor });
+      const section = await get<NewsSectionResponse>(`/news?player=${loser}`);
+      expect(section.status).toBe(200);
+      expect(section.body.filters.player).toBe(survivor);
+
+      const moved = await get<PlayerTransfers>(`/players/${loser}/transfers`);
+      const own = await get<PlayerTransfers>(`/players/${survivor}/transfers`);
+      expect(moved.status).toBe(200);
+      expect(moved.body).toEqual(own.body);
+      expect(JSON.stringify(own.body)).toContain('2024-07-01');
+      const seasons = await get(`/players/${loser}/provider-seasons`);
+      expect(seasons.body).toEqual((await get(`/players/${survivor}/provider-seasons`)).body);
     });
 
     it('shows the survivor on a message card that names the tombstone', async () => {

@@ -163,7 +163,8 @@ export class CatalogService {
   async playerProviderSeasons(id: string): Promise<PlayerProviderSeasons | null> {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
-    return readProviderSeasons(this.pool, id);
+    // A merged-away player's seasons are his survivor's (D-453).
+    return readProviderSeasons(this.pool, (await this.mergedInto(id)) ?? id);
   }
 
   /**
@@ -180,7 +181,8 @@ export class CatalogService {
   async playerTransfers(id: string, locale: string | null): Promise<PlayerTransfers | null> {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
-    return readPlayerTransfers(this.pool, id, locale);
+    // A merged-away player's moves are his survivor's (D-453).
+    return readPlayerTransfers(this.pool, (await this.mergedInto(id)) ?? id, locale);
   }
 
   /** A club's arrivals and departures as the provider lists them (T-1440, D-231). `null` for no such club. */
