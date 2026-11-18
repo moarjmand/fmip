@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import type { PlayerPage as PlayerPageData } from '@fmip/contracts';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   fetchEntityNews,
   fetchFollowing,
@@ -34,6 +34,7 @@ import {
   type PlayerTab,
   filterMatches,
   filterRecord,
+  movedHref,
   playerTabHref,
   readPlayerTab,
   readSeasonFilter,
@@ -105,6 +106,10 @@ export default async function PlayerPage({
     // The provider's list of his moves (T-1440): Career only.
     tab === 'career' ? fetchPlayerTransfers(id, locale) : null,
   ]);
+  // A merged-away duplicate (T-1865b, D-453): the survivor's page, for good (308).
+  if (result.ok && result.data.moved_to !== undefined) {
+    permanentRedirect(movedHref(`/${locale}/player/${result.data.moved_to}`, query));
+  }
   const providerSeasons = provider?.ok === true ? provider.data : null;
   if (!result.ok) {
     if (result.status === 404) notFound();

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import type { PlayerPage } from '@fmip/contracts';
 import { fetchMe, fetchPlayer, fetchSearch } from '@/lib/api';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
@@ -8,7 +8,14 @@ import { sessionCookieHeader } from '@/lib/session';
 import { Translated } from '@/components/translated';
 import { attribute } from '@/i18n/messages';
 import { coverageText, pageLocale, say } from '@/lib/competition';
-import { POSITION_KEY, ageOn, clubBasisText, clubClaim, positionValue } from '@/lib/player';
+import {
+  POSITION_KEY,
+  ageOn,
+  clubBasisText,
+  clubClaim,
+  movedHref,
+  positionValue,
+} from '@/lib/player';
 import { EntityImage } from '@/components/entity-image';
 import { formatNumber } from '@/i18n/format';
 import {
@@ -165,6 +172,27 @@ export default async function ComparePlayersPage({
     ask === null ? Promise.resolve(null) : fetchSearch(ask),
     sessionCookieHeader().then(fetchMe),
   ]);
+  // Either player merged away (T-1865b, D-453): the same comparison of the
+  // survivors, the rest of the query kept, for good (308), in one hop. A
+  // survivor compared with himself is the picker, as `?with=` naming the
+  // first player always is.
+  const movedA = a.ok ? a.data.moved_to : undefined;
+  const movedB = b !== null && b.ok ? b.data.moved_to : undefined;
+  if (movedA !== undefined || movedB !== undefined) {
+    const first = movedA ?? id;
+    let second: string | null = null;
+    if (other.state === 'id') {
+      second = other.id === id.toLowerCase() ? first : (movedB ?? other.id);
+      if (second.toLowerCase() === first.toLowerCase()) second = null;
+    }
+    permanentRedirect(
+      movedHref(
+        `/${locale}/player/${first}/compare`,
+        query,
+        other.state === 'id' ? { with: second } : {},
+      ),
+    );
+  }
   // The stamps in the reader's zone, as every other page has them (T-1797, D-207, D-337).
   const { timeZone } = await pageTimeZone(locale, me);
   if ((!a.ok && a.status === 404) || (b !== null && !b.ok && b.status === 404)) notFound();

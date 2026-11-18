@@ -7,6 +7,7 @@ import {
   filterMatches,
   filterRecord,
   minutesText,
+  movedHref,
   readSeasonFilter,
   roleLabel,
   seasonLabelOf,
@@ -177,5 +178,32 @@ describe('availabilityStale (T-1007)', () => {
     const now = new Date('2026-09-29T12:00:00Z');
     expect(availabilityStale('2026-09-29T07:00:00Z', now)).toBe(false);
     expect(availabilityStale('2026-09-29T05:59:00Z', now)).toBe(true);
+  });
+});
+
+describe('movedHref (T-1865b, D-453)', () => {
+  const SURVIVOR = '/en/player/00000000-0000-4000-8000-0000000007a1';
+
+  it('is the bare path without a query', () => {
+    expect(movedHref(SURVIVOR, {})).toBe(SURVIVOR);
+    expect(movedHref(SURVIVOR, { tab: undefined })).toBe(SURVIVOR);
+  });
+
+  it("keeps the reader's query, a repeated parameter whole and in order", () => {
+    expect(movedHref(SURVIVOR, { tab: 'stats', season: 's 1', x: ['a', 'b'] })).toBe(
+      `${SURVIVOR}?tab=stats&season=s+1&x=a&x=b`,
+    );
+  });
+
+  it('drops a parameter replaced by null', () => {
+    expect(movedHref(`${SURVIVOR}/compare`, { with: 'old', q: 'z' }, { with: null })).toBe(
+      `${SURVIVOR}/compare?q=z`,
+    );
+  });
+
+  it('sets a replaced parameter once, over the old value', () => {
+    expect(
+      movedHref(`${SURVIVOR}/compare`, { with: ['old', 'older'], q: 'z' }, { with: 'new' }),
+    ).toBe(`${SURVIVOR}/compare?q=z&with=new`);
   });
 });
