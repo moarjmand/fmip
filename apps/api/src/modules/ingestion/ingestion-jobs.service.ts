@@ -68,6 +68,7 @@ import { KitColourStore } from './internal/kit-colour-store';
 import { kitColoursBatch, sweepKitColours } from './internal/kit-colours';
 import { PEOPLE_NAMES_RUN_MS, peopleNamesBatch, sweepPeopleNames } from './internal/person-names';
 import { CoachStore } from './internal/coach-store';
+import { PersonPhotos } from './internal/person-photo';
 import { coachesBatch, sweepCoaches } from './internal/coaches';
 import { PlayerSeasonStore } from './internal/player-season-store';
 import { playerSeasonsBatch, sweepPlayerSeasons } from './internal/player-seasons';
@@ -359,6 +360,8 @@ export class IngestionJobsService {
   private readonly coachStore: CoachStore;
   private readonly transfersBatch = transfersBatch(process.env.INGESTION_TRANSFERS_BATCH);
   private readonly transferStore: TransferStore;
+  /** The squads sweep's photos, by the one rule for a person's several ids (T-1869). */
+  private readonly personPhotos: PersonPhotos;
   /** When the live job last asked for a match that left the live list, by fixture id. */
   private readonly leftLiveListAskedAt = new Map<string, number>();
   /** Minutes between two detail asks about a match in play; 0 is off (T-1782, D-382). */
@@ -392,6 +395,7 @@ export class IngestionJobsService {
     this.clubFacts = new ClubFactsStore(pool);
     this.coachStore = new CoachStore(pool, resolver, media);
     this.transferStore = new TransferStore(pool);
+    this.personPhotos = new PersonPhotos(pool, media);
   }
 
   /** Runs one job by name. The scheduler and the tests both come through here. */
@@ -728,7 +732,7 @@ export class IngestionJobsService {
         provider: source.provider,
         adapter: source.adapter,
         store: this.store,
-        media: this.media,
+        photos: this.personPhotos,
         seasonIds: [...new Set(targets.map((t) => t.seasonId))],
         now,
         perDay: this.squadsPerDay,

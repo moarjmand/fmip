@@ -16076,3 +16076,20 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *Splitting rows and repointing matches*: nothing was merged. *Writing "Valencia" and "Saint Paul" by hand*: a value of ours over the provider's own record, and only two of the grounds that may be affected; the answer by id corrects all of them. *Asking every ground again at once*: about 3,500 requests for what the monthly pass does within its budget. *A data-quality check in the platform's own sweep (T-820)*: a new check kind touches contracts, a constraint and the admin page; the audit's invariant reads the same row.
 
 **Consequences.** A city spelled differently by the two answers ("Munich" and "München") now shows the ground answer's spelling. If the provider's own record of a ground names the wrong city, V1 stays silent: that is the provider's error, as D-229's other facts are. One migration (a nullable column, two constraints), one store, its spec, the audit's files and the docs.
+
+---
+## D-452 — A person with several provider ids takes his photo from his lowest id; another id only fills an empty place
+
+**Status:** Accepted · 2026-11-18 (the agent, from the code review of #930, under D-446's delegation) · **Task:** T-1869 · **Follows:** D-176, D-230, D-446
+
+**Context.** Once duplicates are merged (D-446), one person holds several of a provider's ids, player and `coach:` alike. His photo address is noted from three places (the match writes in `ingest-store.ts`, the squads sweep, the coaches job), and the provider's address carries the id it was given under. Noting every mention as it came would switch the stored address each time he is mentioned under the other id, make the row due, fetch again and alternate the photo the site shows.
+
+**Decision.**
+1. **The photo id is the person's lowest id at the provider**, `min(external_id)` over all his mappings there, player and `coach:` ids alike (the order the per-person jobs ask in, T-1866).
+2. **A mention under the photo id notes its address as before** (`MediaService.note`): a new address there replaces the stored one, which stays served until its replacement is fetched (D-176).
+3. **A mention under any other id only fills an empty place** (`MediaService.noteFirst`): it is written when the person holds no photo address at all, and never replaces one. So a person whose lowest id is never mentioned still gets a photo, and once an address is held only the photo id changes it: mentions under several ids, in any order, switch it at most once (to the photo id's) and never back.
+4. **One helper applies it at all three places** (`PersonPhotos` in `apps/api/src/modules/ingestion/internal/person-photo.ts`). A person with one id is always at his photo id: unchanged. The photo id is remembered ten minutes per process, so a merge is seen within that.
+
+**Rejected.** *Keep the stored image and replace it only from the id it came from*: `entity_media` does not record the id, so it needs a new column and a backfill, or the provider's address parsed outside its adapter (rule 2). *Strictly the lowest id, nothing from the others*: a merged player-and-coach seen only as a coach now would never get a photo.
+
+**Consequences.** No migration. One method on the media boundary (`noteFirst`, an `INSERT ... WHERE NOT EXISTS ... ON CONFLICT DO NOTHING`); which hosts are fetched, the checks on what is fetched and what is served are unchanged (D-176). A photo mention costs at most one indexed read of `provider_mapping` per person, writer and ten minutes. A person whose photo id's photo is the provider's silhouette keeps `not_supplied` even if another id's photo is real; a person merged after a photo was stored from a higher id switches once, to the lowest id's, the next time that id is mentioned.

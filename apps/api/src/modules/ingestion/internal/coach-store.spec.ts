@@ -29,6 +29,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
   let store: CoachStore;
   const queued: string[] = [];
   const noted: [string, string][] = [];
+  /** Addresses offered only for an empty place (T-1869). */
+  const notedFirst: [string, string][] = [];
   const id = {
     league: randomUUID(),
     season: randomUUID(),
@@ -61,6 +63,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
   } as RefResolver;
   const media: MediaSink = {
     note: async (_p, _t, entityId, url) => void noted.push([entityId, url]),
+    noteFirst: async (_p, _t, entityId, url) => void notedFirst.push([entityId, url]),
   };
 
   const teamsDue = async (at = { answeredBeforeIso: EARLIER, retryBeforeIso: EARLIER }) =>
@@ -388,6 +391,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
         [id.city, '2017-01-01', null],
         [id.chelsea, '2019-07-01', '2021-06-30'],
         [id.city, '2025-07-01', '2026-11-01'],
+      ]);
+    });
+
+    it('takes the photo from the lowest id; the other only fills an empty place (T-1869)', async () => {
+      const photo = (n: string): NormalisedCoach => ({
+        ...coach(n, [atCity('2025-07-01', '2026-11-01')]),
+        ref: { externalId: coachExt(n), name: 'T-1868 Merged', imageUrl: `https://media/${n}.png` },
+      });
+      noted.length = 0;
+      notedFirst.length = 0;
+      // Mentions under the two ids, alternating, as two teams' answers would.
+      for (const n of ['merged-b', 'merged-a', 'merged-b', 'merged-a']) {
+        await store.saveTeamCoaches(PROVIDER, city, [photo(n)], '2026-11-17T10:17:00.000Z');
+      }
+      expect(noted).toEqual([
+        [id.merged, 'https://media/merged-a.png'],
+        [id.merged, 'https://media/merged-a.png'],
+      ]);
+      expect(notedFirst).toEqual([
+        [id.merged, 'https://media/merged-b.png'],
+        [id.merged, 'https://media/merged-b.png'],
       ]);
     });
 

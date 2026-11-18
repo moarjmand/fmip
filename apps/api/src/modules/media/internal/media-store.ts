@@ -92,6 +92,29 @@ export class MediaStore {
   }
 
   /**
+   * As `note`, but only when the entity holds no address of that kind: an
+   * address already held, whatever it is, is never replaced (T-1869, D-452:
+   * a person's photo from an id other than his photo id). True when written.
+   */
+  async noteFirst(
+    provider: string,
+    entityType: MediaEntityType,
+    entityId: string,
+    sourceUrl: string,
+  ): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      `INSERT INTO entity_media (entity_type, entity_id, kind, source_provider, source_url)
+       SELECT $1::text, $2::uuid, $3::text, $4::text, $5::text
+        WHERE NOT EXISTS (
+                SELECT 1 FROM entity_media
+                 WHERE entity_type = $1::text AND entity_id = $2::uuid AND kind = $3::text)
+       ON CONFLICT (entity_type, entity_id, kind) DO NOTHING`,
+      [entityType, entityId, KIND_OF[entityType], provider, sourceUrl],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  /**
    * What the fetch job should ask for now, at most `limit`: never fetched
    * first (competitions and country flags, then teams, then people -- the
    * few that every page shows before the many), then those due a monthly re-check, then failures

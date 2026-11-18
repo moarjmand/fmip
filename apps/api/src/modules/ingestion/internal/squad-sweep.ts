@@ -30,6 +30,7 @@
 
 import type { NormalisedSquadPlayer, Position, Provider, ProviderAdapter } from '@fmip/ingestion';
 import { AskPacer } from './ask-pacer';
+import type { PersonPhotoNoter } from './person-photo';
 
 /** The default daily cap on squad requests. */
 export const SQUADS_PER_DAY = 60;
@@ -96,16 +97,6 @@ export interface SquadStore {
   ): Promise<void>;
 }
 
-/** Where a photo address goes. `MediaService.note`; never throws. */
-export interface PhotoSink {
-  note(
-    provider: Provider,
-    entityType: 'person',
-    entityId: string,
-    sourceUrl: string,
-  ): Promise<void>;
-}
-
 export interface SquadSweep {
   /** Squad requests sent: one per club asked. */
   asked: number;
@@ -144,7 +135,8 @@ export async function sweepSquads(input: {
   provider: Provider;
   adapter: ProviderAdapter;
   store: SquadStore;
-  media: PhotoSink;
+  /** Where each held player's photo goes, by the one rule for several ids (T-1869). */
+  photos: PersonPhotoNoter;
   seasonIds: string[];
   now: Date;
   perDay: number;
@@ -154,7 +146,7 @@ export async function sweepSquads(input: {
   /** Spaces the asks; injected so a test does not sleep. */
   pacer?: { pace(): Promise<void> };
 }): Promise<SquadSweep> {
-  const { provider, adapter, store, media, now } = input;
+  const { provider, adapter, store, photos, now } = input;
   const pacer = input.pacer ?? new AskPacer();
   const sweep: SquadSweep = {
     asked: 0,
@@ -211,7 +203,7 @@ export async function sweepSquads(input: {
       provider,
       result.data.map((p) => p.externalId),
     );
-    sweep.noted += await notePhotos(provider, media, result.data, held);
+    sweep.noted += await notePhotos(provider, photos, result.data, held);
     const members = result.data.flatMap((p): SquadMember[] => {
       const personId = held.get(p.externalId);
       return personId === undefined
@@ -226,7 +218,7 @@ export async function sweepSquads(input: {
 
 async function notePhotos(
   provider: Provider,
-  media: PhotoSink,
+  photos: PersonPhotoNoter,
   players: NormalisedSquadPlayer[],
   held: Map<string, string>,
 ): Promise<number> {
@@ -234,7 +226,7 @@ async function notePhotos(
   for (const player of players) {
     const personId = held.get(player.externalId);
     if (personId === undefined || typeof player.imageUrl !== 'string') continue;
-    await media.note(provider, 'person', personId, player.imageUrl);
+    await photos.notePhoto(provider, personId, player.externalId, player.imageUrl);
     noted += 1;
   }
   return noted;
