@@ -12,6 +12,7 @@ import {
   LIVE_MIN_AGE_MINUTES,
   SWEPT_CHECKS,
   checkFreshness,
+  checksToSweep,
   type TableComparison,
   duplicateFixture,
   finishedWithoutScore,
@@ -19,6 +20,7 @@ import {
   goalsDisagree,
   lineupNotEleven,
   liveOverrun,
+  personDuplicateCandidate,
   tableDisagreements,
 } from './internal/checks';
 import {
@@ -44,6 +46,7 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
     ...rows.lineups.map(lineupNotEleven),
     ...rows.mappings.map(fixtureMappedTwice),
     ...rows.pairs.map(duplicateFixture),
+    ...rows.people.map(personDuplicateCandidate),
   ];
   // One subject per check: a pair read twice, or a line-up read per row, is one finding.
   const unique = new Map<string, Finding>();
@@ -86,15 +89,26 @@ export class DataQualityService {
    * fixtures and resolves only that season's findings. The schedule never
    * passes one; a test does, so it judges its own fixtures and not the rows
    * suites running beside it are writing and deleting.
+   *
+   * T-1864: `person_duplicate_candidate` runs only in an unscoped sweep, and
+   * at most hourly; in the other sweeps it is neither read nor passed to
+   * `record`, so its open findings are not resolved and its run not stamped.
    */
   async sweep(
     now: Date = new Date(),
     seasonId: string | null = null,
   ): Promise<WriteOutcome & { findings: number }> {
-    const rows = await this.store.read(now, seasonId);
+    const runs =
+      seasonId === null ? await this.store.checkRuns() : new Map<DataQualityCheck, Date>();
+    const checks = checksToSweep(seasonId, runs.get('person_duplicate_candidate'), now);
+    const rows = await this.store.read(
+      now,
+      seasonId,
+      checks.includes('person_duplicate_candidate'),
+    );
     const findings = findingsOf(rows, now);
     const outcome = await this.store.locked((client) =>
-      this.store.record(client, SWEPT_CHECKS, seasonId, findings, now),
+      this.store.record(client, checks, seasonId, findings, now),
     );
     if (outcome.opened > 0 || outcome.resolved > 0) {
       this.log.log(
@@ -253,7 +267,8 @@ export class DataQualityService {
       ),
     ]);
     let sweptAt: Date | null = null;
-    for (const check of SWEPT_CHECKS) {
+    // The hourly person check (T-1864) is no match's, and not how fresh the sweep is.
+    for (const check of SWEPT_CHECKS.filter((c) => c !== 'person_duplicate_candidate')) {
       const at = runs.get(check);
       if (at === undefined) return { open, sweptAt: null };
       if (sweptAt === null || at < sweptAt) sweptAt = at;

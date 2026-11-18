@@ -384,6 +384,84 @@ export function tableDisagreements(
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Two persons that may be one human
+// ---------------------------------------------------------------------------
+
+/**
+ * One row of `person_duplicate_candidates()` (T-1864, D-446), with the two
+ * rows' name and birth date for the detail. The database function decides
+ * which pairs are candidates -- the same `search_key(full_name)`, or one's
+ * full name the other's `known_as`, and the same birth date; neither a
+ * tombstone; not in `person_not_duplicate`; not on one line-up nor named
+ * together by one incident -- and which row the rule proposes to keep, so
+ * the sweep and `catalog.mjs --person-candidates` never disagree.
+ */
+export interface PersonPairRow {
+  lowPersonId: string;
+  highPersonId: string;
+  lowName: string;
+  highName: string;
+  dateOfBirth: string;
+  matchedOn: 'full_name' | 'known_as';
+  sameNationality: boolean | null;
+  commonTeams: string[];
+  lowLineups: number;
+  highLineups: number;
+  appearancesDisjoint: boolean | null;
+  lowCoachOnly: boolean;
+  highCoachOnly: boolean;
+  proposedInto: string;
+  proposedBecause: 'player_row' | 'more_lineups' | 'older_row' | 'lower_id';
+}
+
+const PROPOSED_BECAUSE: Record<PersonPairRow['proposedBecause'], string> = {
+  player_row: 'the player row of a player and coach pair',
+  more_lineups: 'more line-ups',
+  older_row: 'the older row',
+  lower_id: 'the lower id',
+};
+
+function yesNo(value: boolean | null): string {
+  return value === null ? 'unknown' : value ? 'yes' : 'no';
+}
+
+/**
+ * A pair of persons that may be one human the provider supplies under two
+ * ids, with the signals a person judges it by: the same nationality, clubs in
+ * common, each row's line-ups, whether the two appearance periods are
+ * disjoint, and the survivor the rule proposes. A candidate is a question,
+ * never a merge (D-446 point 4). Which pairs are candidates is the database
+ * function's: two persons on one line-up, or named together by one incident,
+ * are two humans and never one (point 3). The subject is the two ids, low
+ * first, so a pair read either way round is one finding.
+ */
+export function personDuplicateCandidate(row: PersonPairRow): Finding | null {
+  if (row.lowPersonId === row.highPersonId) return null;
+  const [low, high] = [row.lowPersonId, row.highPersonId].sort() as [string, string];
+  const role = (coachOnly: boolean) => (coachOnly ? ', a coach id only' : '');
+  const loser = row.proposedInto === low ? high : low;
+  const detail = [
+    `${row.lowName} (${row.lowPersonId}${role(row.lowCoachOnly)}) and ${row.highName} (${row.highPersonId}${role(row.highCoachOnly)}), born ${row.dateOfBirth}`,
+    row.matchedOn === 'full_name' ? 'the same full name' : "one's full name the other's known-as",
+    `same nationality: ${yesNo(row.sameNationality)}`,
+    `clubs in common: ${row.commonTeams.length === 0 ? 'none' : row.commonTeams.join(', ')}`,
+    `line-ups: ${row.lowLineups} and ${row.highLineups}`,
+    `appearances disjoint: ${yesNo(row.appearancesDisjoint)}`,
+    `proposed: --from ${loser} --into ${row.proposedInto} (${PROPOSED_BECAUSE[row.proposedBecause]})`,
+  ].join('; ');
+  return {
+    check: 'person_duplicate_candidate',
+    subjectKey: `${low}:${high}`,
+    fixtureId: null,
+    relatedFixtureId: null,
+    teamId: null,
+    seasonId: null,
+    competitionId: null,
+    detail,
+  };
+}
+
 /** The checks one sweep runs over the stored data; `table_disagrees` comes from the standings job. */
 export const SWEPT_CHECKS: readonly DataQualityCheck[] = [
   'finished_without_score',
@@ -392,6 +470,7 @@ export const SWEPT_CHECKS: readonly DataQualityCheck[] = [
   'lineup_not_eleven',
   'fixture_mapped_twice',
   'duplicate_fixture',
+  'person_duplicate_candidate',
 ];
 
 /**
@@ -404,13 +483,47 @@ export const SWEEP_INTERVAL_SECONDS = 5 * 60;
 export const TABLE_INTERVAL_SECONDS = 60 * 60;
 export const STALE_AFTER_INTERVALS = 3;
 
+/**
+ * T-1864: `person_duplicate_candidate` runs at most hourly, in the sweep whose
+ * turn it is. Its function reads every person (3-4 s and ~14 MB of temporary
+ * files at production's 111k persons), its answer changes only when a person
+ * is written or merged, and its reader is an operator who looks once a day.
+ * In the sweeps between, it is neither read nor recorded, so its open
+ * findings stay open and its run stays where it was.
+ */
+export const PERSON_CANDIDATE_INTERVAL_SECONDS = 60 * 60;
+
+/** Whether a sweep at `now` runs the person check, given its last run. Pure. */
+export function personCheckDue(lastRun: Date | null | undefined, now: Date): boolean {
+  if (lastRun === null || lastRun === undefined) return true;
+  return now.getTime() - lastRun.getTime() >= PERSON_CANDIDATE_INTERVAL_SECONDS * 1000;
+}
+
+/**
+ * The checks a sweep runs: every swept check, the person check only when an
+ * unscoped sweep is due one (a season has no persons of its own).
+ */
+export function checksToSweep(
+  seasonId: string | null,
+  personLastRun: Date | null | undefined,
+  now: Date,
+): readonly DataQualityCheck[] {
+  const people = seasonId === null && personCheckDue(personLastRun, now);
+  return SWEPT_CHECKS.filter((check) => people || check !== 'person_duplicate_candidate');
+}
+
 export function checkFreshness(
   check: DataQualityCheck,
   checkedAt: Date | null,
   now: Date,
 ): 'current' | 'stale' | 'never_run' {
   if (checkedAt === null) return 'never_run';
-  const interval = check === 'table_disagrees' ? TABLE_INTERVAL_SECONDS : SWEEP_INTERVAL_SECONDS;
+  const interval =
+    check === 'table_disagrees'
+      ? TABLE_INTERVAL_SECONDS
+      : check === 'person_duplicate_candidate'
+        ? PERSON_CANDIDATE_INTERVAL_SECONDS
+        : SWEEP_INTERVAL_SECONDS;
   return now.getTime() - checkedAt.getTime() > STALE_AFTER_INTERVALS * interval * 1000
     ? 'stale'
     : 'current';
