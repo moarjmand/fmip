@@ -1061,6 +1061,13 @@ export interface PlayerPage {
   /** Whether the feed lists the player out or doubtful for their team's next match (T-1007, D-127). */
   availability: PlayerAvailability;
   last_updated_at: string | null;
+  /**
+   * Set only when the id asked for is a merged-away duplicate (a tombstone,
+   * T-1865a, D-446 point 7, D-453): the survivor's id. The rest of the page is
+   * then the survivor's, so a reader that ignores this field still shows the
+   * right person; the web redirects permanently to the survivor's page.
+   */
+  moved_to?: string;
 }
 
 /**

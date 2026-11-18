@@ -15805,6 +15805,8 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 **Consequences.** Migration `1765901863000_person-merge.sql`: tables `person_merge`, `person_merge_moved`, `person_not_duplicate`; functions `merge_person`, `merge_person_undo`, `person_merged_into`, `person_shared_lineup_fixture`, `person_shared_incident`; `set_updated_at()` honours `fmip.keep_updated_at` when it holds the current transaction's id. T-1867 re-runs the "nothing references the loser" check after each batch, since an ingestion transaction that read the loser's mapping before a merge committed can still write one row to it. `catalog.mjs` gains `--person-candidates`, `--merge-people`, `--unmerge`, `--not-duplicate` and `data-quality/internal/checks.ts` a check (T-1864); `GET /players/:id` and `GET /coaches/:id` may answer `moved_to` and the pages redirect (T-1865); the ingestion stores ask by every id (T-1866). The existing groups are repaired by T-1867 in batches, after review. Rows the provider writes for the survivor after a merge stay with the survivor when it is undone.
 
+**Refined by D-453 (2026-11-18).** Point 7's `moved_to`: a tombstone's player and coach reads answer the survivor's whole page with `moved_to`, not `{ moved_to }` alone.
+
 ## D-447 — The watchdog's `data_quality` count leaves short line-ups on a live match, or under limited or delayed line-ups, to the admin page
 
 **Status:** Accepted · 2026-11-17 (agent, under the standing delegation, from the ops finding `ops-2026-11-15-01`) · **Task:** T-1873 · **Amends:** D-097 (the watchdog paragraph) · **Follows:** D-109, D-250
@@ -16093,3 +16095,17 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *The lowest id's address always wins (this PR's first version)*: when the lowest id's photo is the provider's silhouette and the other id's is real, and both are mentioned, the real one would be filled in, replaced by the lowest id's, retired as a silhouette and filled in again on every fetch round -- the alternation this decision exists to stop; and a dead lowest id kept on the survivor would hold an empty row for ever. *Filling a `pending` row too*: two ids mentioned before the fetch would switch it on every mention. *Keep the stored image and replace it only from the id it came from*: `entity_media` does not record the id, so it needs a new column and a backfill, or the provider's address parsed outside its adapter (rule 2).
 
 **Consequences.** No migration. One method on the media boundary (`noteIfEmpty`, an `INSERT ... ON CONFLICT DO UPDATE ... WHERE` the held row is unusable, different and a day old); which hosts are fetched, the checks on what is fetched and what is served are unchanged (D-176). A merged person's address is not replaced by a newer one while his image is available; the monthly re-check still refreshes it, and an address that stops giving an image is replaced a day after. A photo mention costs at most one indexed read of `provider_mapping` per person and ten minutes.
+
+## D-453 — A tombstone's player and coach reads answer the survivor's whole page with `moved_to`
+
+**Status:** Accepted · 2026-11-18 (the coordinator, under the standing delegation, on the builder's proposal) · **Task:** T-1865a · **Refines:** D-446 point 7
+
+**Context.** D-446 point 7 and its paper have `GET /players/:id` and `GET /coaches/:id` "answer a tombstone with `moved_to`", the paper as `{ moved_to: <uuid> }` alone. That body is not a `PlayerPage` or a `CoachPage`: every reader would need a second shape, and a web build from before T-1865b, live during a rollout, would read a page with no person in it.
+
+**Decision.** For a person merged away (`person_merged_into(id)` is not null) both reads answer 200 with the **survivor's** whole page, exactly as the survivor's own URL answers it, plus `moved_to` (the survivor's id). `moved_to` is optional on both contracts and absent for a person not merged, or once a merge is undone. The web redirects permanently on it (T-1865b). The page's ids are the survivor's, so a reader that ignores `moved_to` still shows the right person and links to his own URL.
+
+**Rejected.** *`{ moved_to }` alone*: an untyped second shape, and an older reader shows an empty page. *An HTTP redirect from the API*: the web's fetch would follow it silently and never learn to redirect the reader's URL. *404 for a tombstone*: members' cards, panel links and shared URLs would lead nowhere.
+
+**What else reads through the merge.** Every read that takes a person's id resolves a tombstone to its survivor the same way, so nothing shows the survivor's name over the tombstone's emptied lists (rule 3): `GET /players/:id/news` (its `entity.id` is the survivor's), the news list's `?player=` filter (echoed as the survivor's id, so a saved `/news?player=<tombstone>` lists the survivor's stories under his name), `GET /players/:id/transfers` and `GET /players/:id/provider-seasons`. Search never returns a tombstone: a hit on its name is the survivor's, with the tombstone's name as the alias that matched when the two differ, one row per survivor, so a spelling only the merged-away id had still finds the man.
+
+**Consequences.** One more indexed lookup per player, coach, player news or news-by-player read; the person part of search joins `person_merge` (a partial unique index on `from_person_id`).

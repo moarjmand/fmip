@@ -179,6 +179,8 @@ export class NewsController {
     if (filters.from !== null && filters.to !== null && filters.from > filters.to) {
       throw bad('from must not be after to.');
     }
+    // A merged-away player's filter reads his survivor's news (D-453).
+    if (filters.player !== null) filters.player = await this.store.personNow(filters.player);
     const locale = localeOf(query.locale);
     const before = beforeOf(query.before);
     const limit = limitOf(query.limit);
@@ -410,7 +412,9 @@ export class NewsController {
     missing: ApiError,
   ): Promise<EntityNewsResponse> {
     if (!UUID.test(id)) throw new NotFoundException(missing);
-    const entityId = id.toLowerCase();
+    // A merged-away player's news is his survivor's (D-453).
+    const entityId =
+      type === 'person' ? await this.store.personNow(id.toLowerCase()) : id.toLowerCase();
     const [exists, last_updated_at] = await Promise.all([
       this.store.entityExists(type, entityId),
       this.store.lastFetchedAt(),

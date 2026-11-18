@@ -330,7 +330,9 @@ export class PostgresPanelStore {
               i.related_person_id AS incident_related_id,
               COALESCE(iq.known_as, iq.full_name) AS incident_related_name,
               i.detail AS incident_detail,
-              p.link_person_id AS player_id,
+              -- The survivor when the post links a merged-away duplicate
+              -- (T-1865a, D-446 point 7); the post itself is never rewritten.
+              pp.id AS player_id,
               COALESCE(pp.known_as, pp.full_name) AS player_name,
               pl.side AS player_side,
               pv.outcome, pv.home_goals, pv.away_goals, pv.confidence, pv.submitted_at,
@@ -345,11 +347,12 @@ export class PostgresPanelStore {
          LEFT JOIN fixture_participant ifp ON ifp.id = i.participant_id
          LEFT JOIN person ip ON ip.id = i.person_id
          LEFT JOIN person iq ON iq.id = i.related_person_id
-         LEFT JOIN person pp ON pp.id = p.link_person_id
+         LEFT JOIN person pp
+                ON pp.id = coalesce(person_merged_into(p.link_person_id), p.link_person_id)
          LEFT JOIN LATERAL (
            SELECT fp.side FROM lineup l
              JOIN fixture_participant fp ON fp.id = l.participant_id
-            WHERE fp.fixture_id = p.fixture_id AND l.person_id = p.link_person_id
+            WHERE fp.fixture_id = p.fixture_id AND l.person_id = pp.id
             LIMIT 1
          ) pl ON p.link_kind = 'player'
          LEFT JOIN prediction_version pv ON pv.id = p.link_prediction_version_id

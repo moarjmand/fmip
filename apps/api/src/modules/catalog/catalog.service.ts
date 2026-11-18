@@ -115,6 +115,14 @@ export class CatalogService {
    * person who is not a coach, or no such person.
    */
   async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
+    // A tombstone answers with its survivor's page and says so (D-453).
+    const movedTo = await this.mergedInto(id);
+    if (movedTo === null) return this.coachPage(id, locale);
+    const page = await this.coachPage(movedTo, locale);
+    return page === null ? null : { ...page, moved_to: movedTo };
+  }
+
+  private async coachPage(id: string, locale: string | null): Promise<CoachPage | null> {
     const rows = await readCoachPage(this.pool, id, locale);
     if (rows === null) return null;
     const spells = rows.career.data ?? [];
@@ -136,13 +144,27 @@ export class CatalogService {
   }
 
   /**
+   * The survivor a merged-away duplicate (a tombstone) was merged into, or
+   * `null` for a person not merged (T-1865a, D-446 point 7). One step: a
+   * merge into a loser is flattened, so a survivor is never itself merged.
+   */
+  private async mergedInto(id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ into: string | null }>(
+      `SELECT person_merged_into($1::uuid) AS into`,
+      [id],
+    );
+    return rows[0]?.into ?? null;
+  }
+
+  /**
    * A player's season totals and career as the provider counts them (T-1431,
    * D-223), apart from the record our line-ups support. `null` for no such player.
    */
   async playerProviderSeasons(id: string): Promise<PlayerProviderSeasons | null> {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
-    return readProviderSeasons(this.pool, id);
+    // A merged-away player's seasons are his survivor's (D-453).
+    return readProviderSeasons(this.pool, (await this.mergedInto(id)) ?? id);
   }
 
   /**
@@ -159,7 +181,8 @@ export class CatalogService {
   async playerTransfers(id: string, locale: string | null): Promise<PlayerTransfers | null> {
     const { rowCount } = await this.pool.query(`SELECT 1 FROM person WHERE id = $1`, [id]);
     if (rowCount === 0) return null;
-    return readPlayerTransfers(this.pool, id, locale);
+    // A merged-away player's moves are his survivor's (D-453).
+    return readPlayerTransfers(this.pool, (await this.mergedInto(id)) ?? id, locale);
   }
 
   /** A club's arrivals and departures as the provider lists them (T-1440, D-231). `null` for no such club. */
@@ -171,6 +194,16 @@ export class CatalogService {
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
+    // A tombstone answers with its survivor's page and says so (D-453).
+    const movedTo = await this.mergedInto(id);
+    if (movedTo === null) return this.playerPage(id, locale);
+    const outcome = await this.playerPage(movedTo, locale);
+    return outcome.kind === 'ok'
+      ? { kind: 'ok', page: { ...outcome.page, moved_to: movedTo } }
+      : outcome;
+  }
+
+  private async playerPage(id: string, locale: string | null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
     const [read, record, recent, availability, positions, clubs, national] = await Promise.all([

@@ -63,6 +63,12 @@ export interface CoachPage {
     } | null;
   };
   last_updated_at: string | null;
+  /**
+   * Set only when the id asked for is a merged-away duplicate (a tombstone,
+   * T-1865a, D-446 point 7, D-453): the survivor's id, and the rest of the
+   * page is the survivor's. The web redirects permanently to his page.
+   */
+  moved_to?: string;
 }
 
 /**

@@ -205,8 +205,20 @@ const SEARCH_SQL = `
       FROM competition c
      WHERE 'competition' = ANY($2::text[]) AND c.is_active
     UNION ALL
-    -- People by full name or known-as.
-    SELECT 'person', p.id, COALESCE(p.known_as, p.full_name), 'name', NULL,
+    -- People by full name or known-as. A merged-away duplicate (a tombstone,
+    -- T-1865a, D-446 point 7) is never a result itself: its names find its
+    -- survivor, named as the survivor and with the tombstone's name as the
+    -- alias that matched when the two differ, one row per survivor below.
+    SELECT 'person', COALESCE(sv.id, p.id),
+           COALESCE(sv.known_as, sv.full_name, p.known_as, p.full_name),
+           CASE WHEN sv.id IS NULL
+                  OR search_key(COALESCE(sv.known_as, sv.full_name))
+                     = search_key(COALESCE(p.known_as, p.full_name))
+                THEN 'name' ELSE 'alias' END,
+           CASE WHEN sv.id IS NULL
+                  OR search_key(COALESCE(sv.known_as, sv.full_name))
+                     = search_key(COALESCE(p.known_as, p.full_name))
+                THEN NULL ELSE COALESCE(p.known_as, p.full_name) END,
            GREATEST(
              word_similarity(search_key($1), search_key(p.full_name)),
              COALESCE(word_similarity(search_key($1), search_key(p.known_as)), 0),
@@ -215,6 +227,8 @@ const SEARCH_SQL = `
            ),
            search_key(p.full_name) = search_key($1) OR COALESCE(search_key(p.known_as) = search_key($1), false)
       FROM person p
+      LEFT JOIN person_merge pm ON pm.from_person_id = p.id AND pm.undone_at IS NULL
+      LEFT JOIN person sv ON sv.id = pm.into_person_id
      WHERE 'person' = ANY($2::text[])
        AND (search_key($1) <% search_key(p.full_name)
             OR search_key(p.full_name) LIKE search_key($1) || '%'

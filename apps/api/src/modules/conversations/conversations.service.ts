@@ -225,7 +225,8 @@ export class ConversationsService {
       });
     }
     for (const [id, row] of people) {
-      lookup.set(`person:${id}`, { kind: 'person', id, name: row.name });
+      // `row.id` is the survivor when the card names a merged-away duplicate.
+      lookup.set(`person:${id}`, { kind: 'person', id: row.id, name: row.name });
     }
     for (const [id, row] of predictions) {
       lookup.set(`prediction:${id}`, {

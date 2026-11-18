@@ -916,14 +916,22 @@ export class CardStore {
     return new Map(rows.map((row) => [row.id, row]));
   }
 
+  /**
+   * The persons cards name, keyed by the id the card holds. A card naming a
+   * merged-away duplicate (a tombstone) is answered with its survivor, whose
+   * id the row carries (T-1865a, D-446 point 7): the member's message is never
+   * rewritten, only read through the merge.
+   */
   async people(ids: string[]): Promise<Map<string, NamedCardRow>> {
     if (ids.length === 0) return new Map();
-    const { rows } = await this.pool.query<NamedCardRow>(
-      `SELECT id, coalesce(known_as, full_name) AS name, NULL::text AS short_name
-         FROM person WHERE id = ANY($1::uuid[])`,
+    const { rows } = await this.pool.query<NamedCardRow & { asked_id: string }>(
+      `SELECT q.id AS asked_id, p.id, coalesce(p.known_as, p.full_name) AS name,
+              NULL::text AS short_name
+         FROM unnest($1::uuid[]) AS q(id)
+         JOIN person p ON p.id = coalesce(person_merged_into(q.id), q.id)`,
       [ids],
     );
-    return new Map(rows.map((row) => [row.id, row]));
+    return new Map(rows.map(({ asked_id, ...row }) => [asked_id, row]));
   }
 
   async predictions(ids: string[]): Promise<Map<string, PredictionCardRow>> {
