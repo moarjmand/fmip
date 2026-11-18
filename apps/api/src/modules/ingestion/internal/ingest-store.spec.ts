@@ -307,6 +307,7 @@ describe("a competition's country flag (T-1611, D-282)", () => {
           noted.push({ entityType, entityId, url });
           return Promise.resolve();
         },
+        noteIfEmpty: () => Promise.reject(new Error('no person photo expected')),
       },
     };
   }

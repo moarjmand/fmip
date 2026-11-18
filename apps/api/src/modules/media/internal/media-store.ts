@@ -54,6 +54,13 @@ export interface ServedMedia {
 /** A stored image is re-checked after this long (D-176: monthly). */
 export const REFRESH_DAYS = 30;
 
+/**
+ * How long a row with no usable image waits before another address may fill
+ * it (`noteIfEmpty`): when none of a person's ids gives an image, each is
+ * tried at most about once a day, never back and forth on every mention.
+ */
+export const REFILL_AFTER_HOURS = 24;
+
 export class MediaStore {
   constructor(private readonly pool: Pool) {}
 
@@ -87,6 +94,49 @@ export class MediaStore {
        WHERE entity_media.source_url IS DISTINCT FROM EXCLUDED.source_url
           OR entity_media.source_provider IS DISTINCT FROM EXCLUDED.source_provider`,
       [entityType, entityId, KIND_OF[entityType], provider, sourceUrl],
+    );
+    return (rowCount ?? 0) > 0;
+  }
+
+  /**
+   * As `note`, but only into an empty place (T-1869, D-452: a person with
+   * several provider ids): the entity holds no address of that kind, or the
+   * one it holds is a different address that the fetch job found to give no
+   * usable image (`not_supplied` or `failed`) at least `REFILL_AFTER_HOURS`
+   * ago. An `available` image, or an address still waiting for its fetch
+   * (`pending`), is never replaced. True when written.
+   */
+  async noteIfEmpty(
+    provider: string,
+    entityType: MediaEntityType,
+    entityId: string,
+    sourceUrl: string,
+  ): Promise<boolean> {
+    const { rowCount } = await this.pool.query(
+      // A held row that may not be replaced is left out before the conflict,
+      // which would lock it even when nothing changes (T-1374, D-192).
+      `INSERT INTO entity_media (entity_type, entity_id, kind, source_provider, source_url)
+       SELECT $1::text, $2::uuid, $3::text, $4::text, $5::text
+        WHERE NOT EXISTS (
+                SELECT 1 FROM entity_media
+                 WHERE entity_type = $1::text AND entity_id = $2::uuid AND kind = $3::text
+                   AND NOT (state IN ('not_supplied', 'failed')
+                            AND (source_url, source_provider) IS DISTINCT FROM ($5::text, $4::text)
+                            AND (last_checked_at IS NULL
+                                 OR last_checked_at < now() - make_interval(hours => $6::int))))
+       ON CONFLICT (entity_type, entity_id, kind) DO UPDATE
+         SET source_provider = EXCLUDED.source_provider,
+             source_url = EXCLUDED.source_url,
+             state = 'pending',
+             last_checked_at = NULL,
+             attempts = 0,
+             failure = NULL
+       WHERE entity_media.state IN ('not_supplied', 'failed')
+         AND (entity_media.source_url, entity_media.source_provider)
+             IS DISTINCT FROM (EXCLUDED.source_url, EXCLUDED.source_provider)
+         AND (entity_media.last_checked_at IS NULL
+              OR entity_media.last_checked_at < now() - make_interval(hours => $6::int))`,
+      [entityType, entityId, KIND_OF[entityType], provider, sourceUrl, REFILL_AFTER_HOURS],
     );
     return (rowCount ?? 0) > 0;
   }

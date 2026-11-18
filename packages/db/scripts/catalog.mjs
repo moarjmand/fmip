@@ -26,11 +26,24 @@
  * needs an actor and a fresh deployment has none, exactly as in
  * `grant-role.mjs`, so without it the write still happens and the output says
  * no audit row could be written.
+ *
+ * The duplicate-person verbs (T-1864, D-446) live in `person-merge.mjs`: there
+ * `--by` is required and must name an active administrator, since a merge is
+ * a judgement somebody owns.
  */
 
 import { readFileSync } from 'node:fs';
 import { URL } from 'node:url';
 import pg from 'pg';
+import {
+  PERSON_USAGE,
+  PERSON_VERBS,
+  mergePeople,
+  notDuplicate,
+  parsePersonArgs,
+  personCandidates,
+  unmerge,
+} from './person-merge.mjs';
 
 /** Mirrors `unresolved_entity_provider_check`. */
 export const PROVIDERS = ['api_football', 'football_data_org', 'highlightly'];
@@ -62,6 +75,8 @@ const VERBS = [
   'alias-training',
   'ignore',
   'unignore',
+  // T-1864 (D-446): duplicate persons, in `person-merge.mjs`.
+  ...PERSON_VERBS,
 ];
 const SWITCHES = [...VERBS, 'dry-run', 'current', 'waiting-international'];
 /** The queued kinds an operator may set aside as not ours to model (T-1338). */
@@ -92,6 +107,11 @@ const VALUED = [
   'team',
   'colour',
   'training',
+  'from',
+  'into',
+  'merge',
+  'a',
+  'b',
 ];
 
 const USAGE = `Usage (one verb per call):
@@ -124,6 +144,8 @@ const USAGE = `Usage (one verb per call):
            (every team still waiting whose last sighting was an international competition)
   --unignore --type <${IGNORABLE.join('|')}> --file <csv, or -> --by <address> --reason "<why>"
              [--dry-run]
+
+${PERSON_USAGE}
 
   --provider defaults to api_football.`;
 
@@ -161,6 +183,8 @@ export function parseArgs(argv) {
   }
   const by = flags.get('by');
   const text = (key) => (flags.get(key) ?? '').trim();
+
+  if (PERSON_VERBS.includes(verb)) return parsePersonArgs(verb, flags);
 
   if (verb === 'list') {
     const limit = Number(flags.get('limit') ?? '50');
@@ -1632,6 +1656,16 @@ async function main() {
       case 'ignore':
       case 'unignore':
         return await ignore(client, parsed);
+      case 'person-candidates':
+        return await personCandidates(client, parsed);
+      case 'merge-people':
+        return await mergePeople(client, parsed, (file) =>
+          readFileSync(file === '-' ? 0 : file, 'utf8'),
+        );
+      case 'unmerge':
+        return await unmerge(client, parsed);
+      case 'not-duplicate':
+        return await notDuplicate(client, parsed);
       default:
         return await map(client, parsed);
     }
