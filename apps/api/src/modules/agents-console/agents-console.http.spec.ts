@@ -39,7 +39,7 @@ import {
   checkSnapshot,
   consoleTokenText,
 } from './internal/console-rules';
-import { PostgresConsoleStore } from './internal/console-store';
+import { DISABLED_MESSAGE_FAILURE, PostgresConsoleStore } from './internal/console-store';
 import { PostgresRequestStore } from './internal/request-store';
 import { IMAGE_REFUSALS } from './internal/request-images';
 
@@ -149,6 +149,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       await client.query(
         `DELETE FROM console_audit WHERE actor_id = ANY($1::uuid[]) OR actor_name LIKE $2`,
         [ids, `ac_${RUN}%`],
+      );
+      // An invitation's own audit row has the server as its actor (T-1880).
+      await client.query(
+        `DELETE FROM console_audit WHERE action = 'console.invitation_created' AND target_id IN
+           (SELECT id::text FROM console_invite WHERE used_by = ANY($1::uuid[]) OR display_name LIKE $2)`,
+        [ids, `AC ${RUN}%`],
       );
     });
     await pool.query(
@@ -1148,6 +1154,275 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       } finally {
         errors.mockRestore();
         if (secret === undefined) delete process.env.SESSION_SECRET;
+      }
+    });
+  });
+
+  describe('closing an account from the command line (T-1880)', () => {
+    const closed = `ac_${RUN}_k`;
+    const BY = `ac_${RUN} operator`;
+    let userId = '';
+
+    /** The command line as the operator runs it: its exit code and what it printed. */
+    async function cli(argv: string[]): Promise<{ code: number; out: string; err: string }> {
+      const secret = process.env.SESSION_SECRET;
+      process.env.SESSION_SECRET ??= SECRET;
+      const out: string[] = [];
+      const err: string[] = [];
+      const collect = (into: string[]) => (chunk: unknown) => {
+        into.push(String(chunk));
+        return true;
+      };
+      const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(collect(out));
+      const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(collect(err));
+      try {
+        return { code: await consoleCli(argv), out: out.join(''), err: err.join('') };
+      } finally {
+        stdout.mockRestore();
+        stderr.mockRestore();
+        if (secret === undefined) delete process.env.SESSION_SECRET;
+      }
+    }
+
+    const signIn = async (): Promise<string> => {
+      const response = await send(
+        'POST',
+        'session',
+        { username: closed, password: PASSWORD },
+        null,
+      );
+      expect(response.statusCode).toBe(204);
+      return cookieOf(response.headers['set-cookie']);
+    };
+
+    const auditOf = async (action: string) => {
+      const { rows } = await pool.query<{
+        actor_id: string | null;
+        actor_name: string;
+        reason: string;
+        previous: Record<string, unknown> | null;
+        next: Record<string, unknown> | null;
+      }>(
+        `SELECT actor_id, actor_name, reason, previous, next FROM console_audit
+          WHERE action = $1 AND target_id = $2 ORDER BY created_at, id`,
+        [action, userId],
+      );
+      return rows;
+    };
+
+    beforeAll(async () => {
+      const token = await invite(`AC ${RUN} closed`);
+      const accepted = await send(
+        'POST',
+        'invitations/accept',
+        { token, username: closed, password: PASSWORD },
+        null,
+      );
+      expect(accepted.statusCode).toBe(204);
+      userId = (await get('me', cookieOf(accepted.headers['set-cookie']))).json<{ id: string }>()
+        .id;
+    });
+
+    it('audits an invitation with who it is for and until when, never its token', async () => {
+      const token = await invite(`AC ${RUN} audited`);
+      const { rows } = await pool.query<{
+        actor_id: string | null;
+        actor_name: string;
+        target_type: string;
+        reason: string;
+        previous: unknown;
+        next: { display_name: string; expires_at: string };
+      }>(
+        `SELECT a.actor_id, a.actor_name, a.target_type, a.reason, a.previous, a.next
+           FROM console_audit a JOIN console_invite i ON i.id::text = a.target_id
+          WHERE a.action = 'console.invitation_created' AND i.display_name = $1`,
+        [`AC ${RUN} audited`],
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        actor_id: null,
+        actor_name: 'invite (server)',
+        target_type: 'console_invite',
+        reason: `invitation made for AC ${RUN} audited`,
+        previous: null,
+        next: { display_name: `AC ${RUN} audited` },
+      });
+      expect(Date.parse(rows[0]!.next.expires_at)).toBeGreaterThan(Date.now());
+      const written = JSON.stringify(rows[0]);
+      expect(written).not.toContain(token);
+      expect(written).not.toContain(hashToken(consoleTokenText(token), SECRET));
+    });
+
+    it('disable-user refuses the sign-in, ends every session and calls off what was queued', async () => {
+      const first = await signIn();
+      const second = await signIn();
+      const queued = await send(
+        'POST',
+        'commands',
+        { kind: 'agent.run', target: 'data-auditor', reason: 'now' },
+        first,
+      );
+      expect(queued.statusCode).toBe(201);
+      const posted = await send(
+        'POST',
+        'agents/data-auditor/messages',
+        { body: `Queued before closing ${RUN}` },
+        second,
+      );
+      expect(posted.statusCode).toBe(201);
+
+      const done = await cli([
+        'disable-user',
+        '--name',
+        closed,
+        '--by',
+        BY,
+        '--reason',
+        'its cookie was copied',
+      ]);
+      expect(done).toMatchObject({ code: 0, err: '' });
+      // The sign-ins of `beforeAll` and of this test: three sessions were open.
+      expect(done.out).toBe(
+        `${closed} is disabled: it cannot sign in, 3 session(s) ended, ` +
+          `1 queued command(s) and 1 queued message(s) called off.\n`,
+      );
+
+      // At once, on every session, and no new one.
+      for (const session of [first, second]) {
+        expect((await get('me', session)).statusCode).toBe(401);
+        expect(
+          (await send('POST', 'board', { title: 't', column: 'next' }, session)).statusCode,
+        ).toBe(401);
+      }
+      const refused = await send('POST', 'session', { username: closed, password: PASSWORD }, null);
+      expect(refused.statusCode).toBe(401);
+      const { rows: open } = await pool.query(
+        `SELECT 1 FROM console_session WHERE user_id = $1 AND revoked_at IS NULL`,
+        [userId],
+      );
+      expect(open).toEqual([]);
+
+      // What it had queued never reaches the computer.
+      const command = queued.json<ConsoleCommand>();
+      const { rows: commands } = await pool.query<{ status: string }>(
+        `SELECT status FROM console_command WHERE id = $1`,
+        [command.id],
+      );
+      expect(commands).toEqual([{ status: 'cancelled' }]);
+      expect((await store.takeCommands()).some((c) => c.id === command.id)).toBe(false);
+      const message = posted.json<ConsoleMessage>();
+      expect((await store.takeMessages()).some((t) => t.message.id === message.id)).toBe(false);
+      const { rows: messages } = await pool.query<{ status: string; failure: string }>(
+        `SELECT status, failure FROM console_message WHERE id = $1`,
+        [message.id],
+      );
+      expect(messages).toEqual([{ status: 'failed', failure: DISABLED_MESSAGE_FAILURE }]);
+
+      // Rule 10: who, why, and what it was before.
+      const audit = await auditOf('console.user_disabled');
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({
+        actor_id: null,
+        actor_name: `${BY} (server)`,
+        reason: 'its cookie was copied',
+        previous: {
+          disabled_at: null,
+          owner: false,
+          open_sessions: 3,
+          queued_commands: 1,
+          queued_messages: 1,
+        },
+        next: { open_sessions: 0, queued_commands: 0, queued_messages: 0 },
+      });
+      expect(Date.parse(String(audit[0]!.next?.disabled_at))).not.toBeNaN();
+      await expect(
+        pool.query(`UPDATE console_audit SET reason = 'rewritten' WHERE target_id = $1`, [userId]),
+      ).rejects.toThrow();
+
+      // A second run changes nothing and writes nothing.
+      const again = await cli(['disable-user', '--name', closed, '--by', BY, '--reason', 'again']);
+      expect(again).toMatchObject({
+        code: 0,
+        out: `${closed} is disabled already. Nothing was changed.\n`,
+      });
+      expect(await auditOf('console.user_disabled')).toHaveLength(1);
+    });
+
+    it('enable-user opens it again; the ended sessions stay ended', async () => {
+      const { rows: before } = await pool.query<{ disabled_at: Date }>(
+        `SELECT disabled_at FROM console_user WHERE id = $1`,
+        [userId],
+      );
+      const done = await cli([
+        'enable-user',
+        '--name',
+        closed,
+        '--by',
+        BY,
+        '--reason',
+        'new password set',
+      ]);
+      expect(done).toMatchObject({ code: 0, out: `${closed} is enabled again and can sign in.\n` });
+      const audit = await auditOf('console.user_enabled');
+      expect(audit).toEqual([
+        {
+          actor_id: null,
+          actor_name: `${BY} (server)`,
+          reason: 'new password set',
+          previous: { disabled_at: before[0]!.disabled_at.toISOString() },
+          next: { disabled_at: null },
+        },
+      ]);
+      const { rows: sessions } = await pool.query(
+        `SELECT 1 FROM console_session WHERE user_id = $1 AND revoked_at IS NULL`,
+        [userId],
+      );
+      expect(sessions).toEqual([]);
+      expect((await get('me', await signIn())).statusCode).toBe(200);
+      const again = await cli(['enable-user', '--name', closed, '--by', BY, '--reason', 'again']);
+      expect(again.out).toBe(`${closed} is enabled already. Nothing was changed.\n`);
+      expect(await auditOf('console.user_enabled')).toHaveLength(1);
+    });
+
+    it('end-sessions ends the sessions of an account that stays enabled', async () => {
+      // One session is open from the test before.
+      const second = await signIn();
+      const done = await cli([
+        'end-sessions',
+        '--name',
+        closed,
+        '--by',
+        BY,
+        '--reason',
+        'left a shared computer',
+      ]);
+      expect(done).toMatchObject({ code: 0, out: `2 session(s) of ${closed} ended.\n` });
+      expect((await get('me', second)).statusCode).toBe(401);
+      expect(await auditOf('console.sessions_ended')).toEqual([
+        {
+          actor_id: null,
+          actor_name: `${BY} (server)`,
+          reason: 'left a shared computer',
+          previous: { open_sessions: 2 },
+          next: { open_sessions: 0 },
+        },
+      ]);
+      // Another person's session is not touched, and this one signs in again.
+      expect((await get('me')).statusCode).toBe(200);
+      const again = await cli(['end-sessions', '--name', closed, '--by', BY, '--reason', 'again']);
+      expect(again.out).toBe(`${closed} has no open session. Nothing was changed.\n`);
+      expect(await auditOf('console.sessions_ended')).toHaveLength(1);
+      expect((await get('me', await signIn())).statusCode).toBe(200);
+    });
+
+    it('says so when there is no such account', async () => {
+      for (const kind of ['disable-user', 'enable-user', 'end-sessions']) {
+        const none = await cli([kind, '--name', `${closed}_none`, '--by', BY, '--reason', 'why']);
+        expect(none).toMatchObject({
+          code: 1,
+          out: '',
+          err: `No console account ${closed}_none.\n`,
+        });
       }
     });
   });

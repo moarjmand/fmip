@@ -269,6 +269,25 @@ describe('the command line', () => {
     ).toEqual({ kind: 'set-owner', username: 'mostafa', reason: 'the maintainer' });
     expect(parseConsoleArgs(['set-owner', '--username', 'mostafa']).kind).toBe('error');
     expect(parseConsoleArgs(['set-owner', '--reason', 'why']).kind).toBe('error');
+    // T-1880: closing an account, always with who runs it and why.
+    const whole = ['--name', 'Mate', '--by', ' Mostafa ', '--reason', ' cookie copied '];
+    for (const kind of ['disable-user', 'enable-user', 'end-sessions'] as const) {
+      expect(parseConsoleArgs([kind, ...whole])).toEqual({
+        kind,
+        username: 'mate',
+        by: 'Mostafa',
+        reason: 'cookie copied',
+      });
+      expect(parseConsoleArgs([kind, '--name', 'mate', '--by', 'Mostafa']).kind).toBe('error');
+      expect(parseConsoleArgs([kind, '--name', 'mate', '--reason', 'why']).kind).toBe('error');
+      expect(parseConsoleArgs([kind, '--by', 'Mostafa', '--reason', 'why']).kind).toBe('error');
+      expect(
+        parseConsoleArgs([kind, '--name', 'not a name', '--by', 'Mostafa', '--reason', 'why']).kind,
+      ).toBe('error');
+    }
+    expect(
+      parseConsoleArgs(['disable-user', '--username', 'mate', '--by', 'M', '--reason', 'why']),
+    ).toMatchObject({ kind: 'disable-user', username: 'mate' });
     expect(parseConsoleArgs(['invite']).kind).toBe('error');
     expect(
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,
