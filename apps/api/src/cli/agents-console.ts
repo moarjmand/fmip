@@ -100,8 +100,9 @@ import { leaveWhenWritten } from './leave';
  *
  * The console's owner (T-1836, D-427 point 6): `set-owner` makes one enabled
  * account the owner -- the maintainer, who alone changes a social post kind's
- * level and the publisher's key -- taking it from any other, audited as
- * `console.owner_set`. No route can do this.
+ * level (the publisher's key is either console person's, D-427 as built) --
+ * taking it from any other, audited as `console.owner_set`. No route can do
+ * this.
  *
  * Closing an account without SQL (T-1880): `disable-user` refuses the
  * account's sign-in, ends every session it has at once and calls off what it

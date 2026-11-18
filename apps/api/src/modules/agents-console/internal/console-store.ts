@@ -360,9 +360,9 @@ export class PostgresConsoleStore {
 
   /**
    * Makes one enabled account the console's owner (D-427 point 6: the
-   * maintainer, who alone changes a social post kind's level and the
-   * publisher's key), taking it from any other in the same transaction (at
-   * most one, `console_user_one_owner`), with an audit row naming the server's
+   * maintainer, who alone changes a social post kind's level; the publisher's
+   * key is either person's), taking it from any other in the same transaction
+   * (at most one, `console_user_one_owner`), with an audit row naming the server's
    * command as actor and the previous owner. Only the CLI's `set-owner` calls
    * it; no route does (T-1836).
    */
