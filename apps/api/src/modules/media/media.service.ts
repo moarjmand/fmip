@@ -84,6 +84,36 @@ export class MediaService {
     }
   }
 
+  /**
+   * Records an address only into an empty place: none held, or one the fetch
+   * found to give no usable image a day ago or more; an available image or a
+   * pending address is never replaced (T-1869, D-452: a person with several
+   * provider ids). Never throws, as `note`.
+   */
+  async noteIfEmpty(
+    provider: string,
+    entityType: MediaEntityType,
+    entityId: string,
+    sourceUrl: string,
+  ): Promise<void> {
+    const key = `${entityType}:${entityId}`;
+    // The address this process last wrote: offering it again fills nothing.
+    if (this.noted.get(key) === `${provider} ${sourceUrl}`) return;
+    try {
+      if (await this.store.noteIfEmpty(provider, entityType, entityId, sourceUrl)) {
+        if (this.noted.size >= NOTED_CAP) this.noted.clear();
+        this.noted.set(key, `${provider} ${sourceUrl}`);
+      }
+    } catch (error) {
+      this.log.warn('could not note an image address', {
+        event: 'media.note_failed',
+        entity_type: entityType,
+        entity_id: entityId,
+        error: (error as Error).message,
+      });
+    }
+  }
+
   /** Our own address for each requested image that is stored; `not_supplied` for the rest. */
   async index(request: MediaRequest): Promise<MediaIndex> {
     const ids = {

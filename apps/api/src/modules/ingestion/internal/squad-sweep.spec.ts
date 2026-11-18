@@ -100,9 +100,12 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
     },
   };
   const noted: { provider: Provider; entityId: string; url: string }[] = [];
-  const media = {
-    note: async (provider: Provider, _type: 'person', entityId: string, url: string) => {
+  /** The provider id each photo was listed under, for the one rule of several ids (T-1869). */
+  const underIds: string[] = [];
+  const photos = {
+    notePhoto: async (provider: Provider, entityId: string, externalId: string, url: string) => {
       noted.push({ provider, entityId, url });
+      underIds.push(externalId);
     },
   };
   // Each pace records how many asks had gone out by then; it never sleeps.
@@ -112,7 +115,19 @@ function world(teams: SquadTeam[], options: { askedToday?: number; refuseAll?: b
       paced.push(requests.length);
     },
   };
-  return { adapter, store, media, pacer, requests, noted, marked, dueLimits, listings, paced };
+  return {
+    adapter,
+    store,
+    photos,
+    pacer,
+    requests,
+    noted,
+    underIds,
+    marked,
+    dueLimits,
+    listings,
+    paced,
+  };
 }
 
 const TEAMS: SquadTeam[] = [
@@ -157,6 +172,8 @@ describe('the squads sweep (T-1324)', () => {
         url: 'https://example.test/players/201.png',
       },
     ]);
+    // Each photo goes with the id it was listed under, which decides it (T-1869).
+    expect(w.underIds).toEqual(['101', '201']);
     expect(w.marked).toEqual([
       { teamId: 'team-10', answered: true },
       { teamId: 'team-20', answered: true },

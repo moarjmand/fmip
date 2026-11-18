@@ -47,6 +47,7 @@ import type {
 } from '@fmip/ingestion';
 import { PERIOD_KINDS, isPlaceholderPersonName } from '@fmip/ingestion';
 import type { LineupCandidate } from './lineup-asks';
+import { type PersonPhotoNoter, PersonPhotos } from './person-photo';
 import type { EntityType } from './resolver';
 
 /**
@@ -155,6 +156,13 @@ export interface MediaSink {
     entityId: string,
     sourceUrl: string,
   ): Promise<void>;
+  /** Only into an empty place: a person with several provider ids (T-1869, D-452). */
+  noteIfEmpty(
+    provider: Provider,
+    entityType: 'person',
+    entityId: string,
+    sourceUrl: string,
+  ): Promise<void>;
 }
 
 /**
@@ -195,12 +203,21 @@ export class IngestStore implements SquadStore {
    * country, read once per process (T-1611): a competition does not move.
    */
   private readonly countryOfCompetition = new Map<string, string | null>();
+  /** A person's photo goes through the one rule for several ids (T-1869, D-452). */
+  private readonly photos: PersonPhotoNoter | null;
 
+  /**
+   * `photos` is the process's one `PersonPhotos`, shared with the other
+   * writers (`IngestionJobsService`); without it, one of the store's own.
+   */
   constructor(
     private readonly pool: Pool,
     private readonly resolver: RefResolver,
     private readonly media: MediaSink | null = null,
-  ) {}
+    photos?: PersonPhotoNoter,
+  ) {
+    this.photos = photos ?? (media === null ? null : new PersonPhotos(pool, media));
+  }
 
   /**
    * Hands a resolved entity's image address to the media store, when the
@@ -211,6 +228,7 @@ export class IngestStore implements SquadStore {
     provider: Provider,
     entityType: EntityType,
     entityId: string,
+    externalId: string,
     payload: unknown,
   ): Promise<void> {
     if (this.media === null || !IMAGED.has(entityType)) return;
@@ -219,7 +237,12 @@ export class IngestStore implements SquadStore {
         ? (payload as { imageUrl?: unknown }).imageUrl
         : undefined;
     if (typeof url !== 'string') return;
-    await this.media.note(provider, entityType as 'team' | 'competition' | 'person', entityId, url);
+    if (entityType === 'person') {
+      // A person may hold several ids, and the address carries the id (T-1869).
+      await this.photos?.notePhoto(provider, entityId, externalId, url);
+      return;
+    }
+    await this.media.note(provider, entityType as 'team' | 'competition', entityId, url);
   }
 
   /**
@@ -541,7 +564,7 @@ export class IngestStore implements SquadStore {
     if (outcome.kind === 'ignored') return IGNORED;
     if (outcome.kind !== 'resolved') return null;
     const internalId = (outcome as { internalId: string }).internalId;
-    await this.noteImage(provider, entityType, internalId, payload);
+    await this.noteImage(provider, entityType, internalId, externalId, payload);
     return internalId;
   }
 
@@ -656,7 +679,13 @@ export class IngestStore implements SquadStore {
     // The fixture list names the competition it was asked for; its logo is
     // that competition's, and its flag that of the competition's country.
     if (fixture.competition.externalId === target.competitionExternalId) {
-      await this.noteImage(provider, 'competition', target.competitionId, fixture.competition);
+      await this.noteImage(
+        provider,
+        'competition',
+        target.competitionId,
+        fixture.competition.externalId,
+        fixture.competition,
+      );
       await this.noteCountryFlag(provider, target.competitionId, fixture.competition);
     }
 
