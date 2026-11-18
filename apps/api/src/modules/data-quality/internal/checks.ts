@@ -483,13 +483,47 @@ export const SWEEP_INTERVAL_SECONDS = 5 * 60;
 export const TABLE_INTERVAL_SECONDS = 60 * 60;
 export const STALE_AFTER_INTERVALS = 3;
 
+/**
+ * T-1864: `person_duplicate_candidate` runs at most hourly, in the sweep whose
+ * turn it is. Its function reads every person (3-4 s and ~14 MB of temporary
+ * files at production's 111k persons), its answer changes only when a person
+ * is written or merged, and its reader is an operator who looks once a day.
+ * In the sweeps between, it is neither read nor recorded, so its open
+ * findings stay open and its run stays where it was.
+ */
+export const PERSON_CANDIDATE_INTERVAL_SECONDS = 60 * 60;
+
+/** Whether a sweep at `now` runs the person check, given its last run. Pure. */
+export function personCheckDue(lastRun: Date | null | undefined, now: Date): boolean {
+  if (lastRun === null || lastRun === undefined) return true;
+  return now.getTime() - lastRun.getTime() >= PERSON_CANDIDATE_INTERVAL_SECONDS * 1000;
+}
+
+/**
+ * The checks a sweep runs: every swept check, the person check only when an
+ * unscoped sweep is due one (a season has no persons of its own).
+ */
+export function checksToSweep(
+  seasonId: string | null,
+  personLastRun: Date | null | undefined,
+  now: Date,
+): readonly DataQualityCheck[] {
+  const people = seasonId === null && personCheckDue(personLastRun, now);
+  return SWEPT_CHECKS.filter((check) => people || check !== 'person_duplicate_candidate');
+}
+
 export function checkFreshness(
   check: DataQualityCheck,
   checkedAt: Date | null,
   now: Date,
 ): 'current' | 'stale' | 'never_run' {
   if (checkedAt === null) return 'never_run';
-  const interval = check === 'table_disagrees' ? TABLE_INTERVAL_SECONDS : SWEEP_INTERVAL_SECONDS;
+  const interval =
+    check === 'table_disagrees'
+      ? TABLE_INTERVAL_SECONDS
+      : check === 'person_duplicate_candidate'
+        ? PERSON_CANDIDATE_INTERVAL_SECONDS
+        : SWEEP_INTERVAL_SECONDS;
   return now.getTime() - checkedAt.getTime() > STALE_AFTER_INTERVALS * interval * 1000
     ? 'stale'
     : 'current';

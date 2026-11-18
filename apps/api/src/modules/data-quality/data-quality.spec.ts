@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { findingsOf } from './data-quality.service';
+import type { DataQualityCheck } from '@fmip/contracts';
+import { DataQualityService, findingsOf } from './data-quality.service';
 import {
   type GoalsRow,
   LIVE_OVERRUN_MINUTES,
@@ -10,7 +11,12 @@ import {
   goalsDisagree,
   lineupNotEleven,
   liveOverrun,
+  PERSON_CANDIDATE_INTERVAL_SECONDS,
   type PersonPairRow,
+  SWEPT_CHECKS,
+  checkFreshness,
+  checksToSweep,
+  personCheckDue,
   personDuplicateCandidate,
   tableDisagreements,
 } from './internal/checks';
@@ -451,6 +457,68 @@ describe('person_duplicate_candidate', () => {
     expect(detail).toContain(
       `proposed: --from ${HIGH} --into ${LOW} (the player row of a player and coach pair)`,
     );
+  });
+
+  it('runs at most hourly, only in an unscoped sweep, and is stale after three hours', () => {
+    const hour = PERSON_CANDIDATE_INTERVAL_SECONDS * 1000;
+    expect(personCheckDue(null, NOW)).toBe(true);
+    expect(personCheckDue(new Date(NOW.getTime() - hour + 1000), NOW)).toBe(false);
+    expect(personCheckDue(new Date(NOW.getTime() - hour), NOW)).toBe(true);
+    expect(checksToSweep(null, undefined, NOW)).toEqual(SWEPT_CHECKS);
+    expect(checksToSweep(null, new Date(NOW.getTime() - 5 * 60_000), NOW)).not.toContain(
+      'person_duplicate_candidate',
+    );
+    expect(checksToSweep('a-season', null, NOW)).not.toContain('person_duplicate_candidate');
+    expect(checksToSweep('a-season', null, NOW)).toContain('lineup_not_eleven');
+    const ago = (minutes: number) => new Date(NOW.getTime() - minutes * 60_000);
+    expect(checkFreshness('person_duplicate_candidate', ago(150), NOW)).toBe('current');
+    expect(checkFreshness('person_duplicate_candidate', ago(181), NOW)).toBe('stale');
+    expect(checkFreshness('lineup_not_eleven', ago(16), NOW)).toBe('stale');
+  });
+
+  it('a sweep between hourly runs neither reads the persons nor passes the check to record, so its findings stay open', async () => {
+    const calls: { people: boolean; checks: readonly DataQualityCheck[] }[] = [];
+    const sweepAfter = async (minutes: number | null, seasonId: string | null = null) => {
+      const runs = new Map<DataQualityCheck, Date>(
+        minutes === null
+          ? []
+          : [['person_duplicate_candidate', new Date(NOW.getTime() - minutes * 60_000)]],
+      );
+      let people = false;
+      const store = {
+        checkRuns: async () => runs,
+        read: async (_now: Date, _season: string | null, wanted: boolean) => {
+          people = wanted;
+          return {
+            scores: [],
+            goals: [],
+            live: [],
+            lineups: [],
+            mappings: [],
+            pairs: [],
+            people: wanted ? [PEOPLE] : [],
+          };
+        },
+        locked: async <T>(work: (client: unknown) => Promise<T>) => work({}),
+        record: async (_client: unknown, checks: readonly DataQualityCheck[]) => {
+          calls.push({ people, checks });
+          return { opened: 0, seen: 0, resolved: 0 };
+        },
+      };
+      await new DataQualityService(store as never).sweep(NOW, seasonId);
+      return calls.at(-1)!;
+    };
+    const skipped = await sweepAfter(10);
+    expect(skipped.people).toBe(false);
+    expect(skipped.checks).not.toContain('person_duplicate_candidate');
+    expect(skipped.checks).toContain('duplicate_fixture');
+    for (const due of [await sweepAfter(61), await sweepAfter(null)]) {
+      expect(due.people).toBe(true);
+      expect(due.checks).toContain('person_duplicate_candidate');
+    }
+    const scoped = await sweepAfter(null, 'a-season');
+    expect(scoped.people).toBe(false);
+    expect(scoped.checks).not.toContain('person_duplicate_candidate');
   });
 
   it('keeps one subject whichever way round the pair is read, and never pairs a row with itself', () => {

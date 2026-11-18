@@ -41,7 +41,7 @@ export interface CheckRows {
   lineups: LineupRow[];
   mappings: MappingRow[];
   pairs: PairRow[];
-  /** T-1864: read only by an unscoped sweep; a season has no persons of its own. */
+  /** T-1864: read only when the sweep runs the person check (unscoped, at most hourly). */
   people: PersonPairRow[];
 }
 
@@ -533,11 +533,12 @@ export class DataQualityStore {
   /**
    * The rows every swept check judges, read in parallel outside any
    * transaction. `seasonId` narrows every statement to one season's fixtures;
-   * `null` is every stored fixture (the scheduled sweep).
+   * `null` is every stored fixture (the scheduled sweep). `people` is whether
+   * the person check runs this time (T-1864: unscoped, at most hourly).
    */
-  async read(now: Date, seasonId: string | null = null): Promise<CheckRows> {
+  async read(now: Date, seasonId: string | null = null, people = false): Promise<CheckRows> {
     const inScope = (n: number) => `($${n}::uuid IS NULL OR f.season_id = $${n}::uuid)`;
-    const [scores, goals, live, lineups, mappings, pairs, people] = await Promise.all([
+    const [scores, goals, live, lineups, mappings, pairs, persons] = await Promise.all([
       this.pool.query<ScoreKindsRow>(
         `SELECT ${REF}, f.status,
                 COALESCE(array_agg(sc.kind) FILTER (WHERE sc.kind IS NOT NULL), '{}') AS kinds
@@ -647,8 +648,8 @@ export class DataQualityStore {
         [DUPLICATE_WINDOW_DAYS, seasonId, SWAPPED_WINDOW_HOURS],
       ),
       // T-1864 (D-446): the candidates are the database function's, which
-      // `catalog.mjs --person-candidates` reads too. A season-scoped sweep
-      // reads none (and, its scope being one season, resolves none).
+      // `catalog.mjs --person-candidates` reads too. Read only when the
+      // sweep runs the person check: never in a season-scoped sweep.
       this.pool.query<PersonPairRow>(
         `SELECT c.low_person_id AS "lowPersonId", c.high_person_id AS "highPersonId",
                 pl.full_name AS "lowName", ph.full_name AS "highName",
@@ -661,8 +662,8 @@ export class DataQualityStore {
            FROM person_duplicate_candidates() c
            JOIN person pl ON pl.id = c.low_person_id
            JOIN person ph ON ph.id = c.high_person_id
-          WHERE $1::uuid IS NULL`,
-        [seasonId],
+          WHERE $1::boolean AND $2::uuid IS NULL`,
+        [people, seasonId],
       ),
     ]);
     return {
@@ -672,7 +673,7 @@ export class DataQualityStore {
       lineups: lineups.rows,
       mappings: mappings.rows,
       pairs: pairs.rows,
-      people: people.rows,
+      people: persons.rows,
     };
   }
 
