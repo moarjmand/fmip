@@ -1,6 +1,7 @@
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import type {
+  ApiError,
   ConsoleCalendar,
   ConsoleCalendarEvent,
   ConsoleCalendarPush,
@@ -35,8 +36,9 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const SECRET = 'console-calendar-secret-'.repeat(3);
 const SUB = `cal-${RUN}`;
-const GOOD = `https://push.example/${RUN}/good`;
-const GONE = `https://push.example/${RUN}/gone`;
+// A real push service's host (T-1880: no other is taken); the push channel is scripted, nothing is sent.
+const GOOD = `https://fcm.googleapis.com/fcm/send/${RUN}-good`;
+const GONE = `https://updates.push.services.mozilla.com/wpush/v2/${RUN}-gone`;
 const KEYS = { p256dh: 'B'.repeat(87), auth: 'a'.repeat(22) };
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console calendar', () => {
@@ -284,6 +286,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console cale
     expect(
       (await call('POST', '/console/calendar/push', { endpoint: 'http://x', keys: KEYS })).status,
     ).toBe(400);
+    // T-1880: only a browser's own push service, by name, over https on its own port.
+    for (const elsewhere of [
+      `https://push.example/${RUN}/good`,
+      'https://127.0.0.1/hook',
+      'https://[::1]/hook',
+      'https://fcm.googleapis.com:8443/fcm/send/x',
+      'https://fcm.googleapis.com.example.com/fcm/send/x',
+      'https://fcm.googleapis.com@example.com/fcm/send/x',
+      'http://fcm.googleapis.com/fcm/send/x',
+    ]) {
+      const refused = await call<ApiError>('POST', '/console/calendar/push', {
+        endpoint: elsewhere,
+        keys: KEYS,
+      });
+      expect(refused.status, elsewhere).toBe(400);
+      expect(refused.body, elsewhere).toEqual({
+        error: 'validation',
+        message: "endpoint is the https:// address of a browser's push service.",
+      });
+    }
+    expect((await call<ConsoleCalendarPush>('GET', '/console/calendar/push')).body.devices).toBe(0);
     expect(
       (await call('POST', '/console/calendar/push', { endpoint: GOOD, keys: KEYS })).status,
     ).toBe(204);
@@ -351,7 +374,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console cale
 
 const ARUN = `a${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const ASECRET = 'console-alerts-secret-'.repeat(3);
-const endpoint = (who: string) => `https://push.example/${ARUN}/${who}`;
+const endpoint = (who: string) => `https://fcm.googleapis.com/fcm/send/${ARUN}-${who}`;
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request alerts', () => {
   let app: NestFastifyApplication;

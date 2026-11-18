@@ -392,6 +392,81 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     });
   });
 
+  it('holds commands to two hourly ceilings, and an agent to one waiting run (T-1880)', async () => {
+    const run = { kind: 'agent.run', target: 'data-auditor', reason: 'now' };
+    const pause = { kind: 'agent.pause', target: 'data-auditor', reason: 'quiet' };
+    const { rows: limits } = await pool.query<{ action: string; per_hour: number }>(
+      `SELECT action, per_hour FROM rate_limit WHERE action LIKE 'console_command%' ORDER BY action`,
+    );
+    expect(limits).toEqual([
+      { action: 'console_command', per_hour: 40 },
+      { action: 'console_command_run', per_hour: 10 },
+    ]);
+
+    // What a command carries is a choice and a short note.
+    const long = await send('POST', 'commands', { ...pause, payload: { note: 'x'.repeat(501) } });
+    expect(long.statusCode).toBe(400);
+    expect(long.json<ApiError>().error).toBe('validation');
+
+    // Nothing of an earlier test is left waiting.
+    await store.takeCommands();
+    expect((await send('POST', 'commands', run)).statusCode).toBe(201);
+    // The computer starts every queued run in one go: no second one for the same agent.
+    const twice = await send('POST', 'commands', run);
+    expect(twice.statusCode).toBe(409);
+    expect(twice.json<ApiError>()).toEqual({
+      error: 'conflict',
+      message: 'This agent already has a run waiting.',
+    });
+    // Once the computer has taken it, another may be asked.
+    await store.takeCommands();
+
+    const mine = async () => {
+      const { rows } = await pool.query<{ used: number; runs: number }>(
+        `SELECT count(*)::int AS used, (count(*) FILTER (WHERE c.kind = 'agent.run'))::int AS runs
+           FROM console_command c JOIN console_user u ON u.id = c.requested_by
+          WHERE u.username = $1`,
+        [name],
+      );
+      return rows[0]!;
+    };
+    try {
+      // One run an hour: this person has asked one this hour, whatever the clock.
+      await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_command_run'`);
+      await send('POST', 'commands', run);
+      await store.takeCommands();
+      const before = await mine();
+      const refused = await send('POST', 'commands', run);
+      expect(refused.statusCode).toBe(429);
+      expect(refused.json<ApiError>().error).toBe('rate_limited');
+      expect(refused.json<ApiError>().message).toMatch(
+        /^That is the most immediate runs an hour allows\. Try again in \d+ minutes?\.$/,
+      );
+      expect(Number(refused.headers['retry-after'])).toBeGreaterThan(0);
+      // Another kind of command is not a run.
+      expect((await send('POST', 'commands', pause)).statusCode).toBe(201);
+
+      // One command an hour, of any kind.
+      await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_command'`);
+      const over = await send('POST', 'commands', pause);
+      expect(over.statusCode).toBe(429);
+      expect(over.json<ApiError>().message).toMatch(/^That is the most commands an hour allows\./);
+      expect(Number(over.headers['retry-after'])).toBeGreaterThan(0);
+      // A refused command is not queued.
+      expect(await mine()).toEqual({ used: before.used + 1, runs: before.runs });
+      const { rows: refusals } = await pool.query<{ action: string }>(
+        `SELECT action FROM rate_refusal
+          WHERE action LIKE 'console_command%' AND day = $1::date AND count > 0 ORDER BY action`,
+        [new Date().toISOString().slice(0, 10)],
+      );
+      expect(refusals.map((r) => r.action)).toEqual(['console_command', 'console_command_run']);
+    } finally {
+      await pool.query(`UPDATE rate_limit SET per_hour = 40 WHERE action = 'console_command'`);
+      await pool.query(`UPDATE rate_limit SET per_hour = 10 WHERE action = 'console_command_run'`);
+      await store.takeCommands();
+    }
+  });
+
   describe('chat with an agent (T-1722, D-350)', () => {
     const agent = 'data-auditor';
     const messages = `agents/${agent}/messages`;
@@ -672,6 +747,68 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       await expect(
         pool.query(`DELETE FROM console_request_event WHERE request_id = $1`, [request.id]),
       ).rejects.toThrow();
+    });
+
+    it('takes the run mark off a request whose text changes after it was marked (T-1880)', async () => {
+      const request = (
+        await send('POST', 'requests', { title: `Marked ${RUN}`, body: 'Do this.' })
+      ).json<ConsoleRequestDetail>();
+      const mark = async (): Promise<string> => {
+        const marked = await send('POST', `requests/${request.id}/execute`, { execute: true });
+        expect(marked.statusCode).toBe(200);
+        const at = marked.json<ConsoleRequestDetail>().execute_requested_at;
+        expect(at).not.toBeNull();
+        return at!;
+      };
+      const edit = async (change: Record<string, string>) => {
+        const edited = await send('PATCH', `requests/${request.id}`, change, mate);
+        expect(edited.statusCode).toBe(200);
+        return edited.json<ConsoleRequestDetail>();
+      };
+      const markedAt = await mark();
+
+      // The priority is not what runs, and the same words again change nothing.
+      expect((await edit({ priority: 'high' })).execute_requested_at).toBe(markedAt);
+      expect((await edit({ title: `Marked ${RUN}`, body: 'Do this.' })).execute_requested_at).toBe(
+        markedAt,
+      );
+
+      // The teammate rewrites what was marked: it is read and marked again before it runs.
+      expect(await edit({ body: 'Do something else.' })).toMatchObject({
+        body: 'Do something else.',
+        execute_requested_at: null,
+      });
+      expect((await requestStore.get(request.id))?.execute_requested_at).toBeNull();
+      const cleared = () =>
+        pool.query<{ actor_name: string; previous: unknown; next: unknown }>(
+          `SELECT actor_name, previous, next FROM console_audit
+            WHERE action = 'request.edited' AND target_id = $1 AND next ? 'execute'
+            ORDER BY created_at`,
+          [request.id],
+        );
+      expect((await cleared()).rows).toEqual([
+        {
+          actor_name: `${name}_mate`,
+          previous: {
+            title: `Marked ${RUN}`,
+            body: 'Do this.',
+            priority: 'high',
+            execute_requested_at: markedAt,
+          },
+          next: { body: 'Do something else.', execute: false },
+        },
+      ]);
+
+      // The title is what runs too; an edit of an unmarked request says nothing of a mark.
+      const again = await mark();
+      expect((await edit({ title: `Marked ${RUN}, reworded` })).execute_requested_at).toBeNull();
+      await edit({ body: 'Unmarked, changed once more.' });
+      const { rows } = await cleared();
+      expect(rows).toHaveLength(2);
+      expect(rows[1]).toMatchObject({
+        previous: { execute_requested_at: again },
+        next: { title: `Marked ${RUN}, reworded`, execute: false },
+      });
     });
 
     it('puts a question to the teammate, who decides it; a decided request can be run', async () => {
@@ -1048,6 +1185,73 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       ]);
       expect(rows[1]!.actor_name).toBe(`${name}_pic`);
       expect(rows[3]!.previous).toMatchObject({ image: image.id, caption: 'جدول لیگ' });
+    });
+
+    it('takes the run mark off a request whose pictures change after it was marked (T-1880)', async () => {
+      const request = await newRequest(`Marked pictures ${RUN}`);
+      const mark = async (): Promise<string> => {
+        const marked = await send('POST', `requests/${request.id}/execute`, { execute: true });
+        const at = marked.json<ConsoleRequestDetail>().execute_requested_at;
+        expect(at).not.toBeNull();
+        return at!;
+      };
+      const audited = async (action: string) => {
+        const { rows } = await pool.query<{
+          previous: Record<string, unknown> | null;
+          next: Record<string, unknown> | null;
+        }>(
+          `SELECT previous, next FROM console_audit
+            WHERE action = $1 AND target_id = $2 ORDER BY created_at DESC LIMIT 1`,
+          [action, request.id],
+        );
+        return rows[0]!;
+      };
+
+      // A picture added to a marked request.
+      const first = await mark();
+      const added = await upload(request.id, await solid(40, 30).png().toBuffer(), {
+        who: picMate,
+      });
+      expect(added.statusCode).toBe(201);
+      expect(added.json<ConsoleRequestDetail>().execute_requested_at).toBeNull();
+      const image = added.json<ConsoleRequestDetail>().images[0]!;
+      expect(await audited('request.image_added')).toMatchObject({
+        previous: { execute_requested_at: first },
+        next: { image: image.id, execute: false },
+      });
+
+      // Its caption rewritten.
+      const second = await mark();
+      const captioned = await app.inject({
+        method: 'PATCH',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(picMate),
+        payload: { caption: 'Read this instead' },
+      });
+      expect(captioned.json<ConsoleRequestDetail>().execute_requested_at).toBeNull();
+      expect(await audited('request.image_captioned')).toMatchObject({
+        previous: { image: image.id, caption: null, execute_requested_at: second },
+        next: { image: image.id, caption: 'Read this instead', execute: false },
+      });
+
+      // And the picture removed.
+      const third = await mark();
+      const removed = await app.inject({
+        method: 'DELETE',
+        url: `/console/requests/${request.id}/images/${image.id}`,
+        headers: as(picMate),
+      });
+      expect(removed.json<ConsoleRequestDetail>().execute_requested_at).toBeNull();
+      expect(await audited('request.image_removed')).toMatchObject({
+        previous: { image: image.id, execute_requested_at: third },
+        next: { execute: false },
+      });
+
+      // A picture on an unmarked request says nothing of a mark.
+      await upload(request.id, await solid(40, 30).png().toBuffer());
+      const plain = await audited('request.image_added');
+      expect(plain.previous).toBeNull();
+      expect(plain.next).not.toHaveProperty('execute');
     });
 
     it('takes no picture on a closed request until it is reopened', async () => {

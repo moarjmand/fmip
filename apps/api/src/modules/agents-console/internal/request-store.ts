@@ -181,6 +181,22 @@ const detail = (
   events,
 });
 
+/**
+ * A change's audit values, saying so when it cleared the request's run mark
+ * (T-1880): when the mark had been set goes with the previous value, and
+ * `execute: false` with the next. Unchanged when there was no mark.
+ */
+export function runMarkCleared<V extends { previous?: object | null; next?: object | null }>(
+  unmarked: string | null,
+  values: V,
+): V | { previous: object; next: object } {
+  if (unmarked === null) return values;
+  return {
+    previous: { ...values.previous, execute_requested_at: unmarked },
+    next: { ...values.next, execute: false },
+  };
+}
+
 /** Who writes: a console person, or Claude through the server's command line. */
 type Actor = { kind: 'person'; me: ConsoleMe } | { kind: 'agent' };
 
@@ -299,19 +315,35 @@ export class PostgresRequestStore {
     });
   }
 
+  /**
+   * A person's edit. A request marked to run loses the mark when its title or
+   * details change (T-1880): the mark says "run what I read", and what runs is
+   * the text as it stands when Claude pulls it, so a changed text must be read
+   * and marked again. A change of priority alone keeps it. The audit row says
+   * when the mark had been set.
+   */
   async edit(id: string, input: ConsoleRequestEdit, me: ConsoleMe): Promise<RequestOutcome> {
     return this.personMove(id, me, { kind: 'edit' }, async (client, before) => {
+      const reworded =
+        (input.title !== undefined && input.title !== before.title) ||
+        (input.body !== undefined && input.body !== before.body);
+      const unmarked = reworded ? iso(before.execute_requested_at) : null;
       await client.query(
         `UPDATE console_request SET title = COALESCE($2, title), body = COALESCE($3, body),
-                priority = COALESCE($4, priority), updated_at = now()
+                priority = COALESCE($4, priority),
+                execute_requested_at = CASE WHEN $5::boolean THEN NULL ELSE execute_requested_at END,
+                execute_requested_by = CASE WHEN $5::boolean THEN NULL ELSE execute_requested_by END,
+                updated_at = now()
           WHERE id = $1`,
-        [id, input.title ?? null, input.body ?? null, input.priority ?? null],
+        [id, input.title ?? null, input.body ?? null, input.priority ?? null, unmarked !== null],
       );
       return {
         kind: 'edited',
         note: null,
-        previous: { title: before.title, body: before.body, priority: before.priority },
-        next: input,
+        ...runMarkCleared(unmarked, {
+          previous: { title: before.title, body: before.body, priority: before.priority },
+          next: { ...input },
+        }),
       };
     });
   }
@@ -486,7 +518,7 @@ export class PostgresRequestStore {
         ],
       );
       const { position, status } = rows[0]!;
-      await client.query(`UPDATE console_request SET updated_at = now() WHERE id = $1`, [id]);
+      const unmarked = await this.touched(client, id);
       await this.record(
         client,
         id,
@@ -495,7 +527,7 @@ export class PostgresRequestStore {
         status,
         status,
         input.caption,
-        {
+        runMarkCleared(unmarked, {
           next: {
             image: input.id,
             position,
@@ -509,7 +541,7 @@ export class PostgresRequestStore {
             },
             uploaded: { type: input.originalType, bytes: input.originalByteSize },
           },
-        },
+        }),
       );
       return { kind: 'ok', request: (await this.byId(client, id))! };
     });
@@ -540,7 +572,7 @@ export class PostgresRequestStore {
       const gone = rows[0];
       if (gone === undefined) return { kind: 'missing', what: 'image' };
       keys = [gone.storage_key, gone.thumb_key];
-      await client.query(`UPDATE console_request SET updated_at = now() WHERE id = $1`, [id]);
+      const unmarked = await this.touched(client, id);
       await this.record(
         client,
         id,
@@ -549,7 +581,7 @@ export class PostgresRequestStore {
         status,
         status,
         gone.caption,
-        {
+        runMarkCleared(unmarked, {
           previous: {
             image: gone.id,
             position: gone.position,
@@ -558,7 +590,7 @@ export class PostgresRequestStore {
             sha256: gone.sha256,
           },
           next: null,
-        },
+        }),
       );
       return { kind: 'ok', request: (await this.byId(client, id))! };
     });
@@ -587,7 +619,7 @@ export class PostgresRequestStore {
         imageId,
         caption,
       ]);
-      await client.query(`UPDATE console_request SET updated_at = now() WHERE id = $1`, [id]);
+      const unmarked = await this.touched(client, id);
       await this.record(
         client,
         id,
@@ -596,10 +628,10 @@ export class PostgresRequestStore {
         status,
         status,
         caption,
-        {
+        runMarkCleared(unmarked, {
           previous: { image: imageId, caption: before.caption },
           next: { image: imageId, caption },
-        },
+        }),
       );
       return { kind: 'ok', request: (await this.byId(client, id))! };
     });
@@ -619,6 +651,25 @@ export class PostgresRequestStore {
       [imageId, requestId],
     );
     return rows[0] ?? null;
+  }
+
+  /**
+   * A picture of the request was added, removed or recaptioned: the request
+   * is touched and, like an edit of its text, loses its run mark (T-1880) --
+   * a picture is part of what Claude reads when it runs one. Answers when the
+   * mark had been set, or `null` when there was none. The request is locked
+   * by the caller (`lockOpen`).
+   */
+  private async touched(client: PoolClient, id: string): Promise<string | null> {
+    const { rows } = await client.query<{ was: Date | null }>(
+      `UPDATE console_request r
+          SET execute_requested_at = NULL, execute_requested_by = NULL, updated_at = now()
+         FROM (SELECT execute_requested_at AS was FROM console_request WHERE id = $1) b
+        WHERE r.id = $1
+        RETURNING b.was`,
+      [id],
+    );
+    return iso(rows[0]?.was ?? null);
   }
 
   /** The request, locked, if it is open; otherwise the outcome that refuses the change. */

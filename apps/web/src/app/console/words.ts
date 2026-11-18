@@ -77,6 +77,29 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^Not a command the console knows\.$/, () => 'کنسول این دستور را نمی‌شناسد.'],
   [/^Give a reason, up to (\d+) characters\.$/, (m) => `دلیل را بنویسید (تا ${fa(m[1]!)} نویسه).`],
   [/^Every value must be text\.$/, () => 'همه‌ی مقدارها باید متن باشند.'],
+  // T-1880: the commands' limits, and the push service a browser may name.
+  [
+    /^A command carries up to (\d+) values of (\d+) characters\.$/,
+    (m) => `هر دستور حداکثر ${fa(m[1]!)} مقدار دارد و هر مقدار تا ${fa(m[2]!)} نویسه است.`,
+  ],
+  [
+    /^That is the most commands an hour allows/,
+    () => 'به سقف دستورهای یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
+    /^That is the most immediate runs an hour allows/,
+    () => 'به سقف اجراهای فوری یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
+    /^This agent already has a run waiting\.$/,
+    () =>
+      'برای این عامل یک اجرای فوری در صف است؛ تا رایانه آن را برندارد، اجرای دیگری ثبت نمی‌شود.',
+  ],
+  [
+    /^endpoint is the https:\/\/ address of a browser's push service\.$/,
+    () =>
+      'نشانی اعلانی که این مرورگر داد از سرویس‌های اعلان شناخته‌شده نیست؛ یادآور روی این مرورگر روشن نشد.',
+  ],
   [/^Choose an answer\.$/, () => 'یک گزینه را انتخاب کنید.'],
   [/^Not a model the agents run on\.$/, () => 'عامل‌ها با این مدل کار نمی‌کنند.'],
   [/^Not a schedule the daily run knows\.$/, () => 'اجرای روزانه این برنامه را نمی‌شناسد.'],

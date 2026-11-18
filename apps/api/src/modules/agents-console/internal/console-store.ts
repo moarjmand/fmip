@@ -17,9 +17,11 @@ import { PG_POOL } from '../../../database/database.module';
 import {
   ANSWERING_TIMEOUT_MINUTES,
   CHAT_CONTEXT,
+  COMMAND_CEILING,
   CONVERSATION_PAGE,
   FAILURE_MAX,
   MESSAGE_CEILING,
+  RUN_CEILING,
   SESSION_IDLE_HOURS,
 } from './console-rules';
 
@@ -96,6 +98,16 @@ const command = (r: CommandRow): ConsoleCommand => ({
   finished_at: r.finished_at?.toISOString() ?? null,
   outcome: r.outcome,
 });
+
+/**
+ * What queueing a command answers (T-1880): the command, a refusal past one
+ * of the two hourly ceilings (which one, for the sentence), or `waiting` when
+ * the agent already has a run queued.
+ */
+export type QueueCommandOutcome =
+  | { kind: 'ok'; command: ConsoleCommand }
+  | { kind: 'limited'; ceiling: string; retryAfterSeconds: number }
+  | { kind: 'waiting' };
 
 interface MessageRow {
   id: string;
@@ -362,8 +374,73 @@ export class PostgresConsoleStore {
 
   // --- Commands ------------------------------------------------------------
 
-  async queueCommand(request: ConsoleCommandRequest, actor: ConsoleMe): Promise<ConsoleCommand> {
+  /**
+   * A person's command, queued for the computer and audited, or refused
+   * (T-1880): past the `console_command` ceiling (that person's commands in
+   * the current clock hour, counted from these rows), past the tighter
+   * `console_command_run` ceiling for `agent.run`, or when the same agent
+   * already has a run waiting -- the computer starts every queued run in one
+   * go, so a second one would run the agent twice. The person's row is locked
+   * first, so two posts at once are counted one after the other; a refusal is
+   * counted in `rate_refusal` like the API's other ceilings (T-811). A missing
+   * `rate_limit` row means no ceiling.
+   */
+  async queueCommand(
+    request: ConsoleCommandRequest,
+    actor: ConsoleMe,
+  ): Promise<QueueCommandOutcome> {
     return this.transaction(async (client) => {
+      await client.query(`SELECT 1 FROM console_user WHERE id = $1 FOR UPDATE`, [actor.id]);
+      const run = request.kind === 'agent.run';
+      const { rows: verdict } = await client.query<{
+        per_hour: number | null;
+        run_per_hour: number | null;
+        used: number;
+        runs: number;
+        retry_after: number;
+      }>(
+        `SELECT (SELECT per_hour FROM rate_limit WHERE action = $2) AS per_hour,
+                (SELECT per_hour FROM rate_limit WHERE action = $3) AS run_per_hour,
+                count(*)::int AS used,
+                (count(*) FILTER (WHERE kind = 'agent.run'))::int AS runs,
+                ceil(extract(epoch FROM date_trunc('hour', now()) + interval '1 hour' - now()))::int
+                  AS retry_after
+           FROM console_command
+          WHERE requested_by = $1 AND requested_at >= date_trunc('hour', now())`,
+        [actor.id, COMMAND_CEILING, RUN_CEILING],
+      );
+      const counted = verdict[0]!;
+      const over =
+        run && counted.run_per_hour !== null && counted.runs >= counted.run_per_hour
+          ? RUN_CEILING
+          : counted.per_hour !== null && counted.used >= counted.per_hour
+            ? COMMAND_CEILING
+            : null;
+      if (over !== null) {
+        // The day is the application's, like the report's (RateLimitsService).
+        await client.query(
+          `INSERT INTO rate_refusal (action, day, count) VALUES ($1, $2::date, 1)
+           ON CONFLICT (action, day) DO UPDATE SET count = rate_refusal.count + 1`,
+          [over, new Date().toISOString().slice(0, 10)],
+        );
+        return {
+          kind: 'limited',
+          ceiling: over,
+          retryAfterSeconds: Math.max(1, counted.retry_after),
+        };
+      }
+      if (run) {
+        // Under a lock on the agent's name: two people asking at once queue one run.
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
+          `console_command:agent.run:${request.target}`,
+        ]);
+        const waiting = await client.query(
+          `SELECT 1 FROM console_command
+            WHERE kind = 'agent.run' AND target = $1 AND status = 'queued' LIMIT 1`,
+          [request.target],
+        );
+        if ((waiting.rowCount ?? 0) > 0) return { kind: 'waiting' };
+      }
       const { rows } = await client.query<CommandRow>(
         `INSERT INTO console_command (kind, target, payload, requested_by) VALUES ($1, $2, $3, $4)
          RETURNING id, kind, target, payload, status, $5::text AS requested_by, requested_at, finished_at, outcome`,
@@ -385,7 +462,7 @@ export class PostgresConsoleStore {
         reason: request.reason,
         next: request.payload,
       });
-      return command(row);
+      return { kind: 'ok', command: command(row) };
     });
   }
 

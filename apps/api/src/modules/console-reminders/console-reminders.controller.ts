@@ -19,6 +19,7 @@ import type { FastifyRequest } from 'fastify';
 import { ConsoleCalendarService } from '../agents-console/console-calendar.service';
 import { ConsoleSessions } from '../agents-console/console-sessions.service';
 import { DeliveryService } from '../delivery/delivery.service';
+import { isPushServiceEndpoint } from '../delivery/push-endpoint';
 import { ConsoleReminders } from './console-reminders.service';
 
 const SIGNED_OUT: ApiError = { error: 'unauthenticated', message: 'Sign in to the console.' };
@@ -35,8 +36,10 @@ export function checkDevice(
     endpoint?: unknown;
     keys?: { p256dh?: unknown; auth?: unknown };
   };
-  if (typeof endpoint !== 'string' || !/^https:\/\/\S+$/.test(endpoint) || endpoint.length > 1000)
-    return { ok: false, reason: 'endpoint is the push service https:// address.' };
+  // T-1880: the API sends to this address later, so only a browser's own
+  // push service is taken, never a host the caller chose.
+  if (!isPushServiceEndpoint(endpoint))
+    return { ok: false, reason: "endpoint is the https:// address of a browser's push service." };
   const p256dh = keys?.p256dh;
   const auth = keys?.auth;
   if (
