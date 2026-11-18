@@ -98,7 +98,7 @@ export interface DataQualityCheckState {
  */
 export interface DataQualityCount {
   competition: { id: string; name: string } | null;
-  /** `null` for a finding about no season (none of the checks writes one today). */
+  /** `null` for a finding about no season: `person_duplicate_candidate`'s (T-1864). */
   season: { id: string; label: string } | null;
   check: DataQualityCheck;
   open: number;

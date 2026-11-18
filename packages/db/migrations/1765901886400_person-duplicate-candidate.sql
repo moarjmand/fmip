@@ -25,8 +25,9 @@
 -- older row (`created_at`); else the lower id.
 --
 -- One statement, one function, read by the data-quality sweep (the check
--- `person_duplicate_candidate`, every five minutes, in
--- `apps/api/src/modules/data-quality/`) and by the operator's
+-- `person_duplicate_candidate`, at most hourly: it reads every person, 3-4 s
+-- at production's size, in `apps/api/src/modules/data-quality/`) and by the
+-- operator's
 -- `catalog.mjs --person-candidates`, so the two never disagree. The join is
 -- on the birth date first; only persons with one are compared.
 --

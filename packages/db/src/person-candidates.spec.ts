@@ -105,10 +105,66 @@ describe('the person commands, parsed', () => {
     expect(people.parsePairs(`from,into\n${A.toUpperCase()},${B}`)).toEqual({
       pairs: [{ from: A, into: B }],
     });
-    expect(people.parsePairs(`${A},Ali Karimi`).error).toMatch(/row 1: the survivor/);
+    expect(people.parsePairs(`${A},Ali Karimi`).error).toMatch(/line 1: the survivor/);
     expect(people.parsePairs(`${A},${A}`).error).toMatch(/into itself/);
-    expect(people.parsePairs(`${A},${B}\n${A},${C}`).error).toMatch(/row 2: .* a loser twice/);
+    expect(people.parsePairs(`${A},${B}\n${A},${C}`).error).toMatch(/line 2: .* a loser twice/);
+    // The file's own line numbers, past the header, a comment and a blank line.
+    expect(people.parsePairs(`loser,survivor\n# batch 1\n\n${A},${B}\n${C},Ali`).error).toMatch(
+      /^line 5: the survivor/,
+    );
     expect(people.parsePairs('# nothing\n').error).toMatch(/no loser,survivor pair/);
+  });
+
+  it('stops a batch at a failure that is not a refusal, still saying what was merged and checking it', async () => {
+    // A stand-in connection: the first pair merges, the second meets a
+    // deadlock (an ingestion transaction on the same line-up), the third is
+    // never tried. Review m2.
+    const sql: string[] = [];
+    let merges = 0;
+    const client = {
+      query: async (text: string) => {
+        sql.push(text);
+        if (text.includes('FROM user_account')) return { rows: [{ id: A, admin: true }] };
+        if (text.startsWith('SELECT merge_person(')) {
+          merges += 1;
+          if (merges === 2) {
+            throw Object.assign(new Error('deadlock detected'), { code: '40P01' });
+          }
+          return { rows: [{ id: C }] };
+        }
+        if (text.includes('FROM pg_constraint')) return { rows: [] };
+        return { rows: [], rowCount: 0 };
+      },
+    };
+    const out: string[] = [];
+    const err: string[] = [];
+    const log = console.log;
+    const error = console.error;
+    console.log = (...args: unknown[]) => void out.push(args.join(' '));
+    console.error = (...args: unknown[]) => void err.push(args.join(' '));
+    let code: number;
+    try {
+      code = await people.mergePeople(
+        client,
+        { by: 'admin@example.test', reason: 'r', dryRun: false, file: 'pairs.csv', pairs: null },
+        () => [`${A},${B}`, `${C},${B}`, `00000000-0000-4000-8000-00000000000d,${B}`].join('\n'),
+      );
+    } finally {
+      console.log = log;
+      console.error = error;
+    }
+    expect(code).toBe(1);
+    const said = out.join('\n');
+    const warned = err.join('\n');
+    expect(said).toMatch(/1\/3 merged/);
+    expect(said).toMatch(/Nothing references the 1 loser/);
+    expect(warned).toMatch(/2\/3 failed: /);
+    expect(warned).toMatch(/nothing of this pair was written/);
+    expect(warned).toMatch(/deadlock detected/);
+    expect(warned).toMatch(/1 pair\(s\) merged before it, 1 not tried/);
+    // The failed pair's transaction was rolled back; the first was committed.
+    expect(sql.filter((t) => t === 'COMMIT')).toHaveLength(1);
+    expect(sql.filter((t) => t === 'ROLLBACK')).toHaveLength(1);
   });
 
   it('says each PL024 refusal in the operator’s words', () => {
@@ -332,11 +388,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
          VALUES ('api_football', 'person', $1, $3), ('api_football', 'person', $2, $4)`,
         [String(base), `coach:${base + 1}`, ids.player, ids.coach],
       );
-      // The survivor's profile answer was "another name" under one id: the
-      // merge settles it, and it is asked again (rev-2026-11-17-11).
+      // The survivor's answers under its own id: "another name" for the
+      // profile, the name kept for the names job. The merge settles both, so
+      // they are asked again by every id (rev-2026-11-17-11, review m1); a
+      // written answer stays, and an ask still waiting is left to its job.
       await q(
-        `INSERT INTO person_bio_fetch (person_id, provider, answered_at, outcome, detail)
-         VALUES ($1, 'api_football', now(), 'name_differs', 'the profile names someone else')`,
+        `INSERT INTO person_bio_fetch (person_id, provider, answered_at, outcome, detail, written)
+         VALUES ($1, 'api_football', now(), 'name_differs', 'the profile names someone else', NULL),
+                ($1, 'highlightly', now(), 'written', 'the profile gives height_cm', '{"height_cm": 180}')`,
+        [ids.survivor],
+      );
+      await q(
+        `INSERT INTO person_name_fetch (person_id, provider, answered_at, outcome, detail)
+         VALUES ($1, 'api_football', now(), 'name_kept', 'the ids'' profiles give different full names'),
+                ($1, 'highlightly', NULL, NULL, NULL)`,
         [ids.survivor],
       );
     });
@@ -477,7 +542,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await mergedInto(ids.loser!)).toBeNull();
       expect(
         await q(`SELECT 1 FROM person_bio_fetch WHERE person_id = $1`, [ids.survivor]),
-      ).toHaveLength(1);
+      ).toHaveLength(2);
+      expect(
+        await q(`SELECT 1 FROM person_name_fetch WHERE person_id = $1`, [ids.survivor]),
+      ).toHaveLength(2);
     });
 
     it('refuses two persons on one line-up with the PL024 hint in plain words', async () => {
@@ -559,7 +627,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(out.stdout).toMatch(/1\/4 merged .*Stone/);
       expect(out.stdout).toMatch(/2\/4 merged .*Taremi/);
       expect(out.stdout).toMatch(/merge id [0-9a-f-]{36} \(for --unmerge --merge/);
-      expect(out.stdout).toMatch(/name answers asked again: 1/);
+      expect(out.stdout).toMatch(/profile answers asked again: 2/);
       expect(out.stdout).toMatch(/Nothing references the 2 loser\(s\) any more/);
       expect(out.stderr).toMatch(/3\/4 refused/);
       expect(out.stderr).toMatch(/2 pair\(s\) merged before it, 1 not tried/);
@@ -568,10 +636,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(await mergedInto(ids.loser!)).toBe(ids.survivor);
       expect(await mergedInto(ids.teammateA!)).toBeNull();
       expect(await mergedInto(ids.coach!)).toBeNull();
-      // The survivor's "another name" answer is gone, so it is asked again.
+      // The survivor's settled answers are gone, so it is asked again; the
+      // written one and the ask still waiting stay.
       expect(
-        await q(`SELECT 1 FROM person_bio_fetch WHERE person_id = $1`, [ids.survivor]),
-      ).toEqual([]);
+        await q(`SELECT provider, outcome FROM person_bio_fetch WHERE person_id = $1`, [
+          ids.survivor,
+        ]),
+      ).toEqual([{ provider: 'highlightly', outcome: 'written' }]);
+      expect(
+        await q(`SELECT provider, outcome FROM person_name_fetch WHERE person_id = $1`, [
+          ids.survivor,
+        ]),
+      ).toEqual([{ provider: 'highlightly', outcome: null }]);
       // Merged through the shared function: audited as it audits.
       expect(
         await q(

@@ -30,13 +30,15 @@
  * that read a loser's mapping before the merge committed can still write one
  * row to it (D-446 Consequences).
  *
- * After a merge or an unmerge, the survivor's (and on an unmerge the restored
- * loser's) provider-ask records whose answer was a name disagreement
- * (`person_bio_fetch` `name_differs`; `person_name_fetch` `family_name_differs`
- * or `initial_differs`) are cleared, so the jobs ask again by every id the
- * person now has (rev-2026-11-17-11): those jobs ask only a person with no
- * answer, and the confirmed merge (or its undo) is what settles whether
- * another name under one of the ids was another human.
+ * After a merge or an unmerge, every answered profile and name record
+ * (`person_bio_fetch`, `person_name_fetch`) of the survivor (and on an
+ * unmerge of the restored loser too) is cleared except a `written` one, so
+ * the jobs ask again by every id the person now has (rev-2026-11-17-11 and
+ * the T-1864 review's m1): those jobs ask only a person with no answer, so a
+ * `name_differs`, `name_kept`, `no_profile` or `nothing_new` answer given
+ * under the old ids would otherwise stand for ever. The confirmed merge (or
+ * its undo) is what settles whether another name under one of the ids was
+ * another human. A `written` answer stays: its fields are already stored.
  */
 
 const ident = (name) => `"${String(name).replaceAll('"', '""')}"`;
@@ -124,18 +126,20 @@ export function parsePersonArgs(verb, flags) {
  * read (rule 1). Pure.
  */
 export function parsePairs(text) {
+  // Each line keeps its number in the file, so an error names the line the
+  // operator sees in an editor.
   const lines = text
     .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line !== '' && !line.startsWith('#'));
-  if (lines[0] !== undefined && /^(loser|from)\s*,\s*(survivor|into)\b/i.test(lines[0])) {
+    .map((line, index) => ({ text: line.trim(), number: index + 1 }))
+    .filter((line) => line.text !== '' && !line.text.startsWith('#'));
+  if (lines[0] !== undefined && /^(loser|from)\s*,\s*(survivor|into)\b/i.test(lines[0].text)) {
     lines.shift();
   }
   const pairs = [];
   const losers = new Set();
-  for (const [index, line] of lines.entries()) {
-    const [from = '', into = ''] = line.split(',').map((cell) => cell.trim().toLowerCase());
-    const row = `row ${index + 1}`;
+  for (const line of lines) {
+    const [from = '', into = ''] = line.text.split(',').map((cell) => cell.trim().toLowerCase());
+    const row = `line ${line.number}`;
     if (!UUID.test(from)) return { error: `${row}: the loser "${from}" is not a uuid` };
     if (!UUID.test(into)) return { error: `${row}: the survivor "${into}" is not a uuid` };
     if (from === into) return { error: `${row}: ${from} is merged into itself` };
@@ -284,17 +288,20 @@ async function personLine(client, id) {
 }
 
 /**
- * The provider-ask records whose answer was a name disagreement, cleared so
- * the jobs ask again by every id (rev-2026-11-17-11). Returns the count.
+ * Every answered profile and name record of these persons but a `written`
+ * one, cleared so the jobs ask again by every id (rev-2026-11-17-11, review
+ * m1). An ask still waiting for its answer is left to its job. Returns the
+ * count.
  */
-async function askNamesAgain(client, personIds) {
+async function askProfilesAgain(client, personIds) {
   const bios = await client.query(
-    `DELETE FROM person_bio_fetch WHERE person_id = ANY($1::uuid[]) AND outcome = 'name_differs'`,
+    `DELETE FROM person_bio_fetch
+      WHERE person_id = ANY($1::uuid[]) AND answered_at IS NOT NULL AND outcome <> 'written'`,
     [personIds],
   );
   const names = await client.query(
     `DELETE FROM person_name_fetch
-      WHERE person_id = ANY($1::uuid[]) AND outcome IN ('family_name_differs', 'initial_differs')`,
+      WHERE person_id = ANY($1::uuid[]) AND answered_at IS NOT NULL AND outcome <> 'written'`,
     [personIds],
   );
   return (bios.rowCount ?? 0) + (names.rowCount ?? 0);
@@ -404,10 +411,23 @@ export async function referencesTo(client, personIds) {
   return rows.map((row) => ({ person: row.person, column: row.col, rows: row.n }));
 }
 
-/** Prints the "nothing references the loser" check for these losers. */
-async function sayReferences(client, losers) {
+/**
+ * Prints the "nothing references the loser" check for these losers; when the
+ * check itself cannot run (the connection that failed a pair, say), says so
+ * and names the losers to check again, rather than hiding what was merged.
+ */
+async function sayReferencesOrSay(client, losers) {
   if (losers.length === 0) return;
-  const left = await referencesTo(client, losers);
+  let left;
+  try {
+    left = await referencesTo(client, losers);
+  } catch (error) {
+    console.error(
+      `\nThe "nothing references the loser" check could not run (${error instanceof Error ? error.message : String(error)}); ` +
+        `run it again for: ${losers.join(' ')}`,
+    );
+    return;
+  }
   if (left.length === 0) {
     console.log(
       `\nNothing references the ${losers.length} loser(s) any more (every column checked).`,
@@ -474,7 +494,7 @@ export async function mergePeople(client, options, readFile) {
           actor,
           options.reason,
         ]);
-        const asked = await askNamesAgain(client, [pair.into]);
+        const asked = await askProfilesAgain(client, [pair.into]);
         const summary = await mergeSummary(client, rows[0].id);
         if (options.dryRun) await client.query('RELEASE SAVEPOINT pair');
         else await client.query('COMMIT');
@@ -487,30 +507,40 @@ export async function mergePeople(client, options, readFile) {
               : `\n      merge id ${rows[0].id} (for --unmerge --merge ${rows[0].id})`),
         );
         for (const line of summary) console.log(line);
-        if (asked > 0) console.log(`      name answers asked again: ${asked}`);
+        if (asked > 0) console.log(`      profile answers asked again: ${asked}`);
       } catch (error) {
-        await client.query(options.dryRun ? 'ROLLBACK TO SAVEPOINT pair' : 'ROLLBACK');
+        // A refusal (PL024) or any other failure (a deadlock with an
+        // ingestion transaction, a lost connection) stops the batch the same
+        // way (review m2): the pairs before it are merged and committed, so
+        // their count and the references check are still said below.
+        await client
+          .query(options.dryRun ? 'ROLLBACK TO SAVEPOINT pair' : 'ROLLBACK')
+          .catch(() => undefined);
         const hint = pl024(error);
-        if (hint === null) throw error;
-        const facts = await refusalFacts(client, hint, pair);
+        const message = error instanceof Error ? error.message : String(error);
+        const facts = hint === null ? {} : await refusalFacts(client, hint, pair).catch(() => ({}));
         stopped = {
           label,
           pair,
-          message: refusal(hint, facts) ?? error.message,
-          detail: error.message,
+          verb: hint === null ? 'failed' : 'refused',
+          message:
+            hint === null
+              ? 'The merge failed; nothing of this pair was written.'
+              : (refusal(hint, facts) ?? message),
+          detail: message,
         };
         break;
       }
     }
-    if (options.dryRun) await sayReferences(client, merged);
+    if (options.dryRun) await sayReferencesOrSay(client, merged);
   } finally {
-    if (options.dryRun) await client.query('ROLLBACK');
+    if (options.dryRun) await client.query('ROLLBACK').catch(() => undefined);
   }
-  if (!options.dryRun) await sayReferences(client, merged);
+  if (!options.dryRun) await sayReferencesOrSay(client, merged);
 
   if (stopped !== null) {
     console.error(
-      `\n${stopped.label} refused: --from ${stopped.pair.from} --into ${stopped.pair.into}\n  ${stopped.message}\n  (${stopped.detail})`,
+      `\n${stopped.label} ${stopped.verb}: --from ${stopped.pair.from} --into ${stopped.pair.into}\n  ${stopped.message}\n  (${stopped.detail})`,
     );
     if (pairs.length > 1) {
       const rest = pairs.length - merged.length - 1;
@@ -552,7 +582,7 @@ export async function unmerge(client, options) {
       actor,
       options.reason,
     ]);
-    const asked = await askNamesAgain(client, [merge.from_person_id, merge.into_person_id]);
+    const asked = await askProfilesAgain(client, [merge.from_person_id, merge.into_person_id]);
     await client.query(options.dryRun ? 'ROLLBACK' : 'COMMIT');
     console.log(
       `${options.dryRun ? 'Would undo' : 'Undid'} merge ${options.merge}: ` +
@@ -560,7 +590,7 @@ export async function unmerge(client, options) {
         `apart from ${await personLine(client, merge.into_person_id)}.`,
     );
     for (const row of moved) console.log(`  ${row.table_name} (${row.action}): ${row.n} row(s)`);
-    if (asked > 0) console.log(`  name answers asked again: ${asked}`);
+    if (asked > 0) console.log(`  profile answers asked again: ${asked}`);
     console.log(
       options.dryRun
         ? '\nNothing was written. Run again without --dry-run.'
