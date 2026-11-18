@@ -173,15 +173,23 @@ export default async function ComparePlayersPage({
     sessionCookieHeader().then(fetchMe),
   ]);
   // Either player merged away (T-1865b, D-453): the same comparison of the
-  // survivors, the rest of the query kept, for good (308).
+  // survivors, the rest of the query kept, for good (308), in one hop. A
+  // survivor compared with himself is the picker, as `?with=` naming the
+  // first player always is.
   const movedA = a.ok ? a.data.moved_to : undefined;
   const movedB = b !== null && b.ok ? b.data.moved_to : undefined;
   if (movedA !== undefined || movedB !== undefined) {
+    const first = movedA ?? id;
+    let second: string | null = null;
+    if (other.state === 'id') {
+      second = other.id === id.toLowerCase() ? first : (movedB ?? other.id);
+      if (second.toLowerCase() === first.toLowerCase()) second = null;
+    }
     permanentRedirect(
       movedHref(
-        `/${locale}/player/${movedA ?? id}/compare`,
+        `/${locale}/player/${first}/compare`,
         query,
-        movedB === undefined ? {} : { with: movedB },
+        other.state === 'id' ? { with: second } : {},
       ),
     );
   }

@@ -61,9 +61,16 @@ async function clean(db: Db): Promise<void> {
   }
 }
 
-/** The status and the target of one request, the redirect not followed. */
+/**
+ * The status and the target of one request, the redirect not followed. A 308
+ * is never stored (`no-store`): an undone merge must not leave readers'
+ * browsers or a cache in front sending the tombstone's URL to the survivor.
+ */
 async function hop(request: APIRequestContext, path: string) {
   const response = await request.get(path, { maxRedirects: 0 });
+  if (response.status() === 308) {
+    expect(response.headers()['cache-control'] ?? '').toContain('no-store');
+  }
   const location = response.headers()['location'] ?? '';
   const target = new URL(location, 'http://example.invalid');
   return {
@@ -123,6 +130,14 @@ test.describe('a merged-away person redirects to the survivor (T-1865b)', () => 
     });
     // The survivor's own page does not move.
     expect((await hop(request, `/en/player/${SURVIVOR}`)).status).toBe(200);
+  });
+
+  test('a survivor compared with himself is the picker, in one hop', async ({ request }) => {
+    expect(await hop(request, `/en/player/${LOSER}/compare?with=${SURVIVOR}`)).toEqual({
+      status: 308,
+      path: `/en/player/${SURVIVOR}/compare`,
+      query: {},
+    });
   });
 
   test('the compare page answers 308 by either player, ?with= too', async ({ request }) => {

@@ -195,6 +195,12 @@ describe('movedHref (T-1865b, D-453)', () => {
     );
   });
 
+  it('drops a parameter replaced by null', () => {
+    expect(movedHref(`${SURVIVOR}/compare`, { with: 'old', q: 'z' }, { with: null })).toBe(
+      `${SURVIVOR}/compare?q=z`,
+    );
+  });
+
   it('sets a replaced parameter once, over the old value', () => {
     expect(
       movedHref(`${SURVIVOR}/compare`, { with: ['old', 'older'], q: 'z' }, { with: 'new' }),

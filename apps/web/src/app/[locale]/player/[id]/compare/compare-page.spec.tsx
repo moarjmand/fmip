@@ -346,4 +346,21 @@ describe('a merged-away player is compared as his survivor (T-1865b, D-453)', ()
       }),
     ).rejects.toThrow(`permanent redirect to /fa/player/${MBAPPE}/compare?with=${UNKNOWN}`);
   });
+
+  it('lands on the picker in one hop when the comparison is of one man with himself', async () => {
+    api.fetchPlayer.mockImplementation(async (id: string) => ({
+      ok: true,
+      data: id === LOSER ? { ...mbappe, moved_to: MBAPPE } : mbappe,
+    }));
+    const hop = (id: string, query: Record<string, string>) =>
+      ComparePlayersPage({
+        params: Promise.resolve({ locale: 'en', id }),
+        searchParams: Promise.resolve(query),
+      });
+    const picker = `permanent redirect to /en/player/${MBAPPE}/compare?q=x`;
+    // The tombstone with his survivor, either way round, and with himself.
+    await expect(hop(LOSER, { with: MBAPPE, q: 'x' })).rejects.toThrow(picker);
+    await expect(hop(MBAPPE, { with: LOSER, q: 'x' })).rejects.toThrow(picker);
+    await expect(hop(LOSER, { with: LOSER, q: 'x' })).rejects.toThrow(picker);
+  });
 });
