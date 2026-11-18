@@ -10,6 +10,8 @@ import {
   goalsDisagree,
   lineupNotEleven,
   liveOverrun,
+  type PersonPairRow,
+  personDuplicateCandidate,
   tableDisagreements,
 } from './internal/checks';
 import { type CoverageCandidateRow, coverageProposal } from './internal/coverage-proposals';
@@ -374,10 +376,87 @@ describe('findingsOf', () => {
         ],
         mappings: [],
         pairs: [],
+        people: [PEOPLE, { ...PEOPLE }],
       },
       NOW,
     );
-    expect(found.map((f) => f.check)).toEqual(['finished_without_score', 'lineup_not_eleven']);
+    expect(found.map((f) => f.check)).toEqual([
+      'finished_without_score',
+      'lineup_not_eleven',
+      'person_duplicate_candidate',
+    ]);
+  });
+});
+
+// T-1864 (D-446): which pairs are candidates is the database function's
+// (`packages/db/src/person-candidates.spec.ts`); the check names the pair with
+// its signals and the proposed survivor, never a fixture.
+const LOW = '00000000-0000-4000-8000-0000000000a1';
+const HIGH = '00000000-0000-4000-8000-0000000000b2';
+const PEOPLE: PersonPairRow = {
+  lowPersonId: LOW,
+  highPersonId: HIGH,
+  lowName: 'Ali Karimi',
+  highName: 'Ali Karimi',
+  dateOfBirth: '2001-04-05',
+  matchedOn: 'full_name',
+  sameNationality: true,
+  commonTeams: ['Esteghlal', 'Sepahan'],
+  lowLineups: 3,
+  highLineups: 41,
+  appearancesDisjoint: true,
+  lowCoachOnly: false,
+  highCoachOnly: false,
+  proposedInto: HIGH,
+  proposedBecause: 'more_lineups',
+};
+
+describe('person_duplicate_candidate', () => {
+  it('names the pair, its signals and the proposed merge, on no fixture', () => {
+    const finding = personDuplicateCandidate(PEOPLE);
+    expect(finding).toMatchObject({
+      check: 'person_duplicate_candidate',
+      subjectKey: `${LOW}:${HIGH}`,
+      fixtureId: null,
+      relatedFixtureId: null,
+      teamId: null,
+      seasonId: null,
+      competitionId: null,
+    });
+    expect(finding?.detail).toContain('born 2001-04-05');
+    expect(finding?.detail).toContain('same nationality: yes');
+    expect(finding?.detail).toContain('clubs in common: Esteghlal, Sepahan');
+    expect(finding?.detail).toContain('line-ups: 3 and 41');
+    expect(finding?.detail).toContain('appearances disjoint: yes');
+    expect(finding?.detail).toContain(`proposed: --from ${LOW} --into ${HIGH} (more line-ups)`);
+  });
+
+  it('says unknown where a signal cannot be judged, and names a coach row', () => {
+    const detail = personDuplicateCandidate({
+      ...PEOPLE,
+      matchedOn: 'known_as',
+      sameNationality: null,
+      commonTeams: [],
+      highLineups: 0,
+      appearancesDisjoint: null,
+      highCoachOnly: true,
+      proposedInto: LOW,
+      proposedBecause: 'player_row',
+    })?.detail;
+    expect(detail).toContain("one's full name the other's known-as");
+    expect(detail).toContain('same nationality: unknown');
+    expect(detail).toContain('clubs in common: none');
+    expect(detail).toContain('appearances disjoint: unknown');
+    expect(detail).toContain(`${HIGH}, a coach id only`);
+    expect(detail).toContain(
+      `proposed: --from ${HIGH} --into ${LOW} (the player row of a player and coach pair)`,
+    );
+  });
+
+  it('keeps one subject whichever way round the pair is read, and never pairs a row with itself', () => {
+    const swapped = personDuplicateCandidate({ ...PEOPLE, lowPersonId: HIGH, highPersonId: LOW });
+    expect(swapped?.subjectKey).toBe(`${LOW}:${HIGH}`);
+    expect(personDuplicateCandidate({ ...PEOPLE, highPersonId: LOW })).toBeNull();
   });
 });
 

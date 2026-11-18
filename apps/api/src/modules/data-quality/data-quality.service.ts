@@ -19,6 +19,7 @@ import {
   goalsDisagree,
   lineupNotEleven,
   liveOverrun,
+  personDuplicateCandidate,
   tableDisagreements,
 } from './internal/checks';
 import {
@@ -44,6 +45,7 @@ export function findingsOf(rows: CheckRows, now: Date): Finding[] {
     ...rows.lineups.map(lineupNotEleven),
     ...rows.mappings.map(fixtureMappedTwice),
     ...rows.pairs.map(duplicateFixture),
+    ...rows.people.map(personDuplicateCandidate),
   ];
   // One subject per check: a pair read twice, or a line-up read per row, is one finding.
   const unique = new Map<string, Finding>();

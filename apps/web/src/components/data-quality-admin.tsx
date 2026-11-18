@@ -35,6 +35,7 @@ export const CHECK_LABEL: Record<DataQualityCheck, string> = {
   fixture_mapped_twice: 'One fixture with two ids from one provider',
   duplicate_fixture: 'One match stored twice',
   table_disagrees: "The provider's table disagrees with ours",
+  person_duplicate_candidate: 'Two persons that may be one',
 };
 
 function When({ iso }: { iso: string }) {
