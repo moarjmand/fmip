@@ -1063,7 +1063,7 @@ export interface PlayerPage {
   last_updated_at: string | null;
   /**
    * Set only when the id asked for is a merged-away duplicate (a tombstone,
-   * T-1865a, D-446 point 7, D-452): the survivor's id. The rest of the page is
+   * T-1865a, D-446 point 7, D-453): the survivor's id. The rest of the page is
    * then the survivor's, so a reader that ignores this field still shows the
    * right person; the web redirects permanently to the survivor's page.
    */

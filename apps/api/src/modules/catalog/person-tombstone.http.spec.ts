@@ -12,7 +12,7 @@ import { SearchModule } from '../search/search.module';
 import { CatalogModule } from './catalog.module';
 
 /**
- * Reads after a person merge (T-1865a, D-446 point 7, D-452), against the real
+ * Reads after a person merge (T-1865a, D-446 point 7, D-453), against the real
  * schema and `merge_person`: a merged-away duplicate (a tombstone) answers
  * `GET /players/:id` and `GET /coaches/:id` with its survivor's page and
  * `moved_to`; search leaves it out; a message card or a panel link that names

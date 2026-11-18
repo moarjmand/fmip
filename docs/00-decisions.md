@@ -15805,7 +15805,7 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 **Consequences.** Migration `1765901863000_person-merge.sql`: tables `person_merge`, `person_merge_moved`, `person_not_duplicate`; functions `merge_person`, `merge_person_undo`, `person_merged_into`, `person_shared_lineup_fixture`, `person_shared_incident`; `set_updated_at()` honours `fmip.keep_updated_at` when it holds the current transaction's id. T-1867 re-runs the "nothing references the loser" check after each batch, since an ingestion transaction that read the loser's mapping before a merge committed can still write one row to it. `catalog.mjs` gains `--person-candidates`, `--merge-people`, `--unmerge`, `--not-duplicate` and `data-quality/internal/checks.ts` a check (T-1864); `GET /players/:id` and `GET /coaches/:id` may answer `moved_to` and the pages redirect (T-1865); the ingestion stores ask by every id (T-1866). The existing groups are repaired by T-1867 in batches, after review. Rows the provider writes for the survivor after a merge stay with the survivor when it is undone.
 
-**Refined by D-452 (2026-11-18).** Point 7's `moved_to`: a tombstone's player and coach reads answer the survivor's whole page with `moved_to`, not `{ moved_to }` alone.
+**Refined by D-453 (2026-11-18).** Point 7's `moved_to`: a tombstone's player and coach reads answer the survivor's whole page with `moved_to`, not `{ moved_to }` alone.
 
 ## D-447 — The watchdog's `data_quality` count leaves short line-ups on a live match, or under limited or delayed line-ups, to the admin page
 
@@ -16079,7 +16079,7 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** A city spelled differently by the two answers ("Munich" and "München") now shows the ground answer's spelling. If the provider's own record of a ground names the wrong city, V1 stays silent: that is the provider's error, as D-229's other facts are. One migration (a nullable column, two constraints), one store, its spec, the audit's files and the docs.
 
-## D-452 — A tombstone's player and coach reads answer the survivor's whole page with `moved_to`
+## D-453 — A tombstone's player and coach reads answer the survivor's whole page with `moved_to`
 
 **Status:** Accepted · 2026-11-18 (the coordinator, under the standing delegation, on the builder's proposal) · **Task:** T-1865a · **Refines:** D-446 point 7
 

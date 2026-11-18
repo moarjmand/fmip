@@ -115,7 +115,7 @@ export class CatalogService {
    * person who is not a coach, or no such person.
    */
   async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
-    // A tombstone answers with its survivor's page and says so (D-452).
+    // A tombstone answers with its survivor's page and says so (D-453).
     const movedTo = await this.mergedInto(id);
     if (movedTo === null) return this.coachPage(id, locale);
     const page = await this.coachPage(movedTo, locale);
@@ -192,7 +192,7 @@ export class CatalogService {
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
-    // A tombstone answers with its survivor's page and says so (D-452).
+    // A tombstone answers with its survivor's page and says so (D-453).
     const movedTo = await this.mergedInto(id);
     if (movedTo === null) return this.playerPage(id, locale);
     const outcome = await this.playerPage(movedTo, locale);
