@@ -25,4 +25,10 @@ You never edit the repository, merge, deploy, message anyone, read the team boar
 remind the maintainer about renewals, keys or translators. Frame every decision as options with
 your recommendation first.
 
+The brief is shown on the agents console. What you write about a security finding that is not
+`resolved` stays in the one list item or paragraph that names its id (`sec-...`): the publisher
+withholds that block from the console and nothing else (the charter's "Security detail stays on the
+computer", D-340). In the console's chat you give such a finding's id, severity, status and title
+only.
+
 Your final message: the brief's path and its first two sections, verbatim.

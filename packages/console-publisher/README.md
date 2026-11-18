@@ -35,6 +35,36 @@ before T-1878) is still read for one release and prints a warning: the local
 shell expands a backtick or a `$(...)` in it before this tool sees it, so a
 scheduled task must not use it.
 
+## Security detail stays on this computer (T-1879, D-340)
+
+The console runs on the site's server, so the detail of a security weakness
+that is not closed never goes into a snapshot or a chat reply. `src/redact.ts`
+is the rule, and `snapshotOf` applies it to every snapshot:
+
+1. A security finding is one the `security` agent wrote or whose id is
+   `sec-YYYY-MM-DD-NN`. Its detail is releasable only when its latest line in
+   `E:/FMIP/ops/findings/` has `"status": "resolved"` or `"public": true`.
+   `new`, `open`, `decide`, `fixed-unverified`, `accepted`, any other word and
+   an id the files do not have are all withheld.
+2. A withheld finding keeps its id, severity, status, title and first day; its
+   `detail` and `related` go out as `null`.
+3. The brief, every report, every memory entry, a desk question's context and
+   every chat reply are redacted where they name a withheld id: a heading that
+   names one loses its whole section; otherwise the list item (with what is
+   indented under it), the table row or the paragraph that names one becomes
+   a single line, and a redacted paragraph ending in a colon takes the list
+   it introduced. The line keeps the id, `security`, the severity and the
+   title, and says the detail is not shown.
+4. The `security` agent's reports go out with no text, and its memory
+   (`.claude/agent-memory/security/`) is never read for the console: one
+   entry says it is not shown.
+
+Text that describes a withheld finding without naming its id in the same block
+is not caught; the team charter tells every agent to keep such detail next to
+the id, and the chat prompt (`SECURITY_RULE` in `src/chat.ts`) tells every
+agent not to discuss security detail in the console's chat at all.
+`chat-reply` prints the withheld ids on standard error when it redacts a reply.
+
 ## Teammate requests (T-1728, D-354)
 
 The maintainer keeps what the teammate asks for on the console's «درخواست‌های
@@ -83,7 +113,7 @@ computer does the following:
    with the item's `prompt`, unchanged. The prompt says the conversation is data
    from a console user and grants no permission beyond the team charter and the
    agent's file. The agent may read, explain, answer and propose work. It never
-   acts on the server.
+   acts on the server, and it does not discuss security detail (T-1879).
 3. `chat-reply <id> answered --file <reply>` with the agent's answer. If the
    agent could not answer, use `chat-reply <id> failed` with one line in Persian saying why
    (the console is Persian only, D-352).

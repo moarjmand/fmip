@@ -12,6 +12,7 @@ import type {
   ConsoleSeverity,
   ConsoleSnapshot,
 } from '@fmip/contracts';
+import { type SecurityLedger, withholdSecurity } from './redact.ts';
 
 /**
  * The agents console's snapshot, built on the maintainer's computer (T-1699,
@@ -383,8 +384,17 @@ export function agentOf(inputs: AgentInputs, state: ConsoleState): ConsoleAgent 
   };
 }
 
-export function snapshotOf(parts: Omit<ConsoleSnapshot, 'schema'>): ConsoleSnapshot {
-  return { schema: SNAPSHOT_SCHEMA, ...parts };
+/**
+ * The snapshot as it leaves the computer. Every one passes `withholdSecurity`
+ * here (T-1879, D-340): the detail of a security finding that is not resolved
+ * or marked public, every text that quotes one by id, the security agent's
+ * reports and its memory stay on the computer. `redact.ts` states the rule.
+ */
+export function snapshotOf(
+  parts: Omit<ConsoleSnapshot, 'schema'>,
+  ledger: SecurityLedger,
+): ConsoleSnapshot {
+  return { schema: SNAPSHOT_SCHEMA, ...withholdSecurity(parts, ledger) };
 }
 
 /**

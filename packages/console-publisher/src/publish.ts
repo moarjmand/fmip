@@ -53,6 +53,7 @@ import {
 } from './remote.ts';
 import { type LabRead, labFrom } from './lab.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
+import { SECURITY_AGENT, redactSecurityText, securityLedger, withheldIdsIn } from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -179,6 +180,8 @@ function saveState(state: ConsoleState): void {
 }
 
 function memoryEntries(agent: string): ConsoleMemoryEntry[] {
+  // T-1879: the security agent's memory is never read for the console.
+  if (agent === SECURITY_AGENT) return [];
   const dir = join(ROOT, '.claude', 'agent-memory', agent);
   return files(dir, '.md').map((name) => ({
     path: `.claude/agent-memory/${agent}/${name}`,
@@ -218,10 +221,8 @@ export function readProviders(path = PROVIDERS_FILE): ProvidersRead {
   return providersFrom(raw, statSync(path).mtime.toISOString());
 }
 
-export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
-  const skillNames = existsSync(join(ROOT, '.claude', 'skills'))
-    ? readdirSync(join(ROOT, '.claude', 'skills')).sort()
-    : [];
+/** Every line of the findings files, in date order. */
+function readFindingLines(): FindingLine[] {
   const findingLines: FindingLine[] = [];
   for (const name of files(join(OPS, 'findings'), '.jsonl')) {
     for (const line of read(join(OPS, 'findings', name)).split(/\r?\n/)) {
@@ -233,6 +234,14 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
       }
     }
   }
+  return findingLines;
+}
+
+export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
+  const skillNames = existsSync(join(ROOT, '.claude', 'skills'))
+    ? readdirSync(join(ROOT, '.claude', 'skills')).sort()
+    : [];
+  const findingLines = readFindingLines();
   const agentFiles = files(join(ROOT, '.claude', 'agents'), '.md')
     .map((name) => parseAgentFile(read(join(ROOT, '.claude', 'agents', name))))
     .filter((file) => file !== null);
@@ -312,26 +321,30 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
   for (const problem of providers.problems)
     process.stderr.write(`providers comparison: ${problem}\n`);
 
-  return snapshotOf({
-    generated_at: new Date().toISOString(),
-    agents,
-    findings: findingsFrom(findingLines),
-    reports: reportsFrom(reportFiles),
-    brief:
-      briefName === undefined
-        ? null
-        : { date: briefName.slice(0, 10), text: read(join(OPS, 'brief', briefName)) },
-    decisions: [
-      ...deskDecisions(questions, deskAnswers, state),
-      ...recordedDecisions(
-        existsSync(join(ROOT, 'docs', '00-decisions.md'))
-          ? read(join(ROOT, 'docs', '00-decisions.md'))
-          : '',
-      ),
-    ],
-    model_lab: lab.lab,
-    providers: providers.providers,
-  });
+  // T-1879 (D-340): `snapshotOf` withholds security detail by this ledger.
+  return snapshotOf(
+    {
+      generated_at: new Date().toISOString(),
+      agents,
+      findings: findingsFrom(findingLines),
+      reports: reportsFrom(reportFiles),
+      brief:
+        briefName === undefined
+          ? null
+          : { date: briefName.slice(0, 10), text: read(join(OPS, 'brief', briefName)) },
+      decisions: [
+        ...deskDecisions(questions, deskAnswers, state),
+        ...recordedDecisions(
+          existsSync(join(ROOT, 'docs', '00-decisions.md'))
+            ? read(join(ROOT, 'docs', '00-decisions.md'))
+            : '',
+        ),
+      ],
+      model_lab: lab.lab,
+      providers: providers.providers,
+    },
+    securityLedger(findingLines),
+  );
 }
 
 function ssh(command: string, input?: string): string {
@@ -530,11 +543,19 @@ export function main(argv = process.argv.slice(2)): number {
         return 2;
       }
       const file = rest[2] === '--file' ? rest[3] : undefined;
-      const body = readFileSync(file ?? 0, 'utf8');
-      if (parsed.status === 'answered' && body.trim() === '') {
+      const written = readFileSync(file ?? 0, 'utf8');
+      if (parsed.status === 'answered' && written.trim() === '') {
         process.stderr.write('An answer needs the reply text.\n');
         return 2;
       }
+      // T-1879 (D-340): a reply that names a withheld security finding loses that part here.
+      const ledger = securityLedger(readFindingLines());
+      const withheld = withheldIdsIn(written, ledger);
+      const body = redactSecurityText(written, ledger);
+      if (withheld.length > 0)
+        process.stderr.write(
+          `chat-reply: security detail withheld from the reply (${withheld.join(', ')}).\n`,
+        );
       try {
         replyRemote(parsed.id, parsed.status, body);
       } catch (error) {

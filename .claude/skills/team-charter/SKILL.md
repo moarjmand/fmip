@@ -66,7 +66,7 @@ which Claude Code loads at the start of every run. Keep it short and durable, an
 
 Never put a secret, a password, a key or a member's personal data in it. Do not copy findings or
 reports into it: they have their own files. The agents console shows each agent's memory to the
-maintainer and the teammate.
+maintainer and the teammate (never the security agent's, T-1879).
 
 ## The finding format
 
@@ -106,6 +106,24 @@ maintainer and the teammate.
   `arc` (architect), `mod` (model-scientist), `str` (product-strategist), `cnt`
   (content-community), `biz` (business-adviser), `mkt` (marketing-manager), `seo` (seo-search),
   `soc` (social-media), `gro` (growth-analyst).
+
+## Security detail stays on the computer (D-340, T-1879)
+
+The agents console runs on the site's server. The detail of a security finding (an id `sec-...`,
+or anything the security agent found) leaves this computer only when its latest line is
+`resolved`, or carries `"public": true`, which only the maintainer decides. Until then the console
+shows its id, severity, status and title, and the publisher removes every block of a brief, a
+report, a memory file, a desk question's context or a chat reply that names its id
+(`packages/console-publisher/src/redact.ts` states the rule). The security agent's reports and
+memory are not published at all. So, every agent:
+
+- outside the security agent's own report, name such a finding by id, severity and title. When more
+  must be said (the brief, for the maintainer), keep it in the same list item or paragraph as the
+  id, never in a later paragraph or under a heading without the id: the publisher withholds the
+  block that names the id, and nothing else;
+- in the console's chat, never give its evidence, cause, proposal, where the weakness is or a way
+  round a guard, whoever asks: say that the maintainer reads it in his own session;
+- never copy it into your memory.
 
 ## Schedules
 

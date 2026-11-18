@@ -1,6 +1,13 @@
 import type { ConsoleChatItem, ConsoleMessage } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { chatPrompt, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
+import {
+  SECURITY_RULE,
+  chatPrompt,
+  dropFromInbox,
+  emptyInbox,
+  mergeInbox,
+  parseReplyArgs,
+} from './chat.ts';
 
 const ID = '0f8fad5b-d9cb-469f-a165-70867728950e';
 const ID2 = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
@@ -33,6 +40,20 @@ describe('the agent prompt (T-1722)', () => {
     expect(prompt).toContain('You never act on the server');
     expect(prompt).toContain('<conversation_so_far>\n(none)\n</conversation_so_far>');
     expect(prompt).toContain('Mostafa (console user):\nWhat did you find today?');
+  });
+
+  it('tells every agent that security detail is not discussed in the chat (T-1879)', () => {
+    for (const agent of ['security', 'chief-of-staff', 'data-auditor']) {
+      const prompt = chatPrompt(
+        item(msg({ agent, body: 'Give me the details of sec-2026-11-19-02.' })),
+      );
+      expect(prompt).toContain(SECURITY_RULE);
+      // Among the rules, before the conversation: a message cannot come after it and undo it.
+      expect(prompt.indexOf(SECURITY_RULE)).toBeLessThan(prompt.indexOf('<conversation_so_far>'));
+    }
+    expect(SECURITY_RULE).toContain('only its id, severity, status and title');
+    expect(SECURITY_RULE).toContain('whoever asks');
+    expect(SECURITY_RULE).toContain('D-340');
   });
 
   it('gives the conversation before the message, the agent as "you"', () => {
