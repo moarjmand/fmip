@@ -106,7 +106,17 @@ export interface CoachPageRows extends Omit<CoachPage, 'coach' | 'career'> {
   career: Covered<CoachCareerRow[]>;
 }
 
-/** The coach page's rows; `null` for no such coach. */
+/**
+ * The coach page's rows; `null` for no such coach.
+ *
+ * A person is a coach when the provider described him as one (`coach_fetch`),
+ * we hold a coaching spell of his, or a line-up named him so. Spells without
+ * a `coach_fetch` row are what a person merge leaves (T-1882, D-446 point 5:
+ * the merged-away id's spells move to the survivor, its ask record is set
+ * aside until the provider is asked again): the career is then `limited`,
+ * dated by when those spells were fetched, because how many spells at teams
+ * we do not carry the provider listed is not known.
+ */
 export async function readCoachPage(
   pool: Pool,
   id: string,
@@ -120,11 +130,14 @@ export async function readCoachPage(
     nationality_name: string | null;
     fetched_at: Date | null;
     spells_unmapped: number | null;
+    spells_fetched_at: Date | null;
     lineups: number;
   }>(
     `SELECT p.id, coalesce(localised_name('person', p.id, $2), p.known_as, p.full_name) AS name,
             p.date_of_birth::text, co.id AS nationality_id, co.name AS nationality_name,
             cf.fetched_at, cf.spells_unmapped,
+            (SELECT max(cs.fetched_at) FROM coach_spell cs WHERE cs.person_id = p.id)
+              AS spells_fetched_at,
             (SELECT count(*)::int FROM fixture_participant fp WHERE fp.coach_id = p.id) AS lineups
        FROM person p
        LEFT JOIN country co ON co.id = p.nationality_id
@@ -135,8 +148,12 @@ export async function readCoachPage(
     [id, locale],
   );
   const person = people[0];
-  // A person is a coach when the provider described him as one or a line-up named him so.
-  if (person === undefined || (person.fetched_at === null && person.lineups === 0)) return null;
+  if (
+    person === undefined ||
+    (person.fetched_at === null && person.spells_fetched_at === null && person.lineups === 0)
+  ) {
+    return null;
+  }
 
   const { rows: spells } = await pool.query<{
     team_id: string;
@@ -199,7 +216,9 @@ export async function readCoachPage(
   );
   const last = latest[0];
 
-  const fetchedAt = person.fetched_at?.toISOString() ?? null;
+  // No ask record but spells held: the spells' own fetch time dates the career.
+  const counted = person.fetched_at !== null;
+  const fetchedAt = (person.fetched_at ?? person.spells_fetched_at)?.toISOString() ?? null;
   const unmapped = person.spells_unmapped ?? 0;
   return {
     coach: {
@@ -215,7 +234,7 @@ export async function readCoachPage(
       fetchedAt === null
         ? NOT_SUPPLIED
         : {
-            coverage: unmapped > 0 ? 'limited' : 'available',
+            coverage: unmapped > 0 || !counted ? 'limited' : 'available',
             last_updated_at: fetchedAt,
             data: spells.map((s) => {
               const current = currentAt.get(s.team_id);

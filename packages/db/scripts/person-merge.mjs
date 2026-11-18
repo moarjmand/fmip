@@ -39,6 +39,13 @@
  * under the old ids would otherwise stand for ever. The confirmed merge (or
  * its undo) is what settles whether another name under one of the ids was
  * another human. A `written` answer stays: its fields are already stored.
+ *
+ * After a merge, a survivor holding coaching spells but no `coach_fetch` row
+ * (a player and coach pair: `merge_person` moves the coach id's spells and
+ * sets its ask record aside) has the teams of those spells asked again
+ * (T-1882, `askCoachTeamsAgain`): the coaches job asks per team, an answered
+ * team only every 30 days, and only a team's answer writes his `coach_fetch`
+ * again. Until then his coach page says `limited`.
  */
 
 const ident = (name) => `"${String(name).replaceAll('"', '""')}"`;
@@ -307,6 +314,43 @@ async function askProfilesAgain(client, personIds) {
   return (bios.rowCount ?? 0) + (names.rowCount ?? 0);
 }
 
+/**
+ * The teams where these persons hold a coaching spell with no `coach_fetch`
+ * row, marked so the coaches job asks them again (T-1882). Returns the count.
+ *
+ * The lever is the job's own (`CoachStore.teamsDue`): an answered team
+ * (`failures = 0`) is asked again only 30 days after its answer, a team whose
+ * last ask counts as unanswered (`failures > 0`) a day after that ask. So the
+ * ask is counted as one unanswered, `failures = 1`: the team is due at the
+ * job's next run once its last ask is a day old, and the answer resets the
+ * count. No timestamp is touched: `answered_at` stays true, so the team's
+ * head coach reads as before (rule 4). Only a team the job would pick is
+ * marked, one playing in a current season (`teamsDue`'s `playing`); a team
+ * never asked is owed its first ask already, and one already unanswered is
+ * left to its own count.
+ */
+export async function askCoachTeamsAgain(client, personIds) {
+  const { rowCount } = await client.query(
+    `UPDATE team_coach_fetch tf
+        SET failures = 1
+      WHERE tf.failures = 0
+        AND EXISTS (
+          SELECT 1 FROM coach_spell cs
+           WHERE cs.source = tf.source AND cs.team_id = tf.team_id
+             AND cs.person_id = ANY($1::uuid[])
+             AND NOT EXISTS (
+               SELECT 1 FROM coach_fetch cf
+                WHERE cf.source = cs.source AND cf.person_id = cs.person_id))
+        AND EXISTS (
+          SELECT 1 FROM fixture_participant fp
+            JOIN fixture f ON f.id = fp.fixture_id
+            JOIN season se ON se.id = f.season_id
+           WHERE fp.team_id = tf.team_id AND se.is_current)`,
+    [personIds],
+  );
+  return rowCount ?? 0;
+}
+
 /** `--person-candidates`: the pairs, their signals, and the command each proposes. Read only. */
 export async function personCandidates(client, options) {
   const { rows } = await client.query(
@@ -487,6 +531,7 @@ export async function mergePeople(client, options, readFile) {
       const label = `${index + 1}/${pairs.length}`;
       let mergeId;
       let asked;
+      let coachTeams;
       let summary;
       try {
         if (options.dryRun) await client.query('SAVEPOINT pair');
@@ -499,6 +544,7 @@ export async function mergePeople(client, options, readFile) {
         ]);
         mergeId = rows[0].id;
         asked = await askProfilesAgain(client, [pair.into]);
+        coachTeams = await askCoachTeamsAgain(client, [pair.into]);
         summary = await mergeSummary(client, mergeId);
         if (options.dryRun) await client.query('RELEASE SAVEPOINT pair');
       } catch (error) {
@@ -561,6 +607,7 @@ export async function mergePeople(client, options, readFile) {
         );
         for (const line of summary) console.log(line);
         if (asked > 0) console.log(`      profile answers asked again: ${asked}`);
+        if (coachTeams > 0) console.log(`      coach teams asked again: ${coachTeams}`);
       } catch (error) {
         console.error(
           `${label} ${options.dryRun ? 'would merge' : 'merged'} --from ${pair.from} --into ${pair.into}` +
