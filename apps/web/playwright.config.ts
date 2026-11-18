@@ -59,6 +59,11 @@ export default defineConfig({
     // which is every CI run.
     command: `pnpm --dir ../.. exec turbo run build --filter=@fmip/web && pnpm start --port ${PORT}`,
     url: BASE_URL,
+    // The agents console (D-340, D-341), so `console-headers.spec.ts` can ask
+    // for it both ways: on a host of its own (Chromium resolves every name
+    // under `localhost` to this machine) and under the site's path. Without
+    // these the console does not exist and no other spec meets it.
+    env: { CONSOLE_HOST: 'agents.localhost', CONSOLE_PATH: '/agents' },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

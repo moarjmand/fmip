@@ -42,6 +42,30 @@ import cloudflare-ranges.caddy
 		defer
 	}
 
+	# The agents console under this host's path (D-341, T-1881), until its own
+	# host below has a DNS record: the console host's stricter headers on the
+	# path too, since a console page must never be framed, kept or indexed,
+	# and sends no referrer. `/agents` is the compose file's default for the
+	# web's CONSOLE_PATH (a spec holds the two together); written out and not
+	# read from the environment, because an empty value would turn the matcher
+	# into every path. `/console` is where the web keeps the console's routes:
+	# it is never an address on this host (404 below, `/console.rsc` and the
+	# like included: Next answers the route under those names too), and gets
+	# the same headers. A `header` with a matcher is ordered before the one above and,
+	# deferred, is applied after it, so these win over SAMEORIGIN and the
+	# site's referrer policy; `+` adds a second, enforced policy beside the
+	# one the web sends with its nonce (apps/web/src/lib/console-headers.ts),
+	# so framing is refused even on an answer that carries none.
+	@console path /agents /agents/* /console /console/* /console.*
+	header @console {
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "private, no-store"
+		+Content-Security-Policy "frame-ancestors 'none'"
+		defer
+	}
+
 	# Only Cloudflare reaches the origin (T-930, D-112). A connection from any
 	# other address is closed without an answer, before either route below,
 	# so a request that skips Cloudflare cannot choose its own
@@ -62,6 +86,14 @@ import cloudflare-ranges.caddy
 	}
 	handle @outside_cloudflare {
 		abort
+	}
+
+	# The console's routes inside the web app are not an address on this host
+	# (T-1881): the web's proxy answers 404 for them too, and this holds if
+	# a path ever slips past its matcher, as one with a file extension did.
+	@console_routes path /console /console/* /console.*
+	handle @console_routes {
+		respond "Not found" 404
 	}
 
 	# The chat socket, to the API rather than to `web` (T-234, D-055).
@@ -183,6 +215,9 @@ import cloudflare-ranges.caddy
 		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
 		X-Robots-Tag "noindex, nofollow"
 		Cache-Control "private, no-store"
+		# Beside the web's own policy with its nonce (T-1881): a second,
+		# enforced one, so framing is refused on every answer.
+		+Content-Security-Policy "frame-ancestors 'none'"
 		-X-Powered-By
 		defer
 	}
