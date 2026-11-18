@@ -8,7 +8,8 @@ import { DatabaseModule } from '../../database/database.module';
 import { withTriggersOff } from '../../testing/cleanup';
 import { DEFAULT_IDENTITY_OPTIONS, IDENTITY_OPTIONS } from '../identity/identity.service';
 import { DataQualityModule } from './data-quality.module';
-import { DataQualityService } from './data-quality.service';
+import { DataQualityService, findingsOf } from './data-quality.service';
+import { DataQualityStore } from './internal/data-quality-store';
 
 // The checks against the real schema: every statement the sweep runs is valid
 // SQL over the feed's tables, a problem is one row however many sweeps see
@@ -288,6 +289,86 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('data-quality
         'live_overrun',
       ]),
     );
+  });
+
+  // T-1864 (D-446): the candidates are `person_duplicate_candidates()`'s
+  // (its cases in `packages/db/src/person-candidates.spec.ts`); here, that the
+  // store reads them only when asked to, names them on no fixture, and that
+  // only a record passed the check refreshes or resolves its findings. Which
+  // sweep passes it (unscoped, at most hourly) is `data-quality.spec.ts`'s.
+  // Every record here names the person check alone, so no other check's
+  // rows in the shared database are touched.
+  it('reads duplicate-person candidates only when asked, and only a run of the check refreshes or resolves them', async () => {
+    const store = app.get(DataQualityStore);
+    const twins = await pool.query<{ id: string }>(
+      `INSERT INTO person (full_name, date_of_birth)
+       VALUES ($1, DATE '2001-02-03'), ($2, DATE '2001-02-03') RETURNING id`,
+      [`dq-${RUN}-person twin`, `dq-${RUN}-person twín`],
+    );
+    const [low, high] = twins.rows.map((r) => r.id).sort() as [string, string];
+    const subject = `${low}:${high}`;
+    const now = new Date();
+    expect((await store.read(now, SEASON, true)).people).toEqual([]);
+    expect((await store.read(now, null, false)).people).toEqual([]);
+    const pairs = (await store.read(now, null, true)).people.filter((p) => p.lowPersonId === low);
+    expect(pairs).toEqual([
+      expect.objectContaining({
+        highPersonId: high,
+        dateOfBirth: '2001-02-03',
+        matchedOn: 'full_name',
+      }),
+    ]);
+    const found = findingsOf(
+      { scores: [], goals: [], live: [], lineups: [], mappings: [], pairs: [], people: pairs },
+      now,
+    );
+    const finding = async () =>
+      (
+        await pool.query<Row>(
+          `SELECT * FROM data_quality_finding
+            WHERE check_kind = 'person_duplicate_candidate' AND subject_key = $1`,
+          [subject],
+        )
+      ).rows;
+    try {
+      // Opened, with no check to resolve: what a skipped sweep leaves alone.
+      await store.locked((client) => store.record(client, [], null, found, now));
+      const [opened] = await finding();
+      expect(opened).toMatchObject({ fixture_id: null, competition_id: null, resolved_at: null });
+      // Born together in one statement: the same created_at, so the lower id is kept.
+      expect(opened!.detail).toContain(`proposed: --from ${high} --into ${low} (the lower id)`);
+      // A skipped sweep's record does not name the check: still open, not seen again.
+      await store.locked((client) =>
+        store.record(client, [], null, [], new Date(now.getTime() + 30 * 60_000)),
+      );
+      expect(await finding()).toEqual([
+        expect.objectContaining({ resolved_at: null, last_seen_at: opened!.last_seen_at }),
+      ]);
+      // The run an hour later sees it again and moves it on.
+      const later = new Date(now.getTime() + 61 * 60_000);
+      await store.locked((client) =>
+        store.record(client, ['person_duplicate_candidate'], null, found, later),
+      );
+      expect(await finding()).toEqual([
+        expect.objectContaining({ resolved_at: null, last_seen_at: later }),
+      ]);
+      // A run that no longer finds it resolves it.
+      const gone = new Date(later.getTime() + 61 * 60_000);
+      await store.locked((client) =>
+        store.record(client, ['person_duplicate_candidate'], null, [], gone),
+      );
+      expect(await finding()).toEqual([expect.objectContaining({ resolved_at: gone })]);
+    } finally {
+      // Taken out at once, so the page's listing below never shows this spec's names;
+      // and the check's run, stamped above in the future, goes too.
+      await pool.query(
+        `DELETE FROM data_quality_check_run WHERE check_kind = 'person_duplicate_candidate'`,
+      );
+      await pool.query(
+        `DELETE FROM data_quality_finding WHERE check_kind = 'person_duplicate_candidate' AND subject_key = $1`,
+        [subject],
+      );
+    }
   });
 
   it('a second sweep writes no second row, and moves last_seen_at on at most hourly', async () => {

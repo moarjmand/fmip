@@ -13,6 +13,7 @@ import {
   type LiveRow,
   type MappingRow,
   type PairRow,
+  type PersonPairRow,
   type ScoreKindsRow,
   STARTERS,
 } from './checks';
@@ -40,6 +41,8 @@ export interface CheckRows {
   lineups: LineupRow[];
   mappings: MappingRow[];
   pairs: PairRow[];
+  /** T-1864: read only when the sweep runs the person check (unscoped, at most hourly). */
+  people: PersonPairRow[];
 }
 
 /** What one write did. */
@@ -530,11 +533,12 @@ export class DataQualityStore {
   /**
    * The rows every swept check judges, read in parallel outside any
    * transaction. `seasonId` narrows every statement to one season's fixtures;
-   * `null` is every stored fixture (the scheduled sweep).
+   * `null` is every stored fixture (the scheduled sweep). `people` is whether
+   * the person check runs this time (T-1864: unscoped, at most hourly).
    */
-  async read(now: Date, seasonId: string | null = null): Promise<CheckRows> {
+  async read(now: Date, seasonId: string | null = null, people = false): Promise<CheckRows> {
     const inScope = (n: number) => `($${n}::uuid IS NULL OR f.season_id = $${n}::uuid)`;
-    const [scores, goals, live, lineups, mappings, pairs] = await Promise.all([
+    const [scores, goals, live, lineups, mappings, pairs, persons] = await Promise.all([
       this.pool.query<ScoreKindsRow>(
         `SELECT ${REF}, f.status,
                 COALESCE(array_agg(sc.kind) FILTER (WHERE sc.kind IS NOT NULL), '{}') AS kinds
@@ -643,6 +647,24 @@ export class DataQualityStore {
             AND abs(extract(epoch FROM g.kickoff_at - f.kickoff_at)) <= $3::int * 3600`,
         [DUPLICATE_WINDOW_DAYS, seasonId, SWAPPED_WINDOW_HOURS],
       ),
+      // T-1864 (D-446): the candidates are the database function's, which
+      // `catalog.mjs --person-candidates` reads too. Read only when the
+      // sweep runs the person check: never in a season-scoped sweep.
+      this.pool.query<PersonPairRow>(
+        `SELECT c.low_person_id AS "lowPersonId", c.high_person_id AS "highPersonId",
+                pl.full_name AS "lowName", ph.full_name AS "highName",
+                to_char(pl.date_of_birth, 'YYYY-MM-DD') AS "dateOfBirth",
+                c.matched_on AS "matchedOn", c.same_nationality AS "sameNationality",
+                c.common_teams AS "commonTeams", c.low_lineups AS "lowLineups",
+                c.high_lineups AS "highLineups", c.appearances_disjoint AS "appearancesDisjoint",
+                c.low_coach_only AS "lowCoachOnly", c.high_coach_only AS "highCoachOnly",
+                c.proposed_into AS "proposedInto", c.proposed_because AS "proposedBecause"
+           FROM person_duplicate_candidates() c
+           JOIN person pl ON pl.id = c.low_person_id
+           JOIN person ph ON ph.id = c.high_person_id
+          WHERE $1::boolean AND $2::uuid IS NULL`,
+        [people, seasonId],
+      ),
     ]);
     return {
       scores: scores.rows,
@@ -651,6 +673,7 @@ export class DataQualityStore {
       lineups: lineups.rows,
       mappings: mappings.rows,
       pairs: pairs.rows,
+      people: persons.rows,
     };
   }
 

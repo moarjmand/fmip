@@ -16,6 +16,10 @@ import type { CoverageState } from './coverage';
  *   away teams within three days -- one match stored twice.
  * - `table_disagrees`: the provider's table and the table computed from our
  *   results (D-038) disagree on how many matches a team has played.
+ * - `person_duplicate_candidate`: two persons with the same normalised name
+ *   and birth date that may be one human under two provider ids (T-1864,
+ *   D-446). A person confirms or rejects each pair; nothing is merged here.
+ *   Its findings name no fixture, team, season or competition.
  */
 export type DataQualityCheck =
   | 'finished_without_score'
@@ -24,7 +28,8 @@ export type DataQualityCheck =
   | 'lineup_not_eleven'
   | 'fixture_mapped_twice'
   | 'duplicate_fixture'
-  | 'table_disagrees';
+  | 'table_disagrees'
+  | 'person_duplicate_candidate';
 
 export const DATA_QUALITY_CHECKS: readonly DataQualityCheck[] = [
   'finished_without_score',
@@ -34,6 +39,7 @@ export const DATA_QUALITY_CHECKS: readonly DataQualityCheck[] = [
   'fixture_mapped_twice',
   'duplicate_fixture',
   'table_disagrees',
+  'person_duplicate_candidate',
 ];
 
 /** A fixture a finding is about, named as the scores page names it. */
@@ -92,7 +98,7 @@ export interface DataQualityCheckState {
  */
 export interface DataQualityCount {
   competition: { id: string; name: string } | null;
-  /** `null` for a finding about no season (none of the checks writes one today). */
+  /** `null` for a finding about no season: `person_duplicate_candidate`'s (T-1864). */
   season: { id: string; label: string } | null;
   check: DataQualityCheck;
   open: number;
