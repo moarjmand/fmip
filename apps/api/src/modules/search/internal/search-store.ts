@@ -243,6 +243,11 @@ const SEARCH_SQL = `
     SELECT DISTINCT ON (type, id) type, id, name, matched_on, alias, score, exact
       FROM hits
      WHERE score >= $4 AND name IS NOT NULL
+       -- A merged-away duplicate (a tombstone, T-1865a, D-446 point 7) is
+       -- never a result: its survivor is found under its own names.
+       AND (type <> 'person' OR NOT EXISTS (
+             SELECT 1 FROM person_merge pm
+              WHERE pm.from_person_id = hits.id AND pm.undone_at IS NULL))
      ORDER BY type, id, score DESC, exact DESC, matched_on, alias
   ),
   -- Among people who match equally well, the one the site has seen in more

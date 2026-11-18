@@ -15805,6 +15805,8 @@ The notification: title «درخواست تازه از <filer's display name>»,
 
 **Consequences.** Migration `1765901863000_person-merge.sql`: tables `person_merge`, `person_merge_moved`, `person_not_duplicate`; functions `merge_person`, `merge_person_undo`, `person_merged_into`, `person_shared_lineup_fixture`, `person_shared_incident`; `set_updated_at()` honours `fmip.keep_updated_at` when it holds the current transaction's id. T-1867 re-runs the "nothing references the loser" check after each batch, since an ingestion transaction that read the loser's mapping before a merge committed can still write one row to it. `catalog.mjs` gains `--person-candidates`, `--merge-people`, `--unmerge`, `--not-duplicate` and `data-quality/internal/checks.ts` a check (T-1864); `GET /players/:id` and `GET /coaches/:id` may answer `moved_to` and the pages redirect (T-1865); the ingestion stores ask by every id (T-1866). The existing groups are repaired by T-1867 in batches, after review. Rows the provider writes for the survivor after a merge stay with the survivor when it is undone.
 
+**Refined by D-452 (2026-11-18).** Point 7's `moved_to`: a tombstone's player and coach reads answer the survivor's whole page with `moved_to`, not `{ moved_to }` alone.
+
 ## D-447 — The watchdog's `data_quality` count leaves short line-ups on a live match, or under limited or delayed line-ups, to the admin page
 
 **Status:** Accepted · 2026-11-17 (agent, under the standing delegation, from the ops finding `ops-2026-11-15-01`) · **Task:** T-1873 · **Amends:** D-097 (the watchdog paragraph) · **Follows:** D-109, D-250
@@ -16076,3 +16078,15 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *Splitting rows and repointing matches*: nothing was merged. *Writing "Valencia" and "Saint Paul" by hand*: a value of ours over the provider's own record, and only two of the grounds that may be affected; the answer by id corrects all of them. *Asking every ground again at once*: about 3,500 requests for what the monthly pass does within its budget. *A data-quality check in the platform's own sweep (T-820)*: a new check kind touches contracts, a constraint and the admin page; the audit's invariant reads the same row.
 
 **Consequences.** A city spelled differently by the two answers ("Munich" and "München") now shows the ground answer's spelling. If the provider's own record of a ground names the wrong city, V1 stays silent: that is the provider's error, as D-229's other facts are. One migration (a nullable column, two constraints), one store, its spec, the audit's files and the docs.
+
+## D-452 — A tombstone's player and coach reads answer the survivor's whole page with `moved_to`
+
+**Status:** Accepted · 2026-11-18 (the coordinator, under the standing delegation, on the builder's proposal) · **Task:** T-1865a · **Refines:** D-446 point 7
+
+**Context.** D-446 point 7 and its paper have `GET /players/:id` and `GET /coaches/:id` "answer a tombstone with `moved_to`", the paper as `{ moved_to: <uuid> }` alone. That body is not a `PlayerPage` or a `CoachPage`: every reader would need a second shape, and a web build from before T-1865b, live during a rollout, would read a page with no person in it.
+
+**Decision.** For a person merged away (`person_merged_into(id)` is not null) both reads answer 200 with the **survivor's** whole page, exactly as the survivor's own URL answers it, plus `moved_to` (the survivor's id). `moved_to` is optional on both contracts and absent for a person not merged, or once a merge is undone. The web redirects permanently on it (T-1865b). The page's ids are the survivor's, so a reader that ignores `moved_to` still shows the right person and links to his own URL.
+
+**Rejected.** *`{ moved_to }` alone*: an untyped second shape, and an older reader shows an empty page. *An HTTP redirect from the API*: the web's fetch would follow it silently and never learn to redirect the reader's URL. *404 for a tombstone*: members' cards, panel links and shared URLs would lead nowhere.
+
+**Consequences.** One more indexed lookup per player or coach page read. `GET /players/:id/transfers` and `/provider-seasons` are not resolved: the web redirects before it shows them.

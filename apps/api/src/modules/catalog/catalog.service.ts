@@ -115,6 +115,14 @@ export class CatalogService {
    * person who is not a coach, or no such person.
    */
   async coach(id: string, locale: string | null = null): Promise<CoachPage | null> {
+    // A tombstone answers with its survivor's page and says so (D-452).
+    const movedTo = await this.mergedInto(id);
+    if (movedTo === null) return this.coachPage(id, locale);
+    const page = await this.coachPage(movedTo, locale);
+    return page === null ? null : { ...page, moved_to: movedTo };
+  }
+
+  private async coachPage(id: string, locale: string | null): Promise<CoachPage | null> {
     const rows = await readCoachPage(this.pool, id, locale);
     if (rows === null) return null;
     const spells = rows.career.data ?? [];
@@ -133,6 +141,19 @@ export class CatalogService {
             : spells.map((s) => ({ ...s, team: { ...s.team, crest: media.crest(s.team.id) } })),
       },
     };
+  }
+
+  /**
+   * The survivor a merged-away duplicate (a tombstone) was merged into, or
+   * `null` for a person not merged (T-1865a, D-446 point 7). One step: a
+   * merge into a loser is flattened, so a survivor is never itself merged.
+   */
+  private async mergedInto(id: string): Promise<string | null> {
+    const { rows } = await this.pool.query<{ into: string | null }>(
+      `SELECT person_merged_into($1::uuid) AS into`,
+      [id],
+    );
+    return rows[0]?.into ?? null;
   }
 
   /**
@@ -171,6 +192,16 @@ export class CatalogService {
 
   /** The player page (blueprint 5.3): identity, spells, the record our line-ups support, recent matches. */
   async player(id: string, locale: string | null = null): Promise<PlayerOutcome> {
+    // A tombstone answers with its survivor's page and says so (D-452).
+    const movedTo = await this.mergedInto(id);
+    if (movedTo === null) return this.playerPage(id, locale);
+    const outcome = await this.playerPage(movedTo, locale);
+    return outcome.kind === 'ok'
+      ? { kind: 'ok', page: { ...outcome.page, moved_to: movedTo } }
+      : outcome;
+  }
+
+  private async playerPage(id: string, locale: string | null): Promise<PlayerOutcome> {
     const found = await this.players_.person(id, locale);
     if (found === null) return { kind: 'unknown_player' };
     const [read, record, recent, availability, positions, clubs, national] = await Promise.all([
