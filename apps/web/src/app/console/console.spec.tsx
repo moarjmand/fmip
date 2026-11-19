@@ -194,7 +194,7 @@ describe('the console pieces', () => {
   });
 
   it("words the commands' limits and a refused push address in Persian (T-1880)", async () => {
-    const { apiErrorWords } = await import('./words');
+    const { apiErrorWords, auditActionWords, auditReasonWords } = await import('./words');
     const persian = (message: string) => {
       const words = apiErrorWords(message, 'FALLBACK');
       expect(words, message).not.toBe('FALLBACK');
@@ -212,6 +212,14 @@ describe('the console pieces', () => {
     expect(persian("endpoint is the https:// address of a browser's push service.")).toContain(
       'سرویس‌های اعلان',
     );
+    expect(
+      persian('That is the most test messages an hour allows. Try again in 3 minutes.'),
+    ).toContain('پیام‌های آزمایشی');
+    expect(auditActionWords('calendar.push_test')).toEqual({
+      words: 'پیام آزمایشی یادآور',
+      known: true,
+    });
+    expect(auditReasonWords('test message asked')).toBe('پیام آزمایشی خواسته شد');
   });
 
   it('says when the snapshot is stale (rule 4)', () => {

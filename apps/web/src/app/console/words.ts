@@ -96,6 +96,10 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
       'برای این عامل یک اجرای فوری در صف است؛ تا رایانه آن را برندارد، اجرای دیگری ثبت نمی‌شود.',
   ],
   [
+    /^That is the most test messages an hour allows/,
+    () => 'به سقف پیام‌های آزمایشی یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
     /^endpoint is the https:\/\/ address of a browser's push service\.$/,
     () =>
       'نشانی اعلانی که این مرورگر داد از سرویس‌های اعلان شناخته‌شده نیست؛ یادآور روی این مرورگر روشن نشد.',
@@ -344,6 +348,7 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'calendar.subscription_added': 'اشتراک تازه',
   'calendar.subscription_changed': 'تغییر اشتراک',
   'calendar.reminders_on': 'روشن کردن یادآور در مرورگر',
+  'calendar.push_test': 'پیام آزمایشی یادآور',
   'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
   'requests.alerts_on': 'روشن کردن اعلان درخواست‌های تازه',
   'requests.alerts_off': 'خاموش کردن اعلان درخواست‌های تازه',
@@ -432,6 +437,7 @@ export function auditReasonWords(reason: string): string {
     [/^event deleted$/, () => 'رویداد حذف شد'],
     [/^import-calendar, filed for (.+)$/, (m) => `بارگذاری فهرست اشتراک‌ها به نام ${m[1]}`],
     [/^reminders switched on in a browser$/, () => 'یادآور در یک مرورگر روشن شد'],
+    [/^test message asked$/, () => 'پیام آزمایشی خواسته شد'],
     [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
     [/^new-request notifications switched on$/, () => 'اعلان درخواست‌های تازه روشن شد'],
     [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],

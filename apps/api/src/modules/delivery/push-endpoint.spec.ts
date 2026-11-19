@@ -14,7 +14,6 @@ describe('push service endpoints (T-1880)', () => {
       'https://wns2-par02p.notify.windows.com/w/?token=BQYAAAD%2bd3Jk%2fAbc%3d',
       'https://db5p.notify.windows.com/w/?token=AwYAAAC',
       'https://web.push.apple.com/QGuQyavXutnMH9RHpMDTt5F5K8mmAI',
-      'https://api.push.apple.com/3/device/abc',
     ]) {
       expect(isPushServiceEndpoint(endpoint), endpoint).toBe(true);
     }
@@ -33,6 +32,9 @@ describe('push service endpoints (T-1880)', () => {
       'https://evilnotify.windows.com/w/',
       'https://notify.windows.com/w/',
       'https://push.apple.com/x',
+      // APNs and the rest of Apple's push hosts: no browser subscription names them.
+      'https://api.push.apple.com/3/device/abc',
+      'https://x.web.push.apple.com/abc',
       'https://push.services.mozilla.com/x',
       'https://googleapis.com/fcm/send/x',
       'https://xfcm.googleapis.com/fcm/send/x',

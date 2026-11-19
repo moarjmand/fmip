@@ -20,14 +20,17 @@ export const PUSH_SERVICE_HOSTS: readonly string[] = [
   'web.push.apple.com',
 ];
 
-/** A push service that is many hosts under one name: any name ending in one of these. */
+/**
+ * A push service that is many hosts under one name: any name ending in one of
+ * these. Only where the browser really is handed many: Safari's endpoints are
+ * all on `web.push.apple.com` (`api.push.apple.com` is APNs, which no browser
+ * subscription names), so Apple has no suffix here (review of PR #948).
+ */
 export const PUSH_SERVICE_SUFFIXES: readonly string[] = [
-  // Firefox's other hosts.
+  // Firefox: `updates.push.services.mozilla.com` today; the service's other hosts in Mozilla's own zone.
   '.push.services.mozilla.com',
-  // Edge and Windows (WNS): `wns2-par02p.notify.windows.com` and its like.
+  // Edge and Windows (WNS): `wns2-par02p.notify.windows.com` and its like, one per data centre.
   '.notify.windows.com',
-  // Safari's other hosts.
-  '.push.apple.com',
 ];
 
 /** The longest endpoint taken. */

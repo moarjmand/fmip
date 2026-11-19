@@ -29,7 +29,8 @@ function store(rows: PushSubscriptionRow[]) {
 
 const device = (id: string): PushSubscriptionRow => ({
   id,
-  endpoint: `https://push.example/${id}`,
+  // A real push service's host: the channel sends to no other (T-1880). The sender is scripted.
+  endpoint: `https://fcm.googleapis.com/fcm/send/${id}`,
   p256dh: 'p',
   auth: 'a',
 });
@@ -73,8 +74,8 @@ describe('WebPushChannel', () => {
     });
     await channel.send(push);
     expect(sent.map((s) => s.endpoint)).toEqual([
-      'https://push.example/d1',
-      'https://push.example/d2',
+      'https://fcm.googleapis.com/fcm/send/d1',
+      'https://fcm.googleapis.com/fcm/send/d2',
     ]);
     expect(JSON.parse(sent[0]!.payload)).toEqual(
       push.userId ? { title: 'Stadiomind', body: push.body, url: push.url } : null,
@@ -91,6 +92,54 @@ describe('WebPushChannel', () => {
     });
     await expect(channel.send(push)).resolves.toBeUndefined();
     expect(removed).toEqual(['gone']);
+  });
+
+  it('never sends to an address that is not a push service, and removes that device (T-1880)', async () => {
+    const elsewhere = (id: string, endpoint: string): PushSubscriptionRow => ({
+      ...device(id),
+      endpoint,
+    });
+    const sent: string[] = [];
+    const { fake, removed, touched } = store([
+      elsewhere('internal', 'https://10.0.0.5/hook'),
+      device('here'),
+      elsewhere('other', 'https://push.example/other'),
+    ]);
+    const channel = new WebPushChannel('pub', fake, async (subscription) => {
+      sent.push(subscription.endpoint);
+    });
+    await expect(channel.send(push)).resolves.toBeUndefined();
+    expect(sent).toEqual(['https://fcm.googleapis.com/fcm/send/here']);
+    expect(removed).toEqual(['internal', 'other']);
+    expect(touched).toEqual(['here']);
+
+    // A member with no other device has none: the notice is skipped, not failed.
+    const only = store([elsewhere('only', 'https://169.254.169.254/latest/')]);
+    await expect(
+      new WebPushChannel('pub', only.fake, async (subscription) => {
+        sent.push(subscription.endpoint);
+      }).send(push),
+    ).rejects.toBeInstanceOf(NoRecipient);
+    expect(only.removed).toEqual(['only']);
+    expect(sent).toHaveLength(1);
+  });
+
+  it('answers gone for a subscription the caller keeps at such an address, unsent (T-1880)', async () => {
+    const sent: string[] = [];
+    const channel = new WebPushChannel('pub', store([]).fake, async (subscription) => {
+      sent.push(subscription.endpoint);
+    });
+    const keys = { p256dh: 'p', auth: 'a' };
+    const payload = { title: 't', body: 'b', url: 'calendar' };
+    expect(await channel.sendTo({ endpoint: 'https://push.example/x', keys }, payload)).toBe(
+      'gone',
+    );
+    expect(await channel.sendTo({ endpoint: 'https://127.0.0.1/x', keys }, payload)).toBe('gone');
+    expect(sent).toEqual([]);
+    expect(
+      await channel.sendTo({ endpoint: 'https://web.push.apple.com/abc', keys }, payload),
+    ).toBe('sent');
+    expect(sent).toEqual(['https://web.push.apple.com/abc']);
   });
 
   it('is NoRecipient with no device, and a failure when every device failed', async () => {

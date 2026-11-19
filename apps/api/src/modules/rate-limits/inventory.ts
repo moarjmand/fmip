@@ -207,6 +207,16 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: "Immediate runs asked from the agents console (`agent.run`): each starts an agent on the maintainer's computer at its next sync; also counted as a command.",
     routes: ['POST /console/commands'],
   },
+  // T-1880: a test message is a request from the API to a push service for each
+  // of the caller's browsers. Counted from the person's own `calendar.push_test`
+  // audit rows this hour, before anything is sent.
+  {
+    action: 'console_push_test',
+    subject: 'console_user',
+    enforced: 'api',
+    what: "Test messages a console person sends to their own browsers from the calendar's reminders.",
+    routes: ['POST /console/calendar/push/test'],
+  },
   // T-1728 (D-354): the teammate requests. Counted from the person's own
   // `console_request_event` rows this hour, before the write; Claude's
   // results and questions come through the server's command line, not here.
@@ -442,8 +452,6 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   // T-1832 (D-425): one flag on the caller's own console account.
   'POST /console/calendar/push/requests':
     "Switches the caller's own new-request notifications on or off: one flag on their own console account, set in place and audited only when it changes; it sends nothing.",
-  'POST /console/calendar/push/test':
-    "Sends one test message to the caller's own browsers only; reaches no one else, and the push services hold their own limits.",
   // T-1836 (D-427): the social tab, the same two people. Nothing here posts to
   // a network: the job publishes at most five a network a London day whatever
   // is approved (the database's slots), and each decision is one post's once.

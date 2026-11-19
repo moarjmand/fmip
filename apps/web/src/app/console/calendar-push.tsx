@@ -131,9 +131,11 @@ export function CalendarPush({
     setMessage(
       result === null
         ? 'پیام آزمایشی فرستاده نشد.'
-        : result.delivered > 0
-          ? `پیام آزمایشی به ${new Intl.NumberFormat('fa-IR').format(result.delivered)} مرورگر رسید.`
-          : 'هیچ مرورگری پیام را نگرفت.',
+        : 'refused' in result
+          ? result.refused
+          : result.delivered > 0
+            ? `پیام آزمایشی به ${new Intl.NumberFormat('fa-IR').format(result.delivered)} مرورگر رسید.`
+            : 'هیچ مرورگری پیام را نگرفت.',
     );
   }
 
