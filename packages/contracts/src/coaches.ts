@@ -46,7 +46,9 @@ export interface CoachPage {
    * The career, newest first. `not_supplied` (data null) until the provider
    * was asked about any team he coached; `limited` when it listed spells at
    * teams we do not carry, which are counted in `spells_not_carried`, never
-   * named.
+   * named. Also `limited`, with `spells_not_carried` 0, while we hold spells
+   * but not the provider's count of the rest (after two ids of one man were
+   * merged, until he is asked about again, T-1882): the list may be short.
    */
   career: Covered<CoachCareerSpell[]>;
   spells_not_carried: number;

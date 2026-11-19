@@ -133,6 +133,8 @@ describe('the person commands, parsed', () => {
           return { rows: [{ id: C }] };
         }
         if (text.includes('FROM pg_constraint')) return { rows: [] };
+        // Two teams of the survivor's coaching spells are marked (T-1882).
+        if (text.includes('UPDATE team_coach_fetch')) return { rows: [], rowCount: 2 };
         return { rows: [], rowCount: 0 };
       },
     };
@@ -165,6 +167,11 @@ describe('the person commands, parsed', () => {
     // The failed pair's transaction was rolled back; the first was committed.
     expect(sql.filter((t) => t === 'COMMIT')).toHaveLength(1);
     expect(sql.filter((t) => t === 'ROLLBACK')).toHaveLength(1);
+    // The coaches re-ask is part of the merged pair's transaction, and said.
+    const marked = sql.findIndex((t) => t.includes('UPDATE team_coach_fetch'));
+    expect(marked).toBeGreaterThan(sql.findIndex((t) => t.startsWith('SELECT merge_person(')));
+    expect(marked).toBeLessThan(sql.indexOf('COMMIT'));
+    expect(said).toMatch(/coach teams asked again: 2/);
   });
 
   /**
@@ -779,6 +786,161 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       const none = await cli(['--unmerge', '--merge', randomUUID(), ...write]);
       expect(none.code).toBe(1);
       expect(none.stderr).toMatch(/No person merge/);
+    });
+  },
+);
+
+describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
+  'the coaches re-ask after a merge (T-1882)',
+  { timeout: 60_000 },
+  () => {
+    let pool: pg.Pool;
+    beforeAll(() => {
+      pool = new pg.Pool({ connectionString: DATABASE_URL });
+    });
+    afterAll(async () => {
+      await pool?.end();
+    });
+
+    it('marks the answered current-season teams of the open spells of a survivor with no ask record, and no other', async () => {
+      const tag = randomUUID().slice(0, 8);
+      const ANSWERED = '2026-11-01T09:00:00.000Z';
+      const client = await pool.connect();
+      // Everything in one transaction, rolled back: nothing is left behind.
+      await client.query('BEGIN');
+      try {
+        const one = async (sql: string, values: unknown[] = []) =>
+          (await client.query(sql, values)).rows[0].id as string;
+        const country = await one(`SELECT id FROM country ORDER BY code LIMIT 1`);
+        const actor = await one(
+          `INSERT INTO user_account
+             (username, display_name, email, country_id, preferred_language, timezone,
+              accepted_rules_at, status)
+           VALUES ($1, 'T-1882', $2, $3, 'en', 'UTC', now(), 'active') RETURNING id`,
+          [`t1882_${tag}`, `t1882-${tag}@example.test`, country],
+        );
+        const competition = await one(
+          `INSERT INTO competition (name, kind, scope, gender)
+           VALUES ($1, 'league', 'international', 'men') RETURNING id`,
+          [`T-1882 ${tag}`],
+        );
+        const season = await one(
+          `INSERT INTO season (competition_id, label, start_date, end_date, is_current)
+           VALUES ($1, '2026/27', '2026-08-01', '2027-05-31', true) RETURNING id`,
+          [competition],
+        );
+        const team = (name: string) =>
+          one(`INSERT INTO team (name, kind, gender) VALUES ($1, 'club', 'men') RETURNING id`, [
+            `T-1882 ${tag} ${name}`,
+          ]);
+        // His club this season; another coach's club; a club with no match in
+        // a current season; a club whose asks are already going unanswered;
+        // a club he left (a closed spell), playing this season too.
+        const his = await team('His');
+        const others = await team('Others');
+        const idle = await team('Idle');
+        const waiting = await team('Waiting');
+        const past = await team('Past');
+        for (const [home, away] of [
+          [his, others],
+          [waiting, others],
+          [past, others],
+        ]) {
+          const fixture = await one(
+            `INSERT INTO fixture (season_id, kickoff_at) VALUES ($1, '2026-09-01T18:00Z') RETURNING id`,
+            [season],
+          );
+          await client.query(
+            `INSERT INTO fixture_participant (fixture_id, team_id, side)
+             VALUES ($1, $2, 'home'), ($1, $3, 'away')`,
+            [fixture, home, away],
+          );
+        }
+        const person = (name: string) =>
+          one(
+            `INSERT INTO person (full_name, date_of_birth) VALUES ($1, '1975-05-05') RETURNING id`,
+            [`T1882 ${tag} ${name}`],
+          );
+        const player = await person('Gaffer');
+        const coach = await person('Gaffer');
+        const settled = await person('Settled');
+        for (const [who, where, start, end] of [
+          [coach, past, '2021-07-01', '2024-06-30'],
+          [coach, his, '2024-07-01', null],
+          [coach, idle, '2024-07-01', null],
+          [coach, waiting, '2024-07-01', null],
+          [settled, others, '2024-07-01', null],
+        ]) {
+          await client.query(
+            `INSERT INTO coach_spell (source, person_id, team_id, start_date, end_date, fetched_at)
+             VALUES ('api_football', $1, $2, $3, $4, $5)`,
+            [who, where, start, end, ANSWERED],
+          );
+        }
+        await client.query(
+          `INSERT INTO coach_fetch
+             (source, person_id, fetched_at, spells_listed, spells_kept, spells_unmapped)
+           VALUES ('api_football', $1, $3, 4, 4, 0), ('api_football', $2, $3, 1, 1, 0)`,
+          [coach, settled, ANSWERED],
+        );
+        await client.query(
+          `INSERT INTO team_coach_fetch (source, team_id, asked_at, answered_at, failures)
+           VALUES ('api_football', $1, $6, $6, 0), ('api_football', $2, $6, $6, 0),
+                  ('api_football', $3, $6, $6, 0), ('api_football', $4, $6, $6, 2),
+                  ('api_football', $5, $6, $6, 0)`,
+          [his, others, idle, waiting, past, ANSWERED],
+        );
+        const marks = async () =>
+          Object.fromEntries(
+            (
+              await client.query(
+                `SELECT team_id, failures, asked_at, answered_at FROM team_coach_fetch
+                  WHERE team_id = ANY($1::uuid[])`,
+                [[his, others, idle, waiting, past]],
+              )
+            ).rows.map((r) => [
+              r.team_id,
+              [r.failures, r.asked_at.toISOString(), r.answered_at.toISOString()],
+            ]),
+          );
+
+        // Before the merge every spell has its ask record: nothing to ask.
+        expect(await people.askCoachTeamsAgain(client, [player, coach, settled])).toBe(0);
+
+        await client.query(`SELECT merge_person($1, $2, $3, 'T-1882 spec')`, [
+          coach,
+          player,
+          actor,
+        ]);
+        // The merge moved the spells and set the coach id's ask record aside.
+        expect(
+          (
+            await client.query(
+              `SELECT (SELECT count(*)::int FROM coach_spell WHERE person_id = $1) AS spells,
+                      (SELECT count(*)::int FROM coach_fetch
+                        WHERE person_id = ANY($2::uuid[])) AS fetches`,
+              [player, [player, coach]],
+            )
+          ).rows[0],
+        ).toEqual({ spells: 4, fetches: 0 });
+
+        expect(await people.askCoachTeamsAgain(client, [player, settled])).toBe(1);
+        // Only the current-season team of his open spell, by the count
+        // alone: the answer's time stays, so the team's head coach reads as
+        // before. The club he left keeps its own turn.
+        expect(await marks()).toEqual({
+          [his]: [1, ANSWERED, ANSWERED],
+          [others]: [0, ANSWERED, ANSWERED],
+          [idle]: [0, ANSWERED, ANSWERED],
+          [waiting]: [2, ANSWERED, ANSWERED],
+          [past]: [0, ANSWERED, ANSWERED],
+        });
+        // Marked once.
+        expect(await people.askCoachTeamsAgain(client, [player, settled])).toBe(0);
+      } finally {
+        await client.query('ROLLBACK').catch(() => undefined);
+        client.release();
+      }
     });
   },
 );
