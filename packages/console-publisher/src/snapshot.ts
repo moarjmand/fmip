@@ -462,3 +462,72 @@ export function applyCommand(
       };
   }
 }
+
+/** What `sync` does outside this file, so its order can be tested with stand-ins (T-1878). */
+export interface SyncSteps {
+  load(): ConsoleState;
+  /** Takes the queued commands: the server marks them taken as it hands them over. */
+  take(): ConsoleCommand[];
+  save(state: ConsoleState): void;
+  /** Reports one command's outcome to the server; may throw (ssh down, an older server). */
+  finish(id: string, status: 'done' | 'failed', outcome: string): void;
+  publish(state: ConsoleState): void;
+}
+
+const COMMAND_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const reasonOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+/**
+ * The console's queued commands, applied on the computer (T-1878). Once the
+ * server has handed the commands over it will not hand them over again, so
+ * nothing after `take` may lose them: every command is applied and the state
+ * saved BEFORE anything is reported back, and a report that fails is noted
+ * and the next one still sent. `failures` names each thing that went wrong;
+ * `sync` exits non-zero when there is one.
+ */
+export function syncCommands(
+  steps: SyncSteps,
+  agents: readonly string[],
+): { state: ConsoleState; failures: string[] } {
+  let state = steps.load();
+  const taken = steps.take();
+  const failures: string[] = [];
+  const reports: { id: string; status: 'done' | 'failed'; outcome: string }[] = [];
+  for (const command of taken) {
+    if (typeof command.id !== 'string' || !COMMAND_UUID.test(command.id)) {
+      failures.push('A command without a UUID id was left out.');
+      continue;
+    }
+    try {
+      const applied = applyCommand(state, command, agents);
+      state = applied.state;
+      if (applied.finish)
+        reports.push({ id: command.id, status: applied.status, outcome: applied.outcome });
+    } catch (error) {
+      // A kind this computer does not know: said to the console, the rest still applied.
+      failures.push(`Command ${command.id} could not be applied: ${reasonOf(error)}`);
+      reports.push({
+        id: command.id,
+        status: 'failed',
+        outcome: 'The computer could not apply this command.',
+      });
+    }
+  }
+  steps.save(state);
+  for (const report of reports) {
+    try {
+      steps.finish(report.id, report.status, report.outcome);
+    } catch (error) {
+      failures.push(
+        `Command ${report.id} was applied here (${report.status}), but its outcome did not reach the server: ${reasonOf(error)}`,
+      );
+    }
+  }
+  try {
+    steps.publish(state);
+  } catch (error) {
+    failures.push(`The snapshot was not published: ${reasonOf(error)}`);
+  }
+  return { state, failures };
+}
