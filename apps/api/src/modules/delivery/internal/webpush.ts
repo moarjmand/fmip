@@ -1,5 +1,6 @@
 import webpush from 'web-push';
 import { NoRecipient, type OutboundPush, type PushChannel } from '../delivery.port';
+import { isPushServiceEndpoint } from '../push-endpoint';
 import type { PostgresPushSubscriptionStore } from './push-subscriptions';
 
 /**
@@ -119,12 +120,16 @@ export class WebPushChannel implements PushChannel {
   /**
    * One message to one subscription that is not a member's (T-1788, D-391:
    * the agents console's reminders, whose devices the console keeps).
-   * `gone` when the push service says the subscription no longer exists.
+   * `gone` when the push service says the subscription no longer exists, and
+   * when its address is not a push service's at all (the caller removes it).
    */
   async sendTo(
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
     payload: PushPayload,
   ): Promise<'sent' | 'gone'> {
+    // T-1880: nothing is sent to an address that is not a browser's push
+    // service, whenever it was stored; it is a device that does not exist.
+    if (!isPushServiceEndpoint(subscription.endpoint)) return 'gone';
     try {
       await this.sender(subscription, JSON.stringify(payload));
       return 'sent';
@@ -149,6 +154,12 @@ export class WebPushChannel implements PushChannel {
     let delivered = 0;
     let lastError: Error | null = null;
     for (const device of devices) {
+      if (!isPushServiceEndpoint(device.endpoint)) {
+        // T-1880: stored before registration checked the address, or written
+        // past it. Never sent to; removed like a device its service calls gone.
+        await this.subscriptions.removeGone(device.id);
+        continue;
+      }
       try {
         await this.sender(
           { endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth } },

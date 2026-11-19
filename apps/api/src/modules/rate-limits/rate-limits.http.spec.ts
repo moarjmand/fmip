@@ -105,7 +105,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           url: '/me/push-subscriptions',
           headers: { cookie: `fmip_session=${cookies.push}` },
           payload: {
-            endpoint: `https://push.example/${RUN}/${n}`,
+            endpoint: `https://fcm.googleapis.com/fcm/send/${RUN}-${n}`,
             keys: { p256dh: 'k', auth: 'a' },
           },
         });

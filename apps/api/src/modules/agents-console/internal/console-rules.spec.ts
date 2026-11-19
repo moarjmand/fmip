@@ -10,6 +10,8 @@ import {
   COMMAND_OUTCOME_MAX,
   LOCK_AFTER_FAILURES,
   LOCK_MINUTES,
+  COMMAND_VALUES_MAX,
+  REASON_MAX,
   TEXT_MAX,
   afterFailure,
   checkCard,
@@ -184,6 +186,22 @@ describe('commands', () => {
         decisions,
       ),
     ).toMatchObject({ ok: true, command: { payload: { answer: 'a' } } });
+  });
+
+  it('holds what a command carries to a few short values (T-1880)', () => {
+    const pause = { kind: 'agent.pause', target: 'data-auditor', reason: 'noisy' };
+    const carrying = (payload: Record<string, string>) =>
+      checkCommand({ ...pause, payload }, agents, decisions);
+    expect(carrying({ note: 'x'.repeat(REASON_MAX) }).ok).toBe(true);
+    expect(carrying({ note: 'x'.repeat(REASON_MAX + 1) })).toEqual({
+      ok: false,
+      reason: 'A command carries up to 8 values of 500 characters.',
+    });
+    const many = (n: number) =>
+      Object.fromEntries(Array.from({ length: n }, (_, i) => [`k${i}`, 'v']));
+    expect(carrying(many(COMMAND_VALUES_MAX)).ok).toBe(true);
+    expect(carrying(many(COMMAND_VALUES_MAX + 1)).ok).toBe(false);
+    expect(carrying({ ['k'.repeat(41)]: 'v' }).ok).toBe(false);
   });
 
   it('refuses an unknown kind, agent, model, schedule, decision, or no reason', () => {

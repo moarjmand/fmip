@@ -38,6 +38,7 @@ import {
 } from '@fmip/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { DeliveryService } from '../delivery/delivery.service';
+import { isPushServiceEndpoint } from '../delivery/push-endpoint';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { RateLimitsService, refuseOverRate } from '../rate-limits/rate-limits.service';
 import { NotificationsService } from './notifications.service';
@@ -315,11 +316,14 @@ export class NotificationsController {
     const endpoint = typeof body?.endpoint === 'string' ? body.endpoint.trim() : '';
     const p256dh = typeof body?.keys?.p256dh === 'string' ? body.keys.p256dh.trim() : '';
     const auth = typeof body?.keys?.auth === 'string' ? body.keys.auth.trim() : '';
-    if (!endpoint.startsWith('https://') || p256dh === '' || auth === '') {
+    // T-1880: every notification is later sent to this address, so it is one
+    // of the browsers' own push services or it is refused; a made-up endpoint
+    // would be a request from the API to a host of the member's choosing.
+    if (!isPushServiceEndpoint(endpoint) || p256dh === '' || auth === '') {
       throw new BadRequestException({
         error: 'validation',
         message:
-          'A push subscription is an https endpoint and two keys, as the browser hands them out.',
+          "A push subscription is the https address of a browser's push service and two keys, as the browser hands them out.",
       } satisfies ApiError);
     }
     // Every notification is sent to each endpoint registered, so how many a

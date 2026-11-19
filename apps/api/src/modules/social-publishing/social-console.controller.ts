@@ -97,10 +97,11 @@ function reasonOf(body: unknown): string {
  * decisions, the kill switch, each kind's level, the publisher's key and the
  * trail, behind the console's own session (`ConsoleSessions`), never a
  * member's. Either console person approves, rejects, edits a caption,
- * settles an unknown post and stops or resumes publishing; only the owner
- * (`console_user.owner`, set by the CLI's `set-owner`) changes a level or the
- * key -- refused here with 403 whatever the page shows, and by the database
- * again for a level. Every change is the store's one transaction with its
+ * settles an unknown post, stops or resumes publishing and sets or clears the
+ * key (D-427 as built: the teammate owns the Buffer account); only the owner
+ * (`console_user.owner`, set by the CLI's `set-owner`) changes a level --
+ * refused here with 403 whatever the page shows, and by the database again.
+ * Every change is the store's one transaction with its
  * `console_audit` row. The key is taken and never given back: no answer, log
  * line or audit row holds it.
  *

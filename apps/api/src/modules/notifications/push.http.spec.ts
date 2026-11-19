@@ -28,7 +28,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('push devices
   let pool: Pool;
   const username = `pd_${RUN}`;
   let cookie = '';
-  const endpoint = `https://push.example/${RUN}`;
+  // A real push service's host: no other is taken (T-1880). Nothing is sent in this spec.
+  const endpoint = `https://fcm.googleapis.com/fcm/send/${RUN}`;
 
   const as = () => ({ cookie: `fmip_session=${cookie}` });
   const state = async () => {
@@ -105,6 +106,34 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('push devices
         .statusCode,
     ).toBe(400);
     expect((await subscribe({ endpoint, keys: { p256dh: '', auth: 'a' } })).statusCode).toBe(400);
+    // T-1880: only a browser's own push service, by name, over https on its own port.
+    for (const elsewhere of [
+      `https://push.example/${RUN}`,
+      'https://127.0.0.1/hook',
+      'https://[::1]/hook',
+      'https://169.254.169.254/latest/meta-data/',
+      'https://fcm.googleapis.com:8443/fcm/send/x',
+      'https://fcm.googleapis.com.example.com/fcm/send/x',
+      'https://fcm.googleapis.com@example.com/fcm/send/x',
+      'https://api.push.apple.com/3/device/x',
+    ]) {
+      const refused = await subscribe({ endpoint: elsewhere, keys: { p256dh: 'p', auth: 'a' } });
+      expect(refused.statusCode, elsewhere).toBe(400);
+      expect(refused.json<{ error: string }>().error, elsewhere).toBe('validation');
+    }
+    // The other browsers' services are taken; nothing refused was stored.
+    for (const [n, real] of [
+      `https://updates.push.services.mozilla.com/wpush/v2/${RUN}`,
+      `https://wns2-par02p.notify.windows.com/w/?token=${RUN}`,
+      `https://web.push.apple.com/${RUN}`,
+    ].entries()) {
+      expect(
+        (await subscribe({ endpoint: real, keys: { p256dh: `p${n}`, auth: 'a' } })).statusCode,
+        real,
+      ).toBe(204);
+      await pool.query(`DELETE FROM push_subscription WHERE endpoint = $1`, [real]);
+    }
+    expect((await state()).body.devices).toBe(1);
   });
 
   it('removes a device, and says so when it is not there', async () => {

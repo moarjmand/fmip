@@ -189,6 +189,34 @@ export const CEILINGS: readonly CeilingDefinition[] = [
     what: "Messages to the agents in the agents console: each is an agent run on the maintainer's computer.",
     routes: ['POST /console/agents/:name/messages'],
   },
+  // T-1880: the commands to the maintainer's computer (pause, resume, run,
+  // model, schedule, a decision's answer). Counted from the person's own
+  // `console_command` rows this hour, before the insert; `agent.run`, which
+  // starts an agent at once, is held to a tighter ceiling of its own as well.
+  {
+    action: 'console_command',
+    subject: 'console_user',
+    enforced: 'api',
+    what: "Commands to the maintainer's computer from the agents console: pausing, resuming and running an agent, its model and schedule, and a decision's answer.",
+    routes: ['POST /console/commands'],
+  },
+  {
+    action: 'console_command_run',
+    subject: 'console_user',
+    enforced: 'api',
+    what: "Immediate runs asked from the agents console (`agent.run`): each starts an agent on the maintainer's computer at its next sync; also counted as a command.",
+    routes: ['POST /console/commands'],
+  },
+  // T-1880: a test message is a request from the API to a push service for each
+  // of the caller's browsers. Counted from the person's own `calendar.push_test`
+  // audit rows this hour, before anything is sent.
+  {
+    action: 'console_push_test',
+    subject: 'console_user',
+    enforced: 'api',
+    what: "Test messages a console person sends to their own browsers from the calendar's reminders.",
+    routes: ['POST /console/calendar/push/test'],
+  },
   // T-1728 (D-354): the teammate requests. Counted from the person's own
   // `console_request_event` rows this hour, before the write; Claude's
   // results and questions come through the server's command line, not here.
@@ -411,7 +439,6 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'DELETE /console/session': "Ends the caller's own console session; nothing is created.",
   'POST /console/invitations/accept':
     'Opens a console account from a one-time invitation made on the server: the token is 256 random bits and is spent by the first use.',
-  'POST /console/commands': CONSOLE_PERSON,
   'POST /console/board': CONSOLE_PERSON,
   'PATCH /console/board/:id': CONSOLE_PERSON,
   'DELETE /console/board/:id': CONSOLE_PERSON,
@@ -420,13 +447,11 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'PATCH /console/calendar/events/:id': CONSOLE_PERSON,
   'DELETE /console/calendar/events/:id': CONSOLE_PERSON,
   'POST /console/calendar/push':
-    "Switches reminders on in the caller's own browser: one row per browser (the endpoint is unique), audited; a repeat replaces it.",
+    "Switches reminders on in the caller's own browser: one row per browser (the endpoint is unique and must be a browser's own push service, T-1880), audited; a repeat replaces it.",
   'DELETE /console/calendar/push': REMOVAL,
   // T-1832 (D-425): one flag on the caller's own console account.
   'POST /console/calendar/push/requests':
     "Switches the caller's own new-request notifications on or off: one flag on their own console account, set in place and audited only when it changes; it sends nothing.",
-  'POST /console/calendar/push/test':
-    "Sends one test message to the caller's own browsers only; reaches no one else, and the push services hold their own limits.",
   // T-1836 (D-427): the social tab, the same two people. Nothing here posts to
   // a network: the job publishes at most five a network a London day whatever
   // is approved (the database's slots), and each decision is one post's once.
@@ -437,8 +462,10 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'POST /console/social/posts/:id/settle': CONSOLE_PERSON,
   'POST /console/social/switch': CONSOLE_PERSON,
   'POST /console/social/levels/:kind': `${CONSOLE_PERSON} The console owner only (403 otherwise).`,
-  'POST /console/social/key': `${CONSOLE_PERSON} The console owner only (403 otherwise); the key is sealed in place, one row.`,
-  'POST /console/social/key/clear': `${CONSOLE_PERSON} The console owner only (403 otherwise).`,
+  // Either person (D-427 as built in T-1836: the teammate owns the Buffer
+  // account and enters its key); only a kind's level is the owner's alone.
+  'POST /console/social/key': `${CONSOLE_PERSON} Either of the two; the key is sealed in place, one row, and never returned.`,
+  'POST /console/social/key/clear': `${CONSOLE_PERSON} Either of the two, with a reason; it clears the one row.`,
 };
 
 /** Every write under this prefix is the console's: role-gated and audited, never rate limited. */
