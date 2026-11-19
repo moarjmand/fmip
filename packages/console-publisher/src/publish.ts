@@ -52,6 +52,7 @@ import {
 } from './remote.ts';
 import { type LabRead, labFrom } from './lab.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
+import { SECURITY_AGENT, type SecurityLedger, guardText, securityLedger } from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -178,6 +179,8 @@ function saveState(state: ConsoleState): void {
 }
 
 function memoryEntries(agent: string): ConsoleMemoryEntry[] {
+  // T-1879: the security agent's memory is never read for the console.
+  if (agent === SECURITY_AGENT) return [];
   const dir = join(ROOT, '.claude', 'agent-memory', agent);
   return files(dir, '.md').map((name) => ({
     path: `.claude/agent-memory/${agent}/${name}`,
@@ -217,10 +220,8 @@ export function readProviders(path = PROVIDERS_FILE): ProvidersRead {
   return providersFrom(raw, statSync(path).mtime.toISOString());
 }
 
-export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
-  const skillNames = existsSync(join(ROOT, '.claude', 'skills'))
-    ? readdirSync(join(ROOT, '.claude', 'skills')).sort()
-    : [];
+/** Every line of the findings files, in date order. */
+function readFindingLines(): FindingLine[] {
   const findingLines: FindingLine[] = [];
   for (const name of files(join(OPS, 'findings'), '.jsonl')) {
     for (const line of read(join(OPS, 'findings', name)).split(/\r?\n/)) {
@@ -232,6 +233,14 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
       }
     }
   }
+  return findingLines;
+}
+
+export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
+  const skillNames = existsSync(join(ROOT, '.claude', 'skills'))
+    ? readdirSync(join(ROOT, '.claude', 'skills')).sort()
+    : [];
+  const findingLines = readFindingLines();
   const agentFiles = files(join(ROOT, '.claude', 'agents'), '.md')
     .map((name) => parseAgentFile(read(join(ROOT, '.claude', 'agents', name))))
     .filter((file) => file !== null);
@@ -311,26 +320,30 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
   for (const problem of providers.problems)
     process.stderr.write(`providers comparison: ${problem}\n`);
 
-  return snapshotOf({
-    generated_at: new Date().toISOString(),
-    agents,
-    findings: findingsFrom(findingLines),
-    reports: reportsFrom(reportFiles),
-    brief:
-      briefName === undefined
-        ? null
-        : { date: briefName.slice(0, 10), text: read(join(OPS, 'brief', briefName)) },
-    decisions: [
-      ...deskDecisions(questions, deskAnswers, state),
-      ...recordedDecisions(
-        existsSync(join(ROOT, 'docs', '00-decisions.md'))
-          ? read(join(ROOT, 'docs', '00-decisions.md'))
-          : '',
-      ),
-    ],
-    model_lab: lab.lab,
-    providers: providers.providers,
-  });
+  // T-1879 (D-340): `snapshotOf` withholds security detail by this ledger.
+  return snapshotOf(
+    {
+      generated_at: new Date().toISOString(),
+      agents,
+      findings: findingsFrom(findingLines),
+      reports: reportsFrom(reportFiles),
+      brief:
+        briefName === undefined
+          ? null
+          : { date: briefName.slice(0, 10), text: read(join(OPS, 'brief', briefName)) },
+      decisions: [
+        ...deskDecisions(questions, deskAnswers, state),
+        ...recordedDecisions(
+          existsSync(join(ROOT, 'docs', '00-decisions.md'))
+            ? read(join(ROOT, 'docs', '00-decisions.md'))
+            : '',
+        ),
+      ],
+      model_lab: lab.lab,
+      providers: providers.providers,
+    },
+    securityLedger(findingLines),
+  );
 }
 
 function ssh(command: string, input?: string): string {
@@ -351,9 +364,24 @@ function ssh(command: string, input?: string): string {
 
 const publish = (snapshot: ConsoleSnapshot): string =>
   ssh(`${CLI} load-snapshot`, JSON.stringify(snapshot)).trim();
+let ledgerOnce: SecurityLedger | null = null;
+/**
+ * A text this tool uploads by itself (a chat reply, a command's outcome, a
+ * request's result or question), after the security text rule (T-1879,
+ * D-340): the part that names a withheld finding stays here, and which ids
+ * were withheld is said on standard error.
+ */
+function guarded(what: string, text: string): string {
+  ledgerOnce ??= securityLedger(readFindingLines());
+  const { text: safe, withheld } = guardText(text, ledgerOnce);
+  if (withheld.length > 0)
+    process.stderr.write(`${what}: security detail withheld (${withheld.join(', ')}).\n`);
+  return safe;
+}
+
 /** Reports a command's outcome: the id checked, the text on standard input (T-1878). */
 const finishRemote = (id: string, status: FinishStatus, outcome: string): void => {
-  const call = finishCall(CLI, id, status, outcome);
+  const call = finishCall(CLI, id, status, guarded('finish', outcome));
   ssh(call.command, call.input);
 };
 
@@ -369,7 +397,7 @@ function saveInbox(inbox: ChatInbox): void {
 
 /** Posts a reply; the id is checked against MESSAGE_ID before it reaches the command line. */
 const replyRemote = (id: string, status: ReplyStatus, body: string): void => {
-  const call = replyCall(CLI, id, status, body);
+  const call = replyCall(CLI, id, status, guarded('chat-reply', body));
   ssh(call.command, call.input);
 };
 
@@ -589,7 +617,9 @@ export function main(argv = process.argv.slice(2)): number {
         process.stderr.write('A result needs its text.\n');
         return 2;
       }
-      process.stdout.write(ssh(resultCommand(CLI, parsed.id, parsed.status), body));
+      process.stdout.write(
+        ssh(resultCommand(CLI, parsed.id, parsed.status), guarded('request-result', body)),
+      );
       return 0;
     }
     case 'request-ask': {
@@ -603,7 +633,7 @@ export function main(argv = process.argv.slice(2)): number {
         process.stderr.write('A question needs its text.\n');
         return 2;
       }
-      process.stdout.write(ssh(askCommand(CLI, parsed.id), body));
+      process.stdout.write(ssh(askCommand(CLI, parsed.id), guarded('request-ask', body)));
       return 0;
     }
     default:
