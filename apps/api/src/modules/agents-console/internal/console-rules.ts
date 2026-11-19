@@ -24,6 +24,8 @@ import { checkProviders } from './providers-rules';
 export const CONSOLE_COOKIE = 'fmip_console';
 /** A session not used for this long ends. */
 export const SESSION_IDLE_HOURS = 12;
+/** A session ends this long after it was opened, however much it is used (T-1880). */
+export const SESSION_MAX_DAYS = 7;
 /** Wrong passwords in a row before a name is locked... */
 export const LOCK_AFTER_FAILURES = 5;
 /** ...and for how long. */

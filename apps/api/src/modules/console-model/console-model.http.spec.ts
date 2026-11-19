@@ -239,6 +239,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console mode
       );
       const ids = rows.map((r) => r.id);
       await client.query(`DELETE FROM console_audit WHERE actor_id = ANY($1::uuid[])`, [ids]);
+      // An invitation's own audit row has the server as its actor (T-1880).
+      await client.query(
+        `DELETE FROM console_audit WHERE action = 'console.invitation_created' AND target_id IN
+           (SELECT id::text FROM console_invite WHERE used_by = ANY($1::uuid[]) OR display_name = $2)`,
+        [ids, `CM ${RUN}`],
+      );
       await client.query(
         `DELETE FROM console_invite WHERE used_by = ANY($1::uuid[]) OR display_name = $2`,
         [ids, `CM ${RUN}`],
