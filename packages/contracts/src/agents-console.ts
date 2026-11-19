@@ -192,7 +192,10 @@ export interface ConsoleFinding {
   status: ConsoleFindingStatus;
   title: string;
   opened_at: string;
-  /** `null` for an open security finding (D-340): its detail stays on the computer. */
+  /**
+   * `null` for a security finding that is not resolved or marked public
+   * (D-340, T-1879): its detail stays on the computer.
+   */
   detail: string | null;
   related: string | null;
 }

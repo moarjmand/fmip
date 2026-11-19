@@ -24,6 +24,8 @@ import { checkProviders } from './providers-rules';
 export const CONSOLE_COOKIE = 'fmip_console';
 /** A session not used for this long ends. */
 export const SESSION_IDLE_HOURS = 12;
+/** A session ends this long after it was opened, however much it is used (T-1880). */
+export const SESSION_MAX_DAYS = 7;
 /** Wrong passwords in a row before a name is locked... */
 export const LOCK_AFTER_FAILURES = 5;
 /** ...and for how long. */
@@ -258,6 +260,21 @@ export function replyText(raw: string): string {
   const chars = [...text];
   if (chars.length <= CONSOLE_REPLY_MAX) return text;
   return `${chars.slice(0, CONSOLE_REPLY_MAX - 1).join('')}…`;
+}
+
+/** The longest outcome a command keeps. */
+export const COMMAND_OUTCOME_MAX = 1000;
+
+/**
+ * A command's outcome as the computer sent it on standard input (T-1878),
+ * cut to the longest a command keeps. It is text to show: whatever it holds
+ * (a `$(...)`, a backtick, a quote, a new line) is kept as written.
+ */
+export function outcomeText(raw: string): string {
+  const text = cleanText(raw).trim();
+  const chars = [...text];
+  if (chars.length <= COMMAND_OUTCOME_MAX) return text;
+  return `${chars.slice(0, COMMAND_OUTCOME_MAX - 1).join('')}…`;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;

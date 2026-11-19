@@ -118,6 +118,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console cale
       );
       await client.query(`DELETE FROM console_event WHERE id = ANY($1::uuid[])`, [events]);
       await client.query(`DELETE FROM console_subscription WHERE key = $1`, [SUB]);
+      // An invitation's own audit row has the server as its actor (T-1880).
+      await client.query(
+        `DELETE FROM console_audit WHERE action = 'console.invitation_created' AND target_id IN
+           (SELECT id::text FROM console_invite WHERE used_by = $1 OR display_name = $2)`,
+        [userId, `Cal ${RUN}`],
+      );
       await client.query(`DELETE FROM console_invite WHERE used_by = $1 OR display_name = $2`, [
         userId,
         `Cal ${RUN}`,
@@ -459,6 +465,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('new-request 
       );
       await client.query(`DELETE FROM console_request WHERE created_by = ANY($1::uuid[])`, [ids]);
       await client.query(`DELETE FROM console_audit WHERE actor_id = ANY($1::uuid[])`, [ids]);
+      // An invitation's own audit row has the server as its actor (T-1880).
+      await client.query(
+        `DELETE FROM console_audit WHERE action = 'console.invitation_created' AND target_id IN
+           (SELECT id::text FROM console_invite WHERE used_by = ANY($1::uuid[]))`,
+        [ids],
+      );
       await client.query(`DELETE FROM console_invite WHERE used_by = ANY($1::uuid[])`, [ids]);
     });
     await pool.query(`DELETE FROM console_user WHERE id = ANY($1::uuid[])`, [ids]);
