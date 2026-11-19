@@ -29,11 +29,14 @@ export function consoleNonce(): string {
  *   under `next dev`, where React rebuilds server stacks with `eval`.
  * - `style-src`: this origin and inline styles, with no nonce. The page's
  *   stylesheet is inlined as a `<style>` (`experimental.inlineCss`, D-246),
- *   and Next 16.3 writes that tag without the nonce: it hands React one
- *   nonce, which React puts on scripts only. A nonce here would leave the
- *   console unstyled (seen: the browser refused the tag). The server-rendered
- *   bars and charts also carry `style=""` (a width, a colour). A style cannot
- *   run script, and what it could load is held to this origin by the rest.
+ *   and Next writes that tag without the nonce (seen on 16.3.4 and again on
+ *   16.4.5): it hands React one nonce, which React puts on scripts only. A
+ *   nonce here would leave the console unstyled (seen: the browser refused
+ *   the tag). The server-rendered bars and charts also carry `style=""` (a
+ *   width, a colour). A style cannot run script, and what it could load is
+ *   held to this origin by the rest. `tests/e2e/console-headers.spec.ts`
+ *   fails the day the tag carries the nonce, which is the day to put the
+ *   nonce here and keep `'unsafe-inline'` for `style-src-attr` only.
  * - `img-src`: the console's own pictures, a pasted picture's preview
  *   (`blob:`) and `data:`.
  * - `worker-src`: the reminders' service worker, on this origin.
@@ -61,7 +64,9 @@ export function consoleContentPolicy(nonce: string, development = false): string
  * The policy of a request picture and of its upload's answer (T-1731,
  * D-357): nothing loads and nothing runs, as the API says of the bytes it
  * streams. The proxy's header is the one the browser gets (a route handler's
- * own does not replace it), so it is said here.
+ * own does not replace it), so it is said here. The same holds for
+ * `Cache-Control`: a picture is `private, no-store` like every console
+ * answer, and the API says so too.
  */
 export const CONSOLE_PICTURE_POLICY = "default-src 'none'; sandbox; frame-ancestors 'none'";
 

@@ -1,4 +1,5 @@
-import { expect, test, type APIResponse, type Page } from '@playwright/test';
+import { expect, test, type APIResponse } from '@playwright/test';
+import { CONSOLE_HOST, CONSOLE_POLICY as POLICY, watchPolicy } from './console-policy';
 
 /**
  * The agents console's answers from the built app (T-1881), under the site's
@@ -11,13 +12,9 @@ import { expect, test, type APIResponse, type Page } from '@playwright/test';
  *
  * `src/proxy.spec.ts` checks the same rules on the proxy alone. This is the
  * matcher, the rewrite and Next's own headers together, which only a running
- * server shows.
+ * server shows. The pages behind the sign-in are walked under the policy by
+ * `journeys/console-policy.spec.ts`, which has an API to sign in to.
  */
-
-const CONSOLE_HOST = 'agents.localhost';
-
-const POLICY =
-  /^default-src 'self'; script-src 'self' 'nonce-([A-Za-z0-9+/]{22}==)' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'none'; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'$/;
 
 /** The headers every console answer carries, whatever it is. */
 function expectConsoleHeaders(response: APIResponse): Record<string, string> {
@@ -29,26 +26,6 @@ function expectConsoleHeaders(response: APIResponse): Record<string, string> {
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['content-security-policy-report-only']).toBeUndefined();
   return headers;
-}
-
-/** Collects what the browser refuses under the page's policy, from before any script runs. */
-async function watchPolicy(page: Page): Promise<() => Promise<string[]>> {
-  const refused: string[] = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error' && /Content Security Policy/i.test(message.text()))
-      refused.push(message.text());
-  });
-  await page.addInitScript(() => {
-    const seen: string[] = [];
-    (globalThis as unknown as { __refused: string[] }).__refused = seen;
-    document.addEventListener('securitypolicyviolation', (event) => {
-      seen.push(`${event.effectiveDirective} refused ${event.blockedURI || 'inline'}`);
-    });
-  });
-  return async () => [
-    ...refused,
-    ...(await page.evaluate(() => (globalThis as unknown as { __refused: string[] }).__refused)),
-  ];
 }
 
 const FORMS = [
@@ -73,6 +50,13 @@ for (const form of FORMS) {
       const scripts = html.match(/<script\b[^>]*>/g) ?? [];
       expect(scripts.length).toBeGreaterThan(0);
       for (const script of scripts) expect(script).toContain(`nonce="${nonce}"`);
+      // The inlined stylesheet carries no nonce, which is why `style-src` is
+      // `'unsafe-inline'` (seen on Next 16.3.4 and 16.4.5). If this fails after
+      // an upgrade, Next has started to write it: put the nonce in `style-src`
+      // (`src/lib/console-headers.ts`) and turn this expectation round.
+      const styles = html.match(/<style[^>]*>/g) ?? [];
+      expect(styles.length).toBeGreaterThan(0);
+      for (const style of styles) expect(style).not.toContain('nonce=');
       // A second request gets a nonce of its own.
       const again = await request.get(form.login, { headers });
       expect(POLICY.exec(again.headers()['content-security-policy']!)?.[1]).not.toBe(nonce);

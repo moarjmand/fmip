@@ -32,9 +32,11 @@ export function withFramingRefused(policy: unknown): string {
 }
 
 /**
- * Before every console answer is sent, refusals and errors too. A route's own
- * `cache-control` stands (a picture's private hour, D-357); every other
- * answer is `private, no-store`.
+ * Before every console answer is sent, refusals and errors too. No console
+ * answer is kept: a route that names no `cache-control` gets `private,
+ * no-store`, and the one that names its own, a request picture, says the
+ * same (the hour D-357 gave it never reached a browser: the web proxy and
+ * Caddy both answer `no-store` for every console address).
  */
 export function registerConsoleHeaders(fastify: FastifyInstance): void {
   fastify.addHook('onSend', (request, reply, payload, done) => {

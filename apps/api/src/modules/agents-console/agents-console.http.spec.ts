@@ -957,7 +957,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       const served = await get(`requests/${request.id}/images/${image.id}`);
       expect(served.statusCode).toBe(200);
       expect(served.headers['content-type']).toBe('image/webp');
-      expect(served.headers['cache-control']).toBe('private, max-age=3600');
+      expect(served.headers['cache-control']).toBe('private, no-store');
       expect(String(served.headers['content-disposition'])).toMatch(/^inline; filename="request-/);
       expect(served.headers['x-content-type-options']).toBe('nosniff');
       expect(String(served.headers['content-security-policy'])).toContain('sandbox');

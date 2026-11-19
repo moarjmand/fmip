@@ -587,9 +587,10 @@ export class AgentsConsoleController {
   }
 
   /**
-   * Streams a picture: never cached by anyone but the viewer's own browser
-   * (`private`), shown in place rather than saved, its type not to be
-   * guessed, and nothing in it able to run (`sandbox`).
+   * Streams a picture: kept by no one, the viewer's own browser included
+   * (`private, no-store`, like every console answer, T-1881), shown in place
+   * rather than saved, its type not to be guessed, and nothing in it able to
+   * run (`sandbox`).
    */
   private async serveImage(
     id: string,
@@ -613,7 +614,7 @@ export class AgentsConsoleController {
       .status(200)
       .header('content-type', row.content_type)
       .header('content-length', String(file.size))
-      .header('cache-control', 'private, max-age=3600')
+      .header('cache-control', 'private, no-store')
       .header('content-disposition', `inline; filename="${name}"`)
       .header('x-content-type-options', 'nosniff')
       .header('content-security-policy', "default-src 'none'; sandbox")

@@ -58,7 +58,7 @@ describe('the console headers on the API', () => {
     fastify.get('/console/requests/:id/images/:imageId', (_request, reply) =>
       reply
         .header('content-type', 'image/webp')
-        .header('cache-control', 'private, max-age=3600')
+        .header('cache-control', 'private, no-store')
         .header('content-security-policy', "default-src 'none'; sandbox")
         .send(Buffer.from('RIFF')),
     );
@@ -82,10 +82,10 @@ describe('the console headers on the API', () => {
     await fastify.close();
   });
 
-  it('keep a picture’s own policy and cache line, with framing refused as well', async () => {
+  it('keep a picture’s own policy, with framing refused as well, and it is not kept either', async () => {
     const fastify = await served();
     const answer = await fastify.inject({ method: 'GET', url: '/console/requests/1/images/2' });
-    expect(answer.headers['cache-control']).toBe('private, max-age=3600');
+    expect(answer.headers['cache-control']).toBe('private, no-store');
     expect(answer.headers['content-security-policy']).toBe(
       "default-src 'none'; sandbox; frame-ancestors 'none'",
     );
