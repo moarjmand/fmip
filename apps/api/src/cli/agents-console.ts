@@ -13,6 +13,7 @@ import {
   checkSnapshot,
   consoleTokenText,
   isConsoleUsername,
+  outcomeText,
   replyText,
 } from '../modules/agents-console/internal/console-rules';
 import { checkImport } from '../modules/agents-console/internal/calendar-rules';
@@ -48,7 +49,7 @@ import { leaveWhenWritten } from './leave';
  *     docker compose exec -T api node dist/cli/agents-console.js invite --name "Mostafa"
  *     ... load-snapshot < snapshot.json
  *     ... take-commands
- *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
+ *     ... finish-command --id <uuid> --status done|failed < outcome.txt
  *     ... import-board --as <username> < cards.json
  *     ... import-calendar --as <username> < calendar.json
  *     ... take-messages
@@ -68,7 +69,9 @@ import { leaveWhenWritten } from './leave';
  * the computer's snapshot from standard input, checks it and stores it with
  * an open security finding's detail removed. `take-commands` prints the
  * queued commands as JSON and marks them taken; `finish-command` writes one's
- * outcome back. `import-board` moves the project board's cards from its
+ * outcome back, read from standard input (T-1878: never from the arguments, so
+ * no shell on the way expands it; `--outcome "text"`, the form before, is
+ * still read for one release, for a publisher not yet updated). `import-board` moves the project board's cards from its
  * claude.ai page once (T-1700): a JSON list of cards, each with its old id as
  * `source_ref`, so running it again adds none twice. `import-calendar`
  * (T-1788, D-391) moves the calendar's events from the same page once (each
@@ -123,7 +126,13 @@ export type ConsoleCliArgs =
   | { kind: 'invite'; name: string }
   | { kind: 'load-snapshot' }
   | { kind: 'take-commands' }
-  | { kind: 'finish-command'; id: string; status: 'done' | 'failed'; outcome: string }
+  | {
+      kind: 'finish-command';
+      id: string;
+      status: 'done' | 'failed';
+      /** `--outcome`, the form before T-1878; `null` reads standard input. */
+      outcome: string | null;
+    }
   | { kind: 'import-board'; as: string }
   | { kind: 'import-calendar'; as: string }
   | { kind: 'take-messages' }
@@ -182,12 +191,13 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
     case 'finish-command': {
       const id = flags.get('id') ?? '';
       const status = flags.get('status');
-      const outcome = flags.get('outcome')?.trim() ?? '';
+      const given = flags.get('outcome');
       if (!UUID.test(id)) return { kind: 'error', message: '--id: the command id.' };
       if (status !== 'done' && status !== 'failed')
         return { kind: 'error', message: '--status: done or failed.' };
-      if (outcome === '') return { kind: 'error', message: '--outcome: what happened.' };
-      return { kind: 'finish-command', id, status, outcome };
+      if (given !== undefined && given.trim() === '')
+        return { kind: 'error', message: '--outcome: what happened.' };
+      return { kind: 'finish-command', id, status, outcome: given ?? null };
     }
     case 'take-messages':
       return { kind: 'take-messages' };
@@ -445,12 +455,18 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       case 'take-commands':
         process.stdout.write(`${JSON.stringify(await store.takeCommands())}\n`);
         return 0;
-      case 'finish-command':
-        if (!(await store.finishCommand(args.id, args.status, args.outcome))) {
+      case 'finish-command': {
+        const outcome = outcomeText(args.outcome ?? (await readStdin()));
+        if (outcome === '') {
+          console.error('An outcome needs its text on standard input.');
+          return 1;
+        }
+        if (!(await store.finishCommand(args.id, args.status, outcome))) {
           console.error(`No taken command ${args.id}.`);
           return 1;
         }
         return 0;
+      }
       case 'take-messages':
         process.stdout.write(`${JSON.stringify(await store.takeMessages())}\n`);
         return 0;

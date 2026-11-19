@@ -17,7 +17,14 @@ import type {
   ConsoleRequestList,
   ConsoleSnapshot,
 } from '@fmip/contracts';
-import { type ChatInbox, dropFromInbox, emptyInbox, mergeInbox, parseReplyArgs } from './chat.ts';
+import {
+  type ChatInbox,
+  MESSAGE_ID,
+  dropFromInbox,
+  emptyInbox,
+  mergeInbox,
+  parseReplyArgs,
+} from './chat.ts';
 import {
   askCommand,
   decodeImage,
@@ -27,6 +34,7 @@ import {
   parseAskArgs,
   parsePullArgs,
   parseResultArgs,
+  REQUEST_ID,
   requestsFile,
   resultCommand,
   sha256Of,
@@ -34,6 +42,14 @@ import {
   summary,
 } from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
+import {
+  type FinishStatus,
+  type ReplyStatus,
+  finishCall,
+  parseFinishArgs,
+  replyCall,
+  sshTarget,
+} from './remote.ts';
 import { type LabRead, labFrom } from './lab.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
 import {
@@ -43,7 +59,6 @@ import {
   type FindingLine,
   type ReportFile,
   agentOf,
-  applyCommand,
   deskDecisions,
   emptyState,
   findingsFrom,
@@ -54,6 +69,7 @@ import {
   skillsOf,
   snapshotOf,
   stepsOf,
+  syncCommands,
 } from './snapshot.ts';
 
 /**
@@ -63,14 +79,19 @@ import {
  *     node packages/console-publisher/src/publish.ts build [--out snapshot.json]
  *     node packages/console-publisher/src/publish.ts publish
  *     node packages/console-publisher/src/publish.ts sync
- *     node packages/console-publisher/src/publish.ts finish <command-id> done|failed "what happened"
+ *     node packages/console-publisher/src/publish.ts finish <command-id> done|failed [--file outcome.txt] [< outcome.txt]
  *
  * `build` writes the snapshot; `publish` loads it on the server over
  * `ssh fmip-prod`; `sync` takes the console's queued commands, applies a
  * pause, a model, a schedule or an answer to `E:/FMIP/ops/console/state.json`,
  * reports each back, publishes, and prints the agents a person asked to run,
- * as JSON, for the scheduled task to start; `finish` reports such a run.
+ * as JSON, for the scheduled task to start; `finish` reports such a run, its
+ * outcome read from `--file` or standard input, never from the arguments.
  * The server never reaches this computer.
+ *
+ * What reaches the server's shell (T-1878): `remote.ts` builds every command
+ * line from the fixed prefix, flags, ids checked as UUIDs and statuses from a
+ * fixed list; any text a person or an agent wrote goes on standard input.
  *
  * The model lab's ledger (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`,
  * kept by the model scientist, goes into every snapshot as `model_lab` after
@@ -129,6 +150,7 @@ const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
 const LAB_FILE = join(OPS, 'model', 'ledger.json');
 const PROVIDERS_FILE = join(OPS, 'providers', 'comparison.json');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
+/** The fixed prefix of every remote command line; `remote.ts` checks every word after it. */
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
 
 const files = (dir: string, suffix: string): string[] =>
@@ -312,7 +334,8 @@ export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
 }
 
 function ssh(command: string, input?: string): string {
-  const result = spawnSync('ssh', [SSH_HOST, command], {
+  // No local shell: the destination and the command are two arguments of `ssh` itself.
+  const result = spawnSync('ssh', [sshTarget(SSH_HOST), command], {
     input,
     encoding: 'utf8',
     timeout: 120_000,
@@ -328,8 +351,10 @@ function ssh(command: string, input?: string): string {
 
 const publish = (snapshot: ConsoleSnapshot): string =>
   ssh(`${CLI} load-snapshot`, JSON.stringify(snapshot)).trim();
-const finishRemote = (id: string, status: 'done' | 'failed', outcome: string): void => {
-  ssh(`${CLI} finish-command --id ${id} --status ${status} --outcome ${JSON.stringify(outcome)}`);
+/** Reports a command's outcome: the id checked, the text on standard input (T-1878). */
+const finishRemote = (id: string, status: FinishStatus, outcome: string): void => {
+  const call = finishCall(CLI, id, status, outcome);
+  ssh(call.command, call.input);
 };
 
 const loadInbox = (): ChatInbox => ({
@@ -343,8 +368,9 @@ function saveInbox(inbox: ChatInbox): void {
 }
 
 /** Posts a reply; the id is checked against MESSAGE_ID before it reaches the command line. */
-const replyRemote = (id: string, status: 'answered' | 'failed', body: string): void => {
-  ssh(`${CLI} post-reply --message ${id} --status ${status}`, body);
+const replyRemote = (id: string, status: ReplyStatus, body: string): void => {
+  const call = replyCall(CLI, id, status, body);
+  ssh(call.command, call.input);
 };
 
 /** A path as the Read tool takes it on this computer, with forward slashes. */
@@ -386,6 +412,8 @@ function pullImages(list: ConsoleRequestList): {
   }
   // A picture removed on the console goes from this computer too.
   for (const request of list.requests) {
+    // An id that is not a UUID names no folder of ours (and could name another).
+    if (!REQUEST_ID.test(request.id)) continue;
     const folder = join(REQUEST_IMAGES_DIR, request.id);
     if (!existsSync(folder)) continue;
     const keep = wanted
@@ -410,20 +438,27 @@ export function main(argv = process.argv.slice(2)): number {
       process.stdout.write(`${publish(buildSnapshot(loadState()))}\n`);
       return 0;
     case 'sync': {
-      let state = loadState();
-      const taken = JSON.parse(ssh(`${CLI} take-commands`) || '[]') as ConsoleCommand[];
       const agents = files(join(ROOT, '.claude', 'agents'), '.md').map((name) =>
         name.replace(/\.md$/, ''),
       );
-      for (const cmd of taken) {
-        const applied = applyCommand(state, cmd, agents);
-        state = applied.state;
-        if (applied.finish) finishRemote(cmd.id, applied.status, applied.outcome);
-      }
-      saveState(state);
-      process.stderr.write(`${publish(buildSnapshot(state))}\n`);
+      // T-1878: the state is saved before any outcome is reported, and a
+      // report that fails does not stop the rest (`syncCommands`).
+      const { state, failures } = syncCommands(
+        {
+          load: loadState,
+          take: () => JSON.parse(ssh(`${CLI} take-commands`) || '[]') as ConsoleCommand[],
+          save: saveState,
+          finish: finishRemote,
+          publish: (next) => {
+            process.stderr.write(`${publish(buildSnapshot(next))}\n`);
+          },
+        },
+        agents,
+      );
+      for (const failure of failures) process.stderr.write(`sync: ${failure}\n`);
+      // The run requests are printed even then: they are saved, and the task starts them.
       process.stdout.write(`${JSON.stringify(state.runRequests)}\n`);
-      return 0;
+      return failures.length === 0 ? 0 : 1;
     }
     case 'lab-check': {
       const lab = readLab();
@@ -446,21 +481,37 @@ export function main(argv = process.argv.slice(2)): number {
       return checked.problems.length === 0 ? 0 : 1;
     }
     case 'finish': {
-      const [id, status, ...words] = rest;
-      if (id === undefined || (status !== 'done' && status !== 'failed') || words.length === 0) {
-        process.stderr.write('finish <command-id> done|failed "what happened"\n');
+      const parsed = parseFinishArgs(rest);
+      if (!parsed.ok) {
+        process.stderr.write(
+          `finish <command-id> done|failed [--file outcome.txt]: ${parsed.reason}\n`,
+        );
+        return 2;
+      }
+      if (parsed.legacyText !== null)
+        process.stderr.write(
+          'finish: the outcome as arguments is deprecated (T-1878), the local shell expands it first. Use --file <path> or standard input.\n',
+        );
+      const outcome = parsed.legacyText ?? readFileSync(parsed.file ?? 0, 'utf8');
+      if (outcome.trim() === '') {
+        process.stderr.write('An outcome needs its text.\n');
         return 2;
       }
       const state = loadState();
-      state.runRequests = state.runRequests.filter((request) => request.id !== id);
+      state.runRequests = state.runRequests.filter((request) => request.id !== parsed.id);
       saveState(state);
-      finishRemote(id, status, words.join(' '));
+      finishRemote(parsed.id, parsed.status, outcome);
       return 0;
     }
     case 'chat-pull': {
       const taken = JSON.parse(ssh(`${CLI} take-messages`) || '[]') as ConsoleChatItem[];
       let inbox = mergeInbox(loadInbox(), taken, new Date());
       for (const item of inbox.items) {
+        // The inbox is a file: an entry whose id is not a UUID is not the server's, and goes.
+        if (!MESSAGE_ID.test(item.id)) {
+          inbox = dropFromInbox(inbox, item.id, new Date());
+          continue;
+        }
         if (existsSync(join(ROOT, item.agent_file))) continue;
         // Persian: the console shows it as written (D-352).
         replyRemote(item.id, 'failed', `عامل ${item.agent} روی رایانه‌ی نگهدارنده نیست.`);
@@ -557,7 +608,7 @@ export function main(argv = process.argv.slice(2)): number {
     }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | lab-check | providers-check [file] | finish <id> done|failed "outcome" | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
+        'build [--out file] | publish | sync | lab-check | providers-check [file] | finish <id> done|failed [--file f] | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
       );
       return 2;
   }
