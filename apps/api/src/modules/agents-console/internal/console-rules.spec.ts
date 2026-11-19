@@ -5,7 +5,7 @@ import {
   type ConsoleSnapshot,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
-import { parseConsoleArgs } from '../../../cli/agents-console';
+import { accountOutcomeText, parseConsoleArgs } from '../../../cli/agents-console';
 import {
   LOCK_AFTER_FAILURES,
   LOCK_MINUTES,
@@ -269,6 +269,25 @@ describe('the command line', () => {
     ).toEqual({ kind: 'set-owner', username: 'mostafa', reason: 'the maintainer' });
     expect(parseConsoleArgs(['set-owner', '--username', 'mostafa']).kind).toBe('error');
     expect(parseConsoleArgs(['set-owner', '--reason', 'why']).kind).toBe('error');
+    // T-1880: closing an account, always with who runs it and why.
+    const whole = ['--name', 'Mate', '--by', ' Mostafa ', '--reason', ' cookie copied '];
+    for (const kind of ['disable-user', 'enable-user', 'end-sessions'] as const) {
+      expect(parseConsoleArgs([kind, ...whole])).toEqual({
+        kind,
+        username: 'mate',
+        by: 'Mostafa',
+        reason: 'cookie copied',
+      });
+      expect(parseConsoleArgs([kind, '--name', 'mate', '--by', 'Mostafa']).kind).toBe('error');
+      expect(parseConsoleArgs([kind, '--name', 'mate', '--reason', 'why']).kind).toBe('error');
+      expect(parseConsoleArgs([kind, '--by', 'Mostafa', '--reason', 'why']).kind).toBe('error');
+      expect(
+        parseConsoleArgs([kind, '--name', 'not a name', '--by', 'Mostafa', '--reason', 'why']).kind,
+      ).toBe('error');
+    }
+    expect(
+      parseConsoleArgs(['disable-user', '--username', 'mate', '--by', 'M', '--reason', 'why']),
+    ).toMatchObject({ kind: 'disable-user', username: 'mate' });
     expect(parseConsoleArgs(['invite']).kind).toBe('error');
     expect(
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,
@@ -339,5 +358,47 @@ describe('chat messages (T-1722)', () => {
     expect([...cut]).toHaveLength(CONSOLE_REPLY_MAX);
     expect(cut.endsWith('…')).toBe(true);
     expect(replyText('z'.repeat(CONSOLE_REPLY_MAX))).toHaveLength(CONSOLE_REPLY_MAX);
+  });
+});
+
+describe('what the account commands tell the operator (T-1880)', () => {
+  const closed = { kind: 'ok' as const, sessions: 2, commands: 1, messages: 3, runMarks: 4 };
+
+  it('counts what disable-user ended and called off', () => {
+    expect(accountOutcomeText('disable-user', 'mate', { ...closed, owner: false })).toEqual({
+      code: 0,
+      out:
+        'mate is disabled: it cannot sign in, 2 session(s) ended, 1 queued command(s), ' +
+        '3 unanswered message(s) and 4 run mark(s) on teammate requests called off.\n',
+    });
+  });
+
+  it('warns, without refusing, when the account closed is the owner', () => {
+    const { code, out } = accountOutcomeText('disable-user', 'mostafa', { ...closed, owner: true });
+    expect(code).toBe(0);
+    const [done, warning, ...rest] = out.trimEnd().split('\n');
+    expect(done).toMatch(/^mostafa is disabled: /);
+    expect(warning).toMatch(/^Warning: mostafa is the console's owner/);
+    expect(warning).toContain('no usable owner');
+    expect(warning).toContain('enable-user --name mostafa --by <operator> --reason "why"');
+    expect(warning).toContain('set-owner --username <name> --reason "why"');
+    expect(rest).toEqual([]);
+    // Opening it again, or ending its sessions, leaves the owner as it was: nothing to warn of.
+    for (const command of ['enable-user', 'end-sessions'] as const) {
+      expect(accountOutcomeText(command, 'mostafa', { ...closed, owner: true }).out).not.toContain(
+        'Warning',
+      );
+    }
+  });
+
+  it('says so when nothing changed, and when there is no such account', () => {
+    expect(accountOutcomeText('disable-user', 'mate', { kind: 'already' })).toEqual({
+      code: 0,
+      out: 'mate is disabled already. Nothing was changed.\n',
+    });
+    expect(accountOutcomeText('end-sessions', 'mate', { kind: 'missing' })).toEqual({
+      code: 1,
+      out: 'No console account mate.\n',
+    });
   });
 });

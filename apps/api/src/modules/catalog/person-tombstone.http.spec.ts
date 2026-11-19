@@ -50,6 +50,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     const spelled = randomUUID();
     const teams = [randomUUID(), randomUUID()];
     const fixtures = [randomUUID(), randomUUID()];
+    // A player id and a coach id of one man (T-1882), and a person who is
+    // neither a coach by the provider, by a spell nor by a line-up.
+    const playerRow = randomUUID();
+    const coachRow = randomUUID();
+    const nobody = randomUUID();
+    const SPELLS_FETCHED = '2026-10-01T08:00:00.000Z';
+    const SPELLS_FETCHED_LATER = '2026-10-20T08:00:00.000Z';
     let actor = '';
     let merge = '';
     let post = '';
@@ -95,6 +102,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         `INSERT INTO person (id, full_name, date_of_birth) VALUES
            ($1, $3, '1990-01-01'), ($2, $3, '1990-01-01'), ($4, $5, '1990-01-01')`,
         [survivor, loser, NAME, spelled, SPELLED],
+      );
+      // The coach id holds the provider's career: two spells at teams we
+      // carry, the later one written by a later answer, and two at teams we
+      // do not. No line-up names either row as a coach.
+      await pool.query(
+        `INSERT INTO person (id, full_name, date_of_birth) VALUES
+           ($1, $4, '1975-05-05'), ($2, $4, '1975-05-05'), ($3, $5, '1975-05-05')`,
+        [playerRow, coachRow, nobody, `T-1882 Gaffer ${RUN}`, `T-1882 Nobody ${RUN}`],
+      );
+      await pool.query(
+        `INSERT INTO coach_spell (source, person_id, team_id, start_date, end_date, fetched_at)
+         VALUES ('api_football', $1, $2, '2020-07-01', '2022-06-30', $4),
+                ('api_football', $1, $3, '2022-07-01', '2023-06-30', $5)`,
+        [coachRow, teams[0], teams[1], SPELLS_FETCHED, SPELLS_FETCHED_LATER],
+      );
+      await pool.query(
+        `INSERT INTO coach_fetch
+           (source, person_id, fetched_at, spells_listed, spells_kept, spells_unmapped)
+         VALUES ('api_football', $1, $2, 4, 2, 2)`,
+        [coachRow, SPELLS_FETCHED_LATER],
       );
       // The provider's list of the loser id's moves, read before the merge.
       await pool.query(
@@ -160,16 +187,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           const audits = await client.query<{ id: string }>(
             `SELECT audit_log_id AS id FROM person_merge WHERE from_person_id = ANY($1::uuid[])
              UNION SELECT undo_audit_log_id FROM person_merge WHERE from_person_id = ANY($1::uuid[])`,
-            [[loser, spelled]],
+            [[loser, spelled, coachRow]],
           );
           await client.query(
             `DELETE FROM person_merge_moved WHERE merge_id IN
                (SELECT id FROM person_merge WHERE from_person_id = ANY($1::uuid[]))`,
-            [[loser, spelled]],
+            [[loser, spelled, coachRow]],
           );
           await client.query(`DELETE FROM person_merge WHERE from_person_id = ANY($1::uuid[])`, [
-            [loser, spelled],
+            [loser, spelled, coachRow],
           ]);
+          // Nothing cascades while the triggers are off.
+          for (const table of ['coach_spell', 'coach_fetch']) {
+            await client.query(`DELETE FROM ${table} WHERE person_id = ANY($1::uuid[])`, [
+              [playerRow, coachRow],
+            ]);
+          }
           await client.query(
             `DELETE FROM person_transfer_fetch WHERE person_id = ANY($1::uuid[])`,
             [[survivor, loser]],
@@ -195,7 +228,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           ]);
           await client.query(`DELETE FROM fixture WHERE id = ANY($1::uuid[])`, [fixtures]);
           await client.query(`DELETE FROM person WHERE id = ANY($1::uuid[])`, [
-            [survivor, loser, spelled],
+            [survivor, loser, spelled, playerRow, coachRow, nobody],
           ]);
           await client.query(`DELETE FROM team WHERE id = ANY($1::uuid[])`, [teams]);
           await client.query(`DELETE FROM contributor_grant WHERE user_id = $1`, [actor]);
@@ -302,6 +335,69 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(page.body).not.toHaveProperty('moved_to');
       const [row] = await new PostgresPanelStore(pool).links({ postIds: [post] });
       expect(row).toMatchObject({ player_id: loser, player_side: 'home' });
+    });
+
+    it("keeps the coach page when a coach id is merged into the man's player id (T-1882)", async () => {
+      const before = await get<CoachPage>(`/coaches/${coachRow}`);
+      expect(before.status).toBe(200);
+      expect(before.body.career).toMatchObject({
+        coverage: 'limited',
+        last_updated_at: SPELLS_FETCHED_LATER,
+      });
+      expect(before.body.spells_not_carried).toBe(2);
+      // Neither the player row nor the third person is a coach yet.
+      expect((await get(`/coaches/${playerRow}`)).status).toBe(404);
+      expect((await get(`/coaches/${nobody}`)).status).toBe(404);
+
+      await pool.query(`SELECT merge_person($1, $2, $3, 'T-1882 spec: player and coach id')`, [
+        coachRow,
+        playerRow,
+        actor,
+      ]);
+      // What the merge leaves: the spell is the survivor's, the coach id's
+      // ask record is set aside, and no line-up names him.
+      const held = await pool.query<{ spells: number; fetches: number }>(
+        `SELECT (SELECT count(*)::int FROM coach_spell WHERE person_id = $1) AS spells,
+                (SELECT count(*)::int FROM coach_fetch
+                  WHERE person_id = ANY($2::uuid[])) AS fetches`,
+        [playerRow, [playerRow, coachRow]],
+      );
+      expect(held.rows[0]).toEqual({ spells: 2, fetches: 0 });
+
+      const own = await get<CoachPage>(`/coaches/${playerRow}`);
+      expect(own.status).toBe(200);
+      expect(own.body).not.toHaveProperty('moved_to');
+      expect(own.body.coach.id).toBe(playerRow);
+      // The spells we hold, dated by the oldest fetch among them (rule 4: no
+      // spell listed is older than the date says); how many more the
+      // provider listed is not known, so the career is limited, never whole.
+      expect(own.body.career.coverage).toBe('limited');
+      expect(own.body.career.last_updated_at).toBe(SPELLS_FETCHED);
+      expect(own.body.last_updated_at).toBe(SPELLS_FETCHED);
+      expect(own.body.spells_not_carried).toBe(0);
+      expect(own.body.career.data).toMatchObject([
+        {
+          team: { id: teams[1] },
+          start_date: '2022-07-01',
+          end_date: '2023-06-30',
+          current: false,
+        },
+        {
+          team: { id: teams[0] },
+          start_date: '2020-07-01',
+          end_date: '2022-06-30',
+          current: false,
+        },
+      ]);
+      expect(own.body.lineups).toEqual({ count: 0, latest: null });
+
+      const moved = await get<CoachPage>(`/coaches/${coachRow}`);
+      expect(moved.status).toBe(200);
+      expect(moved.body.moved_to).toBe(playerRow);
+      expect({ ...moved.body, moved_to: undefined }).toEqual({ ...own.body, moved_to: undefined });
+
+      // A person with no ask record, no spell and no line-up is still no coach.
+      expect((await get(`/coaches/${nobody}`)).status).toBe(404);
     });
   },
 );

@@ -295,6 +295,29 @@ phase starts only from a new decision or what running the product finds.
 
 **Planned in `04-tasks-phase-14.md`** (2026-10-29). Tasks T-1646 to T-1661.
 
+## Phase 15 — The console as a place to decide, a stronger agent team, and video for the social posts
+
+- The agent team held by mechanisms instead of prose: one validated door
+  for findings, an agent-aware guard, definitions that preload their method
+  and end with a status line, scheduled tasks that start agents by their own
+  type, a verifier after each deploy, triage of the open findings, the data
+  invariants and a smoke walk at the deploy gate, golden-case evals, and run
+  health with real usage figures only (D-457).
+- The agents console as the place where the maintainer and the teammate
+  decide: the computer's heartbeat, finding triage, a «منتظر شما» inbox,
+  push for what waits, a scorecard per agent, and run now with a prompt and
+  real statuses, each visible change approved on real-data screenshots
+  (D-456); the security review's hardening and a restricted key for the
+  publisher (D-455).
+- Short videos for the social posts: Remotion on our own server, measured
+  first, rendered by a capped worker in quiet hours behind a port, from
+  stored data alone, one prediction product a clip, approved before
+  publishing; no generated video of players, clubs or match moments (D-454).
+
+**Planned in `04-tasks-phase-15.md`** (2026-11-19, from the console and team
+review of that day and the maintainer's four answers). Tasks T-1884 to
+T-1945. Asked for as "Phase 14"; that number is the model factors' above.
+
 ---
 
 ## Sequencing rule
