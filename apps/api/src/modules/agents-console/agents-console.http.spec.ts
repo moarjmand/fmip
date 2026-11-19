@@ -36,6 +36,7 @@ import { AgentsConsoleModule } from './agents-console.module';
 import {
   LOCK_AFTER_FAILURES,
   SESSION_IDLE_HOURS,
+  SESSION_MAX_DAYS,
   checkSnapshot,
   consoleTokenText,
 } from './internal/console-rules';
@@ -303,6 +304,50 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     expect((await clock()).left).toBeLessThan(0);
     // Another session of the same person is not touched.
     expect((await get('me')).statusCode).toBe(200);
+  });
+
+  it('ends a session 7 days after it was opened, however much it is used (T-1880)', async () => {
+    const signedIn = await send('POST', 'session', { username: name, password: PASSWORD }, null);
+    const old = cookieOf(signedIn.headers['set-cookie']);
+    const tokenHash = hashToken(consoleTokenText(old), SECRET);
+    /** As if the session was opened `age` ago and has been in use ever since. */
+    const openedAgo = (age: string) =>
+      pool.query(
+        `UPDATE console_session
+            SET created_at = now() - $2::interval, last_seen_at = now(),
+                expires_at = now() + make_interval(hours => $3)
+          WHERE token_hash = $1`,
+        [tokenHash, age, SESSION_IDLE_HOURS],
+      );
+    const hoursLeft = async () => {
+      const { rows } = await pool.query<{ left: number }>(
+        `SELECT extract(epoch FROM expires_at - now()) / 3600 AS left
+           FROM console_session WHERE token_hash = $1`,
+        [tokenHash],
+      );
+      return Number(rows[0]?.left);
+    };
+
+    expect(SESSION_MAX_DAYS).toBe(7);
+    // Opened an hour short of seven days ago and used all along: still open,
+    // and a use no longer buys twelve more hours, only what is left of the seven days.
+    await openedAgo('167 hours');
+    expect((await get('me', old)).statusCode).toBe(200);
+    const left = await hoursLeft();
+    expect(left).toBeGreaterThan(0.9);
+    expect(left).toBeLessThan(1.01);
+
+    // Seven days and a second: over, everywhere, whatever its idle clock says.
+    await openedAgo('168 hours 1 second');
+    expect(await hoursLeft()).toBeGreaterThan(SESSION_IDLE_HOURS - 0.01);
+    for (const url of ['me', 'snapshot', 'commands', 'board', 'audit']) {
+      expect((await get(url, old)).statusCode).toBe(401);
+    }
+    expect((await send('POST', 'board', { title: 't', column: 'next' }, old)).statusCode).toBe(401);
+    // The person signs in again; another session of theirs is not touched.
+    expect((await get('me')).statusCode).toBe(200);
+    const again = await send('POST', 'session', { username: name, password: PASSWORD }, null);
+    expect((await get('me', cookieOf(again.headers['set-cookie']))).statusCode).toBe(200);
   });
 
   it('shows the newest snapshot with an open security finding kept to its title', async () => {
@@ -1270,6 +1315,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         second,
       );
       expect(posted.statusCode).toBe(201);
+      // A message the computer took two hours ago and has not answered: left
+      // alone it would be taken again, the run having died.
+      const taken = (
+        await send('POST', 'agents/data-auditor/messages', { body: `Taken ${RUN}` }, second)
+      ).json<ConsoleMessage>();
+      await pool.query(
+        `UPDATE console_message SET status = 'answering', taken_at = now() - interval '2 hours'
+          WHERE id = $1`,
+        [taken.id],
+      );
+      // Requests it marked to run, its own and the maintainer's; and one the maintainer marked.
+      const requestOf = async (title: string, who: string) =>
+        (await send('POST', 'requests', { title }, who)).json<ConsoleRequestDetail>();
+      const markedBy = async (id: string, who: string) => {
+        const marked = await send('POST', `requests/${id}/execute`, { execute: true }, who);
+        expect(marked.statusCode).toBe(200);
+        return marked.json<ConsoleRequestDetail>().execute_requested_at!;
+      };
+      const own = await requestOf(`Closed, own ${RUN}`, first);
+      const theirs = await requestOf(`Closed, the maintainer's ${RUN}`, cookie);
+      const kept = await requestOf(`Closed, marked by the maintainer ${RUN}`, cookie);
+      const ownMark = await markedBy(own.id, first);
+      const theirMark = await markedBy(theirs.id, second);
+      const keptMark = await markedBy(kept.id, cookie);
 
       const done = await cli([
         'disable-user',
@@ -1282,9 +1351,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       ]);
       expect(done).toMatchObject({ code: 0, err: '' });
       // The sign-ins of `beforeAll` and of this test: three sessions were open.
+      // Not the owner: no warning.
       expect(done.out).toBe(
         `${closed} is disabled: it cannot sign in, 3 session(s) ended, ` +
-          `1 queued command(s) and 1 queued message(s) called off.\n`,
+          `1 queued command(s), 2 unanswered message(s) and ` +
+          `2 run mark(s) on teammate requests called off.\n`,
       );
 
       // At once, on every session, and no new one.
@@ -1317,6 +1388,42 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         [message.id],
       );
       expect(messages).toEqual([{ status: 'failed', failure: DISABLED_MESSAGE_FAILURE }]);
+      // The one being answered is not taken again, and a reply that comes for it is not stored.
+      const { rows: answering } = await pool.query<{ status: string; failure: string }>(
+        `SELECT status, failure FROM console_message WHERE id = $1`,
+        [taken.id],
+      );
+      expect(answering).toEqual([{ status: 'failed', failure: DISABLED_MESSAGE_FAILURE }]);
+      expect((await store.takeMessages()).some((t) => t.message.id === taken.id)).toBe(false);
+      expect(await store.postReply(taken.id, 'answered', 'A late reply.')).toBe(false);
+      const { rowCount: replies } = await pool.query(
+        `SELECT 1 FROM console_message WHERE reply_to = $1`,
+        [taken.id],
+      );
+      expect(replies).toBe(0);
+
+      // "Run the marked ones" runs nothing this account marked; another person's mark stays.
+      const requestStore = app.get(PostgresRequestStore);
+      expect((await requestStore.get(own.id))?.execute_requested_at).toBeNull();
+      expect((await requestStore.get(theirs.id))?.execute_requested_at).toBeNull();
+      expect((await requestStore.get(kept.id))?.execute_requested_at).toBe(keptMark);
+      expect((await requestStore.get(theirs.id))?.title).toBe(theirs.title);
+
+      // Work that slipped in for the account after it was closed is never handed out either.
+      const { rows: late } = await pool.query<{ id: string }>(
+        `INSERT INTO console_command (kind, target, requested_by)
+         VALUES ('agent.pause', 'data-auditor', $1) RETURNING id`,
+        [userId],
+      );
+      const { rows: lateMessage } = await pool.query<{ id: string }>(
+        `INSERT INTO console_message (agent, author_id, body, status)
+         VALUES ('data-auditor', $1, $2, 'queued') RETURNING id`,
+        [userId, `Late ${RUN}`],
+      );
+      expect((await store.takeCommands()).some((c) => c.id === late[0]!.id)).toBe(false);
+      expect((await store.takeMessages()).some((t) => t.message.id === lateMessage[0]!.id)).toBe(
+        false,
+      );
 
       // Rule 10: who, why, and what it was before.
       const audit = await auditOf('console.user_disabled');
@@ -1331,8 +1438,20 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
           open_sessions: 3,
           queued_commands: 1,
           queued_messages: 1,
+          answering_messages: 1,
+          run_marks: 2,
+          run_marked_requests: [
+            { id: own.id, marked_at: ownMark },
+            { id: theirs.id, marked_at: theirMark },
+          ],
         },
-        next: { open_sessions: 0, queued_commands: 0, queued_messages: 0 },
+        next: {
+          open_sessions: 0,
+          queued_commands: 0,
+          queued_messages: 0,
+          answering_messages: 0,
+          run_marks: 0,
+        },
       });
       expect(Date.parse(String(audit[0]!.next?.disabled_at))).not.toBeNaN();
       await expect(

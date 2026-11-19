@@ -106,9 +106,13 @@ import { leaveWhenWritten } from './leave';
  *
  * Closing an account without SQL (T-1880): `disable-user` refuses the
  * account's sign-in, ends every session it has at once and calls off what it
- * had queued for the maintainer's computer (commands, messages to the agents)
- * that the computer has not taken; `enable-user` opens it again (the person
- * signs in anew); `end-sessions` ends an enabled account's sessions only.
+ * had asked of the maintainer's computer that is not done yet: its queued
+ * commands, its messages to the agents with no answer yet, and the run marks
+ * it put on teammate requests (a command the computer already took, and an
+ * agent run already started, it cannot stop). Closing the owner's account is
+ * not refused; the command says the console is left without a usable owner
+ * and how to mend that. `enable-user` opens it again (the person signs in
+ * anew); `end-sessions` ends an enabled account's sessions only.
  * Each names who ran it (`--by`, the operator at the terminal, not a console
  * account) and why, and writes one `console_audit` row with what it was
  * before. `invite` is audited too (`console.invitation_created`: who for and
@@ -296,7 +300,15 @@ export function accountOutcomeText(
         code: 0,
         out:
           `${username} is disabled: it cannot sign in, ${outcome.sessions} session(s) ended, ` +
-          `${outcome.commands} queued command(s) and ${outcome.messages} queued message(s) called off.\n`,
+          `${outcome.commands} queued command(s), ${outcome.messages} unanswered message(s) and ` +
+          `${outcome.runMarks} run mark(s) on teammate requests called off.\n` +
+          // Not refused: the owner's account is the one that most needs closing when it is taken over.
+          (outcome.owner
+            ? `Warning: ${username} is the console's owner, so the console now has no usable owner: ` +
+              `nobody can change a social post kind's level. Either open it again ` +
+              `(enable-user --name ${username} --by <operator> --reason "why") or make another ` +
+              `account the owner (set-owner --username <name> --reason "why").\n`
+            : ''),
       };
     case 'enable-user':
       return { code: 0, out: `${username} is enabled again and can sign in.\n` };
