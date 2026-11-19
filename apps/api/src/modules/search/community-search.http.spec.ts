@@ -20,7 +20,10 @@ import { SearchModule } from './search.module';
 // suite's rows and nobody else's.
 const DATABASE_URL = process.env.DATABASE_URL;
 const ENGLAND = '00000000-0000-4000-8000-000000000101';
-const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
+// Starts with a fixed letter: a token starting with "q" (about 28 minutes in
+// every 17 hours, by the clock) gave "qokka" a fourth trigram in common with
+// the headline and the near-miss score 0.667 instead of 0.5 (T-1883).
+const RUN = `r${`${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-7)}`;
 const TERM = `quokka ${RUN}`;
 
 const options: IdentityOptions = {
