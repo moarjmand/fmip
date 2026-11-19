@@ -40,8 +40,8 @@ quoted argument: this computer's own shell expands a backtick or a `$(...)`
 in a quoted argument before the tool sees it, so the text would run here.
 
 Two older forms are still read, and both go when the scheduled tasks' prompts
-are rewritten (phase 14's scheduled-tasks task): the outcome as arguments to
-`finish` (it prints a warning, and the text still reaches the server on
+are rewritten (T-1891, `docs/04-tasks-phase-15.md`): the outcome as arguments
+to `finish` (it prints a warning, and the text still reaches the server on
 standard input), and the server's `finish-command --outcome "text"`.
 
 **Rollout order.** Deploy the API before this computer uses the new
