@@ -7,15 +7,21 @@ import { AgentsConsoleModule } from '../modules/agents-console/agents-console.mo
 import {
   INVITATION_DAYS,
   MESSAGE_ID,
+  REASON_MAX,
   SNAPSHOT_MAX_BYTES,
   checkCard,
   checkSnapshot,
   consoleTokenText,
+  isConsoleUsername,
+  outcomeText,
   replyText,
 } from '../modules/agents-console/internal/console-rules';
 import { checkImport } from '../modules/agents-console/internal/calendar-rules';
 import { PostgresCalendarStore } from '../modules/agents-console/internal/calendar-store';
-import { PostgresConsoleStore } from '../modules/agents-console/internal/console-store';
+import {
+  type AccountOutcome,
+  PostgresConsoleStore,
+} from '../modules/agents-console/internal/console-store';
 import {
   REQUEST_ID,
   RESULT_STATUSES,
@@ -43,7 +49,7 @@ import { leaveWhenWritten } from './leave';
  *     docker compose exec -T api node dist/cli/agents-console.js invite --name "Mostafa"
  *     ... load-snapshot < snapshot.json
  *     ... take-commands
- *     ... finish-command --id <uuid> --status done|failed --outcome "what happened"
+ *     ... finish-command --id <uuid> --status done|failed < outcome.txt
  *     ... import-board --as <username> < cards.json
  *     ... import-calendar --as <username> < calendar.json
  *     ... take-messages
@@ -53,6 +59,9 @@ import { leaveWhenWritten } from './leave';
  *     ... request-ask --id <uuid> < question.txt
  *     ... request-image --id <image-uuid> [--thumb]
  *     ... set-owner --username <name> --reason "why"
+ *     ... disable-user --name <username> --by <operator> --reason "why"
+ *     ... enable-user --name <username> --by <operator> --reason "why"
+ *     ... end-sessions --name <username> --by <operator> --reason "why"
  *
  * `invite` prints a one-time link to `$CONSOLE_URL/invite/<token>` (D-341), or
  * `https://$CONSOLE_HOST/invite/<token>` when that is unset,
@@ -60,7 +69,9 @@ import { leaveWhenWritten } from './leave';
  * the computer's snapshot from standard input, checks it and stores it with
  * an open security finding's detail removed. `take-commands` prints the
  * queued commands as JSON and marks them taken; `finish-command` writes one's
- * outcome back. `import-board` moves the project board's cards from its
+ * outcome back, read from standard input (T-1878: never from the arguments, so
+ * no shell on the way expands it; `--outcome "text"`, the form before, is
+ * still read for one release, for a publisher not yet updated). `import-board` moves the project board's cards from its
  * claude.ai page once (T-1700): a JSON list of cards, each with its old id as
  * `source_ref`, so running it again adds none twice. `import-calendar`
  * (T-1788, D-391) moves the calendar's events from the same page once (each
@@ -92,15 +103,36 @@ import { leaveWhenWritten } from './leave';
  *
  * The console's owner (T-1836, D-427 point 6): `set-owner` makes one enabled
  * account the owner -- the maintainer, who alone changes a social post kind's
- * level and the publisher's key -- taking it from any other, audited as
- * `console.owner_set`. No route can do this.
+ * level (the publisher's key is either console person's, D-427 as built) --
+ * taking it from any other, audited as `console.owner_set`. No route can do
+ * this.
+ *
+ * Closing an account without SQL (T-1880): `disable-user` refuses the
+ * account's sign-in, ends every session it has at once and calls off what it
+ * had asked of the maintainer's computer that is not done yet: its queued
+ * commands, its messages to the agents with no answer yet, and the run marks
+ * it put on teammate requests (a command the computer already took, and an
+ * agent run already started, it cannot stop). Closing the owner's account is
+ * not refused; the command says the console is left without a usable owner
+ * and how to mend that. `enable-user` opens it again (the person signs in
+ * anew); `end-sessions` ends an enabled account's sessions only.
+ * Each names who ran it (`--by`, the operator at the terminal, not a console
+ * account) and why, and writes one `console_audit` row with what it was
+ * before. `invite` is audited too (`console.invitation_created`: who for and
+ * until when, never the token). No route can do any of these.
  */
 
 export type ConsoleCliArgs =
   | { kind: 'invite'; name: string }
   | { kind: 'load-snapshot' }
   | { kind: 'take-commands' }
-  | { kind: 'finish-command'; id: string; status: 'done' | 'failed'; outcome: string }
+  | {
+      kind: 'finish-command';
+      id: string;
+      status: 'done' | 'failed';
+      /** `--outcome`, the form before T-1878; `null` reads standard input. */
+      outcome: string | null;
+    }
   | { kind: 'import-board'; as: string }
   | { kind: 'import-calendar'; as: string }
   | { kind: 'take-messages' }
@@ -110,7 +142,12 @@ export type ConsoleCliArgs =
   | { kind: 'request-ask'; id: string }
   | { kind: 'request-image'; id: string; thumb: boolean }
   | { kind: 'set-owner'; username: string; reason: string }
+  | { kind: AccountCommand; username: string; by: string; reason: string }
   | { kind: 'error'; message: string };
+
+type AccountCommand = 'disable-user' | 'enable-user' | 'end-sessions';
+/** The operator's name as the audit keeps it. */
+const OPERATOR_MAX = 60;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -154,12 +191,13 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
     case 'finish-command': {
       const id = flags.get('id') ?? '';
       const status = flags.get('status');
-      const outcome = flags.get('outcome')?.trim() ?? '';
+      const given = flags.get('outcome');
       if (!UUID.test(id)) return { kind: 'error', message: '--id: the command id.' };
       if (status !== 'done' && status !== 'failed')
         return { kind: 'error', message: '--status: done or failed.' };
-      if (outcome === '') return { kind: 'error', message: '--outcome: what happened.' };
-      return { kind: 'finish-command', id, status, outcome };
+      if (given !== undefined && given.trim() === '')
+        return { kind: 'error', message: '--outcome: what happened.' };
+      return { kind: 'finish-command', id, status, outcome: given ?? null };
     }
     case 'take-messages':
       return { kind: 'take-messages' };
@@ -207,11 +245,29 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
         return { kind: 'error', message: '--reason: why, up to 500 characters.' };
       return { kind: 'set-owner', username, reason };
     }
+    case 'disable-user':
+    case 'enable-user':
+    case 'end-sessions': {
+      // `--name` is the account's username here (`--username` is taken too).
+      const username = (flags.get('name') ?? flags.get('username'))?.trim().toLowerCase() ?? '';
+      const by = flags.get('by')?.trim() ?? '';
+      const reason = flags.get('reason')?.trim() ?? '';
+      if (!isConsoleUsername(username))
+        return { kind: 'error', message: "--name: the console account's username." };
+      if (by === '' || by.length > OPERATOR_MAX)
+        return {
+          kind: 'error',
+          message: `--by: who is running this, up to ${OPERATOR_MAX} characters.`,
+        };
+      if (reason === '' || reason.length > REASON_MAX)
+        return { kind: 'error', message: `--reason: why, up to ${REASON_MAX} characters.` };
+      return { kind: command, username, by, reason };
+    }
     default:
       return {
         kind: 'error',
         message:
-          'invite | load-snapshot | take-commands | finish-command | import-board | import-calendar | take-messages | post-reply | list-requests | request-result | request-ask | request-image | set-owner',
+          'invite | load-snapshot | take-commands | finish-command | import-board | import-calendar | take-messages | post-reply | list-requests | request-result | request-ask | request-image | set-owner | disable-user | enable-user | end-sessions',
       };
   }
 }
@@ -230,6 +286,44 @@ export function requestOutcomeText(
       return { code: 1, out: `${outcome.reason}\n` };
     case 'limited':
       return { code: 1, out: 'Rate limited.\n' };
+  }
+}
+
+/** An account command's outcome as the operator reads it, with the exit code. Pure, for tests. */
+export function accountOutcomeText(
+  command: AccountCommand,
+  username: string,
+  outcome: AccountOutcome,
+): { code: number; out: string } {
+  if (outcome.kind === 'missing') return { code: 1, out: `No console account ${username}.\n` };
+  if (outcome.kind === 'already') {
+    const nothing = {
+      'disable-user': `${username} is disabled already.`,
+      'enable-user': `${username} is enabled already.`,
+      'end-sessions': `${username} has no open session.`,
+    }[command];
+    return { code: 0, out: `${nothing} Nothing was changed.\n` };
+  }
+  switch (command) {
+    case 'disable-user':
+      return {
+        code: 0,
+        out:
+          `${username} is disabled: it cannot sign in, ${outcome.sessions} session(s) ended, ` +
+          `${outcome.commands} queued command(s), ${outcome.messages} unanswered message(s) and ` +
+          `${outcome.runMarks} run mark(s) on teammate requests called off.\n` +
+          // Not refused: the owner's account is the one that most needs closing when it is taken over.
+          (outcome.owner
+            ? `Warning: ${username} is the console's owner, so the console now has no usable owner: ` +
+              `nobody can change a social post kind's level. Either open it again ` +
+              `(enable-user --name ${username} --by <operator> --reason "why") or make another ` +
+              `account the owner (set-owner --username <name> --reason "why").\n`
+            : ''),
+      };
+    case 'enable-user':
+      return { code: 0, out: `${username} is enabled again and can sign in.\n` };
+    case 'end-sessions':
+      return { code: 0, out: `${outcome.sessions} session(s) of ${username} ended.\n` };
   }
 }
 
@@ -361,12 +455,18 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
       case 'take-commands':
         process.stdout.write(`${JSON.stringify(await store.takeCommands())}\n`);
         return 0;
-      case 'finish-command':
-        if (!(await store.finishCommand(args.id, args.status, args.outcome))) {
+      case 'finish-command': {
+        const outcome = outcomeText(args.outcome ?? (await readStdin()));
+        if (outcome === '') {
+          console.error('An outcome needs its text on standard input.');
+          return 1;
+        }
+        if (!(await store.finishCommand(args.id, args.status, outcome))) {
           console.error(`No taken command ${args.id}.`);
           return 1;
         }
         return 0;
+      }
       case 'take-messages':
         process.stdout.write(`${JSON.stringify(await store.takeMessages())}\n`);
         return 0;
@@ -437,6 +537,19 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
           }.\n`,
         );
         return 0;
+      }
+      case 'disable-user':
+      case 'enable-user':
+      case 'end-sessions': {
+        const outcome =
+          args.kind === 'disable-user'
+            ? await store.disableUser(args.username, args.by, args.reason)
+            : args.kind === 'enable-user'
+              ? await store.enableUser(args.username, args.by, args.reason)
+              : await store.endSessions(args.username, args.by, args.reason);
+        const { code, out } = accountOutcomeText(args.kind, args.username, outcome);
+        (code === 0 ? process.stdout : process.stderr).write(out);
+        return code;
       }
     }
   } finally {

@@ -23,6 +23,7 @@ import {
   MESSAGE_CEILING,
   RUN_CEILING,
   SESSION_IDLE_HOURS,
+  SESSION_MAX_DAYS,
 } from './console-rules';
 
 export interface ConsoleUserRow {
@@ -154,6 +155,33 @@ export async function writeConsoleAudit(client: PoolClient, entry: AuditInput): 
   );
 }
 
+/**
+ * What the account commands of the server's command line answer (T-1880):
+ * the sessions ended; for `disable-user` the queued commands, the unanswered
+ * messages and the run marks on teammate requests called off; and whether the
+ * account is the console's owner. `already` when there was nothing to change
+ * (nothing is written).
+ */
+export type AccountOutcome =
+  | {
+      kind: 'ok';
+      sessions: number;
+      commands: number;
+      messages: number;
+      runMarks: number;
+      owner: boolean;
+    }
+  | { kind: 'missing' }
+  | { kind: 'already' };
+
+const NOTHING_CALLED_OFF = { sessions: 0, commands: 0, messages: 0, runMarks: 0 };
+
+/** The audit's actor for a command run on the server: the operator it names, never an account. */
+export const operatorName = (by: string): string => `${by} (server)`;
+
+/** Why a queued message of an account that was then disabled got no answer; the chat shows it. */
+export const DISABLED_MESSAGE_FAILURE = 'حساب فرستنده غیرفعال شد؛ این پیام برای عامل فرستاده نشد.';
+
 export type PostMessageOutcome =
   { kind: 'ok'; message: ConsoleMessage } | { kind: 'limited'; retryAfterSeconds: number };
 
@@ -223,18 +251,176 @@ export class PostgresConsoleStore {
     });
   }
 
+  /**
+   * An invitation made on the server (`invite`), with its audit row (rule 10,
+   * T-1880): who it is for and until when, never the token or its hash.
+   */
   async createInvitation(tokenHash: string, displayName: string, expiresAt: Date): Promise<void> {
-    await this.pool.query(
-      `INSERT INTO console_invite (token_hash, display_name, expires_at) VALUES ($1, $2, $3)`,
-      [tokenHash, displayName, expiresAt],
-    );
+    await this.transaction(async (client) => {
+      const { rows } = await client.query<{ id: string }>(
+        `INSERT INTO console_invite (token_hash, display_name, expires_at) VALUES ($1, $2, $3)
+         RETURNING id`,
+        [tokenHash, displayName, expiresAt],
+      );
+      await this.audit(client, {
+        actorId: null,
+        actorName: 'invite (server)',
+        action: 'console.invitation_created',
+        targetType: 'console_invite',
+        targetId: rows[0]!.id,
+        reason: `invitation made for ${displayName}`,
+        next: { display_name: displayName, expires_at: expiresAt.toISOString() },
+      });
+    });
+  }
+
+  /**
+   * The account's kill switch (T-1880), from the server's command line only:
+   * `disabled_at` is set, which refuses the sign-in and every session at once
+   * (`sessionUser`), and each open session is ended. What the account had
+   * asked of the maintainer's computer and has not been done yet is called
+   * off in the same transaction:
+   *   - its queued commands (`cancelled`);
+   *   - its messages to the agents that have no answer yet, queued or being
+   *     answered (`failed`, with the line the chat shows), so one the
+   *     computer took is not taken again after `ANSWERING_TIMEOUT_MINUTES`
+   *     and a reply that arrives for it is not stored;
+   *   - the run marks it put on teammate requests (`execute_requested_by`),
+   *     so "run the marked ones" runs nothing this account marked. The
+   *     requests themselves stay, with whatever text they have.
+   * What it cannot call off: a command the computer has already taken, and an
+   * agent run already started on the computer for a message.
+   *
+   * One audit row: the operator named on the command line, the reason, and
+   * what was open before, the unmarked requests listed with when each had
+   * been marked. The requests' own history gets no line: its marks are a
+   * person's (`console_request_event_actor`), and this is the server's.
+   */
+  async disableUser(username: string, by: string, reason: string): Promise<AccountOutcome> {
+    return this.transaction(async (client) => {
+      const user = await this.lockUser(client, username);
+      if (user === null) return { kind: 'missing' as const };
+      if (user.disabled_at !== null) return { kind: 'already' as const };
+      const disabled = await client.query<{ disabled_at: Date }>(
+        `UPDATE console_user SET disabled_at = now() WHERE id = $1 RETURNING disabled_at`,
+        [user.id],
+      );
+      const sessions = await this.endSessionsOf(client, user.id);
+      const commands = await client.query(
+        `UPDATE console_command SET status = 'cancelled' WHERE requested_by = $1 AND status = 'queued'`,
+        [user.id],
+      );
+      const messages = await client.query<{ was: 'queued' | 'answering' }>(
+        `UPDATE console_message m SET status = 'failed', failure = $2, answered_at = now()
+           FROM (SELECT id, status FROM console_message
+                  WHERE author_id = $1 AND status IN ('queued', 'answering') FOR UPDATE) old
+          WHERE m.id = old.id
+          RETURNING old.status AS was`,
+        [user.id, DISABLED_MESSAGE_FAILURE],
+      );
+      const marks = await client.query<{ id: string; was: Date }>(
+        `UPDATE console_request r
+            SET execute_requested_at = NULL, execute_requested_by = NULL, updated_at = now()
+           FROM (SELECT id, execute_requested_at FROM console_request
+                  WHERE execute_requested_by = $1 AND execute_requested_at IS NOT NULL
+                  FOR UPDATE) old
+          WHERE r.id = old.id
+          RETURNING r.id, old.execute_requested_at AS was`,
+        [user.id],
+      );
+      const answering = messages.rows.filter((m) => m.was === 'answering').length;
+      const counts = {
+        sessions,
+        commands: commands.rowCount ?? 0,
+        messages: messages.rows.length,
+        runMarks: marks.rows.length,
+      };
+      await this.audit(client, {
+        actorId: null,
+        actorName: operatorName(by),
+        action: 'console.user_disabled',
+        targetType: 'console_user',
+        targetId: user.id,
+        reason,
+        previous: {
+          disabled_at: null,
+          owner: user.owner,
+          open_sessions: counts.sessions,
+          queued_commands: counts.commands,
+          queued_messages: counts.messages - answering,
+          answering_messages: answering,
+          run_marks: counts.runMarks,
+          run_marked_requests: marks.rows
+            .map((m) => ({ id: m.id, marked_at: m.was.toISOString() }))
+            .sort((x, y) => x.marked_at.localeCompare(y.marked_at) || x.id.localeCompare(y.id)),
+        },
+        next: {
+          disabled_at: disabled.rows[0]!.disabled_at.toISOString(),
+          open_sessions: 0,
+          queued_commands: 0,
+          queued_messages: 0,
+          answering_messages: 0,
+          run_marks: 0,
+        },
+      });
+      return { kind: 'ok' as const, ...counts, owner: user.owner };
+    });
+  }
+
+  /**
+   * Opens a disabled account again (T-1880). Its ended sessions stay ended:
+   * the person signs in anew. Audited with when it had been disabled.
+   */
+  async enableUser(username: string, by: string, reason: string): Promise<AccountOutcome> {
+    return this.transaction(async (client) => {
+      const user = await this.lockUser(client, username);
+      if (user === null) return { kind: 'missing' as const };
+      if (user.disabled_at === null) return { kind: 'already' as const };
+      await client.query(`UPDATE console_user SET disabled_at = NULL WHERE id = $1`, [user.id]);
+      await this.audit(client, {
+        actorId: null,
+        actorName: operatorName(by),
+        action: 'console.user_enabled',
+        targetType: 'console_user',
+        targetId: user.id,
+        reason,
+        previous: { disabled_at: user.disabled_at.toISOString() },
+        next: { disabled_at: null },
+      });
+      return { kind: 'ok' as const, ...NOTHING_CALLED_OFF, owner: user.owner };
+    });
+  }
+
+  /**
+   * Ends every open session of one account (T-1880), which stays enabled: the
+   * person signs in again, a copied cookie does not. `already` when none was
+   * open, and then nothing is written.
+   */
+  async endSessions(username: string, by: string, reason: string): Promise<AccountOutcome> {
+    return this.transaction(async (client) => {
+      const user = await this.lockUser(client, username);
+      if (user === null) return { kind: 'missing' as const };
+      const sessions = await this.endSessionsOf(client, user.id);
+      if (sessions === 0) return { kind: 'already' as const };
+      await this.audit(client, {
+        actorId: null,
+        actorName: operatorName(by),
+        action: 'console.sessions_ended',
+        targetType: 'console_user',
+        targetId: user.id,
+        reason,
+        previous: { open_sessions: sessions },
+        next: { open_sessions: 0 },
+      });
+      return { kind: 'ok' as const, ...NOTHING_CALLED_OFF, sessions, owner: user.owner };
+    });
   }
 
   /**
    * Makes one enabled account the console's owner (D-427 point 6: the
-   * maintainer, who alone changes a social post kind's level and the
-   * publisher's key), taking it from any other in the same transaction (at
-   * most one, `console_user_one_owner`), with an audit row naming the server's
+   * maintainer, who alone changes a social post kind's level; the publisher's
+   * key is either person's), taking it from any other in the same transaction
+   * (at most one, `console_user_one_owner`), with an audit row naming the server's
    * command as actor and the previous owner. Only the CLI's `set-owner` calls
    * it; no route does (T-1836).
    */
@@ -327,16 +513,26 @@ export class PostgresConsoleStore {
     );
   }
 
-  /** The person behind a session that is still open, its idle clock restarted. */
+  /**
+   * The person behind a session that is still open, its idle clock restarted.
+   * A session also ends `SESSION_MAX_DAYS` after it was created, however much
+   * it is used (T-1880): `expires_at` never passes that moment, and a session
+   * older than it is refused whatever `expires_at` says, so a copied cookie
+   * does not live as long as someone keeps using it.
+   */
   async sessionUser(tokenHash: string): Promise<ConsoleMe | null> {
     const { rows } = await this.pool.query<ConsoleMe>(
       `UPDATE console_session s
-          SET last_seen_at = now(), expires_at = now() + make_interval(hours => $2)
+          SET last_seen_at = now(),
+              expires_at = LEAST(now() + make_interval(hours => $2),
+                                 s.created_at + make_interval(hours => $3))
          FROM console_user u
         WHERE s.token_hash = $1 AND s.user_id = u.id AND s.revoked_at IS NULL
-          AND s.expires_at > now() AND u.disabled_at IS NULL
+          AND s.expires_at > now() AND s.created_at + make_interval(hours => $3) > now()
+          AND u.disabled_at IS NULL
         RETURNING u.id, u.username, u.display_name`,
-      [tokenHash, SESSION_IDLE_HOURS],
+      // In hours, so a day is 24 of them whatever the database's time zone does.
+      [tokenHash, SESSION_IDLE_HOURS, SESSION_MAX_DAYS * 24],
     );
     return rows[0] ?? null;
   }
@@ -477,12 +673,16 @@ export class PostgresConsoleStore {
     return rows.map(command);
   }
 
-  /** The computer takes every queued command, oldest first. */
+  /**
+   * The computer takes every queued command, oldest first; never one of a
+   * disabled account (T-1880: `disable-user` cancels them, and this holds one
+   * queued by a request that was already past its session check).
+   */
   async takeCommands(): Promise<ConsoleCommand[]> {
     const { rows } = await this.pool.query<CommandRow>(
       `UPDATE console_command c SET status = 'taken', taken_at = now()
          FROM console_user u
-        WHERE c.status = 'queued' AND u.id = c.requested_by
+        WHERE c.status = 'queued' AND u.id = c.requested_by AND u.disabled_at IS NULL
         RETURNING c.id, c.kind, c.target, c.payload, c.status, u.display_name AS requested_by,
                   c.requested_at, c.finished_at, c.outcome`,
     );
@@ -704,13 +904,14 @@ export class PostgresConsoleStore {
   /**
    * The computer takes every queued message, oldest first, each with its
    * conversation up to it; a message taken over an hour ago and never
-   * answered (the run died) is taken again.
+   * answered (the run died) is taken again. Never a disabled account's
+   * (T-1880), queued or taken before.
    */
   async takeMessages(): Promise<ConsoleChatItem[]> {
     const { rows } = await this.pool.query<MessageRow>(
       `WITH taken AS (
          UPDATE console_message SET status = 'answering', taken_at = now()
-          WHERE author_id IS NOT NULL
+          WHERE author_id IN (SELECT id FROM console_user WHERE disabled_at IS NULL)
             AND (status = 'queued'
                  OR (status = 'answering' AND taken_at < now() - make_interval(mins => $1)))
           RETURNING *
@@ -806,6 +1007,29 @@ export class PostgresConsoleStore {
       reason: r.reason,
       at: r.created_at.toISOString(),
     }));
+  }
+
+  /** One account by name, locked for the transaction, disabled or not. */
+  private async lockUser(
+    client: PoolClient,
+    username: string,
+  ): Promise<{ id: string; disabled_at: Date | null; owner: boolean } | null> {
+    const { rows } = await client.query<{ id: string; disabled_at: Date | null; owner: boolean }>(
+      `SELECT id, disabled_at, owner FROM console_user WHERE username = $1 FOR UPDATE`,
+      [username],
+    );
+    return rows[0] ?? null;
+  }
+
+  /** Ends the account's sessions that were still open; how many. */
+  private async endSessionsOf(client: PoolClient, userId: string): Promise<number> {
+    const { rowCount } = await client.query(
+      `UPDATE console_session SET revoked_at = now()
+        WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+          AND created_at + make_interval(hours => $2) > now()`,
+      [userId, SESSION_MAX_DAYS * 24],
+    );
+    return rowCount ?? 0;
   }
 
   private async audit(client: PoolClient, entry: AuditInput): Promise<void> {
