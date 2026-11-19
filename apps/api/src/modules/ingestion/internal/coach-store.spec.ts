@@ -420,4 +420,40 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the coaches 
       expect(await spells(id.maresca)).toEqual([[id.city, '2026-08-01', null]]);
     });
   });
+
+  it('asks an answered team again a day after an ask counted as unanswered, its answer kept (T-1882)', async () => {
+    const city = { teamId: id.city, externalId: ext('city'), reason: 'refresh' as const };
+    const failures = async () =>
+      (
+        await pool.query<{ failures: number }>(
+          `SELECT failures FROM team_coach_fetch WHERE team_id = $1`,
+          [id.city],
+        )
+      ).rows[0]?.failures;
+    await store.saveTeamCoaches(PROVIDER, city, [], new Date().toISOString());
+    expect((await teamsDue()).map((t) => t.teamId)).not.toContain(id.city);
+    const before = await readTeamHeadCoach(pool, id.city, null, null);
+    expect(before.last_updated_at).not.toBeNull();
+
+    // What a person merge writes for the teams of a survivor whose coaching
+    // spells have no ask record (`askCoachTeamsAgain`, packages/db's
+    // person-merge.mjs): the count alone, no timestamp.
+    await pool.query(
+      `UPDATE team_coach_fetch SET failures = 1 WHERE team_id = $1 AND failures = 0`,
+      [id.city],
+    );
+    // Not within a day of the last ask; then as a refresh.
+    expect((await teamsDue()).map((t) => t.teamId)).not.toContain(id.city);
+    expect(await teamsDue({ answeredBeforeIso: EARLIER, retryBeforeIso: LATER })).toContainEqual(
+      city,
+    );
+    // The answer it holds is still the team's answer.
+    expect(await readTeamHeadCoach(pool, id.city, null, null)).toEqual(before);
+
+    await store.saveTeamCoaches(PROVIDER, city, [], new Date().toISOString());
+    expect(await failures()).toBe(0);
+    expect(
+      (await teamsDue({ answeredBeforeIso: EARLIER, retryBeforeIso: LATER })).map((t) => t.teamId),
+    ).not.toContain(id.city);
+  });
 });
