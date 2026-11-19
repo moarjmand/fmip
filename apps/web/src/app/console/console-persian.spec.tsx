@@ -1011,6 +1011,23 @@ describe('the Persian-only scan', () => {
     expect(decisions).toContain('نگهدارنده');
   });
 
+  it("words the server's account commands in the audit trail (T-1880)", async () => {
+    const { auditActionWords, auditReasonWords } = await import('./words');
+    for (const action of [
+      'console.invitation_created',
+      'console.user_disabled',
+      'console.user_enabled',
+      'console.sessions_ended',
+    ]) {
+      const { words, known } = auditActionWords(action);
+      expect(known, action).toBe(true);
+      expect(words).toMatch(/[؀-ۿ]/);
+    }
+    expect(auditReasonWords('invitation made for Mohammad')).toBe(
+      'دعوت‌نامه برای Mohammad ساخته شد',
+    );
+  });
+
   it('gives every page a Persian title', async () => {
     for (const path of [
       './(app)/audit/page',

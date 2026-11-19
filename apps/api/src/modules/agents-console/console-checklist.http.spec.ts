@@ -117,6 +117,12 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('console chec
           WHERE i.id = o.id AND i.position <> o.n`,
       );
       await client.query(`DELETE FROM console_audit WHERE actor_id = ANY($1::uuid[])`, [users]);
+      // An invitation's own audit row has the server as its actor (T-1880).
+      await client.query(
+        `DELETE FROM console_audit WHERE action = 'console.invitation_created' AND target_id IN
+           (SELECT id::text FROM console_invite WHERE used_by = ANY($1::uuid[]) OR display_name LIKE $2)`,
+        [users, `Checklist ${RUN}%`],
+      );
       await client.query(
         `DELETE FROM console_invite WHERE used_by = ANY($1::uuid[]) OR display_name LIKE $2`,
         [users, `Checklist ${RUN}%`],
