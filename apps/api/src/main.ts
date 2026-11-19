@@ -12,6 +12,7 @@ import {
 import { JsonLogger } from './observability/json-logger';
 import { RateLimitsService } from './modules/rate-limits/rate-limits.service';
 import { registerRefusalCounter } from './modules/rate-limits/refusal-counter';
+import { registerConsoleHeaders } from './security/console-headers';
 
 const DEFAULT_PORT = 3001;
 
@@ -49,6 +50,9 @@ async function bootstrap(): Promise<void> {
   // A refusal by a database-enforced ceiling is counted per day here, because
   // the trigger that refused it rolled its own count back (T-811).
   registerRefusalCounter(app.getHttpAdapter().getInstance(), app.get(RateLimitsService));
+  // Every agents-console answer is never framed, kept, indexed or a referrer
+  // (T-1881), also where the API is reached without the web app or Caddy.
+  registerConsoleHeaders(app.getHttpAdapter().getInstance());
   app.useGlobalFilters(new AllExceptionsFilter(logger));
 
   // Lets Nest run its shutdown hooks on SIGTERM, which is how Docker stops a

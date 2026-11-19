@@ -1,6 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { DEFAULT_LOCALE, WRITTEN_LOCALES, localeFromPathname } from '@/i18n/locales';
 import { fetchHeldLocales } from '@/lib/api';
+import {
+  CONSOLE_FRAME_POLICY,
+  CONSOLE_HEADERS,
+  CONSOLE_PICTURE_POLICY,
+  consoleContentPolicy,
+  consoleNonce,
+  isConsolePicture,
+} from '@/lib/console-headers';
 import { CONSOLE_BASE_HEADER, consoleRoute } from '@/lib/console-host';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 import { negotiatedLanguage } from '@/lib/language-negotiation';
@@ -42,16 +50,26 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   if (route.kind === 'console') {
     const url = request.nextUrl.clone();
     url.pathname = route.pathname;
+    // The console's content policy (T-1881), enforced, with a nonce per
+    // request. Next takes the nonce for its own scripts from the request's
+    // copy of the header, so it goes on both. A picture keeps its own.
+    const policy = isConsolePicture(route.pathname)
+      ? CONSOLE_PICTURE_POLICY
+      : consoleContentPolicy(consoleNonce(), process.env.NODE_ENV === 'development');
     // Set here, over anything the browser sent under the same name.
     const forwarded = new Headers(request.headers);
     forwarded.set(CONSOLE_BASE_HEADER, route.base);
+    forwarded.set('Content-Security-Policy', policy);
     const response = NextResponse.rewrite(url, { request: { headers: forwarded } });
-    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-    response.headers.set('Cache-Control', 'private, no-store');
+    response.headers.set('Content-Security-Policy', policy);
+    for (const [name, value] of Object.entries(CONSOLE_HEADERS)) response.headers.set(name, value);
     return response;
   }
   if (route.kind === 'hidden') {
-    return new NextResponse('Not found', { status: 404, headers: { 'X-Robots-Tag': 'noindex' } });
+    return new NextResponse('Not found', {
+      status: 404,
+      headers: { ...CONSOLE_HEADERS, 'Content-Security-Policy': CONSOLE_FRAME_POLICY },
+    });
   }
 
   const locale = localeFromPathname(pathname);
@@ -87,9 +105,17 @@ async function isHeld(locale: string): Promise<boolean> {
 }
 
 export const config = {
-  // Everything except Next's own assets, the web app's own API routes (the SSE
-  // proxy of T-032 has no locale), the exact path `/health` (the public
-  // origin's health for the outside uptime check, T-806) and files that
-  // already have an extension — redirecting those would break them.
-  matcher: ['/((?!_next/|api/|health$|favicon\\.ico|.*\\.[^/]+$).*)'],
+  matcher: [
+    // Everything except Next's own assets, the web app's own API routes (the
+    // SSE proxy of T-032 has no locale), the exact path `/health` (the public
+    // origin's health for the outside uptime check, T-806) and files that
+    // already have an extension — redirecting those would break them.
+    '/((?!_next/|api/|health$|favicon\\.ico|.*\\.[^/]+$).*)',
+    // And everything under the console's routes, extension or not (T-1881):
+    // `/console/agents/security.md` skipped the rule above, so the console's
+    // layout answered on the site's host, without the 404 or these headers.
+    // `/console.rsc` and `/console.segments/...` are the route `/console`
+    // under Next's other addresses for it, so `/console.` is taken as well.
+    '/console((?:/|\\.).*)',
+  ],
 };

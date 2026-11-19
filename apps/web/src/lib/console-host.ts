@@ -64,7 +64,13 @@ export function consoleRoute(
     const rest = pathname.slice(base.length);
     return { kind: 'console', pathname: `${CONSOLE_PREFIX}${rest === '/' ? '' : rest}`, base };
   }
-  if (pathname === CONSOLE_PREFIX || pathname.startsWith(`${CONSOLE_PREFIX}/`))
+  // `/console.rsc` and `/console.segments/...` are Next's own other addresses
+  // of the route `/console` (T-1881), so a dot hides as a slash does.
+  if (
+    pathname === CONSOLE_PREFIX ||
+    pathname.startsWith(`${CONSOLE_PREFIX}/`) ||
+    pathname.startsWith(`${CONSOLE_PREFIX}.`)
+  )
     return { kind: 'hidden' };
   return { kind: 'site' };
 }
