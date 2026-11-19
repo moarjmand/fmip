@@ -45,17 +45,18 @@ E:/FMIP/data-audit/             the data auditor's runs and reports (D-326)
 
 Dates in file names and findings are UTC; the brief's heading also gives the Tehran date.
 **Findings are written only through `finding.mjs`** (T-1884, D-457 point 2): it checks the line,
-gives it its id and appends it safely while other agents write the same day's file.
+appends it safely while other agents write the same day's file, and gives a new finding its id,
+which is the script's and never chosen by hand.
 
 ```bash
 node .claude/skills/team-charter/bin/finding.mjs add --agent qa-engineer --severity minor \
   --visible true --title "fa competition page overflows at 375 px" \
-  --evidence-file <a file in your scratchpad> --cause "unknown" \
+  --evidence-file "<scratchpad>/evidence.txt" --cause "unknown" \
   --proposal "wrap the standings table" --owner engineering-session --confidence high
 # prints the id it gave the finding, e.g. qa-2026-11-20-03
 
 node .claude/skills/team-charter/bin/finding.mjs seen qa-2026-11-10-01 --status open \
-  --evidence-file <a file in your scratchpad>     # a finding seen again keeps its id
+  --evidence-file "<scratchpad>/evidence.txt"     # a finding seen again keeps its id
 ```
 
 Text with quotes, backslashes or a leading slash goes in a file (`--title-file`,
@@ -105,9 +106,9 @@ maintainer and the teammate.
 - Required in every line: `id`, `agent`, `severity`, `visible_to_users`, `title`, `evidence`,
   `likely_cause` (or "unknown"), `proposal`, `owner`, `confidence`, `status`, `first_seen`. Lines are
   in English; reports and briefs are in Persian.
-- `id`: `<agent prefix>-<date first seen>-<nn>`, given by `finding.mjs add`, never chosen by the
-  agent. A finding seen again keeps its id: `finding.mjs seen <id>` appends a line with the same
-  id, today's evidence and `"status": "open"`, so the brief shows only what is new or changed.
+- `id`: `<agent prefix>-<date first seen>-<nn>`. A finding seen again keeps its id: append a
+  line with the same id, today's evidence and `"status": "open"`, so the brief shows only
+  what is new or changed.
 - `severity`: `critical` (a visitor sees something wrong, or the site or a pipeline is down),
   `major` (wrong but rarely seen, or a failure coming), `minor`. `info` is no longer filed: it
   goes in the report, and an "all green" line is never a finding (D-457 point 7); old lines carry it.
@@ -124,7 +125,8 @@ maintainer and the teammate.
 - Optional in a line: `verify` (the check that proves the fix: a data-audit invariant's name, or an
   address with one assertion, T-1896), `report` (the path of the report that explains it), `quoted`
   (outside text, word for word, kept out of `title` and `proposal`), `task` (the task id it
-  joined), `public` (true only on the maintainer's word, D-455).
+  joined), `public` (a security finding's detail may show on the console: true only on the
+  maintainer's word, D-455).
 - **Every agent writes its findings to the day's file**, not only to its report: the chief of
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
   `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),
