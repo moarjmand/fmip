@@ -298,5 +298,30 @@
     "block",
     "Bash",
     "ssh fmip-prod 'docker inspect --format \"{{json .}}\" abc'"
+  ],
+  [
+    "block",
+    "PowerShell",
+    { "command": "git push --force origin t-1" }
+  ],
+  [
+    "pass",
+    "PowerShell",
+    { "command": "git status --short" }
+  ],
+  [
+    "block",
+    "Edit",
+    { "file_path": "E:\\FMIP\\fmip\\.claude\\settings.json", "old_string": "{", "new_string": "{ \"disableAllHooks\": true," }
+  ],
+  [
+    "block",
+    "Write",
+    { "file_path": "/e/FMIP/fmip/.claude/settings.local.json", "content": "{ \"hooks\": {} }" }
+  ],
+  [
+    "pass",
+    "Edit",
+    { "file_path": "E:/FMIP/fmip/.claude/settings.json", "old_string": "\"timeout\": 10", "new_string": "\"timeout\": 15" }
   ]
 ]
