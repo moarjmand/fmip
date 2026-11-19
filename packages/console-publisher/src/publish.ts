@@ -43,7 +43,6 @@ import {
 } from './requests.ts';
 import { flowsOf, parseCharter } from './flow.ts';
 import {
-  COMMAND_ID,
   type FinishStatus,
   type ReplyStatus,
   finishCall,
@@ -61,7 +60,6 @@ import {
   type FindingLine,
   type ReportFile,
   agentOf,
-  applyCommand,
   deskDecisions,
   emptyState,
   findingsFrom,
@@ -72,6 +70,7 @@ import {
   skillsOf,
   snapshotOf,
   stepsOf,
+  syncCommands,
 } from './snapshot.ts';
 
 /**
@@ -452,24 +451,27 @@ export function main(argv = process.argv.slice(2)): number {
       process.stdout.write(`${publish(buildSnapshot(loadState()))}\n`);
       return 0;
     case 'sync': {
-      let state = loadState();
-      const taken = JSON.parse(ssh(`${CLI} take-commands`) || '[]') as ConsoleCommand[];
       const agents = files(join(ROOT, '.claude', 'agents'), '.md').map((name) =>
         name.replace(/\.md$/, ''),
       );
-      for (const cmd of taken) {
-        if (!COMMAND_ID.test(cmd.id)) {
-          process.stderr.write('A command without a UUID id was left out.\n');
-          continue;
-        }
-        const applied = applyCommand(state, cmd, agents);
-        state = applied.state;
-        if (applied.finish) finishRemote(cmd.id, applied.status, applied.outcome);
-      }
-      saveState(state);
-      process.stderr.write(`${publish(buildSnapshot(state))}\n`);
+      // T-1878: the state is saved before any outcome is reported, and a
+      // report that fails does not stop the rest (`syncCommands`).
+      const { state, failures } = syncCommands(
+        {
+          load: loadState,
+          take: () => JSON.parse(ssh(`${CLI} take-commands`) || '[]') as ConsoleCommand[],
+          save: saveState,
+          finish: finishRemote,
+          publish: (next) => {
+            process.stderr.write(`${publish(buildSnapshot(next))}\n`);
+          },
+        },
+        agents,
+      );
+      for (const failure of failures) process.stderr.write(`sync: ${failure}\n`);
+      // The run requests are printed even then: they are saved, and the task starts them.
       process.stdout.write(`${JSON.stringify(state.runRequests)}\n`);
-      return 0;
+      return failures.length === 0 ? 0 : 1;
     }
     case 'lab-check': {
       const lab = readLab();

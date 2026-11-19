@@ -29,11 +29,33 @@ goes on standard input, never in the arguments, on both sides: the server's
 `finish-command`, `post-reply`, `request-result` and `request-ask` read it
 there.
 
-`finish` takes its outcome the same way: write it to a file and pass
-`--file <path>`, or pipe it in. The outcome as quoted arguments (the form
-before T-1878) is still read for one release and prints a warning: the local
-shell expands a backtick or a `$(...)` in it before this tool sees it, so a
-scheduled task must not use it.
+`finish` takes its outcome the same way. A scheduled task's prompt must call
+
+```
+node packages/console-publisher/src/publish.ts finish <command-id> done|failed --file <path>
+```
+
+with the outcome written to that file first, and never pass the outcome as a
+quoted argument: this computer's own shell expands a backtick or a `$(...)`
+in a quoted argument before the tool sees it, so the text would run here.
+
+Two older forms are still read, and both go when the scheduled tasks' prompts
+are rewritten (phase 14's scheduled-tasks task): the outcome as arguments to
+`finish` (it prints a warning, and the text still reaches the server on
+standard input), and the server's `finish-command --outcome "text"`.
+
+**Rollout order.** Deploy the API before this computer uses the new
+publisher. The new publisher sends no `--outcome`, which a server from before
+T-1878 refuses; the new server still reads `--outcome` from an older
+publisher, so that order is safe and the other is not.
+
+`sync` and a report that fails: the server hands a queued command over once.
+So `sync` applies every command and saves `state.json` before it reports
+anything back, a report that fails is printed on standard error and the next
+one is still sent, the snapshot is still published and the run requests still
+printed, and `sync` exits 1 (`syncCommands` in `src/snapshot.ts`). A command
+whose report failed stays "taken" on the console until someone runs `finish`
+for it.
 
 ## Security detail stays on this computer (T-1879, D-340)
 
