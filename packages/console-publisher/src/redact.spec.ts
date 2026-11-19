@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   MEMORY_NOTE,
   WITHHELD_NOTE,
+  guardText,
+  normalId,
   redactSecurityText,
+  redactionsIn,
+  securityIdsIn,
   securityLedger,
   withheldIdsIn,
   withheldLine,
@@ -147,8 +151,11 @@ function snapshot(): ConsoleSnapshot {
           title: 'Fix it this week?',
           status: 'open',
           summary: `About ${UNVERIFIED}: PROPOSAL-MARK.`,
-          options: [],
-          answer: null,
+          options: [
+            { key: 'now', label: `Now, as ${ACCEPTED} proposes: PROPOSAL-MARK` },
+            { key: 'later', label: 'Later' },
+          ],
+          answer: `Now, as ${ACCEPTED} proposes: PROPOSAL-MARK`,
           decided_by: null,
           decided_at: null,
         },
@@ -256,6 +263,16 @@ describe('the snapshot as it leaves the computer (T-1879)', () => {
     expect(sent.decisions[0]!.summary).toBe(
       `[${UNVERIFIED} · security · major] Title of ${UNVERIFIED} — ${WITHHELD_NOTE}`,
     );
+    // Its options and the answer shown (an option's label) too; the question itself stays.
+    const option = `[${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`;
+    expect(sent.decisions[0]).toMatchObject({
+      title: 'Fix it this week?',
+      options: [
+        { key: 'now', label: option },
+        { key: 'later', label: 'Later' },
+      ],
+      answer: option,
+    });
     expect(sent.reports.find((r) => r.agent === 'ops-release')!.text).toBe(
       '# Ops\n\nAll containers are up.',
     );
@@ -290,9 +307,11 @@ describe('the text rule (T-1879, rule 3)', () => {
   it('finds an id in any case, in Persian digits, and one the findings files do not have', () => {
     expect(withheldIdsIn(`SEC-2026-11-19-01, ${UNKNOWN}`, LEDGER)).toEqual([OPEN, UNKNOWN]);
     expect(withheldIdsIn('یافته‌ی sec-۲۰۲۶-۱۱-۱۹-۰۲ باز است', LEDGER)).toEqual([ACCEPTED]);
-    expect(withheldIdsIn('sec-2026-11-19-011 is another id', LEDGER)).toEqual([
-      'sec-2026-11-19-011',
+    // The number is read as a number: 011 is the eleventh, 5 the fifth.
+    expect(withheldIdsIn('sec-2026-11-19-011 is the eleventh', LEDGER)).toEqual([
+      'sec-2026-11-19-11',
     ]);
+    expect(normalId('SEC-2026-11-19-5')).toBe(RESOLVED);
     // An unknown id shows the id alone: there is no severity or title to give.
     expect(withheldLine([UNKNOWN], LEDGER)).toBe(`[${UNKNOWN} · security] — ${WITHHELD_NOTE}`);
   });
@@ -393,5 +412,248 @@ describe('the text rule (T-1879, rule 3)', () => {
       `- ${RESOLVED}: fixed and re-checked.`,
     ]);
     expect(withheldIdsIn(reply, LEDGER)).toEqual([ACCEPTED]);
+  });
+});
+
+describe('who may release a security finding (review of #947, rule 1)', () => {
+  const by = (agent: string, id: string, status: string, extra: Record<string, unknown> = {}) =>
+    finding(id, status, { agent, ...extra });
+  const ID = 'sec-2026-11-21-01';
+  const withheld = (lines: FindingLine[]) => withholds(securityLedger(lines), ID, 'security');
+
+  it("releases on resolved only when the latest line is the security agent's own", () => {
+    expect(withheld([by('security', ID, 'resolved')])).toBe(false);
+    // Another agent cannot close a security finding, first or last.
+    expect(withheld([by('chief-of-staff', ID, 'resolved')])).toBe(true);
+    expect(withheld([by('security', ID, 'open'), by('code-reviewer', ID, 'resolved')])).toBe(true);
+    // And any later line reopens one the security agent closed.
+    expect(withheld([by('security', ID, 'resolved'), by('chief-of-staff', ID, 'open')])).toBe(true);
+    expect(withheld([by('security', ID, 'resolved'), by('security', ID, 'open')])).toBe(true);
+    expect(
+      withheld([
+        by('security', ID, 'open'),
+        by('ops-release', ID, 'resolved'),
+        by('security', ID, 'resolved'),
+      ]),
+    ).toBe(false);
+  });
+
+  it('keeps the public mark from any line until a later line takes it back', () => {
+    const open = (extra: Record<string, unknown> = {}) => by('security', ID, 'open', extra);
+    expect(withheld([open({ public: true })])).toBe(false);
+    // Whoever wrote the line, and on later lines that do not carry the field.
+    expect(withheld([open(), by('chief-of-staff', ID, 'accepted', { public: true })])).toBe(false);
+    expect(withheld([open({ public: true }), open(), open()])).toBe(false);
+    // Only an explicit false takes it back, and a later true gives it again.
+    expect(withheld([open({ public: true }), open({ public: false })])).toBe(true);
+    expect(withheld([open({ public: true }), open({ public: false }), open()])).toBe(true);
+    expect(withheld([open({ public: false }), open({ public: true })])).toBe(false);
+    expect(withheld([open({ public: 'true' }), open({ public: 1 })])).toBe(true);
+  });
+
+  it("keeps a finding the security agent's when another agent writes its next line", () => {
+    // An id that is not the charter's shape: only the first line says whose it is.
+    const lines = [
+      by('security', 'hardening-7', 'open'),
+      by('ops-release', 'hardening-7', 'resolved'),
+    ];
+    const ledger = securityLedger(lines);
+    expect(withholds(ledger, 'hardening-7', 'ops-release')).toBe(true);
+    const sent = snapshotOf(
+      {
+        generated_at: '2026-11-21T09:00:00.000Z',
+        agents: [],
+        findings: findingsFrom(lines),
+        reports: [],
+        brief: { date: '2026-11-21', text: '- hardening-7: EVIDENCE-MARK\n- other' },
+        decisions: [],
+      },
+      ledger,
+    );
+    expect(sent.findings[0]).toMatchObject({ id: 'hardening-7', detail: null, related: null });
+    expect(sent.brief!.text).not.toContain('EVIDENCE-MARK');
+    expect(sent.brief!.text).toContain('- other');
+  });
+});
+
+describe('an id however it is written (review of #947, rule 3)', () => {
+  const DAY = 'sec-2026-11-19';
+  const ids = (...numbers: number[]) => numbers.map((n) => `${DAY}-${String(n).padStart(2, '0')}`);
+  const redact = (text: string) => redactSecurityText(text, LEDGER);
+
+  it('reads every id of a range', () => {
+    for (const text of [
+      `${DAY}-05..07`,
+      `${DAY}-05...07`,
+      `${DAY}-05…07`,
+      `${DAY}-05-07`,
+      `${DAY}-05–07`,
+      `${DAY}-05 — 07`,
+      `${DAY}-05 to 07`,
+      `${DAY}-05 تا ۰۷`,
+      `${DAY}-05 to ${DAY}-07`,
+      `${DAY}-07..05`,
+    ])
+      expect([text, securityIdsIn(text).sort()]).toEqual([text, ids(5, 6, 7)]);
+  });
+
+  it('reads every id of a list, and a list after a range', () => {
+    for (const text of [
+      `${DAY}-05/07`,
+      `${DAY}-05/-07`,
+      `${DAY}-05, -07`,
+      `${DAY}-05, 07`,
+      `${DAY}-05، ۰۷`,
+      `${DAY}-05 and 07`,
+      `${DAY}-05 و 07`,
+      `${DAY}-05 & ${DAY}-07`,
+    ])
+      expect([text, securityIdsIn(text)]).toEqual([text, ids(5, 7)]);
+    expect(securityIdsIn(`${DAY}-01..03, 05/07 and -09`)).toEqual(ids(1, 2, 3, 5, 7, 9));
+    // A bare number that is not written like the id's own is not one of the list.
+    expect(securityIdsIn(`${DAY}-05, 3 containers and 120 requests`)).toEqual(ids(5));
+    // Another day's id is its own.
+    expect(securityIdsIn(`${DAY}-05, sec-2026-11-20-01`)).toEqual([...ids(5), 'sec-2026-11-20-01']);
+  });
+
+  it('redacts the block when ANY id of a range or list is withheld', () => {
+    // 05 is resolved and 06 public: both may show. 04 and 07 are withheld.
+    const fine = `- ${DAY}-05..06 are closed: EVIDENCE-OF-CLOSED.`;
+    expect(redact(fine)).toBe(fine);
+    for (const text of [
+      `- ${DAY}-05..07 share a cause: CAUSE-MARK.`,
+      `- ${DAY}-05/07: CAUSE-MARK.`,
+      `- ${DAY}-05, -06, -07: CAUSE-MARK.`,
+      `- ${DAY}-06–07: CAUSE-MARK.`,
+      `- ${DAY}-04/05: CAUSE-MARK.`,
+    ]) {
+      const sent = redact(text);
+      expect(sent).not.toContain('CAUSE-MARK');
+      expect(redactionsIn(sent)).toBe(1);
+    }
+    // Every withheld id of the range is named in the line, the releasable ones are not.
+    expect(withheldIdsIn(`${DAY}-04..07`, LEDGER)).toEqual(ids(4, 7));
+    // An id of the range the findings files do not have is withheld too.
+    expect(withheldIdsIn(`${DAY}-05..06, 08`, LEDGER)).toEqual(ids(8));
+  });
+
+  it('finds an id typed with other dashes, hidden marks or other digits', () => {
+    const c = (...codes: number[]) => String.fromCharCode(...codes);
+    const dashes = [0x2010, 0x2011, 0x2012, 0x2013, 0x2014, 0x2015, 0x2212];
+    for (const code of dashes) {
+      const typed = ACCEPTED.split('-').join(c(code));
+      expect([code, withheldIdsIn(`See ${typed}.`, LEDGER)]).toEqual([code, [ACCEPTED]]);
+    }
+    const hidden = [
+      0x200b, 0x200c, 0x200d, 0x200e, 0x200f, 0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x2066,
+      0x2067, 0x2068, 0x2069,
+    ];
+    for (const code of hidden) {
+      // Between the letters, after a dash and around the id.
+      const typed = `${c(code)}se${c(code)}c-2026-${c(code)}11-19-0${c(code)}2${c(code)}`;
+      expect([code, withheldIdsIn(`See ${typed}.`, LEDGER)]).toEqual([code, [ACCEPTED]]);
+    }
+    // Persian and Arabic digits.
+    const persian = ACCEPTED.replace(/\d/g, (d) => c(0x06f0 + Number(d)));
+    const arabic = ACCEPTED.replace(/\d/g, (d) => c(0x0660 + Number(d)));
+    expect(withheldIdsIn(`${persian} ${arabic}`, LEDGER)).toEqual([ACCEPTED]);
+    const text = `- ${persian}: EVIDENCE-MARK`;
+    expect(redact(text)).toBe(
+      `- [${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+    );
+  });
+});
+
+describe('fenced code and the section rule (review of #947, rule 3a)', () => {
+  const redact = (text: string) => redactSecurityText(text, LEDGER);
+  const stub = `[${OPEN} · security · major] Title of ${OPEN} — ${WITHHELD_NOTE}`;
+
+  it('does not end a withheld section at a # line inside a fence', () => {
+    for (const fence of ['```', '~~~', '````']) {
+      const text = [
+        `## ${OPEN}`,
+        'EVIDENCE-MARK',
+        `${fence}sh`,
+        '# a comment, not a heading',
+        'CAUSE-MARK',
+        '',
+        '## also not a heading',
+        fence,
+        'PROPOSAL-MARK after the fence, still in the section.',
+        '## The next section',
+        'Stays.',
+      ].join('\n');
+      expect(redact(text).split('\n')).toEqual([`## ${stub}`, '', '## The next section', 'Stays.']);
+    }
+  });
+
+  it('keeps a fenced block whole inside the block it belongs to', () => {
+    const text = [
+      `- ${OPEN}: reached like this:`,
+      '  ```',
+      '  CAUSE-MARK',
+      '',
+      '  # PROPOSAL-MARK',
+      '  ```',
+      '- next item',
+      '',
+      '```',
+      '# a fence of its own, with no id: untouched',
+      '',
+      '- not an item',
+      '```',
+    ].join('\n');
+    expect(redact(text).split('\n')).toEqual([
+      `- ${stub}`,
+      '- next item',
+      '',
+      '```',
+      '# a fence of its own, with no id: untouched',
+      '',
+      '- not an item',
+      '```',
+    ]);
+    // A fence that names a withheld id goes whole, gaps and all.
+    const fenced = [
+      'Before.',
+      '',
+      '```',
+      'first',
+      '',
+      `${OPEN} EVIDENCE-MARK`,
+      '```',
+      '',
+      'After.',
+    ];
+    expect(redact(fenced.join('\n')).split('\n')).toEqual(['Before.', '', stub, '', 'After.']);
+  });
+});
+
+describe('the other text the publisher uploads (review of #947)', () => {
+  it("guards a command's outcome, a request's result and a request's question", () => {
+    const outcome = `Failed while reading ${ACCEPTED}: EVIDENCE-MARK`;
+    expect(guardText(outcome, LEDGER)).toEqual({
+      text: `[${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+      withheld: [ACCEPTED],
+    });
+    const result = [
+      'انجام شد.',
+      '',
+      '| یافته | وضعیت |',
+      '| --- | --- |',
+      `| ${RESOLVED} | بسته |`,
+      `| ${DECIDE} | CAUSE-MARK |`,
+    ].join('\n');
+    const guarded = guardText(result, LEDGER);
+    expect(guarded.withheld).toEqual([DECIDE]);
+    expect(guarded.text).not.toContain('CAUSE-MARK');
+    expect(guarded.text).toContain(`| ${RESOLVED} | بسته |`);
+    expect(redactionsIn(guarded.text)).toBe(1);
+    const question = `آیا ${OPEN} و ${UNVERIFIED} را همین هفته ببندیم؟ PROPOSAL-MARK`;
+    expect(guardText(question, LEDGER).withheld).toEqual([OPEN, UNVERIFIED]);
+    expect(guardText(question, LEDGER).text).not.toContain('PROPOSAL-MARK');
+    // Text that names no withheld finding goes as written.
+    const plain = 'Paused: the daily run skips it.';
+    expect(guardText(plain, LEDGER)).toEqual({ text: plain, withheld: [] });
   });
 });

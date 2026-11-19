@@ -52,7 +52,7 @@ import {
 } from './remote.ts';
 import { type LabRead, labFrom } from './lab.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
-import { SECURITY_AGENT, redactSecurityText, securityLedger, withheldIdsIn } from './redact.ts';
+import { SECURITY_AGENT, type SecurityLedger, guardText, securityLedger } from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -364,9 +364,24 @@ function ssh(command: string, input?: string): string {
 
 const publish = (snapshot: ConsoleSnapshot): string =>
   ssh(`${CLI} load-snapshot`, JSON.stringify(snapshot)).trim();
+let ledgerOnce: SecurityLedger | null = null;
+/**
+ * A text this tool uploads by itself (a chat reply, a command's outcome, a
+ * request's result or question), after the security text rule (T-1879,
+ * D-340): the part that names a withheld finding stays here, and which ids
+ * were withheld is said on standard error.
+ */
+function guarded(what: string, text: string): string {
+  ledgerOnce ??= securityLedger(readFindingLines());
+  const { text: safe, withheld } = guardText(text, ledgerOnce);
+  if (withheld.length > 0)
+    process.stderr.write(`${what}: security detail withheld (${withheld.join(', ')}).\n`);
+  return safe;
+}
+
 /** Reports a command's outcome: the id checked, the text on standard input (T-1878). */
 const finishRemote = (id: string, status: FinishStatus, outcome: string): void => {
-  const call = finishCall(CLI, id, status, outcome);
+  const call = finishCall(CLI, id, status, guarded('finish', outcome));
   ssh(call.command, call.input);
 };
 
@@ -382,7 +397,7 @@ function saveInbox(inbox: ChatInbox): void {
 
 /** Posts a reply; the id is checked against MESSAGE_ID before it reaches the command line. */
 const replyRemote = (id: string, status: ReplyStatus, body: string): void => {
-  const call = replyCall(CLI, id, status, body);
+  const call = replyCall(CLI, id, status, guarded('chat-reply', body));
   ssh(call.command, call.input);
 };
 
@@ -545,19 +560,11 @@ export function main(argv = process.argv.slice(2)): number {
         return 2;
       }
       const file = rest[2] === '--file' ? rest[3] : undefined;
-      const written = readFileSync(file ?? 0, 'utf8');
-      if (parsed.status === 'answered' && written.trim() === '') {
+      const body = readFileSync(file ?? 0, 'utf8');
+      if (parsed.status === 'answered' && body.trim() === '') {
         process.stderr.write('An answer needs the reply text.\n');
         return 2;
       }
-      // T-1879 (D-340): a reply that names a withheld security finding loses that part here.
-      const ledger = securityLedger(readFindingLines());
-      const withheld = withheldIdsIn(written, ledger);
-      const body = redactSecurityText(written, ledger);
-      if (withheld.length > 0)
-        process.stderr.write(
-          `chat-reply: security detail withheld from the reply (${withheld.join(', ')}).\n`,
-        );
       try {
         replyRemote(parsed.id, parsed.status, body);
       } catch (error) {
@@ -610,7 +617,9 @@ export function main(argv = process.argv.slice(2)): number {
         process.stderr.write('A result needs its text.\n');
         return 2;
       }
-      process.stdout.write(ssh(resultCommand(CLI, parsed.id, parsed.status), body));
+      process.stdout.write(
+        ssh(resultCommand(CLI, parsed.id, parsed.status), guarded('request-result', body)),
+      );
       return 0;
     }
     case 'request-ask': {
@@ -624,7 +633,7 @@ export function main(argv = process.argv.slice(2)): number {
         process.stderr.write('A question needs its text.\n');
         return 2;
       }
-      process.stdout.write(ssh(askCommand(CLI, parsed.id), body));
+      process.stdout.write(ssh(askCommand(CLI, parsed.id), guarded('request-ask', body)));
       return 0;
     }
     default:

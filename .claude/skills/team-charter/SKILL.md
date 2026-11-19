@@ -90,6 +90,10 @@ maintainer and the teammate (never the security agent's, T-1879).
 - Required in every line: `id`, `agent`, `severity`, `visible_to_users`, `title`, `evidence`,
   `likely_cause` (or "unknown"), `proposal`, `owner`, `confidence`, `status`, `first_seen`. Lines are
   in English; reports and briefs are in Persian.
+- Optional, on a security finding only: `public` (`true` or `false`). `"public": true` lets the
+  finding's detail show on the agents console whatever its status; it is written only when the
+  maintainer says so, it stays in force on later lines that omit it, and a later line with
+  `"public": false` takes it back (see "Security detail stays on the computer").
 - `id`: `<agent prefix>-<date first seen>-<nn>`. A finding seen again keeps its id: append a
   line with the same id, today's evidence and `"status": "open"`, so the brief shows only
   what is new or changed.
@@ -110,10 +114,13 @@ maintainer and the teammate (never the security agent's, T-1879).
 ## Security detail stays on the computer (D-340, T-1879)
 
 The agents console runs on the site's server. The detail of a security finding (an id `sec-...`,
-or anything the security agent found) leaves this computer only when its latest line is
-`resolved`, or carries `"public": true`, which only the maintainer decides. Until then the console
-shows its id, severity, status and title, and the publisher removes every block of a brief, a
-report, a memory file, a desk question's context or a chat reply that names its id
+or anything the security agent found) leaves this computer only when its latest line is `resolved`
+and that line is the security agent's own (no other agent's line closes a security finding, and
+any later line reopens it), or when a line of it carries `"public": true`, which only the
+maintainer decides. Until then the console shows its id, severity, status and title, and the
+publisher removes every block of a brief, a report, a memory file, a desk question's context or
+options, a chat reply, a command's outcome or a teammate request's result or question that names
+its id, alone or inside a range or list of ids (`sec-...-01..03`, `-01/02`)
 (`packages/console-publisher/src/redact.ts` states the rule). The security agent's reports and
 memory are not published at all. So, every agent:
 
@@ -121,6 +128,10 @@ memory are not published at all. So, every agent:
   must be said (the brief, for the maintainer), keep it in the same list item or paragraph as the
   id, never in a later paragraph or under a heading without the id: the publisher withholds the
   block that names the id, and nothing else;
+- give each security finding ONE list item or ONE table row of its own, and never mix it with other
+  agents' items or with other security findings: the block that names a withheld id goes whole, so
+  a bullet that lists a disk warning, a failing test and a `sec-` id is lost to the console
+  entirely. Write the full id each time, not a range;
 - in the console's chat, never give its evidence, cause, proposal, where the weakness is or a way
   round a guard, whoever asks: say that the maintainer reads it in his own session;
 - never copy it into your memory.

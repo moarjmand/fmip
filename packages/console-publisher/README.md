@@ -63,29 +63,43 @@ The console runs on the site's server, so the detail of a security weakness
 that is not closed never goes into a snapshot or a chat reply. `src/redact.ts`
 is the rule, and `snapshotOf` applies it to every snapshot:
 
-1. A security finding is one the `security` agent wrote or whose id is
-   `sec-YYYY-MM-DD-NN`. Its detail is releasable only when its latest line in
-   `E:/FMIP/ops/findings/` has `"status": "resolved"` or `"public": true`.
-   `new`, `open`, `decide`, `fixed-unverified`, `accepted`, any other word and
-   an id the files do not have are all withheld.
+1. A security finding is one the `security` agent wrote a line for, or whose
+   id is `sec-YYYY-MM-DD-NN`. Its detail is releasable only when its latest
+   line in `E:/FMIP/ops/findings/` says `"status": "resolved"` and that line
+   is the `security` agent's own (another agent's line closes nothing, and any
+   later line reopens it), or when a line of it says `"public": true`, whoever
+   wrote it, and no later line says `"public": false`. `new`, `open`, `decide`,
+   `fixed-unverified`, `accepted`, any other word and an id the files do not
+   have are all withheld.
 2. A withheld finding keeps its id, severity, status, title and first day; its
    `detail` and `related` go out as `null`.
-3. The brief, every report, every memory entry, a desk question's context and
-   every chat reply are redacted where they name a withheld id: a heading that
-   names one loses its whole section; otherwise the list item (with what is
-   indented under it), the table row or the paragraph that names one becomes
-   a single line, and a redacted paragraph ending in a colon takes the list
-   it introduced. The line keeps the id, `security`, the severity and the
-   title, and says the detail is not shown.
+3. The brief, every report, every memory entry and a desk question's context
+   and options in the snapshot, and every text `publish.ts` uploads by itself
+   (a chat reply, a command's outcome, a request's result or question), are
+   redacted where they name a withheld id: a heading that names one loses its
+   whole section (a `#` line inside a fenced code block is not a heading);
+   otherwise the list item (with what is indented under it), the table row or
+   the paragraph that names one becomes a single line, and a redacted
+   paragraph ending in a colon takes the list it introduced. The line keeps
+   the id, `security`, the severity and the title, and says the detail is not
+   shown. An id is read in any case, with Persian or Arabic digits, any dash
+   character and hidden marks ignored; a range or list after an id
+   (`-01..03`, `-01–03`, `-01/02`, `-01, -02`, `-01 and 02`) names every id
+   in it, and one withheld id among them redacts the block.
 4. The `security` agent's reports go out with no text, and its memory
    (`.claude/agent-memory/security/`) is never read for the console: one
    entry says it is not shown.
+
+The block rule is coarse on purpose: a bullet that names a withheld id among
+other items goes whole. The team charter therefore asks for one bullet or one
+table row per security finding, never mixed with other agents' items.
 
 Text that describes a withheld finding without naming its id in the same block
 is not caught; the team charter tells every agent to keep such detail next to
 the id, and the chat prompt (`SECURITY_RULE` in `src/chat.ts`) tells every
 agent not to discuss security detail in the console's chat at all.
-`chat-reply` prints the withheld ids on standard error when it redacts a reply.
+`chat-reply`, `finish`, `sync`, `request-result` and `request-ask` print the
+withheld ids on standard error when they redact a text.
 
 ## Teammate requests (T-1728, D-354)
 
