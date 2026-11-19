@@ -56,6 +56,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     const coachRow = randomUUID();
     const nobody = randomUUID();
     const SPELLS_FETCHED = '2026-10-01T08:00:00.000Z';
+    const SPELLS_FETCHED_LATER = '2026-10-20T08:00:00.000Z';
     let actor = '';
     let merge = '';
     let post = '';
@@ -102,8 +103,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
            ($1, $3, '1990-01-01'), ($2, $3, '1990-01-01'), ($4, $5, '1990-01-01')`,
         [survivor, loser, NAME, spelled, SPELLED],
       );
-      // The coach id holds the provider's career: one spell at a team we
-      // carry, two at teams we do not. No line-up names either row as a coach.
+      // The coach id holds the provider's career: two spells at teams we
+      // carry, the later one written by a later answer, and two at teams we
+      // do not. No line-up names either row as a coach.
       await pool.query(
         `INSERT INTO person (id, full_name, date_of_birth) VALUES
            ($1, $4, '1975-05-05'), ($2, $4, '1975-05-05'), ($3, $5, '1975-05-05')`,
@@ -111,14 +113,15 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       );
       await pool.query(
         `INSERT INTO coach_spell (source, person_id, team_id, start_date, end_date, fetched_at)
-         VALUES ('api_football', $1, $2, '2020-07-01', '2022-06-30', $3)`,
-        [coachRow, teams[0], SPELLS_FETCHED],
+         VALUES ('api_football', $1, $2, '2020-07-01', '2022-06-30', $4),
+                ('api_football', $1, $3, '2022-07-01', '2023-06-30', $5)`,
+        [coachRow, teams[0], teams[1], SPELLS_FETCHED, SPELLS_FETCHED_LATER],
       );
       await pool.query(
         `INSERT INTO coach_fetch
            (source, person_id, fetched_at, spells_listed, spells_kept, spells_unmapped)
-         VALUES ('api_football', $1, $2, 3, 1, 2)`,
-        [coachRow, SPELLS_FETCHED],
+         VALUES ('api_football', $1, $2, 4, 2, 2)`,
+        [coachRow, SPELLS_FETCHED_LATER],
       );
       // The provider's list of the loser id's moves, read before the merge.
       await pool.query(
@@ -339,7 +342,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(before.status).toBe(200);
       expect(before.body.career).toMatchObject({
         coverage: 'limited',
-        last_updated_at: SPELLS_FETCHED,
+        last_updated_at: SPELLS_FETCHED_LATER,
       });
       expect(before.body.spells_not_carried).toBe(2);
       // Neither the player row nor the third person is a coach yet.
@@ -359,19 +362,26 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
                   WHERE person_id = ANY($2::uuid[])) AS fetches`,
         [playerRow, [playerRow, coachRow]],
       );
-      expect(held.rows[0]).toEqual({ spells: 1, fetches: 0 });
+      expect(held.rows[0]).toEqual({ spells: 2, fetches: 0 });
 
       const own = await get<CoachPage>(`/coaches/${playerRow}`);
       expect(own.status).toBe(200);
       expect(own.body).not.toHaveProperty('moved_to');
       expect(own.body.coach.id).toBe(playerRow);
-      // The spells we hold, dated by their own fetch; how many more the
+      // The spells we hold, dated by the oldest fetch among them (rule 4: no
+      // spell listed is older than the date says); how many more the
       // provider listed is not known, so the career is limited, never whole.
       expect(own.body.career.coverage).toBe('limited');
       expect(own.body.career.last_updated_at).toBe(SPELLS_FETCHED);
       expect(own.body.last_updated_at).toBe(SPELLS_FETCHED);
       expect(own.body.spells_not_carried).toBe(0);
       expect(own.body.career.data).toMatchObject([
+        {
+          team: { id: teams[1] },
+          start_date: '2022-07-01',
+          end_date: '2023-06-30',
+          current: false,
+        },
         {
           team: { id: teams[0] },
           start_date: '2020-07-01',

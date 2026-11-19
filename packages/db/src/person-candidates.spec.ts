@@ -802,7 +802,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       await pool?.end();
     });
 
-    it('marks the answered current-season teams of a survivor whose spells have no ask record, and no other', async () => {
+    it('marks the answered current-season teams of the open spells of a survivor with no ask record, and no other', async () => {
       const tag = randomUUID().slice(0, 8);
       const ANSWERED = '2026-11-01T09:00:00.000Z';
       const client = await pool.connect();
@@ -834,14 +834,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
             `T-1882 ${tag} ${name}`,
           ]);
         // His club this season; another coach's club; a club with no match in
-        // a current season; a club whose asks are already going unanswered.
+        // a current season; a club whose asks are already going unanswered;
+        // a club he left (a closed spell), playing this season too.
         const his = await team('His');
         const others = await team('Others');
         const idle = await team('Idle');
         const waiting = await team('Waiting');
+        const past = await team('Past');
         for (const [home, away] of [
           [his, others],
           [waiting, others],
+          [past, others],
         ]) {
           const fixture = await one(
             `INSERT INTO fixture (season_id, kickoff_at) VALUES ($1, '2026-09-01T18:00Z') RETURNING id`,
@@ -861,29 +864,31 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         const player = await person('Gaffer');
         const coach = await person('Gaffer');
         const settled = await person('Settled');
-        for (const [who, where] of [
-          [coach, his],
-          [coach, idle],
-          [coach, waiting],
-          [settled, others],
+        for (const [who, where, start, end] of [
+          [coach, past, '2021-07-01', '2024-06-30'],
+          [coach, his, '2024-07-01', null],
+          [coach, idle, '2024-07-01', null],
+          [coach, waiting, '2024-07-01', null],
+          [settled, others, '2024-07-01', null],
         ]) {
           await client.query(
-            `INSERT INTO coach_spell (source, person_id, team_id, start_date, fetched_at)
-             VALUES ('api_football', $1, $2, '2024-07-01', $3)`,
-            [who, where, ANSWERED],
+            `INSERT INTO coach_spell (source, person_id, team_id, start_date, end_date, fetched_at)
+             VALUES ('api_football', $1, $2, $3, $4, $5)`,
+            [who, where, start, end, ANSWERED],
           );
         }
         await client.query(
           `INSERT INTO coach_fetch
              (source, person_id, fetched_at, spells_listed, spells_kept, spells_unmapped)
-           VALUES ('api_football', $1, $3, 3, 3, 0), ('api_football', $2, $3, 1, 1, 0)`,
+           VALUES ('api_football', $1, $3, 4, 4, 0), ('api_football', $2, $3, 1, 1, 0)`,
           [coach, settled, ANSWERED],
         );
         await client.query(
           `INSERT INTO team_coach_fetch (source, team_id, asked_at, answered_at, failures)
-           VALUES ('api_football', $1, $5, $5, 0), ('api_football', $2, $5, $5, 0),
-                  ('api_football', $3, $5, $5, 0), ('api_football', $4, $5, $5, 2)`,
-          [his, others, idle, waiting, ANSWERED],
+           VALUES ('api_football', $1, $6, $6, 0), ('api_football', $2, $6, $6, 0),
+                  ('api_football', $3, $6, $6, 0), ('api_football', $4, $6, $6, 2),
+                  ('api_football', $5, $6, $6, 0)`,
+          [his, others, idle, waiting, past, ANSWERED],
         );
         const marks = async () =>
           Object.fromEntries(
@@ -891,7 +896,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
               await client.query(
                 `SELECT team_id, failures, asked_at, answered_at FROM team_coach_fetch
                   WHERE team_id = ANY($1::uuid[])`,
-                [[his, others, idle, waiting]],
+                [[his, others, idle, waiting, past]],
               )
             ).rows.map((r) => [
               r.team_id,
@@ -917,16 +922,18 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
               [player, [player, coach]],
             )
           ).rows[0],
-        ).toEqual({ spells: 3, fetches: 0 });
+        ).toEqual({ spells: 4, fetches: 0 });
 
         expect(await people.askCoachTeamsAgain(client, [player, settled])).toBe(1);
-        // Only his current-season team, by the count alone: the answer's time
-        // stays, so the team's head coach reads as before.
+        // Only the current-season team of his open spell, by the count
+        // alone: the answer's time stays, so the team's head coach reads as
+        // before. The club he left keeps its own turn.
         expect(await marks()).toEqual({
           [his]: [1, ANSWERED, ANSWERED],
           [others]: [0, ANSWERED, ANSWERED],
           [idle]: [0, ANSWERED, ANSWERED],
           [waiting]: [2, ANSWERED, ANSWERED],
+          [past]: [0, ANSWERED, ANSWERED],
         });
         // Marked once.
         expect(await people.askCoachTeamsAgain(client, [player, settled])).toBe(0);

@@ -114,8 +114,9 @@ export interface CoachPageRows extends Omit<CoachPage, 'coach' | 'career'> {
  * a `coach_fetch` row are what a person merge leaves (T-1882, D-446 point 5:
  * the merged-away id's spells move to the survivor, its ask record is set
  * aside until the provider is asked again): the career is then `limited`,
- * dated by when those spells were fetched, because how many spells at teams
- * we do not carry the provider listed is not known.
+ * because how many spells at teams we do not carry the provider listed is
+ * not known, and dated by the oldest fetch among those spells, so no spell
+ * on the list is older than the date says (rule 4).
  */
 export async function readCoachPage(
   pool: Pool,
@@ -136,7 +137,7 @@ export async function readCoachPage(
     `SELECT p.id, coalesce(localised_name('person', p.id, $2), p.known_as, p.full_name) AS name,
             p.date_of_birth::text, co.id AS nationality_id, co.name AS nationality_name,
             cf.fetched_at, cf.spells_unmapped,
-            (SELECT max(cs.fetched_at) FROM coach_spell cs WHERE cs.person_id = p.id)
+            (SELECT min(cs.fetched_at) FROM coach_spell cs WHERE cs.person_id = p.id)
               AS spells_fetched_at,
             (SELECT count(*)::int FROM fixture_participant fp WHERE fp.coach_id = p.id) AS lineups
        FROM person p
@@ -216,7 +217,7 @@ export async function readCoachPage(
   );
   const last = latest[0];
 
-  // No ask record but spells held: the spells' own fetch time dates the career.
+  // No ask record but spells held: the oldest fetch among them dates the career.
   const counted = person.fetched_at !== null;
   const fetchedAt = (person.fetched_at ?? person.spells_fetched_at)?.toISOString() ?? null;
   const unmapped = person.spells_unmapped ?? 0;

@@ -42,7 +42,7 @@
  *
  * After a merge, a survivor holding coaching spells but no `coach_fetch` row
  * (a player and coach pair: `merge_person` moves the coach id's spells and
- * sets its ask record aside) has the teams of those spells asked again
+ * sets its ask record aside) has the teams of his open spells asked again
  * (T-1882, `askCoachTeamsAgain`): the coaches job asks per team, an answered
  * team only every 30 days, and only a team's answer writes his `coach_fetch`
  * again. Until then his coach page says `limited`.
@@ -315,8 +315,11 @@ async function askProfilesAgain(client, personIds) {
 }
 
 /**
- * The teams where these persons hold a coaching spell with no `coach_fetch`
- * row, marked so the coaches job asks them again (T-1882). Returns the count.
+ * The teams where these persons hold an open coaching spell (no end date)
+ * with no `coach_fetch` row, marked so the coaches job asks them again
+ * (T-1882). Returns the count. A team of a closed spell is not marked: the
+ * team he coaches now is the one whose answer is owed, and his past teams
+ * keep their own 30-day turn.
  *
  * The lever is the job's own (`CoachStore.teamsDue`): an answered team
  * (`failures = 0`) is asked again only 30 days after its answer, a team whose
@@ -328,6 +331,13 @@ async function askProfilesAgain(client, personIds) {
  * marked, one playing in a current season (`teamsDue`'s `playing`); a team
  * never asked is owed its first ask already, and one already unanswered is
  * left to its own count.
+ *
+ * What the mark costs the team until its next answer: the job gives up after
+ * five unanswered asks in a row, so a marked team has four tries left, not
+ * five; and `teamsDue` calls a `lineup_change` (asked first) only at
+ * `failures = 0`, so a marked team whose newer line-up names another coach
+ * is asked as a plain `refresh`, a day after its last ask and after the
+ * teams asked first.
  */
 export async function askCoachTeamsAgain(client, personIds) {
   const { rowCount } = await client.query(
@@ -337,6 +347,7 @@ export async function askCoachTeamsAgain(client, personIds) {
         AND EXISTS (
           SELECT 1 FROM coach_spell cs
            WHERE cs.source = tf.source AND cs.team_id = tf.team_id
+             AND cs.end_date IS NULL
              AND cs.person_id = ANY($1::uuid[])
              AND NOT EXISTS (
                SELECT 1 FROM coach_fetch cf
