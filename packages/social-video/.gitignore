@@ -1,0 +1,4 @@
+# Copied from apps/web and @fontsource-variable/vazirmatn by scripts/prepare-assets.mjs.
+public/fonts/
+# Renders.
+out/
