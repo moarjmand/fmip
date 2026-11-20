@@ -106,9 +106,16 @@ T-1931's rule: more than 180 s or more than 1,024 MB for the 9:16 clip under the
 the question to the maintainer. **Memory passes in every run. Time passes in four runs of six and
 fails in two (191.8 s and 251.6 s), both while the PC was saturated by other work. So the answer is
 not a clean go: it goes back to the maintainer with these figures.** What matters for the decision
-is that the production server is closer to the saturated case than to the other one (2 cores, a
-load near 2.8 on the 2026-11-18 snapshot), and that nothing here measured the server's own core.
-The choices are written in D-454's "Measured" note.
+was that the production server is closer to the saturated case than to the other one (2 cores, a
+load near 2.8 on the 2026-11-18 snapshot), and that nothing on the PC measured the server's own
+core. The choices are written in D-454's "Measured" note.
+
+**Measured on the server, 2026-11-20 (the maintainer's yes on the first choice): the rule passes
+there.** This image, streamed to production and run once per size under the same limits with no
+match live: 1080 x 1920 in 42.0 s with a peak of 850.1 MB, 1080 x 1350 in 37.7 s with a peak of
+542.2 MB, and an uncached page fetched from outside answered as fast as before and after. T-1932
+onwards may start; the 180 s timeout stays. Figures and raw output: D-454, "Measured on the
+server".
 
 ## Determinism
 
@@ -120,8 +127,9 @@ The same props give the same bytes.
 - PNG frames 45, 225 and 449 (1.5 s, 7.5 s and the last frame) of the 9:16 clip are byte-identical
   across four separate containers and three image builds (`21b387bf…`, `07104f7e…`, `00c35263…`),
   and the Persian ones across two (`005d4749…`, `38fa8e08…`, `6cf5a2ca…`).
-- Not checked: another machine or CPU model. The software rasteriser and x264 are expected to
-  agree across x86-64 hosts, but only one host rendered here.
+- Another machine does NOT give the same bytes: the server's 1080 x 1920 file has the same size
+  (1,068,936 bytes) and another SHA-256 (`8d39a660…`), so "the same props give the same file"
+  holds per machine. T-1932 sets the encoder settings and checks again.
 
 ## Persian and right-to-left
 
@@ -164,7 +172,10 @@ The faces are under the SIL Open Font License 1.1: the card's (their licences ar
 
 ## What the spike did not do
 
-- It did not render on the production server, and it measured no server CPU.
+- Its own runs were on the PC; the one render on the production server came afterwards
+  (2026-11-20, above) and was a measurement only: nothing is deployed there.
+- The fixture holds a real match and a real forecast read from the public page. Renders made
+  from it are for measuring and looking at, not for publishing.
 - It did not set T-1932's encoder settings (a closed group of 60 frames, `+faststart`) or check the
   file with `ffprobe`.
 - The composition is representative, not the product: no golden frames, no design review, and its
