@@ -1,0 +1,32 @@
+{
+  "format": "matchday-preview",
+  "locale": "en",
+  "fixture_id": "4b2bf5a2-2e51-4a0c-bb77-c827835a7d92",
+  "competition": {
+    "name": { "en": "Persian Gulf Pro League", "fa": "لیگ برتر خلیج فارس" },
+    "round": { "en": "Matchweek 13", "fa": "هفته‌ی ۱۳" }
+  },
+  "home": {
+    "name": { "en": "Kheybar Khorramabad", "fa": "خیبر خرم‌آباد" },
+    "code": null
+  },
+  "away": {
+    "name": { "en": "Esteghlal", "fa": "استقلال" },
+    "code": null
+  },
+  "kickoff_at": "2026-11-19T13:00:00Z",
+  "as_of": "2026-11-19T07:00:00Z",
+  "prediction": {
+    "product": "statistical_model",
+    "model": {
+      "name": "dixon-coles-elo",
+      "version": "0.7.0",
+      "computed_at": "2026-11-13T09:55:00Z"
+    },
+    "percent": { "home": 24.8, "draw": 35.2, "away": 40.0 }
+  },
+  "disclosure": {
+    "en": "Automated graphic · data: Stadiomind",
+    "fa": "گرافیک خودکار · داده: Stadiomind"
+  }
+}
