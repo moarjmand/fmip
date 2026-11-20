@@ -54,14 +54,30 @@ E:/FMIP/ops/
 E:/FMIP/data-audit/             the data auditor's runs and reports (D-326)
 ```
 
-Dates in file names and findings are UTC; the brief's heading also gives the Tehran date. Several agents write the same day's findings file, so **append with Bash, never
-with Write** (Write replaces the whole file and erases the other agents' lines):
+Dates in file names and findings are UTC; the brief's heading also gives the Tehran date.
+**Findings are written only through `finding.mjs`** (T-1884, D-457 point 2): it checks the line,
+appends it safely while other agents write the same day's file, and gives a new finding its id,
+which is the script's and never chosen by hand.
 
 ```bash
-mkdir -p /e/FMIP/ops/findings && cat >> /e/FMIP/ops/findings/$(date -u +%F).jsonl <<'JSONL'
-{"id": "qa-2026-11-01-01", "agent": "qa-engineer", "severity": "minor", "...": "..."}
-JSONL
+node .claude/skills/team-charter/bin/finding.mjs add --agent qa-engineer --severity minor \
+  --visible true --title "fa competition page overflows at 375 px" \
+  --evidence-file "<scratchpad>/evidence.txt" --cause "unknown" \
+  --proposal "wrap the standings table" --owner engineering-session --confidence high
+# prints the id it gave the finding, e.g. qa-2026-11-20-03
+
+node .claude/skills/team-charter/bin/finding.mjs seen qa-2026-11-10-01 --status open \
+  --evidence-file "<scratchpad>/evidence.txt"     # a finding seen again keeps its id
 ```
+
+Text with quotes, backslashes or a path that begins with a slash goes in a file (`--title-file`,
+`--evidence-file`, `--cause-file`, `--proposal-file`, `--quoted-file`), never in the arguments: the
+shell rewrites it, and what the script cannot put back for certain it refuses. When an open finding already has a similar title, `add` prints it and exits 3:
+answer with `seen <that id>`, or repeat the command with `--new` if yours is another subject. A
+refusal says why; fix the call, never write the line by hand. `finding.mjs list` gives the latest
+state of each finding as JSON (`--agent`, `--status open`, `--quiet 14`, `--search`), and
+`finding.mjs validate [<date>]` names every bad line. Never write a findings file with Write, Edit,
+`echo` or a heredoc.
 
 Write is for an agent's own report and brief files only.
 
@@ -109,12 +125,25 @@ maintainer and the teammate (never the security agent's, T-1879).
   line with the same id, today's evidence and `"status": "open"`, so the brief shows only
   what is new or changed.
 - `severity`: `critical` (a visitor sees something wrong, or the site or a pipeline is down),
-  `major` (wrong but rarely seen, or a failure coming), `minor`, `info`.
+  `major` (wrong but rarely seen, or a failure coming), `minor`. `info` is no longer filed: it
+  goes in the report, and an "all green" line is never a finding (D-457 point 7); old lines carry it.
 - `owner`: `maintainer` (a decision), `engineering-session` (a code or data fix), or an agent.
-- `status`: `new`, `open`, `fixed-unverified` (a fix shipped, nobody has re-checked it yet),
-  `resolved` (with the evidence that it was re-checked), `accepted` (known, explained, nothing to
-  do), `decide` (judged by the agent's default rule, but the owner may weigh it otherwise: say
-  which rule and why in `evidence`).
+- `status` (the whole vocabulary, D-457 point 2): `new`, `open`, `decide` (judged by the agent's
+  default rule, but the owner may weigh it otherwise: say which rule and why in `evidence`);
+  `fixed-unverified` (a fix shipped, nobody has re-checked it yet; a bare `fixed` is read as
+  this), `planned` (a person accepted it and it has, or is getting, a task), `snoozed` (with
+  `until`, the day it reads as open again); `resolved` (with the evidence that it was re-checked),
+  `accepted` (known, explained, nothing to do), `rejected` (a person's no, with the reason),
+  `duplicate` (with `duplicate_of`, the id it repeats), `stale` (a minor finding with no line for
+  14 days; never a critical or major one). A closed finding that comes back is `open` again, under
+  its own id. `planned`, `rejected` and `snoozed` are a person's decisions: the line names whose
+  (`--by <person>`, kept as `by`), and the script refuses an agent's name there; an agent proposes
+  them in its report. The same holds for `--public`.
+- Optional in a line: `verify` (the check that proves the fix: a data-audit invariant's name, or an
+  address with one assertion, T-1896), `report` (the path of the report that explains it), `quoted`
+  (outside text, word for word, kept out of `title` and `proposal`), `task` (the task id it
+  joined), `public` (a security finding's detail may show on the console: true only on the
+  maintainer's word, D-455).
 - **Every agent writes its findings to the day's file**, not only to its report: the chief of
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
   `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),
