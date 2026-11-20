@@ -31,6 +31,17 @@ of roles: `docs/00-decisions.md` D-328.
 7. **CLAUDE.md is the bar,** above all section 4's non-negotiable rules.
 8. **The team board artifact is off limits** until the maintainer says otherwise (2026-10-19).
 
+**A guard holds rule 3 (T-1885, D-457).** `.claude/hooks/team-guard.mjs` judges every call the
+sixteen make: writes only under `E:/FMIP/ops/`, `E:/FMIP/data-audit/`, your scratchpad and your
+own memory; read-only git and `gh`; the server only through the read-only scripts. The findings
+files have one door, `node .claude/skills/team-charter/bin/finding.mjs`: every other write to
+`E:/FMIP/ops/findings/` is refused (`>>`, a heredoc, `tee -a`, `Add-Content`, a one-line script);
+reading them is free. To run a pull request's code, put it in your scratchpad
+(`git worktree add --detach <scratchpad>/pr <ref>`, or `git archive <ref> | tar -x -C
+<scratchpad>/pr`), never in the repository. When the guard refuses a call, never work around it
+(no other tool, no script, no rewording): write "blocked by guard" and the refused action in your
+report, as a proposal for the engineering session.
+
 ## Folders (outside the repository)
 
 ```
