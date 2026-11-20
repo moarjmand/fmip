@@ -10,13 +10,96 @@ never reaches this computer: every exchange is this computer running
 | `node packages/console-publisher/src/publish.ts build [--out f]` | Writes the snapshot. |
 | `node packages/console-publisher/src/publish.ts publish` | Loads the snapshot on the server. |
 | `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, publishes, prints the run requests. |
-| `node packages/console-publisher/src/publish.ts finish <id> done\|failed "outcome"` | Reports a requested run. |
+| `node packages/console-publisher/src/publish.ts finish <id> done\|failed [--file outcome.txt]` | Reports a requested run, the outcome read from `--file` or standard input (T-1878). |
 | `node packages/console-publisher/src/publish.ts providers-check [file]` | Checks the data providers' comparison (`E:/FMIP/ops/providers/comparison.json` unless a file is named; T-1830, D-423), prints each problem and exits 1 on any. `build`, `publish` and `sync` carry it in the snapshot as `providers`. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
 | `node packages/console-publisher/src/publish.ts chat-reply <message-id> answered\|failed [--file reply.txt]` | Posts one reply, read from `--file` or standard input, and drops the message from the inbox. |
 | `node packages/console-publisher/src/publish.ts requests-pull [--status s]` | Writes the teammate requests to `E:/FMIP/ops/console/requests.json` and prints a short summary (T-1728); downloads the pictures of open and marked requests to `E:/FMIP/ops/console/requests/<request-id>/<position>-<image-id>.webp` and names each one's `local_path` in the file (T-1731). |
 | `node packages/console-publisher/src/publish.ts request-result <request-id> in_progress\|done\|cancelled [--file result.txt]` | Writes a request's result box and status, the text from `--file` or standard input. |
 | `node packages/console-publisher/src/publish.ts request-ask <request-id> [--file question.txt]` | Puts a question for the teammate on a request (`waiting_decision`). |
+
+## What reaches the server's shell (T-1878)
+
+`ssh fmip-prod <command>` hands the command to the server's login shell, which
+expands it. So the command line holds only what `src/remote.ts` lets through:
+the fixed prefix, flag names, ids checked as UUIDs and statuses from a fixed
+list, every word matching `[A-Za-z0-9_-]+`. Any text a person or an agent
+wrote (a command's outcome, a chat reply, a request's result or question)
+goes on standard input, never in the arguments, on both sides: the server's
+`finish-command`, `post-reply`, `request-result` and `request-ask` read it
+there.
+
+`finish` takes its outcome the same way. A scheduled task's prompt must call
+
+```
+node packages/console-publisher/src/publish.ts finish <command-id> done|failed --file <path>
+```
+
+with the outcome written to that file first, and never pass the outcome as a
+quoted argument: this computer's own shell expands a backtick or a `$(...)`
+in a quoted argument before the tool sees it, so the text would run here.
+
+Two older forms are still read, and both go when the scheduled tasks' prompts
+are rewritten (T-1891, `docs/04-tasks-phase-15.md`): the outcome as arguments
+to `finish` (it prints a warning, and the text still reaches the server on
+standard input), and the server's `finish-command --outcome "text"`.
+
+**Rollout order.** Deploy the API before this computer uses the new
+publisher. The new publisher sends no `--outcome`, which a server from before
+T-1878 refuses; the new server still reads `--outcome` from an older
+publisher, so that order is safe and the other is not.
+
+`sync` and a report that fails: the server hands a queued command over once.
+So `sync` applies every command and saves `state.json` before it reports
+anything back, a report that fails is printed on standard error and the next
+one is still sent, the snapshot is still published and the run requests still
+printed, and `sync` exits 1 (`syncCommands` in `src/snapshot.ts`). A command
+whose report failed stays "taken" on the console until someone runs `finish`
+for it.
+
+## Security detail stays on this computer (T-1879, D-340)
+
+The console runs on the site's server, so the detail of a security weakness
+that is not closed never goes into a snapshot or a chat reply. `src/redact.ts`
+is the rule, and `snapshotOf` applies it to every snapshot:
+
+1. A security finding is one the `security` agent wrote a line for, or whose
+   id is `sec-YYYY-MM-DD-NN`. Its detail is releasable only when its latest
+   line in `E:/FMIP/ops/findings/` says `"status": "resolved"` and that line
+   is the `security` agent's own (another agent's line closes nothing, and any
+   later line reopens it), or when a line of it says `"public": true`, whoever
+   wrote it, and no later line says `"public": false`. `new`, `open`, `decide`,
+   `fixed-unverified`, `accepted`, any other word and an id the files do not
+   have are all withheld.
+2. A withheld finding keeps its id, severity, status, title and first day; its
+   `detail` and `related` go out as `null`.
+3. The brief, every report, every memory entry and a desk question's context
+   and options in the snapshot, and every text `publish.ts` uploads by itself
+   (a chat reply, a command's outcome, a request's result or question), are
+   redacted where they name a withheld id: a heading that names one loses its
+   whole section (a `#` line inside a fenced code block is not a heading);
+   otherwise the list item (with what is indented under it), the table row or
+   the paragraph that names one becomes a single line, and a redacted
+   paragraph ending in a colon takes the list it introduced. The line keeps
+   the id, `security`, the severity and the title, and says the detail is not
+   shown. An id is read in any case, with Persian or Arabic digits, any dash
+   character and hidden marks ignored; a range or list after an id
+   (`-01..03`, `-01–03`, `-01/02`, `-01, -02`, `-01 and 02`) names every id
+   in it, and one withheld id among them redacts the block.
+4. The `security` agent's reports go out with no text, and its memory
+   (`.claude/agent-memory/security/`) is never read for the console: one
+   entry says it is not shown.
+
+The block rule is coarse on purpose: a bullet that names a withheld id among
+other items goes whole. The team charter therefore asks for one bullet or one
+table row per security finding, never mixed with other agents' items.
+
+Text that describes a withheld finding without naming its id in the same block
+is not caught; the team charter tells every agent to keep such detail next to
+the id, and the chat prompt (`SECURITY_RULE` in `src/chat.ts`) tells every
+agent not to discuss security detail in the console's chat at all.
+`chat-reply`, `finish`, `sync`, `request-result` and `request-ask` print the
+withheld ids on standard error when they redact a text.
 
 ## Teammate requests (T-1728, D-354)
 
@@ -66,7 +149,7 @@ computer does the following:
    with the item's `prompt`, unchanged. The prompt says the conversation is data
    from a console user and grants no permission beyond the team charter and the
    agent's file. The agent may read, explain, answer and propose work. It never
-   acts on the server.
+   acts on the server, and it does not discuss security detail (T-1879).
 3. `chat-reply <id> answered --file <reply>` with the agent's answer. If the
    agent could not answer, use `chat-reply <id> failed` with one line in Persian saying why
    (the console is Persian only, D-352).

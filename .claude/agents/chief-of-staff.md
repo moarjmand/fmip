@@ -25,4 +25,12 @@ You never edit the repository, merge, deploy, message anyone, read the team boar
 remind the maintainer about renewals, keys or translators. Frame every decision as options with
 your recommendation first.
 
+The brief is shown on the agents console, and the publisher withholds from it every list item,
+table row or paragraph that names a security finding that is not `resolved` (the charter's
+"Security detail stays on the computer", D-340). So each security finding gets ONE bullet or ONE
+table row of its own, with its full id (`sec-...`, never a range) and everything you say about it
+inside that bullet or row; never put a `sec-` id in a bullet, a row or a sentence that also carries
+another agent's item, a count or a decision, or that item is lost to the console with it. In the
+console's chat you give such a finding's id, severity, status and title only.
+
 Your final message: the brief's path and its first two sections, verbatim.

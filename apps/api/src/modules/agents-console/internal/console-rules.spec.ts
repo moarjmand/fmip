@@ -7,8 +7,11 @@ import {
 import { describe, expect, it } from 'vitest';
 import { accountOutcomeText, parseConsoleArgs } from '../../../cli/agents-console';
 import {
+  COMMAND_OUTCOME_MAX,
   LOCK_AFTER_FAILURES,
   LOCK_MINUTES,
+  COMMAND_VALUES_MAX,
+  REASON_MAX,
   TEXT_MAX,
   afterFailure,
   checkCard,
@@ -19,6 +22,7 @@ import {
   consoleCookie,
   isConsoleUsername,
   isLocked,
+  outcomeText,
   replyText,
 } from './console-rules';
 
@@ -184,6 +188,22 @@ describe('commands', () => {
     ).toMatchObject({ ok: true, command: { payload: { answer: 'a' } } });
   });
 
+  it('holds what a command carries to a few short values (T-1880)', () => {
+    const pause = { kind: 'agent.pause', target: 'data-auditor', reason: 'noisy' };
+    const carrying = (payload: Record<string, string>) =>
+      checkCommand({ ...pause, payload }, agents, decisions);
+    expect(carrying({ note: 'x'.repeat(REASON_MAX) }).ok).toBe(true);
+    expect(carrying({ note: 'x'.repeat(REASON_MAX + 1) })).toEqual({
+      ok: false,
+      reason: 'A command carries up to 8 values of 500 characters.',
+    });
+    const many = (n: number) =>
+      Object.fromEntries(Array.from({ length: n }, (_, i) => [`k${i}`, 'v']));
+    expect(carrying(many(COMMAND_VALUES_MAX)).ok).toBe(true);
+    expect(carrying(many(COMMAND_VALUES_MAX + 1)).ok).toBe(false);
+    expect(carrying({ ['k'.repeat(41)]: 'v' }).ok).toBe(false);
+  });
+
   it('refuses an unknown kind, agent, model, schedule, decision, or no reason', () => {
     expect(
       checkCommand({ kind: 'agent.delete', target: 'data-auditor', reason: 'r' }, agents, decisions)
@@ -293,6 +313,33 @@ describe('the command line', () => {
       parseConsoleArgs(['finish-command', '--id', 'x', '--status', 'done', '--outcome', 'y']).kind,
     ).toBe('error');
     expect(parseConsoleArgs(['drop']).kind).toBe('error');
+  });
+
+  it("reads a command's outcome from standard input, never from the arguments (T-1878)", () => {
+    const id = '00000000-0000-4000-8000-000000000001';
+    expect(parseConsoleArgs(['finish-command', '--id', id, '--status', 'failed'])).toEqual({
+      kind: 'finish-command',
+      id,
+      status: 'failed',
+      outcome: null,
+    });
+    // The form before, for one release: still read, never empty.
+    expect(
+      parseConsoleArgs(['finish-command', '--id', id, '--status', 'done', '--outcome', 'paused']),
+    ).toEqual({ kind: 'finish-command', id, status: 'done', outcome: 'paused' });
+    expect(
+      parseConsoleArgs(['finish-command', '--id', id, '--status', 'done', '--outcome', ' ']).kind,
+    ).toBe('error');
+    expect(parseConsoleArgs(['finish-command', '--id', `${id};x`, '--status', 'done']).kind).toBe(
+      'error',
+    );
+    // What a shell would have acted on is text here, kept as written.
+    const hostile = 'The `security` agent timed out; $(touch x)\n"quoted" and \'single\' $HOME';
+    expect(outcomeText(`  ${hostile}\r\n`)).toBe(hostile);
+    expect(outcomeText(' \n ')).toBe('');
+    const cut = outcomeText('y'.repeat(COMMAND_OUTCOME_MAX + 50));
+    expect([...cut]).toHaveLength(COMMAND_OUTCOME_MAX);
+    expect(cut.endsWith('…')).toBe(true);
   });
 
   it('reads the chat commands, the reply never from the arguments (T-1722)', () => {

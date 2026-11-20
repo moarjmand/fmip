@@ -64,6 +64,11 @@ export class ConsoleCalendarService {
     return this.store.setRequestAlerts(actor, on);
   }
 
+  /** T-1880: whether this person may ask for another test message this hour; an allowed ask is audited. */
+  takePushTest(actor: ConsoleMe): Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }> {
+    return this.store.takePushTest(actor);
+  }
+
   deviceUsed(id: string): Promise<void> {
     return this.store.deviceUsed(id);
   }

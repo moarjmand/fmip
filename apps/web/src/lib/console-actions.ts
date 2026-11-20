@@ -493,11 +493,20 @@ export async function clearSocialKey(
   return { error: null, done: 'کلید پاک شد؛ تا کلید تازه وارد نشود چیزی منتشر نمی‌شود.' };
 }
 
-export async function testReminder(): Promise<{ devices: number; delivered: number } | null> {
+/**
+ * A test message to this person's own browsers. `refused` is the hourly
+ * ceiling's sentence (T-1880), in Persian; `null` any other failure.
+ */
+export async function testReminder(): Promise<
+  { devices: number; delivered: number } | { refused: string } | null
+> {
   const result = await consoleCall<{ devices: number; delivered: number }>('calendar/push/test', {
     method: 'POST',
   });
-  return result.ok ? result.data : null;
+  if (result.ok) return result.data;
+  return result.status === 429
+    ? { refused: apiErrorWords(result.error?.message, 'پیام آزمایشی فرستاده نشد.') }
+    : null;
 }
 
 // --- The pre-launch checklist (T-1840, D-428) ---------------------------------

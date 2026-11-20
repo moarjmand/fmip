@@ -9,6 +9,7 @@ import {
 } from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import { parseConsoleArgs, requestOutcomeText } from '../../../cli/agents-console';
+import { runMarkCleared } from './request-store';
 import {
   checkDecision,
   checkExecute,
@@ -211,6 +212,32 @@ describe('the command line (T-1728)', () => {
     expect(requestOutcomeText(ID, { kind: 'refused', reason: 'Closed.' })).toEqual({
       code: 1,
       out: 'Closed.\n',
+    });
+  });
+});
+
+describe("a change's audit values when it clears the run mark (T-1880)", () => {
+  const marked = '2026-11-19T08:00:00.000Z';
+
+  it('says nothing of a mark when there was none', () => {
+    const values = { previous: { title: 'a' }, next: { title: 'b' } };
+    expect(runMarkCleared(null, values)).toBe(values);
+    expect(runMarkCleared(null, { next: { image: 'x' } })).toEqual({ next: { image: 'x' } });
+  });
+
+  it('puts when it was marked with the previous value, and execute false with the next', () => {
+    expect(runMarkCleared(marked, { previous: { title: 'a' }, next: { title: 'b' } })).toEqual({
+      previous: { title: 'a', execute_requested_at: marked },
+      next: { title: 'b', execute: false },
+    });
+    // A picture added has no previous value, one removed no next.
+    expect(runMarkCleared(marked, { next: { image: 'x' } })).toEqual({
+      previous: { execute_requested_at: marked },
+      next: { image: 'x', execute: false },
+    });
+    expect(runMarkCleared(marked, { previous: { image: 'x' }, next: null })).toEqual({
+      previous: { image: 'x', execute_requested_at: marked },
+      next: { execute: false },
     });
   });
 });

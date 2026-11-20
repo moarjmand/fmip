@@ -65,6 +65,9 @@ describe('GET /health (T-806)', () => {
 
   it('is left alone by the locale proxy, so it is never redirected', () => {
     const proxy = readFileSync(fileURLToPath(new URL('../../proxy.ts', import.meta.url)), 'utf8');
-    expect(proxy).toMatch(/matcher: \['\/\(\(\?!_next\/\|api\/\|health\$\|/);
+    // The matcher's first entry (its second, T-1881, is only `/console/...`).
+    expect(proxy).toMatch(
+      /matcher: \[\n(?:\s*\/\/[^\n]*\n)*\s*'\/\(\(\?!_next\/\|api\/\|health\$\|/,
+    );
   });
 });
