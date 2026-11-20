@@ -5,7 +5,7 @@ import { signOut } from '@/lib/console-actions';
 import { consoleHeartbeat, consoleMe, consoleRequestCounts } from '@/lib/console-api';
 import { consoleBase, consoleUrl } from '@/lib/console-base';
 import { ConsoleNav, type ConsoleNavItem } from '@/app/console/console-nav';
-import { PcHeartbeat } from '@/app/console/ui';
+import { LiveHeartbeat } from '@/app/console/heartbeat-clock';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +75,10 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
         </div>
       </header>
       <main className="page-frame flex min-w-0 flex-col gap-5 py-5 lg:flex-1">
-        <PcHeartbeat heartbeat={heartbeat.ok ? heartbeat.data : null} now={now} />
+        <LiveHeartbeat
+          heartbeat={heartbeat.ok ? heartbeat.data : null}
+          renderedAt={now.getTime()}
+        />
         {children}
       </main>
     </div>

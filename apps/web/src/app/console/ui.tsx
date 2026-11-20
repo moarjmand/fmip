@@ -13,9 +13,9 @@ import {
   CONSOLE_SYNC_TIME_ZONE,
   CONSOLE_SYNC_TIMES,
   consolePcState,
-  syncSlotAfter,
   wallClock,
 } from '@fmip/contracts/console';
+import { tehranClock as clock } from './words';
 
 /**
  * The agents console's building blocks (D-340): server components only, in
@@ -169,16 +169,6 @@ const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
 /** A wall-clock time such as `09:25` in Persian digits. */
 const faClock = (time: string): string => time.replace(/\d/g, (d) => FA_DIGITS[Number(d)] ?? d);
 
-/** An instant's time on Tehran's wall clock, «۰۹:۲۵». */
-function clock(date: Date): string {
-  return new Intl.DateTimeFormat('fa-IR', {
-    timeZone: CONSOLE_SYNC_TIME_ZONE,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(date);
-}
-
 /** An instant's day and time in Tehran, «۲۸ آبان ۰۱:۵۴». */
 function dayAndClock(date: Date): string {
   const day = new Intl.DateTimeFormat('fa-IR', {
@@ -212,8 +202,14 @@ export interface Freshness {
   state: ConsoleHeartbeatState;
   /** The state as one word, shown beside its shape. */
   word: string;
-  /** The bold sentence. */
+  /**
+   * The bold sentence that says the state and nothing that ages: the one
+   * part a screen reader is told about, so it speaks when the state changes
+   * and not each time "two hours ago" becomes three.
+   */
   title: string;
+  /** The rest of the bold line: how long ago and when, or empty. It ages; it is not announced. */
+  since: string;
   /** The muted sentence under it. */
   detail: string;
   /** The next sync time by the schedule, «۱۵:۲۵»: a time on the timetable, not a promise. */
@@ -234,6 +230,7 @@ export function freshness(loadedAt: string | null, now: Date): Freshness {
     return {
       ...base,
       title: 'هنوز هیچ هم‌گام‌سازی از رایانه نرسیده است',
+      since: '',
       detail:
         'یافته‌ها، گزارش‌ها و وضعیت عامل‌ها خالی‌اند چون از رایانه نیامده‌اند، نه چون چیزی نیست.',
     };
@@ -243,18 +240,23 @@ export function freshness(loadedAt: string | null, now: Date): Freshness {
     return {
       ...base,
       title: 'رایانه خاموش است؛ دستورها در صف می‌مانند.',
+      since: '',
       detail: `آخرین هم‌گام‌سازی: ${stamp}، ${age}. در این مدت هیچ عاملی اجرا نشده و یافته‌ها و گزارش‌ها همان زمان‌اند.`,
     };
   const today = sameDay(pc.lastSync, now);
   if (pc.state === 'late')
     return {
       ...base,
-      title: `هم‌گام‌سازی دیر شده؛ آخرین: ${age} (${stamp})`,
-      detail: `نوبت ${pc.missedSlot === null ? '' : clock(pc.missedSlot)} انجام نشد. تا برگشت رایانه عامل‌ها اجرا نمی‌شوند و آنچه می‌بینید از ${today ? clock(pc.lastSync) : stamp} است.`,
+      title: 'هم‌گام‌سازی دیر شده؛',
+      since: `آخرین: ${age} (${stamp})`,
+      // What is known: a sync that was due did not arrive. Whether the agents
+      // ran on the computer meanwhile is not, so it is not said.
+      detail: `هم‌گام‌سازی نوبت ${pc.missedSlot === null ? 'پیش' : clock(pc.missedSlot)} نرسیده است. آنچه می‌بینید از آخرین هم‌گام‌سازی در ${today ? clock(pc.lastSync) : stamp} است.`,
     };
   return {
     ...base,
-    title: `آخرین هم‌گام‌سازی: ${age} (${today ? `امروز ${clock(pc.lastSync)}` : stamp})`,
+    title: 'آخرین هم‌گام‌سازی:',
+    since: `${age} (${today ? `امروز ${clock(pc.lastSync)}` : stamp})`,
     detail:
       pc.dueSlot === null
         ? `هم‌گام‌سازی بعدی حدود ${next}. دستورها و پیام‌های تازه تا آن‌وقت در صف می‌مانند.`
@@ -272,15 +274,11 @@ const syncTimes = (separator: string): string => CONSOLE_SYNC_TIMES.map(faClock)
  */
 export function syncSentence(fresh: Freshness): string {
   const times = CONSOLE_SYNC_TIMES.length;
-  const often = `همگام‌سازی روزی ${COUNT_WORDS[times] ?? fa(times)} بار است (${syncTimes('، ')}؛ وقت تهران)`;
+  const often = `هم‌گام‌سازی روزی ${COUNT_WORDS[times] ?? fa(times)} بار است (${syncTimes('، ')}؛ وقت تهران)`;
   const next =
     fresh.state === 'silent' || fresh.state === 'never' ? '.' : `؛ بعدی حدود ${fresh.next}.`;
   return `هر دستور در صف می‌ماند تا رایانه آن را بردارد. ${often}${next}`;
 }
-
-/** What a form says once its command is queued, with the next sync time by the schedule. */
-export const queuedWords = (now: Date): string =>
-  `ثبت شد. رایانه در همگام‌سازی بعدی (حدود ${clock(syncSlotAfter(now))}) آن را انجام می‌دهد.`;
 
 type HeartbeatLook = ConsoleHeartbeatState | 'unread';
 
@@ -365,7 +363,10 @@ function SyncSchedule() {
  * The computer's heartbeat bar (T-1906, D-456), on every console page and,
  * `compact`, above an agent's controls: the state as a shape and a word, when
  * the last sync was, what follows from it, and what waits in the queue. A
- * standing state, so `role="status"` and never an alert; nothing moves.
+ * standing state, so `role="status"` and never an alert; nothing moves. The
+ * live region is the state's word and sentence alone: the "… ago" beside it
+ * and the sentence under it change with the clock and with every new render,
+ * and are read when a person gets to them, not announced.
  *
  * `heartbeat` is `null` when the server did not answer, which is said as
  * that: neither "off" nor "never synced" is claimed without a time to rest
@@ -386,15 +387,19 @@ export function PcHeartbeat({
   const tone = HEARTBEAT_TONE[look];
   const word = fresh?.word ?? 'نامعلوم';
   const title = fresh?.title ?? 'وضعیت رایانه خوانده نشد';
+  const since = fresh?.since ?? '';
   const detail =
     fresh?.detail ??
     'زمان آخرین هم‌گام‌سازی از سرور خوانده نشد؛ این یعنی نمی‌دانیم، نه این‌که رایانه خاموش است. صفحه را دوباره باز کنید.';
   const heading = (
     <p className="text-[0.9375rem] font-bold text-fg">
-      <span className="me-2 inline-flex align-middle">
-        <Badge tone={tone.badge}>{word}</Badge>
+      <span role={compact ? undefined : 'status'}>
+        <span className="me-2 inline-flex align-middle">
+          <Badge tone={tone.badge}>{word}</Badge>
+        </span>
+        {title}
       </span>
-      {title}
+      {since !== '' && ` ${since}`}
     </p>
   );
   if (compact)
@@ -413,7 +418,6 @@ export function PcHeartbeat({
   const queued = heartbeat?.queued ?? null;
   return (
     <div
-      role="status"
       data-testid="pc-heartbeat"
       data-state={look}
       className={`flex items-start gap-3.5 rounded-tile border border-s-[5px] px-4 py-3.5 ${tone.box}`}
@@ -527,7 +531,12 @@ export function RunsBars({ runs }: { runs: ConsoleAgent['runs'] }) {
   // Many runs scroll inside their own box, not the page (T-1906: on a 375 px
   // phone the agent page went 72 px wide, and its heartbeat bar with it).
   return (
-    <div className="overflow-x-auto">
+    <div
+      className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-focus"
+      role="group"
+      aria-label="نمودار اجراها؛ برای دیدن همه به پهلو بلغزانید"
+      tabIndex={0}
+    >
       <div className="flex items-end gap-1.5" style={{ blockSize: '7rem' }} data-testid="runs">
         {ordered.map((run) => (
           <div key={run.at} className="flex min-w-6 flex-1 flex-col items-center justify-end gap-1">

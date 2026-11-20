@@ -32,14 +32,71 @@ export function isCurrent(itemPath: string, current: string): boolean {
 }
 
 /**
- * How old the layout's render may get before it is asked for again (T-1906).
- * Next keeps a layout across a link's navigation and while a page stays open,
- * so the heartbeat bar it drew would go on saying "fresh" from the first
- * page's clock (rule 4). Ten minutes against limits counted in hours.
+ * Asking for the layout again (T-1906, D-456). Next keeps a layout across a
+ * link's navigation, so the heartbeat it was given (the last sync's time, the
+ * queue's counts, this menu's badge) would stay that of the first page. It is
+ * asked for again once it is ten minutes old, and **only if the person has
+ * touched the page since it arrived**: every such request restarts the
+ * session's 12-hour idle clock (D-455), and a console left open on a desk
+ * must still time out. With no input nothing is asked, ever; the bar ages its
+ * own words on the browser's clock (`heartbeat-clock.tsx`), and the first
+ * request after the idle limit lands on sign-in as before.
  */
 export const LAYOUT_MAX_AGE_MS = 10 * 60_000;
-export const layoutIsOld = (seenAt: number, now: number): boolean =>
-  now - seenAt > LAYOUT_MAX_AGE_MS;
+
+/** What counts as the person being there: touching, typing, scrolling, coming to the window. */
+export const INPUT_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'scroll', 'focus'] as const;
+
+/** When the layout's render arrived and when the person last touched the page, on one clock. */
+export interface LayoutAge {
+  seenAt: number;
+  inputAt: number;
+}
+
+/**
+ * Whether to ask for the layout again: it is old, the person has touched the
+ * page since it arrived, and the page is seen and has a network.
+ */
+export function shouldRefresh(
+  age: LayoutAge,
+  now: number,
+  page: { visible: boolean; online: boolean },
+): boolean {
+  return (
+    page.visible && page.online && now - age.seenAt > LAYOUT_MAX_AGE_MS && age.inputAt > age.seenAt
+  );
+}
+
+/**
+ * The refresh rule with its clock and its page handed in, so it is tested
+ * without a browser. `input` is the person touching the page; `tick` is
+ * time passing, the tab coming back, or the page changing; `rendered` is a
+ * new layout arriving. One ask per age, also when the ask fails.
+ */
+export function layoutRefresher(page: {
+  refresh: () => void;
+  now: () => number;
+  visible: () => boolean;
+  online: () => boolean;
+}) {
+  const age: LayoutAge = { seenAt: page.now(), inputAt: Number.NEGATIVE_INFINITY };
+  const check = () => {
+    const now = page.now();
+    if (!shouldRefresh(age, now, { visible: page.visible(), online: page.online() })) return;
+    age.seenAt = now;
+    page.refresh();
+  };
+  return {
+    rendered() {
+      age.seenAt = page.now();
+    },
+    input() {
+      age.inputAt = page.now();
+      check();
+    },
+    tick: check,
+  };
+}
 
 /** The width from which the menu is a column (Tailwind's `lg`, `.console-menu` in globals.css). */
 const WIDE = '(width >= 64rem)';
@@ -68,29 +125,35 @@ export function ConsoleNav({
   const current = consolePathname(usePathname() ?? '/', base);
   const router = useRouter();
 
-  // T-1906: the layout (the heartbeat bar, this menu's count) is asked for
-  // again once it is old: on a navigation, on coming back to the tab, and
-  // each minute a visible page stays open. The age is counted on this
-  // browser's clock from when the render arrived, never against the server's.
-  const seenAt = useRef(0);
+  // T-1906: the layout is asked for again once it is old, and only after the
+  // person has touched the page (`layoutRefresher`). Times are this browser's,
+  // counted from when the render arrived, never against the server's clock.
+  const refresher = useRef<ReturnType<typeof layoutRefresher> | null>(null);
   useEffect(() => {
-    seenAt.current = Date.now();
+    const made = layoutRefresher({
+      refresh: () => router.refresh(),
+      now: () => Date.now(),
+      visible: () => document.visibilityState === 'visible',
+      online: () => navigator.onLine,
+    });
+    refresher.current = made;
+    const listening = { capture: true, passive: true } as const;
+    for (const name of INPUT_EVENTS) window.addEventListener(name, made.input, listening);
+    document.addEventListener('visibilitychange', made.tick);
+    const timer = window.setInterval(made.tick, 60_000);
+    return () => {
+      for (const name of INPUT_EVENTS) window.removeEventListener(name, made.input, listening);
+      document.removeEventListener('visibilitychange', made.tick);
+      window.clearInterval(timer);
+      refresher.current = null;
+    };
+  }, [router]);
+  useEffect(() => {
+    refresher.current?.rendered();
   }, [renderedAt]);
   useEffect(() => {
-    const check = () => {
-      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
-      if (!layoutIsOld(seenAt.current, Date.now())) return;
-      seenAt.current = Date.now(); // one ask per age, also when it fails
-      router.refresh();
-    };
-    check();
-    document.addEventListener('visibilitychange', check);
-    const timer = window.setInterval(check, 60_000);
-    return () => {
-      document.removeEventListener('visibilitychange', check);
-      window.clearInterval(timer);
-    };
-  }, [current, router]);
+    refresher.current?.tick();
+  }, [current]);
 
   // A panel opened on a phone is closed when the window grows into the column.
   useEffect(() => {

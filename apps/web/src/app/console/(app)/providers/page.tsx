@@ -74,8 +74,8 @@ export default async function ConsoleProvidersPage({ searchParams }: Props) {
         <Card>
           <p className="text-sm text-muted" data-coverage="not_supplied">
             مقایسه هنوز از رایانه نرسیده است. وقتی پژوهش فایل{' '}
-            <span dir="ltr">E:/FMIP/ops/providers/comparison.json</span> را نوشت، با همگام‌سازی بعدی
-            اینجا می‌آید.
+            <span dir="ltr">E:/FMIP/ops/providers/comparison.json</span> را نوشت، با هم‌گام‌سازی
+            بعدی اینجا می‌آید.
           </p>
         </Card>
       </>

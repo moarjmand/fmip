@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CONSOLE_SILENT_HOURS,
+  CONSOLE_SYNC_EARLY_MINUTES,
   CONSOLE_SYNC_GRACE_MINUTES,
   CONSOLE_SYNC_TIMES,
   consolePcState,
@@ -112,6 +113,24 @@ describe('consolePcState', () => {
     });
     expect(iso(silent.nextSlot)).toBe('2026-11-19T11:55:00.000Z');
     expect(consolePcState(loaded, at('2026-11-25T07:00:00Z')).state).toBe('silent');
+  });
+
+  it('counts a sync that lands up to ten minutes before its slot for that slot', () => {
+    expect(CONSOLE_SYNC_EARLY_MINUTES).toBe(10);
+    const read = at('2026-11-19T06:56:00Z'); // 10:26, an hour and a minute after 09:25
+    // Two minutes early (the computer's clock runs ahead): the 09:25 sync, so nothing is missed.
+    const early = consolePcState('2026-11-19T05:53:00Z', read);
+    expect(early).toMatchObject({ state: 'fresh', dueSlot: null, missedSlot: null });
+    expect(iso(early.nextSlot)).toBe('2026-11-19T11:55:00.000Z');
+    // Exactly ten minutes early still counts; a millisecond more does not.
+    expect(consolePcState('2026-11-19T05:45:00.000Z', read).state).toBe('fresh');
+    const before = consolePcState('2026-11-19T05:44:59.999Z', read);
+    expect(before.state).toBe('late');
+    expect(iso(before.missedSlot)).toBe('2026-11-19T05:55:00.000Z');
+    // And the early one is late once the slot after it is missed.
+    const next = consolePcState('2026-11-19T05:53:00Z', at('2026-11-19T12:56:00Z'));
+    expect(next.state).toBe('late');
+    expect(iso(next.missedSlot)).toBe('2026-11-19T11:55:00.000Z');
   });
 
   it('a snapshot stamped ahead of the clock is fresh and no age is negative', () => {

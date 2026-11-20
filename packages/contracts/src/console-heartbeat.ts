@@ -48,6 +48,12 @@ export const CONSOLE_DAILY_RUN_TIME = '09:09';
  */
 export const CONSOLE_SYNC_GRACE_MINUTES = 60;
 /**
+ * How long before a sync's time an arrival still counts for that time: the
+ * computer's clock may run a few minutes ahead of the server's, and a sync
+ * stamped 09:23 is the 09:25 one, not a missed one.
+ */
+export const CONSOLE_SYNC_EARLY_MINUTES = 10;
+/**
  * Hours without a sync after which the computer is taken to be off: an
  * inference from silence, not a measurement. A default pending the
  * maintainer's word (D-456 point 3).
@@ -115,7 +121,8 @@ export interface ConsolePcState {
  *
  * - `never`: no snapshot has ever arrived (not "nothing exists");
  * - `silent`: the last one is more than `CONSOLE_SILENT_HOURS` old;
- * - `late`: the first sync time after it passed more than
+ * - `late`: the first sync time after it (an arrival up to
+ *   `CONSOLE_SYNC_EARLY_MINUTES` early counts for its slot) passed more than
  *   `CONSOLE_SYNC_GRACE_MINUTES` ago;
  * - `fresh`: otherwise, that is, within one slot and the grace.
  *
@@ -138,7 +145,9 @@ export function consolePcState(loadedAt: string | null, now: Date): ConsolePcSta
   if (age > CONSOLE_SILENT_HOURS * 60 * MINUTE)
     return { ...base, state: 'silent', missedSlot: null, dueSlot: null };
   const grace = CONSOLE_SYNC_GRACE_MINUTES * MINUTE;
-  const expected = syncSlotAfter(last);
+  // The next sync owed after this one. An arrival up to
+  // `CONSOLE_SYNC_EARLY_MINUTES` before a slot was that slot's sync.
+  const expected = syncSlotAfter(new Date(last.getTime() + CONSOLE_SYNC_EARLY_MINUTES * MINUTE));
   if (now.getTime() > expected.getTime() + grace)
     return {
       ...base,

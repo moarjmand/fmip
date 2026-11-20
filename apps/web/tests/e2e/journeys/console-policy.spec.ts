@@ -154,7 +154,7 @@ async function walk(page: Page, base: string, seen: () => Promise<string[]>): Pr
       const heartbeat = page.getByTestId('pc-heartbeat');
       await expect(heartbeat, address).toBeVisible();
       await expect(heartbeat, address).toHaveAttribute('data-state', /^(fresh|late|silent)$/);
-      await expect(heartbeat, address).toHaveAttribute('role', 'status');
+      await expect(heartbeat.getByRole('status'), address).toBeVisible();
       await page.waitForLoadState('networkidle');
       await seen();
     });
@@ -234,7 +234,7 @@ test.describe('the agents console under its enforced content policy', () => {
     await expect(page.locator('main svg').first()).toBeVisible();
     // And, above its controls, the heartbeat in one line with the sync's real times (T-1906).
     await expect(page.getByTestId('pc-heartbeat-compact')).toBeVisible();
-    await expect(page.locator('main')).toContainText('همگام‌سازی روزی سه بار است');
+    await expect(page.locator('main')).toContainText('هم‌گام‌سازی روزی سه بار است');
     await attachPicture(page, '/agents');
     await registerWorker(page, '/agents');
     // A client-side move between pages asks for the payload under the policy too.

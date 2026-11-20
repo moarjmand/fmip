@@ -1,6 +1,7 @@
 // Server-side only: `next/headers` has no client build, so an import from a
 // client component fails at build time, which is the guard we want.
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 import type {
   ApiError,
   ConsoleAuditEntry,
@@ -149,8 +150,12 @@ export async function applyConsoleCookie(header: string | null): Promise<void> {
 
 export const consoleMe = () => consoleCall<ConsoleMe>('me');
 export const consoleSnapshot = () => consoleCall<ConsoleSnapshotResponse>('snapshot');
-/** The computer's heartbeat (T-1906): the newest snapshot's arrival and the queue's counts, without the snapshot. */
-export const consoleHeartbeat = () => consoleCall<ConsoleHeartbeat>('heartbeat');
+/**
+ * The computer's heartbeat (T-1906): the newest snapshot's arrival and the
+ * queue's counts, without the snapshot. Asked once a request, whoever asks
+ * (the frame, and the pages that word it themselves).
+ */
+export const consoleHeartbeat = cache(() => consoleCall<ConsoleHeartbeat>('heartbeat'));
 export const consoleCommands = () => consoleCall<{ commands: ConsoleCommand[] }>('commands');
 export const consoleBoard = () => consoleCall<{ cards: ConsoleBoardCard[] }>('board');
 export const consoleAudit = () => consoleCall<{ entries: ConsoleAuditEntry[] }>('audit');

@@ -1,4 +1,5 @@
-import type { ConsoleCommandKind } from '@fmip/contracts';
+import type { ConsoleCommandKind, ConsoleHeartbeat } from '@fmip/contracts';
+import { CONSOLE_SYNC_TIME_ZONE, consolePcState } from '@fmip/contracts/console';
 
 /**
  * The console's Persian for what reaches it in English (T-1725, D-352): the
@@ -9,6 +10,34 @@ import type { ConsoleCommandKind } from '@fmip/contracts';
  */
 
 const fa = (n: string) => new Intl.NumberFormat('fa-IR').format(Number(n));
+
+/** An instant's time on Tehran's wall clock, «۰۹:۲۵». */
+export function tehranClock(date: Date): string {
+  return new Intl.DateTimeFormat('fa-IR', {
+    timeZone: CONSOLE_SYNC_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
+
+/**
+ * What a form says once its command is queued (T-1906, D-456). A time is
+ * named only when one can be: the schedule's next sync while the computer is
+ * syncing. With the computer silent or never seen, the command waits until
+ * it is back and no time is promised (design spec, section 6); with a sync
+ * overdue inside its grace, or the heartbeat unread, "the next sync" stands
+ * without a time.
+ */
+export function queuedWords(heartbeat: ConsoleHeartbeat | null, now: Date): string {
+  const plain = 'ثبت شد. رایانه در هم‌گام‌سازی بعدی آن را انجام می‌دهد.';
+  if (heartbeat === null) return plain;
+  const pc = consolePcState(heartbeat.loaded_at, now);
+  if (pc.state === 'silent' || pc.state === 'never')
+    return 'ثبت شد. دستور در صف می‌ماند تا رایانه برگردد.';
+  if (pc.dueSlot !== null) return plain;
+  return `ثبت شد. رایانه در هم‌گام‌سازی بعدی (حدود ${tehranClock(pc.nextSlot)}) آن را انجام می‌دهد.`;
+}
 
 /** The API's console messages (`agents-console.controller.ts`, `console-rules.ts`). */
 const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
@@ -300,7 +329,7 @@ export function outcomeWords(outcome: string): string {
     [/^Resumed/, () => 'ادامه دارد: اجرای روزانه دوباره اجرایش می‌کند.'],
     [/^Runs on (\S+) from its next run\.$/, (m) => `از اجرای بعدی با ${m[1]} کار می‌کند.`],
     [/^Scheduled (\S+)\.$/, (m) => `برنامه: ${SCHEDULES[m[1]!] ?? m[1]}.`],
-    [/^Waiting for the next sync/, () => 'منتظر همگام‌سازی بعدی برای شروع.'],
+    [/^Waiting for the next sync/, () => 'منتظر هم‌گام‌سازی بعدی برای شروع.'],
     [/^Answer recorded/, () => 'پاسخ برای اجرای روزانه ثبت شد.'],
     [/^No agent (\S+) on the computer\.$/, (m) => `عاملی به نام ${m[1]} روی رایانه نیست.`],
   ];

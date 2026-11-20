@@ -986,6 +986,8 @@ describe('the Persian-only scan', () => {
     const html = await page();
     expect(html.length).toBeGreaterThan(100);
     expect(englishWords(html)).toEqual([]);
+    // T-1906: «هم‌گام‌سازی» is written with its half-space on every page.
+    expect(html).not.toContain('همگام');
   });
 
   it('renders an empty console, an expired invitation and a missing agent in Persian', async () => {
@@ -1026,16 +1028,18 @@ describe('the Persian-only scan', () => {
         const html = await frame();
         // Under the frame's header and before the page, on every page.
         expect(html, state).toMatch(
-          new RegExp(
-            `<main [^>]*><div role="status" data-testid="pc-heartbeat" data-state="${state}"`,
-          ),
+          new RegExp(`<main [^>]*><div data-testid="pc-heartbeat" data-state="${state}"`),
         );
+        expect(html.split('role="status"'), state).toHaveLength(2);
         expect(englishWords(html), state).toEqual([]);
         const agent = await agentPage();
         expect(agent, state).toContain(`data-testid="pc-heartbeat-compact" data-state="${state}"`);
         expect(agent, state).toContain(
-          'همگام‌سازی روزی سه بار است (۰۹:۲۵، ۱۵:۲۵، ۲۱:۲۵؛ وقت تهران)',
+          'هم‌گام‌سازی روزی سه بار است (۰۹:۲۵، ۱۵:۲۵، ۲۱:۲۵؛ وقت تهران)',
         );
+        // One spelling: «هم‌گام» with its half-space, never joined.
+        expect(agent, state).not.toContain('همگام');
+        expect(html, state).not.toContain('همگام');
         expect(agent, state).not.toContain('ساعتی');
         expect(englishWords(agent), state).toEqual([]);
       }
@@ -1047,7 +1051,18 @@ describe('the Persian-only scan', () => {
       expect(englishWords(unread)).toEqual([]);
       const agent = await agentPage();
       expect(agent).toContain('data-testid="pc-heartbeat-compact" data-state="unread"');
-      expect(agent).not.toContain('همگام‌سازی روزی');
+      expect(agent).not.toContain('هم‌گام‌سازی روزی');
+
+      // The overview still read its snapshot: it says when that arrived (rule 4),
+      // and says nothing of the kind while the frame's bar has the time itself.
+      const overview = await render((await import('./(app)/page')).default());
+      expect(overview).toContain('data-testid="snapshot-arrived"');
+      expect(overview).toContain('۱۲ آبان ساعت ۰۸:۳۰ از رایانه رسیده است');
+      expect(englishWords(overview)).toEqual([]);
+      fixtures.heartbeat = { loaded_at: '2026-11-03T05:00:00Z', queued: null };
+      expect(await render((await import('./(app)/page')).default())).not.toContain(
+        'snapshot-arrived',
+      );
       expect(englishWords(agent)).toEqual([]);
     } finally {
       vi.useRealTimers();
