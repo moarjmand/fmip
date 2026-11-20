@@ -37,6 +37,8 @@ const fixtures = vi.hoisted(() => ({
   snapshot: null as unknown,
   invitationOk: true,
   social: null as unknown,
+  // T-1906: `undefined` is the API not answering.
+  heartbeat: undefined as unknown,
 }));
 
 vi.mock('next/headers', () => ({
@@ -45,6 +47,7 @@ vi.mock('next/headers', () => ({
 }));
 vi.mock('next/navigation', () => ({
   usePathname: () => '/findings',
+  useRouter: () => ({ refresh: () => undefined }),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -109,6 +112,11 @@ vi.mock('@/lib/console-api', () => {
   return {
     consoleMe: () => ok({ id: 'u1', username: 'maryam', display_name: 'مریم' }),
     consoleSnapshot: () => ok({ snapshot: fixtures.snapshot, loaded_at: '2026-11-03T05:00:00Z' }),
+    // T-1906: the heartbeat bar of every page; the test sets the state.
+    consoleHeartbeat: () =>
+      fixtures.heartbeat === undefined
+        ? Promise.resolve({ ok: false as const, status: 0, error: null, setCookie: null })
+        : ok(fixtures.heartbeat),
     // T-1729, T-1752: the model page, on the API's real answer of 2026-11-06.
     consoleModel: () => ok(MODEL_REPORT),
     // T-1836: the social tab, with the English the API really sends (captions inside dir=ltr).
@@ -777,6 +785,7 @@ beforeEach(() => {
   fixtures.snapshot = SNAPSHOT;
   fixtures.invitationOk = true;
   fixtures.social = SOCIAL_VIEW;
+  fixtures.heartbeat = { loaded_at: '2026-11-03T05:00:00Z', queued: { commands: 2, messages: 1 } };
 });
 
 describe('the Persian-only scan', () => {
@@ -991,6 +1000,58 @@ describe('the Persian-only scan', () => {
     await expect(
       (await import('./(app)/agents/[name]/page')).default({ params: params({ name: 'nobody' }) }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
+  });
+
+  it("words the computer's heartbeat in Persian in every state, on the frame and above an agent's controls (T-1906)", async () => {
+    const frame = async () =>
+      render((await import('./(app)/layout')).default({ children: <p>بدنه</p> }));
+    const agentPage = async () =>
+      render(
+        (await import('./(app)/agents/[name]/page')).default({
+          params: params({ name: 'data-auditor' }),
+        }),
+      );
+    // The pages read the clock themselves, so it is fixed here. Tehran is UTC+03:30.
+    const states: [string, string | null, string][] = [
+      ['fresh', '2026-11-19T05:58:00Z', '2026-11-19T08:00:00Z'],
+      ['late', '2026-11-18T22:24:00Z', '2026-11-19T06:56:00Z'],
+      ['silent', '2026-11-18T22:24:00Z', '2026-11-20T04:24:00Z'],
+      ['never', null, '2026-11-19T08:00:00Z'],
+    ];
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      for (const [state, loaded_at, now] of states) {
+        vi.setSystemTime(new Date(now));
+        fixtures.heartbeat = { loaded_at, queued: { commands: 2, messages: 1 } };
+        const html = await frame();
+        // Under the frame's header and before the page, on every page.
+        expect(html, state).toMatch(
+          new RegExp(
+            `<main [^>]*><div role="status" data-testid="pc-heartbeat" data-state="${state}"`,
+          ),
+        );
+        expect(englishWords(html), state).toEqual([]);
+        const agent = await agentPage();
+        expect(agent, state).toContain(`data-testid="pc-heartbeat-compact" data-state="${state}"`);
+        expect(agent, state).toContain(
+          'همگام‌سازی روزی سه بار است (۰۹:۲۵، ۱۵:۲۵، ۲۱:۲۵؛ وقت تهران)',
+        );
+        expect(agent, state).not.toContain('ساعتی');
+        expect(englishWords(agent), state).toEqual([]);
+      }
+      // The API did not answer: said as that, on both.
+      fixtures.heartbeat = undefined;
+      const unread = await frame();
+      expect(unread).toContain('data-state="unread"');
+      expect(unread).toContain('وضعیت رایانه خوانده نشد');
+      expect(englishWords(unread)).toEqual([]);
+      const agent = await agentPage();
+      expect(agent).toContain('data-testid="pc-heartbeat-compact" data-state="unread"');
+      expect(agent).not.toContain('همگام‌سازی روزی');
+      expect(englishWords(agent)).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("translates what reaches the console in English, and never shows an agent's English description", async () => {

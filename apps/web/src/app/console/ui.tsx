@@ -1,5 +1,21 @@
 import type { ReactNode } from 'react';
-import type { ConsoleAgent, ConsoleFinding, ConsoleSeverity } from '@fmip/contracts';
+import type {
+  ConsoleAgent,
+  ConsoleFinding,
+  ConsoleHeartbeat,
+  ConsoleHeartbeatState,
+  ConsoleSeverity,
+} from '@fmip/contracts';
+import {
+  CONSOLE_DAILY_RUN_TIME,
+  CONSOLE_SILENT_HOURS,
+  CONSOLE_SYNC_GRACE_MINUTES,
+  CONSOLE_SYNC_TIME_ZONE,
+  CONSOLE_SYNC_TIMES,
+  consolePcState,
+  syncSlotAfter,
+  wallClock,
+} from '@fmip/contracts/console';
 
 /**
  * The agents console's building blocks (D-340): server components only, in
@@ -147,15 +163,294 @@ export const fa = (n: number): string => new Intl.NumberFormat('fa-IR').format(n
 export const inputClass =
   'min-h-touch w-full rounded-control border border-strong bg-canvas px-3 text-sm text-fg focus:outline-2 focus:outline-focus';
 
-/** How old the snapshot is; past a day it says so (rule 4). */
-export function freshness(loadedAt: string | null, now: Date): { words: string; stale: boolean } {
-  if (loadedAt === null) return { words: 'هنوز داده‌ای از رایانه نرسیده است.', stale: true };
-  const hours = (now.getTime() - new Date(loadedAt).getTime()) / 3_600_000;
-  const stale = hours > 26;
+// --- The computer's heartbeat (T-1906, D-456) --------------------------------
+
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+/** A wall-clock time such as `09:25` in Persian digits. */
+const faClock = (time: string): string => time.replace(/\d/g, (d) => FA_DIGITS[Number(d)] ?? d);
+
+/** An instant's time on Tehran's wall clock, «۰۹:۲۵». */
+function clock(date: Date): string {
+  return new Intl.DateTimeFormat('fa-IR', {
+    timeZone: CONSOLE_SYNC_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
+
+/** An instant's day and time in Tehran, «۲۸ آبان ۰۱:۵۴». */
+function dayAndClock(date: Date): string {
+  const day = new Intl.DateTimeFormat('fa-IR', {
+    timeZone: CONSOLE_SYNC_TIME_ZONE,
+    day: 'numeric',
+    month: 'long',
+  }).format(date);
+  return `${day} ${clock(date)}`;
+}
+
+const sameDay = (a: Date, b: Date): boolean =>
+  wallClock(a, CONSOLE_SYNC_TIME_ZONE).date === wallClock(b, CONSOLE_SYNC_TIME_ZONE).date;
+
+/** How long ago, from whole minutes: minutes under an hour, hours under two days, then days. */
+function ago(minutes: number): string {
+  if (minutes < 1) return 'کمتر از یک دقیقه پیش';
+  if (minutes < 60) return `${fa(minutes)} دقیقه پیش`;
+  if (minutes < 48 * 60) return `${fa(Math.floor(minutes / 60))} ساعت پیش`;
+  return `${fa(Math.floor(minutes / (24 * 60)))} روز پیش`;
+}
+
+const HEARTBEAT_WORDS: Record<ConsoleHeartbeatState, string> = {
+  fresh: 'هم‌گام',
+  late: 'دیر شده',
+  silent: 'خاموش',
+  never: 'بی‌داده',
+};
+
+/** What the last sync says about the computer, in Persian (rule 4). */
+export interface Freshness {
+  state: ConsoleHeartbeatState;
+  /** The state as one word, shown beside its shape. */
+  word: string;
+  /** The bold sentence. */
+  title: string;
+  /** The muted sentence under it. */
+  detail: string;
+  /** The next sync time by the schedule, «۱۵:۲۵»: a time on the timetable, not a promise. */
+  next: string;
+}
+
+/**
+ * The computer's state from the newest snapshot's arrival, worded: fresh,
+ * late, silent («رایانه خاموش است», an inference from silence) or never
+ * synced, which is not "nothing exists". The limits and the sync's times are
+ * `@fmip/contracts/console`'s.
+ */
+export function freshness(loadedAt: string | null, now: Date): Freshness {
+  const pc = consolePcState(loadedAt, now);
+  const next = clock(pc.nextSlot);
+  const base = { state: pc.state, word: HEARTBEAT_WORDS[pc.state], next };
+  if (pc.lastSync === null || pc.ageMinutes === null)
+    return {
+      ...base,
+      title: 'هنوز هیچ هم‌گام‌سازی از رایانه نرسیده است',
+      detail:
+        'یافته‌ها، گزارش‌ها و وضعیت عامل‌ها خالی‌اند چون از رایانه نیامده‌اند، نه چون چیزی نیست.',
+    };
+  const age = ago(pc.ageMinutes);
+  const stamp = dayAndClock(pc.lastSync);
+  if (pc.state === 'silent')
+    return {
+      ...base,
+      title: 'رایانه خاموش است؛ دستورها در صف می‌مانند.',
+      detail: `آخرین هم‌گام‌سازی: ${stamp}، ${age}. در این مدت هیچ عاملی اجرا نشده و یافته‌ها و گزارش‌ها همان زمان‌اند.`,
+    };
+  const today = sameDay(pc.lastSync, now);
+  if (pc.state === 'late')
+    return {
+      ...base,
+      title: `هم‌گام‌سازی دیر شده؛ آخرین: ${age} (${stamp})`,
+      detail: `نوبت ${pc.missedSlot === null ? '' : clock(pc.missedSlot)} انجام نشد. تا برگشت رایانه عامل‌ها اجرا نمی‌شوند و آنچه می‌بینید از ${today ? clock(pc.lastSync) : stamp} است.`,
+    };
   return {
-    words: `آخرین به‌روزرسانی: ${when(loadedAt)}${stale ? ' — کهنه است؛ اجرای روزانه انجام نشده.' : ''}`,
-    stale,
+    ...base,
+    title: `آخرین هم‌گام‌سازی: ${age} (${today ? `امروز ${clock(pc.lastSync)}` : stamp})`,
+    detail:
+      pc.dueSlot === null
+        ? `هم‌گام‌سازی بعدی حدود ${next}. دستورها و پیام‌های تازه تا آن‌وقت در صف می‌مانند.`
+        : `هم‌گام‌سازی نوبت ${clock(pc.dueSlot)} هنوز نرسیده است. دستورها و پیام‌های تازه تا رسیدنش در صف می‌مانند.`,
   };
+}
+
+const COUNT_WORDS: Record<number, string> = { 1: 'یک', 2: 'دو', 3: 'سه', 4: 'چهار' };
+const syncTimes = (separator: string): string => CONSOLE_SYNC_TIMES.map(faClock).join(separator);
+
+/**
+ * The sentence above an agent's controls: how often the computer syncs, from
+ * the one list of its times, and the next one. With the computer silent or
+ * never seen no next time is named.
+ */
+export function syncSentence(fresh: Freshness): string {
+  const times = CONSOLE_SYNC_TIMES.length;
+  const often = `همگام‌سازی روزی ${COUNT_WORDS[times] ?? fa(times)} بار است (${syncTimes('، ')}؛ وقت تهران)`;
+  const next =
+    fresh.state === 'silent' || fresh.state === 'never' ? '.' : `؛ بعدی حدود ${fresh.next}.`;
+  return `هر دستور در صف می‌ماند تا رایانه آن را بردارد. ${often}${next}`;
+}
+
+/** What a form says once its command is queued, with the next sync time by the schedule. */
+export const queuedWords = (now: Date): string =>
+  `ثبت شد. رایانه در همگام‌سازی بعدی (حدود ${clock(syncSlotAfter(now))}) آن را انجام می‌دهد.`;
+
+type HeartbeatLook = ConsoleHeartbeatState | 'unread';
+
+/** Each state's colours; the word and the shape carry the state, the colour only repeats it. */
+const HEARTBEAT_TONE: Record<HeartbeatLook, { box: string; icon: string; badge: string }> = {
+  fresh: { box: 'border-default bg-surface', icon: 'text-fg', badge: 'border-fg text-fg' },
+  late: {
+    box: 'border-warning bg-selected',
+    icon: 'text-warning',
+    badge: 'border-warning text-warning',
+  },
+  silent: {
+    box: 'border-danger bg-surface',
+    icon: 'text-danger',
+    badge: 'border-danger text-danger',
+  },
+  never: {
+    box: 'border-danger bg-surface',
+    icon: 'text-danger',
+    badge: 'border-danger text-danger',
+  },
+  unread: {
+    box: 'border-strong bg-surface',
+    icon: 'text-muted',
+    badge: 'border-strong text-muted',
+  },
+};
+
+/** A fact beside the sentences: the badge's pill, but free to wrap on a narrow phone. */
+const HEARTBEAT_CHIP = 'rounded-pill border border-default px-2 py-0.5 text-xs text-muted';
+
+/** A shape per state: a check, a triangle, a power sign, a question mark. */
+function HeartbeatIcon({ look }: { look: HeartbeatLook }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-[1.125rem] flex-none"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {look === 'fresh' && <path d="M4 12l5 5L20 6" />}
+      {look === 'late' && (
+        <>
+          <path d="M12 3l10 18H2z" />
+          <path d="M12 10v5M12 18v.5" />
+        </>
+      )}
+      {(look === 'silent' || look === 'never') && (
+        <>
+          <path d="M12 3v9" />
+          <path d="M6.5 6.5a8 8 0 1 0 11 0" />
+        </>
+      )}
+      {look === 'unread' && (
+        <>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3a2.5 2.5 0 1 1 3.6 2.4c-.8.5-1.2 1-1.2 1.8M12 17v.5" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** The sync's timetable and what "late" and "silent" mean, from the same constants the state uses. */
+function SyncSchedule() {
+  const grace =
+    CONSOLE_SYNC_GRACE_MINUTES === 60 ? 'یک ساعت' : `${fa(CONSOLE_SYNC_GRACE_MINUTES)} دقیقه`;
+  return (
+    <>
+      برنامه‌ی هم‌گام‌سازی (وقت تهران): <b className="font-bold">{syncTimes(' · ')}</b> و اجرای
+      روزانه‌ی تیم {faClock(CONSOLE_DAILY_RUN_TIME)}. «دیر شده» یعنی {grace} از نوبت گذشته؛ «خاموش»
+      یعنی بیش از {fa(CONSOLE_SILENT_HOURS)} ساعت.
+    </>
+  );
+}
+
+/**
+ * The computer's heartbeat bar (T-1906, D-456), on every console page and,
+ * `compact`, above an agent's controls: the state as a shape and a word, when
+ * the last sync was, what follows from it, and what waits in the queue. A
+ * standing state, so `role="status"` and never an alert; nothing moves.
+ *
+ * `heartbeat` is `null` when the server did not answer, which is said as
+ * that: neither "off" nor "never synced" is claimed without a time to rest
+ * on. The queue's chips go when the counts could not be read; the sentences
+ * stay.
+ */
+export function PcHeartbeat({
+  heartbeat,
+  now,
+  compact = false,
+}: {
+  heartbeat: ConsoleHeartbeat | null;
+  now: Date;
+  compact?: boolean;
+}) {
+  const fresh = heartbeat === null ? null : freshness(heartbeat.loaded_at, now);
+  const look: HeartbeatLook = fresh?.state ?? 'unread';
+  const tone = HEARTBEAT_TONE[look];
+  const word = fresh?.word ?? 'نامعلوم';
+  const title = fresh?.title ?? 'وضعیت رایانه خوانده نشد';
+  const detail =
+    fresh?.detail ??
+    'زمان آخرین هم‌گام‌سازی از سرور خوانده نشد؛ این یعنی نمی‌دانیم، نه این‌که رایانه خاموش است. صفحه را دوباره باز کنید.';
+  const heading = (
+    <p className="text-[0.9375rem] font-bold text-fg">
+      <span className="me-2 inline-flex align-middle">
+        <Badge tone={tone.badge}>{word}</Badge>
+      </span>
+      {title}
+    </p>
+  );
+  if (compact)
+    return (
+      <div
+        data-testid="pc-heartbeat-compact"
+        data-state={look}
+        className={`mb-3 flex items-start gap-3 rounded-control border border-s-[5px] px-3 py-2 ${tone.box}`}
+      >
+        <span className={`mt-0.5 ${tone.icon}`}>
+          <HeartbeatIcon look={look} />
+        </span>
+        <div className="min-w-0 flex-1">{heading}</div>
+      </div>
+    );
+  const queued = heartbeat?.queued ?? null;
+  return (
+    <div
+      role="status"
+      data-testid="pc-heartbeat"
+      data-state={look}
+      className={`flex items-start gap-3.5 rounded-tile border border-s-[5px] px-4 py-3.5 ${tone.box}`}
+    >
+      <span className={`mt-0.5 ${tone.icon}`}>
+        <HeartbeatIcon look={look} />
+      </span>
+      <div className="min-w-0 flex-1">
+        {heading}
+        <p className="mt-0.5 text-[0.8125rem] text-muted">{detail}</p>
+        {fresh !== null && (
+          <>
+            <ul className="mt-2 flex flex-wrap gap-x-2 gap-y-1.5">
+              {fresh.state !== 'never' && queued !== null && (
+                <>
+                  <li className={HEARTBEAT_CHIP}>{fa(queued.commands)} دستور در صف</li>
+                  <li className={HEARTBEAT_CHIP}>{fa(queued.messages)} پیام در صف</li>
+                </>
+              )}
+              <li className={HEARTBEAT_CHIP}>مدل، تقویم و یادآورها بدون رایانه کار می‌کنند</li>
+            </ul>
+            <p className="mt-1.5 hidden text-xs text-caption md:block">
+              <SyncSchedule />
+            </p>
+            <details className="mt-1.5 md:hidden">
+              <summary className="flex min-h-6 cursor-pointer items-center text-[0.8125rem] font-semibold text-accent">
+                برنامه‌ی هم‌گام‌سازی
+              </summary>
+              <p className="mt-1 text-xs text-caption">
+                <SyncSchedule />
+              </p>
+            </details>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function Card({

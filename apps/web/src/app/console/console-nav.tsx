@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import Link from '@/components/ui/link';
 
@@ -31,6 +31,16 @@ export function isCurrent(itemPath: string, current: string): boolean {
   return current === itemPath || current.startsWith(`${itemPath}/`);
 }
 
+/**
+ * How old the layout's render may get before it is asked for again (T-1906).
+ * Next keeps a layout across a link's navigation and while a page stays open,
+ * so the heartbeat bar it drew would go on saying "fresh" from the first
+ * page's clock (rule 4). Ten minutes against limits counted in hours.
+ */
+export const LAYOUT_MAX_AGE_MS = 10 * 60_000;
+export const layoutIsOld = (seenAt: number, now: number): boolean =>
+  now - seenAt > LAYOUT_MAX_AGE_MS;
+
 /** The width from which the menu is a column (Tailwind's `lg`, `.console-menu` in globals.css). */
 const WIDE = '(width >= 64rem)';
 
@@ -43,10 +53,44 @@ const WIDE = '(width >= 64rem)';
  * by itself; a browser that cannot style a closed `<details>` keeps the
  * summary there instead. The page shown is marked `aria-current="page"`.
  */
-export function ConsoleNav({ items, base }: { items: readonly ConsoleNavItem[]; base: string }) {
+export function ConsoleNav({
+  items,
+  base,
+  renderedAt,
+}: {
+  items: readonly ConsoleNavItem[];
+  base: string;
+  /** When the server drew the layout; a new value means a new render arrived. */
+  renderedAt?: number;
+}) {
   const [open, setOpen] = useState(false);
   const summary = useRef<HTMLElement>(null);
   const current = consolePathname(usePathname() ?? '/', base);
+  const router = useRouter();
+
+  // T-1906: the layout (the heartbeat bar, this menu's count) is asked for
+  // again once it is old: on a navigation, on coming back to the tab, and
+  // each minute a visible page stays open. The age is counted on this
+  // browser's clock from when the render arrived, never against the server's.
+  const seenAt = useRef(0);
+  useEffect(() => {
+    seenAt.current = Date.now();
+  }, [renderedAt]);
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState !== 'visible' || !navigator.onLine) return;
+      if (!layoutIsOld(seenAt.current, Date.now())) return;
+      seenAt.current = Date.now(); // one ask per age, also when it fails
+      router.refresh();
+    };
+    check();
+    document.addEventListener('visibilitychange', check);
+    const timer = window.setInterval(check, 60_000);
+    return () => {
+      document.removeEventListener('visibilitychange', check);
+      window.clearInterval(timer);
+    };
+  }, [current, router]);
 
   // A panel opened on a phone is closed when the window grows into the column.
   useEffect(() => {

@@ -7,20 +7,23 @@ import {
   type ConsoleMemorySource,
 } from '@fmip/contracts';
 import { queueCommand } from '@/lib/console-actions';
-import { consoleCommands, consoleSnapshot } from '@/lib/console-api';
+import { consoleCommands, consoleHeartbeat, consoleSnapshot } from '@/lib/console-api';
 import { ConsoleForm } from '../../../console-form';
 import {
   Badge,
   Card,
   FindingRow,
+  PcHeartbeat,
   RunsBars,
   SCHEDULE_WORDS,
   STATUS_WORDS,
   agentDescription,
   agentTitle,
   fa,
+  freshness,
   inputClass,
   plain,
+  syncSentence,
   when,
 } from '../../../ui';
 import { AgentSchematic } from '../../../schematic';
@@ -56,13 +59,18 @@ function Reason() {
 /** One agent (T-1698, D-340): how it works, what it can touch, what feeds its memory and what it holds, its runs, and its controls. */
 export default async function ConsoleAgentPage({ params }: Params) {
   const { name } = await params;
-  const [snapshotResult, commandsResult] = await Promise.all([
+  const [snapshotResult, commandsResult, heartbeatResult] = await Promise.all([
     consoleSnapshot(),
     consoleCommands(),
+    consoleHeartbeat(),
   ]);
   const snapshot = snapshotResult.ok ? snapshotResult.data.snapshot : null;
   const agent = snapshot?.agents.find((a) => a.name === name);
   if (snapshot === null || agent === undefined) notFound();
+
+  // T-1906: the computer's state beside the controls, and the sync's real times.
+  const now = new Date();
+  const heartbeat = heartbeatResult.ok ? heartbeatResult.data : null;
 
   const findings = snapshot.findings.filter((f) => f.agent === name);
   const open = findings.filter((f) => f.status === 'open');
@@ -182,8 +190,11 @@ export default async function ConsoleAgentPage({ params }: Params) {
       </Card>
 
       <Card title="کنترل">
+        <PcHeartbeat heartbeat={heartbeat} now={now} compact />
         <p className="mb-4 text-sm text-muted">
-          هر دستور در صف می‌ماند تا رایانه آن را بردارد (همگام‌سازی ساعتی و اجرای روزانه‌ی ۸ صبح)؛
+          {heartbeat === null
+            ? 'هر دستور در صف می‌ماند تا رایانه آن را بردارد.'
+            : syncSentence(freshness(heartbeat.loaded_at, now))}{' '}
           نتیجه زیر «دستورها» دیده می‌شود.
         </p>
         <div className="grid gap-5 md:grid-cols-2">

@@ -13,6 +13,7 @@ import {
   type ConsoleBoardCard,
   type ConsoleCommand,
   type ConsoleConversation,
+  type ConsoleHeartbeat,
   type ConsoleMessage,
   type ConsoleRequestDetail,
   type ConsoleRequestList,
@@ -212,7 +213,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
   });
 
   it('answers nothing but signing in without a session', async () => {
-    for (const url of ['me', 'snapshot', 'commands', 'board', 'audit']) {
+    for (const url of ['me', 'snapshot', 'heartbeat', 'commands', 'board', 'audit']) {
       expect((await get(url, null)).statusCode).toBe(401);
       expect((await get(url, 'not-a-token')).statusCode).toBe(401);
     }
@@ -294,7 +295,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
 
     // Idle for 12 hours and a second: the session is over, everywhere.
     await idleFor('12 hours 1 second');
-    for (const url of ['me', 'snapshot', 'commands', 'board', 'audit']) {
+    for (const url of ['me', 'snapshot', 'heartbeat', 'commands', 'board', 'audit']) {
       expect((await get(url, idle)).statusCode).toBe(401);
     }
     expect((await send('POST', 'board', { title: 't', column: 'next' }, idle)).statusCode).toBe(
@@ -340,7 +341,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     // Seven days and a second: over, everywhere, whatever its idle clock says.
     await openedAgo('168 hours 1 second');
     expect(await hoursLeft()).toBeGreaterThan(SESSION_IDLE_HOURS - 0.01);
-    for (const url of ['me', 'snapshot', 'commands', 'board', 'audit']) {
+    for (const url of ['me', 'snapshot', 'heartbeat', 'commands', 'board', 'audit']) {
       expect((await get(url, old)).statusCode).toBe(401);
     }
     expect((await send('POST', 'board', { title: 't', column: 'next' }, old)).statusCode).toBe(401);
@@ -441,6 +442,62 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       status: 'done',
       outcome: 'paused in the daily run',
     });
+  });
+
+  it("gives the heartbeat: the newest snapshot's arrival and the queue's own counts (T-1906)", async () => {
+    // The counts are of the whole queue, whoever asked, so they are read from
+    // the tables around each step instead of assumed.
+    const queueRows = async (): Promise<{ commands: number; messages: number }> => {
+      const { rows } = await pool.query<{ commands: string; messages: string }>(
+        `SELECT (SELECT count(*) FROM console_command WHERE status = 'queued') AS commands,
+                (SELECT count(*) FROM console_message WHERE status = 'queued') AS messages`,
+      );
+      return { commands: Number(rows[0]?.commands), messages: Number(rows[0]?.messages) };
+    };
+    const { rows: loaded } = await pool.query<{ loaded_at: Date }>(
+      `SELECT loaded_at FROM console_snapshot WHERE generated_at = $1`,
+      [GENERATED],
+    );
+    const before = (await get('heartbeat')).json<ConsoleHeartbeat>();
+    // The spec's snapshot is dated 2099, so it is the newest: its arrival is the heartbeat.
+    expect(before.loaded_at).toBe(loaded[0]?.loaded_at.toISOString());
+    expect(before.queued).toEqual(await queueRows());
+    // Nothing of the snapshot itself is in the answer.
+    expect(Object.keys(before).sort()).toEqual(['loaded_at', 'queued']);
+
+    // A queued command and a queued message of this run's person, dated two
+    // hours back so the hourly ceilings the later tests count are untouched.
+    const { rows: me } = await pool.query<{ id: string }>(
+      `SELECT id FROM console_user WHERE username = $1`,
+      [name],
+    );
+    const { rows: command } = await pool.query<{ id: string }>(
+      `INSERT INTO console_command (kind, target, payload, requested_by, requested_at)
+       VALUES ('agent.pause', 'data-auditor', '{}', $1, now() - interval '2 hours') RETURNING id`,
+      [me[0]?.id],
+    );
+    const { rows: message } = await pool.query<{ id: string }>(
+      `INSERT INTO console_message (agent, author_id, body, status, created_at)
+       VALUES ('data-auditor', $1, 'heartbeat', 'queued', now() - interval '2 hours') RETURNING id`,
+      [me[0]?.id],
+    );
+    const after = (await get('heartbeat')).json<ConsoleHeartbeat>();
+    expect(after.queued).toEqual(await queueRows());
+    expect(after.queued?.commands).toBeGreaterThanOrEqual(1);
+    expect(after.queued?.messages).toBeGreaterThanOrEqual(1);
+
+    // Taken by the computer, neither is in the queue any more.
+    await pool.query(
+      `UPDATE console_command SET status = 'taken', taken_at = now() WHERE id = $1`,
+      [command[0]?.id],
+    );
+    await pool.query(
+      `UPDATE console_message SET status = 'answering', taken_at = now() WHERE id = $1`,
+      [message[0]?.id],
+    );
+    const taken = (await get('heartbeat')).json<ConsoleHeartbeat>();
+    expect(taken.queued).toEqual(await queueRows());
+    expect(taken.loaded_at).toBe(before.loaded_at);
   });
 
   it('holds commands to two hourly ceilings, and an agent to one waiting run (T-1880)', async () => {
