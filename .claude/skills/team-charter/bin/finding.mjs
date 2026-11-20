@@ -21,13 +21,18 @@
 // What it cannot see, as guard.mjs says of itself: it is a door, not a wall. A line written by hand
 // with a heredoc bypasses it until the team guard refuses that (T-1885), which is why `validate`
 // exists. The same-subject search compares title words only: two findings about one problem in
-// different words pass it. The lock is advisory: only callers of this script honour it.
+// different words pass it. The lock is advisory: only callers of this script honour it. `--by` is
+// a name the caller types, not a sign-in: it stops an agent closing a finding as a person by
+// habit, not one that sets out to. Git Bash rewrites an argument that begins with a slash before
+// Node sees it; what can be recognised is put back or refused, but a path after `=` inside a longer
+// text (`x=/e/y` arriving as `x=E:/y`) cannot be told from a real one: text with slashes goes in a file.
 import {
   appendFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmdirSync,
   statSync,
 } from 'node:fs';
@@ -60,6 +65,13 @@ const OPEN = ['new', 'open', 'decide'];
 const WAITING = ['fixed-unverified', 'planned', 'snoozed'];
 const CLOSED = ['resolved', 'accepted', 'rejected', 'duplicate', 'stale'];
 const STATUSES = [...OPEN, ...WAITING, ...CLOSED];
+/** A person's triage (D-457 point 2, D-456 point 2): never an agent's own word, so they name who. */
+const PERSON_STATUSES = ['planned', 'rejected', 'snoozed'];
+/**
+ * A minor finding with no line for this many days may be closed as `stale` (D-457 point 7).
+ * The number is proposed and awaits the maintainer's confirmation: change it here only.
+ */
+const STALE_AFTER_DAYS = 14;
 const REQUIRED = [
   'id',
   'agent',
@@ -76,8 +88,10 @@ const REQUIRED = [
 ];
 const TEXT_FIELDS = ['title', 'evidence', 'likely_cause', 'proposal'];
 /** Optional fields a line may carry (D-457 point 2), plus the two a status needs. */
-const OPTIONAL_TEXT = ['verify', 'report', 'quoted', 'task', 'duplicate_of', 'until'];
+const OPTIONAL_TEXT = ['verify', 'report', 'quoted', 'task', 'duplicate_of', 'until', 'by'];
 const CARRIED = ['verify', 'report', 'quoted', 'task', 'public'];
+/** Who a line is by, when a person decided it: one short word that is not an agent's name. */
+const BY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
 
 const ID_RE = new RegExp(
   `^(${Object.values(PREFIX).join('|')})-(\\d{4}-\\d{2}-\\d{2})-(\\d{2,3})$`,
@@ -85,6 +99,20 @@ const ID_RE = new RegExp(
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /** The two ids filed outside the scheme before this script existed: left as they are and listed (T-1884). */
 const LEGACY_IDS = new Set(['ops-2026-11-01-reboot', 'aud-2026-11-17-dup-persons-01']);
+/**
+ * The three lines written by hand without `first_seen` before this script existed, by file, line
+ * and id. They are never rewritten (the one in-place repair of D-457 is the three lines that did
+ * not parse), so `validate` lists them as known instead of failing on them for ever. Any other
+ * line missing a field is an error.
+ */
+const LEGACY_NO_FIRST_SEEN = new Map([
+  ['2026-11-04.jsonl:5', 'cnt-2026-11-04-02'],
+  ['2026-11-04.jsonl:6', 'cnt-2026-11-04-03'],
+  ['2026-11-04.jsonl:7', 'cnt-2026-11-02-01'],
+]);
+/** A lock this old belongs to a process that died. The wait for the lock is longer than this. */
+const LOCK_STALE_MS = 30_000;
+const LOCK_WAIT_MS = 45_000;
 /** Title-word similarity at or above which two findings are taken as one subject (the audit's measure). */
 const SAME_SUBJECT = 0.45;
 /** Below this, a later line's title shares almost nothing with the id's earlier titles. */
@@ -94,23 +122,43 @@ const TITLE_MAX = 300;
 const EXIT_REFUSED = 1;
 const EXIT_SAME_SUBJECT = 3;
 
-/** Secret shapes. The match is never printed, only the name of the shape. */
+/**
+ * Secret shapes. The match is never printed, only the name of the shape. Where a shape has a
+ * capture group, the group is the value, and a value that only stands for a secret (a mask, a date
+ * and time) is let through: `postgres://fmip:****@db` and `password_changed_at: 2026-11-19T10:00:00Z`
+ * are evidence, not secrets.
+ */
 const SECRET_SHAPES = [
-  ['a private key block', /-----BEGIN [A-Z ]*PRIVATE KEY-----/],
-  ['an API key (sk-...)', /\bsk-[A-Za-z0-9_-]{20,}/],
-  ['a GitHub token', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/],
-  ['an AWS access key id', /\bAKIA[0-9A-Z]{16}\b/],
-  ['a Google API key', /\bAIza[0-9A-Za-z_-]{35}\b/],
-  ['a Slack token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/],
-  ['a JSON web token', /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
-  ['a bearer token', /\bBearer\s+[A-Za-z0-9._~+/=-]{20,}/i],
-  ['a URL with a password in it', /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:[^\s/@]{3,}@/i],
+  ['a private key block', /-----BEGIN [A-Z ]*PRIVATE KEY-----/g],
+  ['an API key (sk-...)', /\bsk-[A-Za-z0-9_-]{20,}/g],
+  ['a GitHub token', /\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})/g],
+  ['an AWS access key id', /\bAKIA[0-9A-Z]{16}\b/g],
+  ['a Google API key', /\bAIza[0-9A-Za-z_-]{35}\b/g],
+  ['a Slack token', /\bxox[abprs]-[A-Za-z0-9-]{10,}/g],
+  ['a JSON web token', /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g],
+  // a token holds digits as well as letters; "Bearer authorization/required/for/all/routes" is prose
+  [
+    'a bearer token',
+    /\bBearer\s+(?=[A-Za-z0-9._~+/=-]*\d)(?=[A-Za-z0-9._~+/=-]*[A-Za-z])([A-Za-z0-9._~+/=-]{20,})/gi,
+  ],
+  ['a URL with a password in it', /\b[a-z][a-z0-9+.-]*:\/\/[^\s/:@]+:([^\s/@]{3,})@/gi],
   // name = value, where the value is one long word holding both letters and digits
   [
     'a password, token or key with its value',
-    /(?:password|passwd|secret|token|api[_-]?key)[\w-]*["']?\s*[=:]\s*["']?(?=[^\s"']*\d)(?=[^\s"']*[A-Za-z])[^\s"']{12,}/i,
+    /(?:password|passwd|secret|token|api[_-]?key)[\w-]*["']?\s*[=:]\s*["']?(?=[^\s"']*\d)(?=[^\s"']*[A-Za-z])([^\s"']{12,})/gi,
   ],
 ];
+
+/** A value that stands for a secret without being one: a mask, a placeholder, or a date and time. */
+function standsForASecret(value) {
+  const v = value.replace(/[,;.)\]]+$/, '');
+  return (
+    /^[*•#xX._-]+$/.test(v) ||
+    /^<[^>]*>$/.test(v) ||
+    /^(?:\[?(?:redacted|masked|hidden|removed|omitted)\]?)$/i.test(v) ||
+    /^\d{4}-\d{2}-\d{2}(?:[T_]?\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?)?$/.test(v)
+  );
+}
 
 class Refusal extends Error {
   constructor(message, code = EXIT_REFUSED) {
@@ -174,7 +222,11 @@ function similarity(a, b) {
 }
 
 function secretShape(text) {
-  for (const [name, re] of SECRET_SHAPES) if (re.test(text)) return name;
+  for (const [name, re] of SECRET_SHAPES) {
+    for (const m of text.matchAll(re)) {
+      if (m[1] === undefined || !standsForASecret(m[1])) return name;
+    }
+  }
   return null;
 }
 
@@ -185,38 +237,94 @@ function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
+const ageMs = (path) => Date.now() - statSync(path).mtimeMs;
+/** What tells one lock folder from the next one made under the same name. */
+const lockMark = (path) => {
+  const s = statSync(path, { bigint: true });
+  return `${s.ino}:${s.birthtimeNs}`;
+};
+
+/**
+ * Clears a lock left by a process that died, so that one waiter does it and no waiter can remove
+ * a lock that is alive. Two waiters that both saw the old lock must not both remove "the lock":
+ * the second would remove the fresh one the first has just taken. So the clearing itself is done
+ * under a second `mkdir`, `.lock.clearing`: whoever holds it looks at the lock again, and only if
+ * it is still the old one moves it aside in one step (`rename`) and removes it there. Everyone,
+ * the clearer included, then takes the lock through the same `mkdir` as always.
+ */
+function clearDeadLock(lock) {
+  const clearing = `${lock}.clearing`;
+  try {
+    mkdirSync(clearing);
+  } catch {
+    try {
+      // another waiter is clearing; a `.clearing` this old was left by one that died in the act
+      if (ageMs(clearing) > LOCK_STALE_MS) rmdirSync(clearing);
+    } catch {
+      // gone already
+    }
+    return;
+  }
+  try {
+    if (ageMs(lock) > LOCK_STALE_MS) {
+      const aside = `${lock}.dead-${process.pid}-${Date.now()}`;
+      renameSync(lock, aside);
+      rmdirSync(aside);
+    }
+  } catch {
+    // released, or already cleared, between the look and the move: nothing to clear
+  } finally {
+    try {
+      rmdirSync(clearing);
+    } catch {
+      // gone already
+    }
+  }
+}
+
 /**
  * Runs `work` while holding findings/.lock. `mkdir` either creates the folder or fails, in one step,
- * on every file system this runs on, so two processes never both hold it. A lock older than 30 s
- * belongs to a process that died: it is removed and taken.
+ * on every file system this runs on, so two processes never both hold it. A lock older than
+ * LOCK_STALE_MS belongs to a process that died and is cleared (see clearDeadLock).
  */
 function withLock(dir, work) {
   mkdirSync(dir, { recursive: true });
   const lock = join(dir, '.lock');
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + LOCK_WAIT_MS;
   for (;;) {
     try {
       mkdirSync(lock);
       break;
     } catch (error) {
       if (error.code !== 'EEXIST' && error.code !== 'EPERM' && error.code !== 'EACCES') throw error;
+      let dead = false;
       try {
-        if (Date.now() - statSync(lock).mtimeMs > 30_000) rmdirSync(lock);
+        dead = ageMs(lock) > LOCK_STALE_MS;
       } catch {
-        // another process released or took it between the two calls: try again
+        // released between the two calls: try again
       }
-      if (Date.now() > deadline)
-        refuse(`could not take the lock ${lock} in 30 s; nothing was written`);
+      if (dead) clearDeadLock(lock);
+      if (Date.now() > deadline) {
+        refuse(`could not take the lock ${lock} in ${LOCK_WAIT_MS / 1000} s; nothing was written`);
+      }
       sleep(15 + Math.floor(Math.random() * 45));
     }
+  }
+  let mine = null;
+  try {
+    mine = lockMark(lock);
+  } catch {
+    // cannot be read: then it is not removed below either
   }
   try {
     return work();
   } finally {
     try {
-      rmdirSync(lock);
+      // only the lock this process made: if it was held so long that it was cleared as dead,
+      // the folder under this name is now someone else's
+      if (mine !== null && lockMark(lock) === mine) rmdirSync(lock);
     } catch {
-      // already gone: a slower process judged it stale
+      // already gone
     }
   }
 }
@@ -335,6 +443,17 @@ function lineProblems(o) {
     error('missing-field', 'a `snoozed` finding carries the date it wakes in `until`');
   if ('until' in o && typeof o.until === 'string' && !validDate(o.until))
     error('bad-value', '`until` must be a date, YYYY-MM-DD');
+  if (typeof o.by === 'string' && !BY_RE.test(o.by)) error('bad-value', '`by` is one short name');
+  if (PERSON_STATUSES.includes(o.status)) {
+    if (typeof o.by !== 'string') {
+      error(
+        'missing-field',
+        `\`${o.status}\` is a person's decision: the line names whose in \`by\``,
+      );
+    } else if (AGENTS.includes(o.by)) {
+      error('bad-value', `\`${o.status}\` is a person's decision, and \`by\` names an agent`);
+    }
+  }
   for (const [key, value] of Object.entries(o)) {
     const shape = typeof value === 'string' ? secretShape(value) : null;
     if (shape)
@@ -415,21 +534,40 @@ function parseArgs(argv, allowed) {
 }
 
 /**
- * Git Bash rewrites an argument that begins with a slash into a Windows path before Node sees it:
- * a title "/en/news shows ..." arrives as "C:/Program Files/Git/en/news shows ...". The plain case
- * is put back; the path-list case cannot be, and is refused with the way round it.
+ * Git Bash rewrites an argument that begins with a slash into a Windows path before Node sees it.
+ * Only one shape can be put back without guessing: "/en/news shows ..." arrives as
+ * "<Git's folder>/en/news shows ...", and no finding begins with Git's folder. Everything else that
+ * looks rewritten is refused, with the way round it, instead of being guessed at:
+ *   - Git's folder anywhere else in the text ("x=/en/news", "(/en/news)", a path list);
+ *   - a text that begins with a drive path: "/e/FMIP/x" arrives as "E:/FMIP/x" and "/a:/b" as
+ *     "a:/b", which cannot be told from a text that really begins with one.
  */
 function unmangle(name, value) {
-  const exe = process.env.EXEPATH;
-  if (process.platform !== 'win32' || !exe) return value;
-  const root = exe.replace(/\\/g, '/').replace(/\/(usr\/bin|mingw64\/bin|bin)\/?$/i, '');
-  if (value.toLowerCase().startsWith(`${root.toLowerCase()}/`)) return value.slice(root.length);
-  if (value.toLowerCase().startsWith(`${root.replace(/\//g, '\\').toLowerCase()}\\`)) {
+  if (process.platform !== 'win32' || !(process.env.EXEPATH || process.env.MSYSTEM)) return value;
+  const way = FILE_TEXT.includes(name)
+    ? `put the text in a file and give --${name}-file`
+    : 'word it so that it does not begin with a slash or a path';
+  const root = (process.env.EXEPATH ?? '')
+    .replace(/\\/g, '/')
+    .replace(/\/(usr\/bin|mingw64\/bin|bin)\/?$/i, '')
+    .toLowerCase();
+  let out = value;
+  if (root !== '') {
+    const lower = value.toLowerCase();
+    const at = lower.indexOf(root);
+    const backslashed = lower.includes(root.replace(/\//g, '\\'));
+    const plainStart = at === 0 && lower[root.length] === '/' && lower.indexOf(root, 1) === -1;
+    if (backslashed || (at !== -1 && !plainStart)) {
+      refuse(`--${name} held a slash-led path and the shell rewrote it as a Windows path; ${way}`);
+    }
+    if (plainStart) out = value.slice(root.length);
+  }
+  if (/^[A-Za-z]:[\\/]/.test(out)) {
     refuse(
-      `--${name} began with a slash and the shell rewrote it as a Windows path; put the text in a file and give --${name}-file`,
+      `--${name} begins with a drive path, which is also what the shell makes of a leading slash ("/e/x" arrives as "E:/x"), so what was typed cannot be told; ${way}`,
     );
   }
-  return value;
+  return out;
 }
 
 /** The text of --name or of the file --name-file names; never both. */
@@ -503,7 +641,10 @@ function severity(options, required) {
 function optionalFields(options, line) {
   for (const key of ['verify', 'report', 'task']) {
     if (options[key] === undefined) continue;
-    const value = unmangle(key, options[key]).trim();
+    // `report` is a path, and a path is what the shell is right to rewrite
+    const value = (
+      key === 'report' ? nativePath(options[key]) : unmangle(key, options[key])
+    ).trim();
     if (value === '') refuse(`--${key} is empty`);
     line[key] = value;
   }
@@ -523,6 +664,7 @@ function ordered(line) {
     'public',
     'duplicate_of',
     'until',
+    'by',
   ])
     if (key in line) out[key] = line[key];
   return out;
@@ -676,6 +818,7 @@ const SEEN_OPTIONS = [
   'quoted-file',
   'task',
   'public',
+  'by',
 ];
 
 function seen(argv) {
@@ -727,8 +870,40 @@ function seen(argv) {
         `${id} is closed (${previous}): the only status that can follow is \`open\`, when it has come back`,
       );
     }
-    if (status === 'stale' && ['critical', 'major'].includes(line.severity)) {
-      refuse('a critical or major finding is never closed as stale (D-457 point 7)');
+    if (status === 'stale') {
+      // judged on the severity on record: one call cannot lower it and close it
+      if (![last.severity, line.severity].every((s) => s === 'minor' || s === 'info')) {
+        refuse('a critical or major finding is never closed as stale (D-457 point 7)');
+      }
+      const lastLine = history.at(-1).file.slice(0, 10);
+      const quiet = validDate(lastLine) ? daysBetween(lastLine, date) : null;
+      if (quiet === null || quiet < STALE_AFTER_DAYS) {
+        refuse(
+          `${id} is not stale: its last line is ${quiet === null ? 'of an unknown day' : `${quiet} day(s) old`}, and stale is for a minor finding with no line for ${STALE_AFTER_DAYS} days (D-457 point 7)`,
+        );
+      }
+    }
+    const by = options.by;
+    if (by !== undefined) {
+      if (!BY_RE.test(by)) refuse('--by is one short name, the person who decided');
+      line.by = by;
+    }
+    const person = (what) => {
+      if (by === undefined) refuse(`${what} is a person's decision: say whose with --by <name>`);
+      if (AGENTS.includes(by)) {
+        refuse(
+          `${what} is a person's decision, and ${by} is an agent: an agent proposes it in its report`,
+        );
+      }
+    };
+    if (PERSON_STATUSES.includes(status)) person(`\`${status}\``);
+    if (isPublic !== undefined) {
+      if (line.agent !== 'security') {
+        refuse(
+          '--public is for a security finding only: nothing else is withheld from the console',
+        );
+      }
+      person('showing a security finding on the console (--public)');
     }
     if (status === 'duplicate') {
       const of = options.of ?? refuse('a duplicate names the finding it repeats: --of <id>');
@@ -814,7 +989,18 @@ function validate(argv, everyFile) {
       });
       continue;
     }
-    lineProblems(line.obj).forEach(report);
+    const knownLegacy = LEGACY_NO_FIRST_SEEN.get(`${line.file}:${line.n}`) === line.obj?.id;
+    for (const problem of lineProblems(line.obj)) {
+      if (knownLegacy && problem.message === 'missing `first_seen`') {
+        report({
+          level: 'warning',
+          code: 'legacy-no-first-seen',
+          message: 'no `first_seen`: a known line from before finding.mjs, kept as it is (T-1884)',
+        });
+      } else {
+        report(problem);
+      }
+    }
     const id = line.obj && typeof line.obj === 'object' ? line.obj.id : undefined;
     if (typeof id !== 'string') continue;
     const earlier = earlierById.get(id) ?? [];
@@ -939,16 +1125,20 @@ Folder: $OPS_ROOT/findings (default E:/FMIP/ops/findings), one file a UTC day.
             [--status ${STATUSES.filter((s) => s !== 'new').join('|')}]   (default open; fixed = fixed-unverified)
             --evidence-file <file>   what was seen today, or why the status changed
             [--of <id>] with duplicate   [--until YYYY-MM-DD] with snoozed
+            [--by <person>] needed for ${PERSON_STATUSES.join(', ')} and --public: a person's decisions, never an agent's
+            stale: only a minor finding whose last line is ${STALE_AFTER_DAYS} days old or more
             [--title --severity --visible --cause --proposal --owner --confidence --verify --report
-             --quoted-file --task --public true|false]   anything not given is carried from the last line
+             --quoted-file --task]   anything not given is carried from the last line
+            [--public true|false]    a security finding only
   validate  [<file or date>...] [--agent <agent>] [--json]   names each bad line; exit 1 on an error
   check     [--json]            validate on every file of the folder
   list      [--agent <agent or prefix>] [--status <status>|open|waiting|closed|alive] [--severity <s>]
             [--owner <o>] [--older-than <days>] [--quiet <days>] [--search "words"] [--like "a title"]
             the latest state of each finding, as JSON
 
-Text with quotes, backslashes, or a leading slash goes in a file: --title-file, --evidence-file,
---cause-file, --proposal-file, --quoted-file. Exit codes: 0 done, 1 refused (the reason is printed),
+Text with quotes, backslashes, or a slash-led path goes in a file: --title-file, --evidence-file,
+--cause-file, --proposal-file, --quoted-file (Git Bash rewrites such an argument; what cannot be
+put back for certain is refused). Exit codes: 0 done, 1 refused (the reason is printed),
 3 not added because an open finding looks like the same subject.
 `;
 

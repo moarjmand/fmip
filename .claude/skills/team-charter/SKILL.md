@@ -59,9 +59,9 @@ node .claude/skills/team-charter/bin/finding.mjs seen qa-2026-11-10-01 --status 
   --evidence-file "<scratchpad>/evidence.txt"     # a finding seen again keeps its id
 ```
 
-Text with quotes, backslashes or a leading slash goes in a file (`--title-file`,
+Text with quotes, backslashes or a path that begins with a slash goes in a file (`--title-file`,
 `--evidence-file`, `--cause-file`, `--proposal-file`, `--quoted-file`), never in the arguments: the
-shell rewrites it. When an open finding already has a similar title, `add` prints it and exits 3:
+shell rewrites it, and what the script cannot put back for certain it refuses. When an open finding already has a similar title, `add` prints it and exits 3:
 answer with `seen <that id>`, or repeat the command with `--new` if yours is another subject. A
 refusal says why; fix the call, never write the line by hand. `finding.mjs list` gives the latest
 state of each finding as JSON (`--agent`, `--status open`, `--quiet 14`, `--search`), and
@@ -125,7 +125,9 @@ maintainer and the teammate (never the security agent's, T-1879).
   `accepted` (known, explained, nothing to do), `rejected` (a person's no, with the reason),
   `duplicate` (with `duplicate_of`, the id it repeats), `stale` (a minor finding with no line for
   14 days; never a critical or major one). A closed finding that comes back is `open` again, under
-  its own id.
+  its own id. `planned`, `rejected` and `snoozed` are a person's decisions: the line names whose
+  (`--by <person>`, kept as `by`), and the script refuses an agent's name there; an agent proposes
+  them in its report. The same holds for `--public`.
 - Optional in a line: `verify` (the check that proves the fix: a data-audit invariant's name, or an
   address with one assertion, T-1896), `report` (the path of the report that explains it), `quoted`
   (outside text, word for word, kept out of `title` and `proposal`), `task` (the task id it

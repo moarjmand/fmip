@@ -9,6 +9,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  rmdirSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
@@ -49,6 +50,7 @@ const envOf = (root, date = TODAY, more = {}) => ({
   OPS_ROOT: root,
   FINDING_TODAY: date,
   EXEPATH: '',
+  MSYSTEM: '',
   ...more,
 });
 function run(root, args, date, more) {
@@ -270,6 +272,40 @@ const BROKEN = [
       }),
     ]).code === 0,
   );
+  // what only stands for a secret is evidence, and passes; a real-looking one beside it does not
+  const withEvidence = (evidence, n) =>
+    run(root, ['add', ...args({ title: `secret shape case ${n}`, evidence }), '--new']);
+  const harmless = [
+    'DATABASE_URL is postgres://fmip:****@postgres:5432/fmip in the compose file',
+    'the URL is logged as postgres://fmip:<password>@postgres:5432/fmip',
+    'user_account.password_changed_at: 2026-11-19T10:00:00Z, older than the reset',
+    'api_key_last_used: 2026-11-18T22:10Z; token_expires_at=2026-12-01',
+    'the header "Bearer authorization/required/for/all/admin/routes" is in the docs',
+    'config shows api_key=**************** and password: [redacted]',
+  ];
+  harmless.forEach((evidence, n) => {
+    const r = withEvidence(evidence, n);
+    check(`not a secret: ${evidence.slice(0, 48)}`, r.code === 0, r.err);
+  });
+  const before = rawLines(root).length;
+  const real = [
+    [`the log shows Bearer ${'a1B2c3D4'.repeat(4)}`, /bearer token/],
+    [
+      'postgres://fmip:****@db is masked but postgres://fmip:Realpass9@db is not',
+      /URL with a password/,
+    ],
+    ['password_changed_at: 2026-11-19T10:00:00Z and password=Tr0ub4dor3xyz', /with its value/],
+    ['api_key: 9f8e7d6c5b4a3f2e1d0c', /with its value/],
+  ];
+  for (const [evidence, reason] of real) {
+    const r = withEvidence(evidence, 'real');
+    check(
+      `still a secret: ${reason.source}`,
+      r.code === 1 && reason.test(r.err),
+      `${r.code} ${r.err}`,
+    );
+  }
+  check('none of the real-looking ones was written', rawLines(root).length === before);
   rmSync(root, { recursive: true, force: true });
 }
 
@@ -407,6 +443,8 @@ const BROKEN = [
         'snoozed',
         '--until',
         TODAY,
+        '--by',
+        'mostafa',
         '--evidence',
         'x',
       ]).err,
@@ -419,14 +457,17 @@ const BROKEN = [
     'snoozed',
     '--until',
     '2026-11-25',
+    '--by',
+    'mostafa',
     '--evidence',
     'after the cup week',
   ]);
   const snoozed = parsed(root).at(-1);
   check(
-    'a snooze carries its date and the optional fields of the last line',
+    'a snooze carries its date, who decided it and the optional fields of the last line',
     snooze.code === 0 &&
       snoozed.until === '2026-11-25' &&
+      snoozed.by === 'mostafa' &&
       snoozed.verify === 'invariant:disk' &&
       snoozed.task === 'T-1900',
     snooze.err,
@@ -458,6 +499,151 @@ const BROKEN = [
     run(root, ['check']).code === 0,
     run(root, ['check']).out,
   );
+  rmSync(root, { recursive: true, force: true });
+}
+
+// ---------- 4b. a person's decisions, and stale (D-457 points 2 and 7) ----------
+{
+  const sixteen = [
+    'chief-of-staff',
+    'ops-release',
+    'code-reviewer',
+    'qa-engineer',
+    'data-auditor',
+    'designer',
+    'security',
+    'architect',
+    'model-scientist',
+    'product-strategist',
+    'content-community',
+    'business-adviser',
+    'marketing-manager',
+    'seo-search',
+    'social-media',
+    'growth-analyst',
+  ];
+  const root = ops({
+    '2026-11-01.jsonl': [
+      stored({
+        id: 'qa-2026-11-01-01',
+        first_seen: '2026-11-01',
+        title: 'news page mixes languages',
+      }),
+      stored({
+        id: 'ops-2026-11-01-01',
+        agent: 'ops-release',
+        severity: 'major',
+        first_seen: '2026-11-01',
+        title: 'disk 81% full',
+      }),
+    ],
+    '2026-11-10.jsonl': [
+      stored(),
+      stored({ id: 'qa-2026-11-10-02', title: 'player page: wrong club badge' }),
+      stored({
+        id: 'sec-2026-11-10-01',
+        agent: 'security',
+        title: 'no rate limit on the reset form',
+      }),
+    ],
+  });
+  const seen = (id, more, date) => run(root, ['seen', id, '--evidence', 'x', ...more], date);
+  const lastLine = () => parsed(root).at(-1);
+
+  for (const status of ['planned', 'rejected', 'snoozed']) {
+    const extra = status === 'snoozed' ? ['--until', '2026-12-01'] : [];
+    const alone = seen('qa-2026-11-10-01', ['--status', status, ...extra]);
+    check(
+      `${status} without --by is refused`,
+      alone.code === 1 && /a person's decision: say whose with --by/.test(alone.err),
+      alone.err,
+    );
+    const byAgents = sixteen.map((agent) =>
+      seen('qa-2026-11-10-01', ['--status', status, '--by', agent, ...extra]),
+    );
+    check(
+      `${status} by any of the sixteen agents is refused`,
+      byAgents.every((r) => r.code === 1 && /is an agent/.test(r.err)),
+      byAgents.map((r) => r.err).join(''),
+    );
+  }
+  check('no refused decision wrote a line', rawLines(root).length === 0);
+  const rejected = seen('qa-2026-11-10-01', ['--status', 'rejected', '--by', 'mostafa']);
+  check(
+    'a person rejects, and the line says who',
+    rejected.code === 0 && lastLine().status === 'rejected' && lastLine().by === 'mostafa',
+    rejected.err,
+  );
+  check(
+    "accepted, resolved and open stay an agent's own words",
+    seen('qa-2026-11-10-02', ['--status', 'accepted']).code === 0 && !('by' in lastLine()),
+  );
+  check('--by is one short name', seen('qa-2026-11-01-01', ['--by', 'the maintainer']).code === 1);
+
+  const tooSoon = seen('qa-2026-11-10-01', ['--status', 'open'], '2026-11-21');
+  check('(a rejected finding that came back is open)', tooSoon.code === 0, tooSoon.err);
+  const young = seen('qa-2026-11-10-01', ['--status', 'stale'], '2026-12-04');
+  check(
+    'stale is refused while the last line is under 14 days old',
+    young.code === 1 && /not stale: its last line is 13 day\(s\) old/.test(young.err),
+    young.err,
+  );
+  const old = seen('qa-2026-11-10-01', ['--status', 'stale'], '2026-12-05');
+  check('stale is taken at 14 days', old.code === 0, old.err);
+  const major = seen('ops-2026-11-01-01', ['--status', 'stale']);
+  check(
+    'an old major finding is still never stale',
+    major.code === 1 && /never closed as stale/.test(major.err),
+    major.err,
+  );
+  check(
+    'one call cannot lower the severity and close it as stale',
+    /never closed as stale/.test(
+      seen('ops-2026-11-01-01', ['--status', 'stale', '--severity', 'minor']).err,
+    ),
+  );
+  check(
+    'a minor finding 19 days quiet is closed as stale',
+    seen('qa-2026-11-01-01', ['--status', 'stale']).code === 0,
+  );
+
+  const sec = 'sec-2026-11-10-01';
+  check(
+    '--public needs a person',
+    /say whose with --by/.test(seen(sec, ['--public', 'true']).err) &&
+      /is an agent/.test(seen(sec, ['--public', 'true', '--by', 'security']).err),
+  );
+  check(
+    '--public is for a security finding only',
+    /security finding only/.test(
+      seen('qa-2026-11-10-02', ['--status', 'open', '--public', 'true', '--by', 'mostafa']).err,
+    ),
+  );
+  const shown = seen(sec, ['--public', 'true', '--by', 'mostafa']);
+  check('a person makes a security finding public', shown.code === 0 && lastLine().public === true);
+  seen(sec, ['--status', 'fixed-unverified']);
+  check(
+    'public stays in force on a later line that omits it, and by does not',
+    lastLine().id === sec && lastLine().public === true && !('by' in lastLine()),
+  );
+  seen(sec, ['--public', 'false', '--by', 'mostafa']);
+  check('a person takes it back', lastLine().public === false);
+
+  // the same rules for a line written by hand
+  const hand = ops({
+    '2026-11-10.jsonl': [
+      stored({ status: 'planned' }),
+      stored({ id: 'qa-2026-11-10-02', status: 'rejected', by: 'code-reviewer' }),
+      stored({ id: 'qa-2026-11-10-03', status: 'planned', by: 'mohammad' }),
+    ],
+  });
+  const lint = JSON.parse(run(hand, ['check', '--json']).out);
+  check(
+    "validate wants a person on a person's status",
+    lint.errors.map((e) => e.line).join() === '1,2',
+    JSON.stringify(lint.errors),
+  );
+  rmSync(hand, { recursive: true, force: true });
   rmSync(root, { recursive: true, force: true });
 }
 
@@ -731,6 +917,63 @@ const BROKEN = [
       list.code === 1 && /--title-file/.test(list.err),
       list.err,
     );
+    const lists = run(
+      root,
+      ['add', ...args({ title: 'C:/Program Files/Git/en/news,/fa/news list different stories' })],
+      TODAY,
+      gitBash,
+    );
+    check(
+      "Git Bash's folder at the very start, once, is put back whatever follows",
+      lists.code === 0 && parsed(root).at(-1).title === '/en/news,/fa/news list different stories',
+      lists.err,
+    );
+    const written = rawLines(root).length;
+    // each of these is what Git Bash hands over for a text that began with, or held, a slash-led path
+    const guesses = [
+      ['title', 'E:/FMIP/ops is full', /--title-file/], // typed: /e/FMIP/ops is full
+      ['evidence', 'X:/y', /--evidence-file/], // typed: --evidence=/x/y
+      ['title', 'a:/b list', /--title-file/], // typed: /a:/b list
+      ['proposal', 'status=C:/Program Files/Git/en/news should be 200', /--proposal-file/], // status=/en/news
+      ['cause', '(C:/Program Files/Git/en/news) is cached', /--cause-file/], // (/en/news)
+      ['title', 'C:/Program Files/Git/en and C:/Program Files/Git/fa differ', /--title-file/],
+      ['verify', 'E:/en/news holds 200', /does not begin with a slash or a path/],
+    ];
+    for (const [option, value, way] of guesses) {
+      const r = run(root, ['add', ...args({ [option]: value })], TODAY, gitBash);
+      check(
+        `not guessed, refused: --${option} ${value}`,
+        r.code === 1 && way.test(r.err),
+        `${r.code} ${r.err}`,
+      );
+    }
+    check('no refused argument wrote a line', rawLines(root).length === written);
+    const inside = run(
+      root,
+      [
+        'add',
+        ...args({
+          title: 'the ops report is missing',
+          evidence: 'ls E:/FMIP/ops/reports: no file for today',
+          report: 'E:/FMIP/ops/reports/qa-engineer/2026-11-20.md',
+        }),
+      ],
+      TODAY,
+      gitBash,
+    );
+    check(
+      'a drive path inside a text, and a report path, pass as they are',
+      inside.code === 0 &&
+        parsed(root).at(-1).evidence === 'ls E:/FMIP/ops/reports: no file for today' &&
+        parsed(root).at(-1).report === 'E:/FMIP/ops/reports/qa-engineer/2026-11-20.md',
+      inside.err,
+    );
+    const noShell = run(root, ['add', ...args({ title: 'E:/FMIP/ops has no brief folder' })]);
+    check(
+      'outside Git Bash nothing is rewritten, so nothing is refused',
+      noShell.code === 0 && parsed(root).at(-1).title === 'E:/FMIP/ops has no brief folder',
+      noShell.err,
+    );
   }
   check(
     'help names the commands',
@@ -739,6 +982,121 @@ const BROKEN = [
     ),
   );
   check('an unknown command is refused', run(root, ['append']).code === 1);
+  rmSync(root, { recursive: true, force: true });
+}
+
+// ---------- 8b. a dead lock is cleared by one waiter; a live one by none ----------
+{
+  const root = ops();
+  const folder = join(root, 'findings');
+  const lock = join(folder, '.lock');
+  const longAgo = new Date(Date.now() - 120_000);
+  const leftovers = () => readdirSync(folder).filter((name) => name.startsWith('.lock'));
+
+  // twelve processes all find the same dead lock: the clearing must not let two of them in at once
+  mkdirSync(lock);
+  utimesSync(lock, longAgo, longAgo);
+  const results = await Promise.all(
+    Array.from({ length: 12 }, (_, i) =>
+      runAsync(root, ['add', ...args({ title: `after a crash, finding ${i}` }), '--new']),
+    ),
+  );
+  const ids = results.map((r) => r.out.trim());
+  check(
+    'twelve waiters on one dead lock all get through',
+    results.every((r) => r.code === 0),
+    results.map((r) => r.err).join(''),
+  );
+  check('and get twelve different ids', new Set(ids).size === 12, ids.join(' '));
+  let lines = [];
+  try {
+    lines = parsed(root);
+  } catch (error) {
+    check('twelve valid lines after the dead lock', false, error.message);
+  }
+  check(
+    'twelve valid lines, one per id',
+    lines.length === 12 && new Set(lines.map((l) => l.id)).size === 12,
+    `${lines.length} lines`,
+  );
+  check('nothing of the lock is left behind', leftovers().length === 0, leftovers().join(' '));
+
+  // a waiter that died while clearing leaves `.lock.clearing`: it must not hold the team for ever
+  mkdirSync(lock);
+  utimesSync(lock, longAgo, longAgo);
+  mkdirSync(`${lock}.clearing`);
+  utimesSync(`${lock}.clearing`, longAgo, longAgo);
+  const afterBoth = run(root, ['add', ...args({ title: 'both were left behind' }), '--new']);
+  check(
+    'a dead lock and a dead clearing are both cleared',
+    afterBoth.code === 0 && leftovers().length === 0,
+    `${afterBoth.err} ${leftovers().join(' ')}`,
+  );
+
+  // a lock that is alive is waited for, never cleared
+  mkdirSync(lock);
+  const before = rawLines(root).length;
+  const waiting = runAsync(root, ['add', ...args({ title: 'waits for a live lock' }), '--new']);
+  await new Promise((done) => setTimeout(done, 1500));
+  check(
+    'a live lock is left alone while it is held',
+    existsSync(lock) && rawLines(root).length === before,
+    `${rawLines(root).length - before} line(s) written past the lock`,
+  );
+  rmdirSync(lock);
+  const waited = await waiting;
+  check(
+    'and the waiter writes once it is released',
+    waited.code === 0 && rawLines(root).length === before + 1 && leftovers().length === 0,
+    waited.err,
+  );
+  rmSync(root, { recursive: true, force: true });
+}
+
+// ---------- 8c. the three known lines without first_seen are listed, never an error ----------
+{
+  const bare = (id) =>
+    JSON.stringify(stored({ id, agent: 'content-community' })).replace(
+      ',"first_seen":"2026-11-10"',
+      '',
+    );
+  const filler = (n) =>
+    stored({ id: `cnt-2026-11-04-1${n}`, agent: 'content-community', first_seen: '2026-11-04' });
+  const root = ops({
+    '2026-11-04.jsonl': [
+      filler(1),
+      filler(2),
+      bare('cnt-2026-11-04-02'), // 3: the same id on another line is not the known line
+      filler(4),
+      bare('cnt-2026-11-04-02'), // 5, 6, 7: the three known lines
+      bare('cnt-2026-11-04-03'),
+      bare('cnt-2026-11-02-01'),
+      bare('cnt-2026-11-04-09'), // 8: any other line without the field
+    ],
+    '2026-11-05.jsonl': [filler(5), filler(6), filler(7), filler(8), bare('cnt-2026-11-04-02')],
+  });
+  const lint = JSON.parse(run(root, ['check', '--json']).out);
+  const known = lint.warnings.filter((w) => w.code === 'legacy-no-first-seen');
+  check(
+    'the three known lines are warnings',
+    known.map((w) => `${w.file}:${w.line}`).join() ===
+      '2026-11-04.jsonl:5,2026-11-04.jsonl:6,2026-11-04.jsonl:7',
+    JSON.stringify(known),
+  );
+  check(
+    'any other line without first_seen is still an error',
+    lint.errors
+      .filter((e) => e.code === 'missing-field')
+      .map((e) => `${e.file}:${e.line}`)
+      .join() === '2026-11-04.jsonl:3,2026-11-04.jsonl:8,2026-11-05.jsonl:5',
+    JSON.stringify(lint.errors),
+  );
+  const again = run(root, ['seen', 'cnt-2026-11-04-03', '--evidence', 'still so']);
+  check(
+    'seen on such a finding writes a whole line',
+    again.code === 0 && parsed(root).at(-1).first_seen === '2026-11-04',
+    again.err,
+  );
   rmSync(root, { recursive: true, force: true });
 }
 
