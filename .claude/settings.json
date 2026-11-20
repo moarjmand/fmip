@@ -4,6 +4,10 @@
       {
         "matcher": "Bash|PowerShell|Edit|Write|MultiEdit",
         "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard.mjs\"", "timeout": 10 }]
+      },
+      {
+        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|mcp__Claude_Browser__navigate|mcp__Claude_Browser__preview_start|mcp__Claude_Browser__browser_batch",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/team-guard.mjs\"", "timeout": 10 }]
       }
     ]
   }
