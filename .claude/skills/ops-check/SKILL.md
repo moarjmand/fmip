@@ -44,8 +44,8 @@ not yet announced): count them, do not flag them, unless their share jumps again
 ## Practicalities
 
 - Paths: Git Bash uses `/e/FMIP/...`, Node and Windows tools `E:/FMIP/...`; both name the same folder.
-- JSON: `python3` is not on this machine; validate a findings line with
-  `node -e "JSON.parse(require('fs').readFileSync(0,'utf8'))" <<< '<line>'`.
+- JSON: `python3` is not on this machine; `node` is. Findings are written and checked by the
+  charter's `finding.mjs`, never by hand.
 - `ingest_run` columns: `id`, `provider`, `job`, `scope`, `status` (succeeded, partial, failed,
   running), `started_at`, `finished_at`, `items_seen`, `items_written`, `error`, `requests`.
 - Docker: `docker system df` and `docker builder du` work over ssh; reading `/var/lib/docker`
