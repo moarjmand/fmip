@@ -439,7 +439,7 @@ export function PcHeartbeat({
               <SyncSchedule />
             </p>
             <details className="mt-1.5 md:hidden">
-              <summary className="flex min-h-6 cursor-pointer items-center text-[0.8125rem] font-semibold text-accent">
+              <summary className="min-h-6 cursor-pointer text-[0.8125rem] leading-6 font-semibold text-accent">
                 برنامه‌ی هم‌گام‌سازی
               </summary>
               <p className="mt-1 text-xs text-caption">
@@ -524,23 +524,27 @@ export function RunsBars({ runs }: { runs: ConsoleAgent['runs'] }) {
   if (runs.length === 0) return <p className="text-sm text-muted">هنوز اجرایی ثبت نشده.</p>;
   const ordered = [...runs].reverse();
   const most = Math.max(1, ...ordered.map((run) => run.findings));
+  // Many runs scroll inside their own box, not the page (T-1906: on a 375 px
+  // phone the agent page went 72 px wide, and its heartbeat bar with it).
   return (
-    <div className="flex items-end gap-1.5" style={{ blockSize: '7rem' }} data-testid="runs">
-      {ordered.map((run) => (
-        <div key={run.at} className="flex min-w-6 flex-1 flex-col items-center justify-end gap-1">
-          <span className="text-xs text-muted">{fa(run.findings)}</span>
-          <div
-            className={
-              run.status === 'failed'
-                ? 'w-full rounded-t-sm bg-danger'
-                : 'w-full rounded-t-sm bg-brand'
-            }
-            style={{ blockSize: `${Math.max(4, (run.findings / most) * 64)}px` }}
-            title={`${when(run.at, false)}: ${fa(run.findings)} یافته`}
-          />
-          <span className="text-[0.625rem] text-caption">{when(run.at, false)}</span>
-        </div>
-      ))}
+    <div className="overflow-x-auto">
+      <div className="flex items-end gap-1.5" style={{ blockSize: '7rem' }} data-testid="runs">
+        {ordered.map((run) => (
+          <div key={run.at} className="flex min-w-6 flex-1 flex-col items-center justify-end gap-1">
+            <span className="text-xs text-muted">{fa(run.findings)}</span>
+            <div
+              className={
+                run.status === 'failed'
+                  ? 'w-full rounded-t-sm bg-danger'
+                  : 'w-full rounded-t-sm bg-brand'
+              }
+              style={{ blockSize: `${Math.max(4, (run.findings / most) * 64)}px` }}
+              title={`${when(run.at, false)}: ${fa(run.findings)} یافته`}
+            />
+            <span className="text-[0.625rem] text-caption">{when(run.at, false)}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
