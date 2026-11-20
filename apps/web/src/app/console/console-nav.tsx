@@ -49,7 +49,7 @@ export const LAYOUT_MAX_AGE_MS = 10 * 60_000;
  * Not `focus` (the system hands a window its focus back by itself, when
  * another program's window closes) and not `scroll` (a page scrolls by itself
  * too): neither proves a person, and either would keep an idle session alive
- * (review of #957, round 2).
+ * (the review of this change, round 2).
  */
 export const INPUT_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'wheel'] as const;
 
