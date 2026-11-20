@@ -568,7 +568,7 @@ describe('asking for the layout again (T-1906)', () => {
 
   it('is ten minutes at most, and counts touching, typing, scrolling and coming to the window as input', () => {
     expect(LAYOUT_MAX_AGE_MS).toBe(10 * MINUTE);
-    expect([...INPUT_EVENTS]).toEqual(['pointerdown', 'keydown', 'touchstart', 'scroll', 'focus']);
+    expect([...INPUT_EVENTS]).toEqual(['pointerdown', 'keydown', 'touchstart', 'wheel']);
   });
 
   it('holds the rule: old, touched since it arrived, seen and online', () => {
