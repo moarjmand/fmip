@@ -19,17 +19,32 @@
 // What a team agent may do (the policy, in one place):
 //   - Edit / Write / MultiEdit / NotebookEdit only under E:/FMIP/ops/, E:/FMIP/data-audit/, the
 //     session scratchpad (`scratchpad_dir`, and <temp>/claude/ where scratchpads live) and its own
-//     memory folder .claude/agent-memory/<agent>/ (main checkout or a worktree's copy). Never a
-//     findings file under E:/FMIP/ops/findings/: finding.mjs (T-1884) is their door.
+//     memory folder .claude/agent-memory/<agent>/ (main checkout or a worktree's copy). The path
+//     is judged where it really lands: links and junctions on the way are resolved first.
+//   - The findings files (E:/FMIP/ops/findings/) have one door, `node
+//     .claude/skills/team-charter/bin/finding.mjs` (T-1884). Every other write is refused: the
+//     file tools, and from the shell `>`, `>>`, a heredoc into `cat >>`, `tee -a`, Add-Content,
+//     Out-File -Append, cp, mv, sed -i, rm, an inline node or python program that names the
+//     folder, any program this file does not know that is handed a findings path. Reading them
+//     (cat, grep, jq, head, `finding.mjs list`) is free.
 //   - Bash / PowerShell: read-only git (an allow-list of verbs), read-only gh (an allow-list), no
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
 //     outside the scratchpad and temp folders, no shell write to the .claude controls (settings,
-//     hooks, agents, skills, another agent's memory) and no rewrite of a findings file.
+//     hooks, agents, skills, another agent's memory), no copy, move or unpacking into the
+//     repository, no link or junction that touches the repository or the findings folder.
+//   - A pull request's code on disk, read-only: `git worktree add [--detach] <path> <ref>`,
+//     `git clone --local|--no-hardlinks <this repository> <path>` and `git archive <ref>` (piped
+//     to `tar -x -C <path>`, or `-o <file>`), each only with <path> in the scratchpad or the temp
+//     folder; `git worktree remove <that path>` and `git worktree prune` to tidy up.
+//   - A wrapper is entered where its command can be read (env, command, timeout, cmd /c,
+//     bash -c, powershell -Command, find -exec ...); where it cannot (xargs or Start-Process
+//     running git, gh, ssh or psql: the arguments come from elsewhere) the call is refused.
 //   - The server: only through the five read-only scripts (data-audit/run.sh,
 //     ops-check/ops-check.sh, fmip-security/server-hardening.sh, product-strategy/seo-check.sh,
-//     search-visibility/structured-data.sh) and the few raw `ssh fmip-prod '...'` read shapes in
-//     RAW_SSH for ops-release, security and model-scientist. Raw psql on the server is refused
+//     search-visibility/structured-data.sh) and the raw `ssh fmip-prod '...'` read shapes in
+//     RAW_SSH, which are exactly the ones the agents' files and skills name for ops-release,
+//     security and model-scientist. Raw psql on the server is refused
 //     whatever it says. A command that names the server and is not one of the above is refused
 //     for all sixteen; the name as data (a grep pattern, an echo) is not a command. For
 //     chief-of-staff and marketing-manager: never the server, by any of these, and its name on
@@ -39,17 +54,22 @@
 //
 // It reads the text of a call: a seatbelt, not a sandbox. Residuals, known and accepted:
 //   - a script file an agent writes to its scratchpad and then runs is not read;
-//   - shell redirection or a copy into the repository is not judged (only the .claude controls
-//     and the findings files are protected from the shell);
-//   - a command built from variables, aliases, an encoding, or an interpreter's own API
-//     (`g=git; $g push`, `spawn('git', ['push'])`) is not recognised;
+//   - shell redirection into the repository (`> apps/x.ts`, `tee`) is not judged: from the shell
+//     only the .claude controls, the findings files, and the copy, move, unpack and link
+//     commands are;
+//   - a command built from variables or aliases (`g=git; $g push`, `$g = 'git'; & $g push`), from
+//     an encoding (base64 piped to a shell), by dot-sourcing, by Invoke-Expression on a variable,
+//     or through an interpreter's own API (`spawn('git', ['push'])`, a string put together in
+//     `node -e`) is not recognised;
 //   - WebFetch and WebSearch are not limited by host, so data an agent may read can leave in a
 //     URL; the browser's javascript_tool is not read either;
 //   - a query file given to run.sh is not read (run.sh's read-only session is that lock);
-//   - symbolic links, junctions and 8.3 short names are not resolved for shell paths;
+//   - links, junctions and 8.3 short names are resolved for the file tools only, not for paths
+//     in a shell command (creating a link is refused instead);
 //   - an agent started as general-purpose (the console chat, until T-1891) is not a team agent
 //     to this hook.
 // Its cases are team-guard.cases.json, run by test-guard.mjs.
+import { realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -97,17 +117,23 @@ const ROLLOUT = /(^|\/)deploy\/rollout\.sh$|^rollout\.sh$/i;
  * `$(` or a quote: anything else on the server goes through the five scripts.
  */
 const RAW_SSH = {
+  // ops-release.md: `bash deploy/check-setup.sh` on the server. ops-check/SKILL.md: `git log
+  // --oneline -2` on the server (the rollback), `docker system df` and `docker builder du`.
   'ops-release': [
-    /^(cd \/opt\/fmip && )?(timeout \d+ )?bash deploy\/check-setup\.sh( 2>&1)?$/,
-    /^(cd \/opt\/fmip && )?git log --oneline -\d{1,3}( 2>&1)?$/,
+    /^(cd \/opt\/fmip && )?bash deploy\/check-setup\.sh( 2>&1)?$/,
+    /^(cd \/opt\/fmip && )?git log --oneline -\d{1,2}( 2>&1)?$/,
+    /^docker system df( -v)?( 2>&1)?$/,
+    /^docker builder du( 2>&1)?$/,
   ],
+  // security.md: "listing, `ss`, `sshd -T`, `ufw status`, `curl -I`" (sudo -n as server-hardening.sh has it).
   security: [
-    /^(sudo -n )?ss -[a-zA-Z]+( 2>&1)?$/,
+    /^ss -[a-zA-Z]+( 2>&1)?$/,
     /^(sudo -n )?sshd -T( 2>&1)?$/,
     /^(sudo -n )?ufw status( verbose| numbered)?( 2>&1)?$/,
     /^curl -(I|sI|Is)( (-m|--max-time) \d+)? https?:\/\/[\w.:/%?=&~+,@-]+$/,
     /^ls( -[a-zA-Z]+)?( \/[\w./-]*)+( 2>&1)?$/,
   ],
+  // model-scientist.md and model-watch/SKILL.md: the lab's logs, `~/fmip-lab/` on the server, read only.
   'model-scientist': [
     /^(ls|cat|head|tail|wc|du|stat)( -[a-zA-Z0-9]+| \d+)*( (~|\$HOME)\/fmip-lab(\/[\w*-][\w.*-]*)*\/?)+( 2>&1)?$/,
   ],
@@ -157,6 +183,7 @@ const OPAQUE = [
   [/\bpsql\b|\bpg_restore\b|\bdropdb\b/, 'runs SQL outside data-audit/run.sh'],
   [/publish\.ts['"]?[\s,'"[(]+(?!lab-check\b|providers-check\b)[a-z]/, 'writes to or syncs the agents console'],
   [/deploy\/rollout\.sh/, 'runs the deploy'],
+  [/[\\/]ops[\\/]+findings\b/i, 'names the findings folder (finding.mjs is its only door; read it with cat, grep, jq or `finding.mjs list`)'],
 ];
 
 const KEYWORDS = new Set(['if', 'then', 'elif', 'else', 'do', 'while', 'until', '!', '{', '}', 'time', 'function']);
@@ -172,13 +199,21 @@ const READERS = new Set([
   'out-null', 'out-string', 'convertfrom-json', 'convertto-json', 'get-command', 'resolve-path', 'split-path', 'join-path',
   'start-sleep', 'get-location', 'get-process', 'foreach',
 ]);
-/** Commands whose arguments name files they change: name -> which arguments are the targets. */
+/**
+ * Commands whose arguments name files they change. `write`: every argument is a target, judged
+ * for the controls and the findings files. `copy`: the destination (the last argument, or
+ * -t / -Destination) is the target; `move`: every argument is. For those two the whole
+ * repository is closed as well.
+ */
 const WRITERS = {
-  tee: 'all', touch: 'all', truncate: 'all', chmod: 'all', chown: 'all', mv: 'all', 'set-content': 'all', sc: 'all', 'add-content': 'all',
-  ac: 'all', 'out-file': 'all', 'move-item': 'all', mi: 'all', move: 'all', 'rename-item': 'all', rni: 'all', ren: 'all', 'new-item': 'all',
-  ni: 'all', 'clear-content': 'all', clc: 'all', cp: 'last', install: 'last', ln: 'last', 'copy-item': 'last', cpi: 'last', copy: 'last',
+  tee: 'write', touch: 'write', truncate: 'write', chmod: 'write', chown: 'write', 'set-content': 'write', sc: 'write',
+  'add-content': 'write', ac: 'write', 'out-file': 'write', 'new-item': 'write', ni: 'write', 'clear-content': 'write', clc: 'write',
+  cp: 'copy', install: 'copy', 'copy-item': 'copy', cpi: 'copy', copy: 'copy', xcopy: 'copy', robocopy: 'copy',
+  mv: 'move', 'move-item': 'move', mi: 'move', move: 'move', 'rename-item': 'move', rni: 'move', ren: 'move',
 };
-const APPENDERS = new Set(['add-content', 'ac']);
+/** PowerShell parameters whose value is not a path. */
+const PS_VALUE_PARAMETERS = /^-(value|encoding|filter|include|exclude|itemtype|type|credential|stream|delimiter|width|name)$/i;
+const LINK_TYPES = /^(junction|symboliclink|hardlink)$/i;
 const REMOVERS = new Set(['rm', 'del', 'erase', 'rd', 'rmdir', 'ri', 'remove-item', 'unlink']);
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ash', 'ksh', 'fish']);
 const INTERPRETERS = new Set(['node', 'nodejs', 'deno', 'bun', 'tsx', 'ts-node', 'python', 'python3', 'py', 'perl', 'ruby', 'php', 'lua']);
@@ -194,7 +229,7 @@ const deny = (why) => {
 };
 
 /** Filled once the caller is known to be a team agent. */
-const S = { agent: '', tmp: '', home: '', repo: '', scratch: false, temps: [], shellTemps: [] };
+const S = { agent: '', tmp: '', home: '', repo: '', scratch: false, temps: [], shellTemps: [], pool: [] };
 
 // ---------------------------------------------------------------------------------------------
 // Paths. String work only (never node:path), so a verdict is the same on every machine.
@@ -206,6 +241,11 @@ const S = { agent: '', tmp: '', home: '', repo: '', scratch: false, temps: [], s
  * variables a shell would (`$TEMP`, `~`, `$CLAUDE_PROJECT_DIR`) and Git Bash's `/tmp`.
  */
 function normPath(value, cwd, shell = false) {
+  return canonPath(value, cwd, shell)?.toLowerCase() ?? null;
+}
+
+/** normPath with the letters' case kept, for the one place that asks the file system (realPath). */
+function canonPath(value, cwd, shell = false) {
   let s = String(value ?? '').trim().replace(/\\/g, '/');
   if (s === '') return null;
   s = s.replace(/^\/\/[?.]\//, '');
@@ -233,16 +273,38 @@ function normPath(value, cwd, shell = false) {
     }
     out.push(seg);
   }
-  const joined = out.join('/').toLowerCase();
-  if (/^[a-z]:/.test(joined)) return joined;
+  const joined = out.join('/');
+  if (/^[a-zA-Z]:/.test(joined)) return joined;
   return `${unc ? '//' : '/'}${joined}`;
 }
 
+/**
+ * Where a path really lands: the real path of the deepest folder on it that exists (links,
+ * junctions and 8.3 short names resolved by the file system), then the rest as written. This
+ * machine has a junction on C: that points at the project, so the same repository file has two
+ * spellings; a junction made under E:/FMIP/ops/ would be a third. Network paths are not asked.
+ */
+function realPath(canon) {
+  if (canon.startsWith('//')) return canon.toLowerCase();
+  const parts = canon.split('/');
+  for (let keep = parts.length; keep >= 1; keep--) {
+    const head = parts.slice(0, keep).join('/');
+    try {
+      const real = realpathSync.native(/^[a-zA-Z]:$/.test(head) || head === '' ? `${head}/` : head);
+      return normPath([real.replace(/\\/g, '/').replace(/\/+$/, ''), ...parts.slice(keep)].join('/'), null) ?? canon.toLowerCase();
+    } catch {
+      // not there (yet): its parent decides
+    }
+  }
+  return canon.toLowerCase();
+}
+
 const inside = (root, p) => Boolean(root) && p.startsWith(`${root}/`);
-/** The scratchpad and <temp>/claude/ for the file tools; the whole temp folder for a shell's delete. */
+const within = (root, p) => p === root || inside(root, p);
+/** The scratchpad and <temp>/claude/ for the file tools; the whole temp folder for the shell. */
 const inTemp = (p, roots = S.temps) => roots.some((root) => inside(root, p));
 
-/** `.claude/agent-memory/<agent>/` of the main checkout or of one of its worktrees. */
+/** Inside `.claude/agent-memory/<agent>/` of the main checkout or of one of its worktrees: whose. */
 function memoryOwner(p) {
   if (!inside(S.repo, p)) return null;
   const rel = p.slice(S.repo.length + 1).replace(/^\.claude\/worktrees\/[^/]+\//, '');
@@ -253,29 +315,48 @@ function memoryOwner(p) {
 function checkFilePath(value, cwd) {
   const shown = String(value ?? '');
   if (shown.trim() === '') deny('names no file to write');
-  const p = normPath(shown, cwd);
-  if (p === null) deny(`writes to a path the guard cannot place (${shown})`);
-  if (p.split('/').some((seg, i) => /~\d/.test(seg) || /[*?"<>|]/.test(seg) || (i > 0 && seg.includes(':')))) {
+  const written = canonPath(shown, cwd);
+  if (written === null) deny(`writes to a path the guard cannot place (${shown})`);
+  if (written.split('/').some((seg, i) => /~\d/.test(seg) || /[*?"<>|]/.test(seg) || (i > 0 && seg.includes(':')))) {
     deny(`writes to a path with a short name, a stream or a wildcard in it (${shown})`);
   }
-  if (inside(FINDINGS, p)) deny('writes a findings file directly (finding.mjs validates and appends; it is the only door)');
-  if (WRITE_ROOTS.some((root) => inside(root, p)) || inTemp(p) || memoryOwner(p) === S.agent) return;
-  deny(`writes outside its folders (${shown}); a team agent writes only under E:/FMIP/ops/, E:/FMIP/data-audit/, its scratchpad and its own memory`);
+  const p = realPath(written);
+  const lands = p === written.toLowerCase() ? shown : `${shown}, which lands in ${p}`;
+  if (within(FINDINGS, p)) deny('writes a findings file directly (finding.mjs validates and appends; it is the only door)');
+  // The repository first: a checkout that itself lives under the temp folder is still the repository.
+  const allowed = within(S.repo, p) ? memoryOwner(p) === S.agent : WRITE_ROOTS.some((root) => inside(root, p)) || inTemp(p);
+  if (!allowed) deny(`writes outside its folders (${lands}); a team agent writes only under E:/FMIP/ops/, E:/FMIP/data-audit/, its scratchpad and its own memory`);
 }
 
-/** A file the shell is about to change: only the .claude controls and the findings files are judged. */
-function checkShellTarget(value, ctx, append) {
+/**
+ * A path the shell is about to change. Always closed: the .claude controls, another agent's
+ * memory and the findings files (appending too: finding.mjs is the only door). `repository`
+ * (copy, move, unpack, link): the whole repository as well, the agent's own memory apart.
+ */
+function checkShellTarget(value, ctx, repository = false) {
   const raw = String(value ?? '');
   const p = normPath(raw, ctx.cwd, true);
-  const text = p ?? raw.replace(/\\/g, '/').toLowerCase();
-  if (/(^|\/)\.claude\/(settings(\.local)?\.json$|(hooks|agents|skills)(\/|$))/.test(text)) {
-    deny('changes the team\'s own controls through the shell (.claude settings, hooks, agents or skills)');
+  const text = p ?? raw.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  // A copy of the repository in the scratchpad (a pull request's tree) is nobody's control.
+  const scratchCopy = p !== null && !within(S.repo, p) && inTemp(p, S.shellTemps);
+  if (!scratchCopy && /(^|\/)\.claude(\/(settings(\.local)?\.json|hooks|agents|skills)(\/.*)?)?$/.test(text)) {
+    deny('changes the team\'s own controls through the shell (.claude, its settings, hooks, agents or skills)');
   }
-  const owner = text.match(/(^|\/)\.claude\/agent-memory\/([^/]+)(\/|$)/);
-  if (owner && owner[2] !== S.agent) deny('changes another agent\'s memory');
-  if (p !== null && (p === FINDINGS || inside(FINDINGS, p)) && !append) {
-    deny('rewrites, moves or removes a findings file (findings are appended, through finding.mjs, never rewritten)');
+  const owner = scratchCopy ? null : text.match(/(^|\/)\.claude\/agent-memory(\/([^/]+))?(\/|$)/);
+  if (owner && owner[3] !== S.agent) deny('changes another agent\'s memory');
+  if (p !== null ? within(FINDINGS, p) : /(^|\/)ops\/+findings(\/|$)/.test(text)) {
+    deny('writes, moves or removes a findings file from the shell (the only door is `node .claude/skills/team-charter/bin/finding.mjs`)');
   }
+  if (repository && p !== null && within(S.repo, p) && memoryOwner(`${p}/x`) !== S.agent) {
+    deny(`copies, moves, unpacks or links into the repository (${raw}); a team agent never changes it`);
+  }
+}
+
+/** A place a team agent may put a pull request's code or an archive: the scratchpad or the temp folder. */
+function checkTempTarget(value, ctx, what) {
+  const p = value === undefined ? null : normPath(value, ctx.cwd, true);
+  if (p === null || /[$`*?]/.test(p)) deny(`${what} at a path the guard cannot place (${value ?? 'none given'})`);
+  if (within(S.repo, p) || !inTemp(p, S.shellTemps)) deny(`${what} outside the scratchpad and temp folders (${value})`);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -627,7 +708,16 @@ const WRAPPERS = {
   ionice: (args) => skipOptions(args, ['-c', '-n', '-p']),
   sudo: (args) => skipOptions(args, ['-u', '-g', '-h', '-p', '-C', '-D', '-r', '-t', '-T', '-U']),
   doas: (args) => skipOptions(args, ['-u', '-C']),
-  xargs: (args) => skipOptions(args, ['-n', '-I', '-P', '-d', '-L', '-s', '-a', '-E']),
+  xargs(args) {
+    // xargs adds arguments this file never sees: `echo push | xargs git` is a push.
+    const rest = skipOptions(args, ['-n', '-I', '-P', '-d', '-L', '-s', '-a', '-E']);
+    const program = baseName(rest[0] ?? '');
+    if (SENSITIVE.has(program)) deny(`runs ${program} through xargs, which hands it arguments the guard cannot see`);
+    if (REMOVERS.has(program) && rest.some((a) => /^-[a-zA-Z]*[rR]/.test(a) || /^-r/i.test(a) || a === '--recursive')) {
+      deny('removes folder trees named by xargs, which the guard cannot place');
+    }
+    return rest;
+  },
   watch: (args) => skipOptions(args, ['-n', '--interval']),
   exec: (args) => skipOptions(args, ['-a']),
   wsl: (args) => skipOptions(args, ['-d', '-u', '--distribution', '--user', '--cd']),
@@ -677,7 +767,7 @@ function checkScriptFile(file) {
 }
 
 function checkSimple(allWords, cmd, ctx) {
-  for (const r of cmd?.redirects ?? []) if (r.op === '>' || r.op === '>>') checkShellTarget(r.target, ctx, r.op === '>>');
+  for (const r of cmd?.redirects ?? []) if (r.op === '>' || r.op === '>>') checkShellTarget(r.target, ctx);
   let w = allWords.slice();
   for (let turns = 0; ; turns++) {
     if (w.length === 0) return;
@@ -728,37 +818,116 @@ function checkSimple(allWords, cmd, ctx) {
   if (name === 'source' || name === '.') return checkScriptFile(args[0]);
   if (name === 'powershell' || name === 'pwsh') return checkPowerShell(args, c, ctx);
   if (name === 'cmd') {
+    // cmd keeps backslashes, as PowerShell does: its line is read by those rules.
     const at = args.findIndex((a) => /^\/[ck]$/i.test(a));
-    if (at >= 0) checkText(args.slice(at + 1).join(' '), false, ctx);
+    if (at >= 0) checkText(args.slice(at + 1).join(' '), true, ctx);
     return;
+  }
+  if (name === 'start-process' || name === 'saps') {
+    // Its program's arguments are a list the shell builds (-ArgumentList 'push origin main').
+    const named = args.findIndex((a) => /^-filepath$/i.test(a));
+    const program = baseName(named >= 0 ? (args[named + 1] ?? '') : (args.find((a) => !a.startsWith('-')) ?? ''));
+    if (SENSITIVE.has(program)) deny(`starts ${program} through Start-Process, whose arguments the guard does not resolve`);
+    return checkGeneric(w, c, ctx);
   }
   if (name === 'find') return checkFind(args, ctx);
   if (REMOVERS.has(name)) return checkRemove(name, args, ctx);
   if (AWKS.has(name)) return rawScan(args.join(' '), 'runs an awk program');
   if (name === 'sed' || name === 'perl') {
     if (args.some((a) => /^-[a-zA-Z]*i/.test(a) || a.startsWith('--in-place'))) {
-      for (const a of args.filter((x) => !x.startsWith('-'))) checkShellTarget(a, ctx, false);
+      for (const a of args.filter((x) => !x.startsWith('-'))) checkShellTarget(a, ctx);
     }
     if (name === 'sed') return;
   }
+  if (name === 'sort') {
+    const at = args.findIndex((a) => a === '-o' || a === '--output');
+    if (at >= 0) checkShellTarget(args[at + 1], ctx);
+    return;
+  }
   if (name === 'dd') {
-    for (const a of args) if (a.startsWith('of=')) checkShellTarget(a.slice(3), ctx, false);
+    for (const a of args) if (a.startsWith('of=')) checkShellTarget(a.slice(3), ctx);
     return;
   }
-  if (Object.hasOwn(WRITERS, name)) {
-    const targets = args.filter((a) => !a.startsWith('-'));
-    const append = APPENDERS.has(name) || (name === 'tee' && args.some((a) => /^(-a|--append)$/.test(a))) || (name === 'out-file' && args.some((a) => /^-a/i.test(a)));
-    for (const t of WRITERS[name] === 'last' ? targets.slice(-1) : targets) checkShellTarget(t, ctx, append);
-    return;
+  if (name === 'ln' || name === 'mklink' || name === 'junction' || name === 'junction64') {
+    return checkLink(args.filter((a) => !a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a)), ctx);
   }
+  if (name === 'fsutil' && /^(hardlink|reparsepoint)$/i.test(args[0] ?? '')) return checkLink(args.slice(2), ctx);
+  if (name === 'tar' || name === 'bsdtar') return checkTar(args, ctx);
+  if (Object.hasOwn(WRITERS, name)) return checkWriter(name, args, ctx);
   if (READERS.has(name)) return;
   if (INTERPRETERS.has(name)) return checkInterpreter(name, w, c, ctx);
-  return checkGeneric(w, ctx);
+  return checkGeneric(w, c, ctx);
+}
+
+/** The path arguments of a command, with the values of PowerShell's non-path parameters left out. */
+function pathArguments(args) {
+  const paths = [];
+  let destination = null;
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (PS_VALUE_PARAMETERS.test(a)) i++;
+    else if (/^(-t|--target-directory|-dest\w*)$/i.test(a)) destination = args[++i] ?? null;
+    else if (/^--target-directory=/.test(a)) destination = a.slice(a.indexOf('=') + 1);
+    else if (!a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a)) paths.push(a);
+  }
+  return { paths, destination };
+}
+
+function checkWriter(name, args, ctx) {
+  const kind = WRITERS[name];
+  if ((name === 'new-item' || name === 'ni') && args.some((a, i) => /^-(itemtype|type)$/i.test(a) && LINK_TYPES.test(args[i + 1] ?? ''))) {
+    return checkLink(args.filter((a) => !a.startsWith('-') && !LINK_TYPES.test(a)), ctx);
+  }
+  const { paths, destination } = pathArguments(args);
+  if (kind === 'write') for (const t of paths) checkShellTarget(t, ctx);
+  if (kind === 'move') for (const t of [...paths, ...(destination === null ? [] : [destination])]) checkShellTarget(t, ctx, true);
+  if (kind === 'copy') {
+    // The sources are only read; with one path and no -t there is no destination to judge.
+    const to = destination ?? (paths.length > 1 ? paths.at(-1) : null);
+    if (to !== null) checkShellTarget(to, ctx, true);
+  }
+}
+
+/**
+ * A new link, junction or hard link (`ln`, `mklink`, `New-Item -ItemType Junction`): through one
+ * a later Write under E:/FMIP/ops/ could land in the repository. Neither end may be the
+ * repository or the findings folder, and both must be paths the guard can place.
+ */
+function checkLink(paths, ctx) {
+  for (const raw of paths) {
+    const p = normPath(raw, ctx.cwd, true);
+    if (p === null || /[$`*?]/.test(p)) deny(`makes a link with an end the guard cannot place (${raw})`);
+    if (within(S.repo, p) || within(FINDINGS, p)) deny(`makes a link or junction that touches the repository or the findings folder (${raw})`);
+    checkShellTarget(raw, ctx);
+  }
+}
+
+/** Unpacking (`git archive <ref> | tar -x -C <scratchpad>`): never into the repository. */
+function checkTar(args, ctx) {
+  const first = args[0] ?? '';
+  const extracts = args.some((a) => a === '--extract' || a === '--get' || /^-[a-zA-Z]*x/.test(a)) || /^[a-zA-Z]*x[a-zA-Z]*$/.test(first);
+  if (!extracts) return;
+  let into = '.';
+  for (let i = 0; i < args.length; i++) {
+    if (/^(-[a-zA-Z]*C|--directory|--cd)$/.test(args[i])) into = args[i + 1] ?? '';
+    else if (/^--directory=/.test(args[i])) into = args[i].slice(12);
+  }
+  const p = normPath(into, ctx.cwd, true);
+  if (p === null || /[$`*?]/.test(p)) deny(`unpacks an archive at a path the guard cannot place (${into})`);
+  checkShellTarget(into, ctx, true);
 }
 
 /** A program this file has no rule for: look for what it could be carrying. */
-function checkGeneric(w, ctx) {
+function checkGeneric(w, c, ctx) {
   checkScriptFile(w[0]);
+  // Handed a findings path, it may write there: only the readers and finding.mjs may name one.
+  for (const x of w.slice(1)) {
+    const value = x.includes('=') && x.startsWith('-') ? x.slice(x.indexOf('=') + 1) : x;
+    const p = normPath(value, ctx.cwd, true);
+    if (p !== null ? within(FINDINGS, p) : /(^|[\\/])ops[\\/]+findings([\\/]|$)/i.test(value)) {
+      deny(`hands ${baseName(w[0])} a findings path (${value}); the only door for writing is finding.mjs, and cat, grep, jq read`);
+    }
+  }
   const at = w.findIndex((x) => /(^|[\\/])publish\.ts$/i.test(x));
   if (at >= 0 && !PUBLISHER_READ.has(w[at + 1] ?? '')) {
     deny(`writes to or syncs the agents console (publish.ts ${w[at + 1] ?? ''}; only lab-check and providers-check are read-only)`);
@@ -769,16 +938,22 @@ function checkGeneric(w, ctx) {
   for (const a of w.slice(1)) if (/\s|[;&|`]|\$\(/.test(a)) checkText(a, ctx.ps, ctx);
   for (let i = 1; i < w.length; i++) {
     if (w[i].includes('://') || !SENSITIVE.has(baseName(w[i]))) continue;
-    checkSimple(w.slice(i), null, { ...ctx, embedded: true });
+    // What follows is that program's command line, however the wrapper was handed it (one quoted
+    // string, a comma list); what the wrapper reads on its input, the program reads too.
+    const carried = w.slice(i + 1).flatMap((x) => x.split(/[\s,]+/)).filter(Boolean);
+    const input = { ...newCommand(), heredocs: c.heredocs, pipedIn: c.pipedIn, redirects: c.redirects.filter((r) => r.op === '<' || r.op === '<<<') };
+    checkSimple([w[i], ...carried], input, { ...ctx, embedded: true });
     break;
   }
   if (w.some((x) => /\bfmip-prod\b|\bssh:\/\//i.test(x))) deny('names the server in a command that is not one of the read-only scripts');
 }
 
-function checkGit(args, ctx) {
+function checkGit(args, outer) {
+  let ctx = outer;
   let i = 0;
   for (; i < args.length && args[i].startsWith('-'); i++) {
     if (/^(--version|--help|-h|-v)$/.test(args[i])) return;
+    if (args[i] === '-C') ctx = { ...ctx, cwd: normPath(args[i + 1] ?? '', ctx.cwd, true) }; // relative paths start there
     if (GIT_VALUE_OPTIONS.has(args[i])) i++;
   }
   const sub = args[i];
@@ -786,11 +961,42 @@ function checkGit(args, ctx) {
   if (sub === undefined) return;
   if (ctx.embedded && !/^[a-z][a-z-]*$/.test(sub)) return; // a word that only looks like git among another program's arguments
   if (args.some((a) => /\bfmip-prod\b|\bssh:\/\//i.test(a))) deny('reaches the server through git');
-  if (!GIT_READ.has(sub)) deny(`runs "git ${sub}", which is not one of the read-only git commands (a team agent never changes the repository or its working tree)`);
   const flags = rest.filter((a) => a.startsWith('-'));
   const plain = rest.filter((a) => !a.startsWith('-'));
-  const listing = flags.some((a) => GIT_LISTING.test(a));
   const no = (what) => deny(`runs "git ${sub}" in a form that ${what}`);
+  // A pull request's code on disk, read-only: only into the scratchpad or the temp folder.
+  if (sub === 'clone') {
+    const odd = flags.find((a) => !/^(-l|--local|--no-hardlinks|-q|--quiet|-n|--no-checkout|--single-branch|--no-single-branch|--no-tags|--depth(=\d+)?|-b|--branch(=.+)?)$/.test(a));
+    if (odd) no(`passes an option outside the plain ones (${odd})`);
+    const paths = rest.filter((a, k) => !a.startsWith('-') && !/^(--depth|-b|--branch)$/.test(rest[k - 1] ?? ''));
+    const source = String(paths[0] ?? '').replace(/^file:\/\//i, '');
+    const elsewhere = /^[a-z][a-z0-9+.-]*:\/\/|^[\w.-]+@|^[\w.-]{2,}:/i.test(source); // a URL, or host:path
+    const from = elsewhere ? null : normPath(source, ctx.cwd, true);
+    if (paths.length !== 2 || from === null || !within(S.repo, from)) no('clones anything but this repository, or names no place for the copy');
+    return checkTempTarget(paths[1], ctx, 'clones the repository');
+  }
+  if (sub === 'worktree' && plain[0] === 'add') {
+    const odd = flags.find((a) => !/^(--detach|-d|-q|--quiet|--no-checkout|--checkout)$/.test(a));
+    if (odd) no(`makes or forces a branch, or passes an option outside the plain ones (${odd})`);
+    // Without --detach a bare name takes that branch for the new worktree (nobody else can then
+    // check it out) or makes one from the remote's; a remote ref, FETCH_HEAD or a commit detaches.
+    const detached = flags.some((a) => a === '--detach' || a === '-d') || /^(origin\/.+|refs\/(remotes|tags|pull)\/.+|FETCH_HEAD|HEAD|[0-9a-f]{7,40})$/.test(plain[2] ?? '');
+    if (!detached) no('would take or make a branch (say --detach, or give origin/<branch>, FETCH_HEAD or a commit)');
+    return checkTempTarget(plain[1], ctx, 'adds a worktree');
+  }
+  if (sub === 'worktree' && plain[0] === 'remove') return checkTempTarget(plain[1], ctx, 'removes a worktree');
+  if (sub === 'worktree' && plain[0] === 'prune') return undefined;
+  if (sub === 'archive') {
+    const remote = flags.find((a) => /^(--remote|--exec)(=|$)/.test(a));
+    if (remote) no(`reaches another repository (${remote})`);
+    for (let k = 0; k < rest.length; k++) {
+      const out = /^(-o|--output)$/.test(rest[k]) ? rest[k + 1] : (/^(?:--output=|-o)(.+)$/.exec(rest[k])?.[1] ?? null);
+      if (out !== null) checkTempTarget(out, ctx, 'writes an archive');
+    }
+    return undefined;
+  }
+  if (!GIT_READ.has(sub)) deny(`runs "git ${sub}", which is not one of the read-only git commands (a team agent never changes the repository or its working tree)`);
+  const listing = flags.some((a) => GIT_LISTING.test(a));
   if (sub === 'branch' && (flags.some((a) => GIT_BRANCH_WRITE.test(a)) || (plain.length > 0 && !listing))) no('creates, moves or deletes a branch');
   if (sub === 'tag' && (flags.some((a) => GIT_TAG_WRITE.test(a)) || (plain.length > 0 && !listing))) no('creates or deletes a tag');
   if (sub === 'stash' && plain[0] !== 'list' && plain[0] !== 'show') no('changes the working tree or the stash');
@@ -856,7 +1062,14 @@ function checkPsql(args, c, ctx) {
   if (args.some((a) => /^(-[a-eg-zA-Z]*f|--file)/.test(a)) || c.redirects.some((r) => r.op === '<')) {
     deny('runs SQL from a file the guard cannot read (SQL goes through data-audit/run.sh, whose session is read-only)');
   }
-  const m = SQL_WRITE.exec(ctx.full);
+  // Its own SQL where that can be read; SQL that arrives on a pipe, or psql run inside another
+  // program (docker exec ... psql), is somewhere on the line, so the whole line is read.
+  const own = [...c.heredocs, ...c.redirects.filter((r) => r.op === '<<<').map((r) => r.target)];
+  for (let i = 0; i < args.length; i++) {
+    if (/^(-c|--command)$/.test(args[i])) own.push(args[i + 1] ?? '');
+    else if (/^(--command=|-c)./.test(args[i])) own.push(args[i].replace(/^(--command=|-c)/, ''));
+  }
+  const m = SQL_WRITE.exec(c.pipedIn || ctx.embedded ? ctx.full : own.join('\n'));
   if (m) deny(`runs psql in a command that names "${m[0].trim()}", so it may write (SQL goes through data-audit/run.sh, whose session is read-only)`);
 }
 
@@ -915,7 +1128,7 @@ function checkInterpreter(name, w, c, ctx) {
     if (c.pipedIn) rawScan(ctx.full, `feeds ${name} a script`);
     return;
   }
-  checkGeneric(w, ctx);
+  checkGeneric(w, c, ctx);
 }
 
 function checkFind(args, ctx) {
@@ -943,7 +1156,7 @@ function checkRemove(name, args, ctx) {
     : args.some((a) => /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a) || a === '--recursive');
   const targets = args.filter((a) => !a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a));
   for (const t of targets) {
-    checkShellTarget(t, ctx, false);
+    checkShellTarget(t, ctx);
     if (!recursive) continue;
     const p = normPath(t, ctx.cwd, true);
     if (p === null || /[$`]/.test(p)) deny(`removes a folder tree the guard cannot place (${t})`);
@@ -952,8 +1165,9 @@ function checkRemove(name, args, ctx) {
     const tree = (wild < 0 ? fixed : fixed.slice(0, wild)).join('/');
     // A wildcard may empty the agent's own scratchpad, never a whole temp folder.
     // (<temp>/claude holds every session's scratchpad: its children may go, never the folder itself.)
+    // The repository first: a checkout that itself lives under the temp folder is still the repository.
     const own = wild >= 0 && S.scratch && tree === S.temps[0];
-    if (!own && (!inTemp(tree, S.shellTemps) || tree === S.temps.at(-1))) deny(`removes a folder tree outside the scratchpad and temp folders (${t})`);
+    if (within(S.repo, tree) || (!own && (!inTemp(tree, S.shellTemps) || S.pool.includes(tree)))) deny(`removes a folder tree outside the scratchpad and temp folders (${t})`);
   }
 }
 
@@ -1036,12 +1250,16 @@ process.stdin.on('end', () => {
     S.tmp = slash(tmpdir());
     S.home = slash(homedir());
     // This file is <repository>/.claude/hooks/team-guard.mjs; a worktree's copy answers for the main checkout.
-    S.repo = normPath(slash(fileURLToPath(import.meta.url)).replace(/\/\.claude\/hooks\/[^/]+$/, '').replace(/\/\.claude\/worktrees\/[^/]+$/, ''), null);
+    // Folders are known by their real path (what the file tools are judged by) and as written.
+    const real = (p) => realPath(canonPath(p, null) ?? String(p));
+    S.repo = real(slash(fileURLToPath(import.meta.url)).replace(/\/\.claude\/hooks\/[^/]+$/, '')).replace(/\/\.claude\/worktrees\/[^/]+$/, '');
     const tmp = normPath(S.tmp, null);
     const scratch = typeof input.scratchpad_dir === 'string' && input.scratchpad_dir.trim() !== '' ? normPath(input.scratchpad_dir, null) : null;
     S.scratch = scratch !== null;
-    S.temps = [scratch, `${tmp}/claude`].filter(Boolean);
-    S.shellTemps = [...S.temps, tmp];
+    const both = (list) => [...new Set(list.filter(Boolean).flatMap((p) => [p, real(p)]))];
+    S.temps = [...(scratch === null ? [] : [scratch]), ...both([scratch, `${tmp}/claude`]).filter((p) => p !== scratch)];
+    S.shellTemps = both([...S.temps, tmp]);
+    S.pool = both([`${tmp}/claude`]);
     judge(input);
   } catch (error) {
     if (error instanceof Deny) return refuse(agent, error.message);

@@ -323,5 +323,20 @@
     "pass",
     "Edit",
     { "file_path": "E:/FMIP/fmip/.claude/settings.json", "old_string": "\"timeout\": 10", "new_string": "\"timeout\": 15" }
+  ],
+  [
+    "pass",
+    "Bash",
+    "echo '{\"id\": \"x\"}' >> /e/FMIP/ops/findings/2026-11-20.jsonl"
+  ],
+  [
+    "pass",
+    "Bash",
+    "echo '{\"id\": \"x\"}' | tee -a /e/FMIP/ops/findings/2026-11-20.jsonl"
+  ],
+  [
+    "pass",
+    "PowerShell",
+    { "command": "Add-Content -Path E:\\FMIP\\ops\\findings\\2026-11-20.jsonl -Value '{}'" }
   ]
 ]

@@ -10,7 +10,7 @@
 // ${REPO_WIN}, ${TMP}, ${TMP_BASH}, ${TMP_WIN} and ${SCRATCH} are replaced with this machine's
 // paths (the main checkout, also when this file runs from a worktree), so the cases hold anywhere.
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -81,6 +81,29 @@ expect('block', 'team-guard.mjs', '{"agent_type": "qa-engineer", "tool_name": "B
 expect('pass', 'team-guard.mjs', { agent_type: 'qa-engineer', tool_name: 'Bash', tool_input: null }, 'a team agent call with no input has nothing to refuse');
 expect('pass', 'team-guard.mjs', { agent_type: 'qa-engineer', tool_name: 'Read', tool_input: { file_path: `${PLACES.REPO}/CLAUDE.md` } }, 'reading is never judged');
 
+// A link on the way: a Write is judged where it lands. This needs real junctions, made here under
+// <temp>/claude/ (a folder a team agent may write in) and taken away again one by one, never by a
+// recursive delete, which would follow them.
+const links = [];
+let linkRoot = null;
+try {
+  mkdirSync(join(tmpdir(), 'claude'), { recursive: true });
+  linkRoot = mkdtempSync(join(tmpdir(), 'claude', 'team-guard-links-'));
+  mkdirSync(join(linkRoot, 'plain'));
+  for (const [name, target] of [['to-controls', join(repo, '.claude')], ['to-plain', join(linkRoot, 'plain')]]) {
+    symlinkSync(target, join(linkRoot, name), 'junction');
+    links.push(join(linkRoot, name));
+  }
+  const write = (agent, path) => ({ agent_type: agent, tool_name: 'Write', cwd: PLACES.REPO, tool_input: { file_path: slash(join(linkRoot, path)), content: 'x' } });
+  expect('block', 'team-guard.mjs', write('qa-engineer', 'to-controls/settings.json'), 'a Write through a junction that lands on .claude/settings.json');
+  expect('block', 'team-guard.mjs', write('qa-engineer', 'to-controls/agent-memory/security/x.md'), "a Write through a junction that lands in another agent's memory");
+  expect('pass', 'team-guard.mjs', write('qa-engineer', 'to-controls/agent-memory/qa-engineer/x.md'), "a Write through a junction that lands in the agent's own memory");
+  expect('pass', 'team-guard.mjs', write('qa-engineer', 'to-plain/x.md'), 'a Write through a junction that stays in the temp folder');
+  expect('pass', 'team-guard.mjs', write('qa-engineer', 'plain/x.md'), 'a Write in the temp folder with no link on the way');
+} catch (error) {
+  console.log(`SKIPPED  the junction cases: no link could be made here (${error.message})`);
+}
+
 const wrong = [];
 let next = 0;
 async function worker() {
@@ -94,6 +117,21 @@ async function worker() {
   }
 }
 await Promise.all(Array.from({ length: Math.min(8, availableParallelism()) }, worker));
+for (const link of links) {
+  try {
+    unlinkSync(link);
+  } catch {
+    rmdirSync(link); // a junction is taken away like an empty folder; its target is untouched
+  }
+}
+if (linkRoot !== null) {
+  try {
+    rmdirSync(join(linkRoot, 'plain'));
+    rmdirSync(linkRoot);
+  } catch {
+    // left behind in the temp folder: harmless
+  }
+}
 
 const failures = wrong.filter(Boolean);
 for (const line of failures) console.log(line);
