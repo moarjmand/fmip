@@ -362,6 +362,8 @@ export type {
   ConsoleSubscriptionStatus,
   Recurring,
 } from './console-calendar';
+// The computer's heartbeat on every console page (T-1906, D-456); its times, limits and arithmetic are in './console'.
+export type { ConsoleHeartbeat, ConsoleHeartbeatState, ConsolePcState } from './console-heartbeat';
 // The agents console's pre-launch checklist (T-1840, D-428); its runtime constants are in './console'.
 export type {
   ConsoleChecklist,

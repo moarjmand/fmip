@@ -1,34 +1,31 @@
 import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { ConsoleSnapshot } from '@fmip/contracts';
-import { consoleCommands, consoleSnapshot } from '@/lib/console-api';
-import {
-  Badge,
-  Card,
-  FindingRow,
-  SCHEDULE_WORDS,
-  Stat,
-  agentTitle,
-  fa,
-  freshness,
-  when,
-} from '../ui';
+import { consoleCommands, consoleHeartbeat, consoleSnapshot } from '@/lib/console-api';
+import { Badge, Card, FindingRow, SCHEDULE_WORDS, Stat, agentTitle, fa, when } from '../ui';
 
 const RANK = { critical: 0, major: 1, minor: 2, info: 3 } as const;
 
 /** The console's first page (T-1698, D-340): how the team is, what waits on a person. */
 export default async function ConsoleOverviewPage() {
-  const [snapshotResult, commandsResult] = await Promise.all([
+  const [snapshotResult, commandsResult, heartbeatResult] = await Promise.all([
     consoleSnapshot(),
     consoleCommands(),
+    consoleHeartbeat(),
   ]);
+  // The frame's bar says «نامعلوم» when the heartbeat was not read; the
+  // snapshot this page did read still has its own arrival time (rule 4).
+  const arrived = !heartbeatResult.ok && snapshotResult.ok ? snapshotResult.data.loaded_at : null;
   const snapshot: ConsoleSnapshot | null = snapshotResult.ok ? snapshotResult.data.snapshot : null;
-  const fresh = freshness(snapshotResult.ok ? snapshotResult.data.loaded_at : null, new Date());
   const commands = commandsResult.ok ? commandsResult.data.commands : [];
 
   if (snapshot === null) {
     return (
-      <Card title="هنوز چیزی نرسیده">
-        <p className="text-sm text-muted">{fresh.words}</p>
+      <Card title={snapshotResult.ok ? 'هنوز چیزی نرسیده' : 'داده‌ی کنسول خوانده نشد'}>
+        <p className="text-sm text-muted">
+          {snapshotResult.ok
+            ? 'عامل‌ها، یافته‌ها و گزارش‌ها با نخستین هم‌گام‌سازی رایانه اینجا دیده می‌شوند.'
+            : 'سرور پاسخ نداد؛ این یعنی نمی‌دانیم، نه این‌که چیزی نیست. صفحه را دوباره باز کنید.'}
+        </p>
       </Card>
     );
   }
@@ -41,12 +38,11 @@ export default async function ConsoleOverviewPage() {
 
   return (
     <>
-      <p
-        role="status"
-        className={fresh.stale ? 'text-sm font-bold text-warning' : 'text-sm text-muted'}
-      >
-        {fresh.words}
-      </p>
+      {arrived !== null && (
+        <p className="text-sm text-muted" data-testid="snapshot-arrived">
+          آنچه در این صفحه می‌بینید در {when(arrived)} از رایانه رسیده است.
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat

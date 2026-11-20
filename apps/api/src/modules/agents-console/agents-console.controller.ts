@@ -24,6 +24,7 @@ import type {
   ConsoleBoardCard,
   ConsoleCommand,
   ConsoleConversation,
+  ConsoleHeartbeat,
   ConsoleInvitationView,
   ConsoleMe,
   ConsoleMessage,
@@ -233,6 +234,16 @@ export class AgentsConsoleController {
     return latest === null
       ? { snapshot: null, loaded_at: null }
       : { snapshot: latest.snapshot, loaded_at: latest.loaded_at.toISOString() };
+  }
+
+  /**
+   * The computer's heartbeat for the bar on every page (T-1906, D-456): the
+   * newest snapshot's arrival and the queue's counts, without the snapshot.
+   */
+  @Get('heartbeat')
+  async heartbeat(@Req() request: FastifyRequest): Promise<ConsoleHeartbeat> {
+    await this.person(request);
+    return this.store.heartbeat();
   }
 
   @Get('commands')

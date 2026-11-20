@@ -8,6 +8,7 @@ import type {
   ConsoleCommand,
   ConsoleCommandRequest,
   ConsoleConversation,
+  ConsoleHeartbeat,
   ConsoleMe,
   ConsoleMessage,
   ConsoleSnapshot,
@@ -566,6 +567,34 @@ export class PostgresConsoleStore {
     );
     const row = rows[0];
     return row === undefined ? null : { snapshot: row.payload, loaded_at: row.loaded_at };
+  }
+
+  /**
+   * The computer's heartbeat (T-1906, D-456): when the newest snapshot
+   * arrived, and how many commands and messages still wait for the computer.
+   * Counts that cannot be read are `null`, never zero (rule 3).
+   */
+  async heartbeat(): Promise<ConsoleHeartbeat> {
+    const { rows } = await this.pool.query<{ loaded_at: Date }>(
+      `SELECT loaded_at FROM console_snapshot ORDER BY generated_at DESC, loaded_at DESC LIMIT 1`,
+    );
+    const loaded_at = rows[0]?.loaded_at.toISOString() ?? null;
+    try {
+      const counts = await this.pool.query<{ commands: string; messages: string }>(
+        `SELECT (SELECT count(*) FROM console_command WHERE status = 'queued') AS commands,
+                (SELECT count(*) FROM console_message WHERE status = 'queued') AS messages`,
+      );
+      const row = counts.rows[0];
+      return {
+        loaded_at,
+        queued:
+          row === undefined
+            ? null
+            : { commands: Number(row.commands), messages: Number(row.messages) },
+      };
+    } catch {
+      return { loaded_at, queued: null };
+    }
   }
 
   // --- Commands ------------------------------------------------------------

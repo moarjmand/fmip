@@ -1,6 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ConsoleFinding, ConsoleMessage } from '@fmip/contracts';
+import type { ConsoleFinding, ConsoleHeartbeat, ConsoleMessage } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -11,12 +11,25 @@ import {
   isConsoleHost,
 } from '@/lib/console-host';
 import { ChatThread, MESSAGE_STATUS_WORDS } from './chat';
-import { ConsoleNav, consolePathname, isCurrent } from './console-nav';
-import { FindingRow, RunsBars, freshness } from './ui';
+import {
+  ConsoleNav,
+  INPUT_EVENTS,
+  LAYOUT_MAX_AGE_MS,
+  consolePathname,
+  isCurrent,
+  layoutRefresher,
+  shouldRefresh,
+} from './console-nav';
+import { LiveHeartbeat, LiveSyncSentence, agedClock } from './heartbeat-clock';
+import { FindingRow, PcHeartbeat, RunsBars, freshness, syncSentence } from './ui';
+import { queuedWords } from './words';
 
 const nav = vi.hoisted(() => ({ pathname: '/' }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ get: () => undefined }) }));
-vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
+vi.mock('next/navigation', () => ({
+  usePathname: () => nav.pathname,
+  useRouter: () => ({ refresh: () => undefined }),
+}));
 const { parseConsoleSetCookie } = await import('@/lib/console-api');
 
 /**
@@ -142,6 +155,12 @@ describe('the console pieces', () => {
       />,
     );
     expect(html).toContain('۳');
+    // T-1906: many runs scroll inside a box a keyboard can reach, and it has a name.
+    const box = /^<div [^>]*>/.exec(html)?.[0] ?? '';
+    expect(box).toContain('overflow-x-auto');
+    expect(box).toContain('tabindex="0"');
+    expect(box).toContain('role="group"');
+    expect(box).toMatch(/aria-label="[^"]*نمودار اجراها[^"]*"/);
   });
 
   it('draws a conversation: who wrote what, where a message is, and why one failed (T-1722)', () => {
@@ -221,13 +240,423 @@ describe('the console pieces', () => {
     });
     expect(auditReasonWords('test message asked')).toBe('پیام آزمایشی خواسته شد');
   });
+});
 
-  it('says when the snapshot is stale (rule 4)', () => {
-    const now = new Date('2026-11-02T12:00:00Z');
-    expect(freshness(null, now).stale).toBe(true);
-    expect(freshness('2026-11-02T05:00:00Z', now).stale).toBe(false);
-    expect(freshness('2026-10-31T05:00:00Z', now)).toMatchObject({ stale: true });
-    expect(freshness('2026-10-31T05:00:00Z', now).words).toContain('کهنه');
+/**
+ * T-1906 (D-456): the computer's heartbeat. Tehran is UTC+03:30, so the
+ * sync's 09:25, 15:25 and 21:25 are 05:55, 11:55 and 17:55 UTC; the snapshot
+ * of the mock-ups arrived on 28 Aban at 01:54 (2026-11-18T22:24Z).
+ */
+describe("the computer's heartbeat (T-1906)", () => {
+  const LOADED = '2026-11-18T22:24:00Z';
+  const at = (iso: string) => new Date(iso);
+  const bar = (heartbeat: ConsoleHeartbeat | null, now: string, compact = false) =>
+    renderToStaticMarkup(<PcHeartbeat heartbeat={heartbeat} now={at(now)} compact={compact} />);
+  const queued = { commands: 2, messages: 1 };
+
+  it('words the four states at fixed clocks (rule 4)', () => {
+    // Synced today at 09:28, read at 11:30.
+    expect(freshness('2026-11-19T05:58:00Z', at('2026-11-19T08:00:00Z'))).toEqual({
+      state: 'fresh',
+      word: 'هم‌گام',
+      title: 'آخرین هم‌گام‌سازی:',
+      since: '۲ ساعت پیش (امروز ۰۹:۲۸)',
+      detail: 'هم‌گام‌سازی بعدی حدود ۱۵:۲۵. دستورها و پیام‌های تازه تا آن‌وقت در صف می‌مانند.',
+      next: '۱۵:۲۵',
+    });
+    // The mock-up's snapshot, read at 10:26: 09:25 was missed by more than an hour.
+    expect(freshness(LOADED, at('2026-11-19T06:56:00Z'))).toEqual({
+      state: 'late',
+      word: 'دیر شده',
+      title: 'هم‌گام‌سازی دیر شده؛',
+      since: 'آخرین: ۸ ساعت پیش (۲۸ آبان ۰۱:۵۴)',
+      detail: 'هم‌گام‌سازی نوبت ۰۹:۲۵ نرسیده است. آنچه می‌بینید از آخرین هم‌گام‌سازی در ۰۱:۵۴ است.',
+      next: '۱۵:۲۵',
+    });
+    // Thirty hours on: the computer is taken to be off.
+    expect(freshness(LOADED, at('2026-11-20T04:24:00Z'))).toEqual({
+      state: 'silent',
+      word: 'خاموش',
+      title: 'رایانه خاموش است؛ دستورها در صف می‌مانند.',
+      since: '',
+      detail:
+        'آخرین هم‌گام‌سازی: ۲۸ آبان ۰۱:۵۴، ۳۰ ساعت پیش. در این مدت هیچ عاملی اجرا نشده و یافته‌ها و گزارش‌ها همان زمان‌اند.',
+      next: '۰۹:۲۵',
+    });
+    expect(freshness(null, at('2026-11-19T08:00:00Z'))).toEqual({
+      state: 'never',
+      word: 'بی‌داده',
+      title: 'هنوز هیچ هم‌گام‌سازی از رایانه نرسیده است',
+      since: '',
+      detail:
+        'یافته‌ها، گزارش‌ها و وضعیت عامل‌ها خالی‌اند چون از رایانه نیامده‌اند، نه چون چیزی نیست.',
+      next: '۱۵:۲۵',
+    });
+  });
+
+  it('holds the two limits to the minute: 60 past a slot, 26 hours', () => {
+    const synced = '2026-11-19T05:58:00Z';
+    expect(freshness(synced, at('2026-11-19T12:55:00Z')).state).toBe('fresh');
+    expect(freshness(synced, at('2026-11-19T12:56:00Z')).state).toBe('late');
+    expect(freshness(synced, at('2026-11-20T07:58:00Z')).state).toBe('late');
+    expect(freshness(synced, at('2026-11-20T07:59:00Z')).state).toBe('silent');
+  });
+
+  it('a late sync says only what is known: it did not arrive, and what is shown is older', () => {
+    const late = freshness(LOADED, at('2026-11-19T06:56:00Z'));
+    // Whether the agents ran on the computer meanwhile is not known here.
+    expect(late.detail).not.toMatch(/اجرا نمی‌شوند|اجرا نشده|خاموش/);
+    expect(late.title).not.toContain('خاموش');
+    // Two minutes before its slot (the computer's clock runs ahead) is that slot's sync.
+    expect(freshness('2026-11-19T05:53:00Z', at('2026-11-19T06:56:00Z')).state).toBe('fresh');
+  });
+
+  it('never calls a slot "next" that has already passed, and dates a sync that is not of today', () => {
+    // 10:15 on the mock-up's clock: 09:25 has passed, inside its hour of grace.
+    const due = freshness(LOADED, at('2026-11-19T06:45:00Z'));
+    expect(due.state).toBe('fresh');
+    expect(due.detail).toBe(
+      'هم‌گام‌سازی نوبت ۰۹:۲۵ هنوز نرسیده است. دستورها و پیام‌های تازه تا رسیدنش در صف می‌مانند.',
+    );
+    // Synced last night at 21:31, read at 08:00: yesterday's, so the day is named.
+    const overnight = freshness('2026-11-18T18:01:00Z', at('2026-11-19T04:30:00Z'));
+    expect(overnight.since).toBe('۱۰ ساعت پیش (۲۷ آبان ۲۱:۳۱)');
+    expect(overnight.detail).toContain('حدود ۰۹:۲۵');
+    // Late on a sync of the day before: "what you see is from" carries the day too.
+    expect(freshness('2026-11-18T12:00:00Z', at('2026-11-19T07:00:00Z')).detail).toContain(
+      'آنچه می‌بینید از آخرین هم‌گام‌سازی در ۲۷ آبان ۱۵:۳۰ است',
+    );
+    expect(freshness('2026-11-19T07:59:40Z', at('2026-11-19T08:00:00Z')).since).toContain(
+      'کمتر از یک دقیقه پیش',
+    );
+    expect(freshness('2026-11-19T07:35:00Z', at('2026-11-19T08:00:00Z')).since).toContain(
+      '۲۵ دقیقه پیش',
+    );
+    expect(freshness(LOADED, at('2026-11-22T08:00:00Z')).detail).toContain('۳ روز پیش');
+  });
+
+  it('draws a bar with a word and a shape for each state, never colour alone', () => {
+    const shapes: Record<string, string> = {
+      fresh: 'M4 12l5 5L20 6',
+      late: 'M12 3l10 18H2z',
+      silent: 'M12 3v9',
+      never: 'M12 3v9',
+    };
+    const cases: [string, string | null, string, string][] = [
+      ['fresh', '2026-11-19T05:58:00Z', '2026-11-19T08:00:00Z', 'هم‌گام'],
+      ['late', LOADED, '2026-11-19T06:56:00Z', 'دیر شده'],
+      ['silent', LOADED, '2026-11-20T04:24:00Z', 'خاموش'],
+      ['never', null, '2026-11-19T08:00:00Z', 'بی‌داده'],
+    ];
+    for (const [state, loaded, now, word] of cases) {
+      const html = bar({ loaded_at: loaded, queued }, now);
+      const box = /^<div [^>]*>/.exec(html)?.[0] ?? '';
+      expect(box, state).toContain(`data-state="${state}"`);
+      expect(html, state).not.toContain('role="alert"');
+      expect(html, state).toContain(`>${word}</span>`);
+      expect(html, state).toContain(shapes[state]);
+      expect(html, state).toContain('aria-hidden="true"');
+      expect(html, state).toContain('مدل، تقویم و یادآورها بدون رایانه کار می‌کنند');
+      // Logical properties only (rule 7), nothing animated, no inline style.
+      expect(html, state).not.toMatch(/\b(ml|mr|pl|pr|left|right|border-l|border-r)-/);
+      expect(html, state).not.toMatch(/animate-|transition|style=/);
+    }
+  });
+
+  it('announces the state and nothing that ages: one live region, around the word and the state sentence', () => {
+    const cases: [string | null, string][] = [
+      ['2026-11-19T05:58:00Z', '2026-11-19T08:00:00Z'],
+      [LOADED, '2026-11-19T06:56:00Z'],
+      [LOADED, '2026-11-20T04:24:00Z'],
+      [null, '2026-11-19T08:00:00Z'],
+    ];
+    for (const [loaded, now] of cases) {
+      const fresh = freshness(loaded, at(now));
+      const html = bar({ loaded_at: loaded, queued }, now);
+      // The box itself is no live region: its sentences change with the clock.
+      expect(/^<div [^>]*>/.exec(html)?.[0], fresh.state).not.toContain('role=');
+      expect(html.split('role="status"'), fresh.state).toHaveLength(2);
+      const region = html.slice(html.indexOf('<span role="status">'));
+      // The region closes right after the state sentence; "… ago" follows it, outside.
+      const tail = fresh.since === '' ? '</span></p>' : `</span> ${fresh.since}</p>`;
+      expect(region.indexOf(`${fresh.title}${tail}`), fresh.state).toBeGreaterThan(0);
+      expect(region.slice(0, region.indexOf(fresh.title)), fresh.state).toContain(fresh.word);
+    }
+    // An hour later in the same state the announced words are the same; only the age moved.
+    const first = freshness('2026-11-19T05:58:00Z', at('2026-11-19T08:00:00Z'));
+    const later = freshness('2026-11-19T05:58:00Z', at('2026-11-19T09:00:00Z'));
+    expect(later.title).toBe(first.title);
+    expect(later.since).not.toBe(first.since);
+    expect(freshness(LOADED, at('2026-11-19T08:56:00Z')).title).toBe(
+      freshness(LOADED, at('2026-11-19T06:56:00Z')).title,
+    );
+  });
+
+  it("shows the queue's counts, and drops the chips, not the sentences, when they cannot be read", () => {
+    const now = '2026-11-20T04:24:00Z';
+    const counted = bar({ loaded_at: LOADED, queued }, now);
+    expect(counted).toContain('۲ دستور در صف');
+    expect(counted).toContain('۱ پیام در صف');
+    expect(bar({ loaded_at: LOADED, queued: { commands: 0, messages: 0 } }, now)).toContain(
+      '۰ دستور در صف',
+    );
+    const uncounted = bar({ loaded_at: LOADED, queued: null }, now);
+    expect(uncounted).not.toContain('در صف</li>');
+    expect(uncounted).toContain('رایانه خاموش است؛ دستورها در صف می‌مانند.');
+    expect(uncounted).toContain('مدل، تقویم و یادآورها بدون رایانه کار می‌کنند');
+    // Never synced: no queue to speak of, as drawn.
+    expect(bar({ loaded_at: null, queued }, now)).not.toContain('در صف</li>');
+  });
+
+  it('says so when the heartbeat itself could not be read, and claims neither "off" nor "never"', () => {
+    const html = bar(null, '2026-11-19T08:00:00Z');
+    expect(html).toContain('data-state="unread"');
+    expect(html).toContain('وضعیت رایانه خوانده نشد');
+    expect(html).toContain('نامعلوم');
+    expect(html).not.toContain('رایانه خاموش است؛');
+    expect(html).not.toContain('هنوز هیچ هم‌گام‌سازی');
+    expect(html).not.toContain('در صف</li>');
+  });
+
+  it("states the sync's times from the one list, on a desktop and behind a disclosure on a phone", () => {
+    const html = bar({ loaded_at: LOADED, queued }, '2026-11-19T06:56:00Z');
+    const schedule =
+      'برنامه‌ی هم‌گام‌سازی (وقت تهران): <b class="font-bold">۰۹:۲۵ · ۱۵:۲۵ · ۲۱:۲۵</b> و اجرای روزانه‌ی تیم ۰۹:۰۹. «دیر شده» یعنی یک ساعت از نوبت گذشته؛ «خاموش» یعنی بیش از ۲۶ ساعت.';
+    expect(html).toContain(
+      `<p class="mt-1.5 hidden text-xs text-caption md:block">${schedule}</p>`,
+    );
+    const details = html.slice(html.indexOf('<details'), html.indexOf('</details>'));
+    expect(details).toContain('md:hidden');
+    expect(details).toMatch(/<summary [^>]*min-h-6[^>]*>برنامه‌ی هم‌گام‌سازی<\/summary>/);
+    expect(details).toContain(schedule);
+    // The page writes no time of its own: the bar and the sentences are the only source.
+    for (const file of ['(app)/layout.tsx', '(app)/page.tsx', '(app)/agents/[name]/page.tsx']) {
+      expect(readFileSync(join(__dirname, file), 'utf8'), file).not.toMatch(
+        /[0-9۰-۹]{1,2}:[0-9۰-۹]{2}/,
+      );
+    }
+  });
+
+  it("is one line above an agent's controls, with the corrected sentence", () => {
+    const html = bar({ loaded_at: LOADED, queued }, '2026-11-19T06:56:00Z', true);
+    expect(html).toContain('data-testid="pc-heartbeat-compact"');
+    expect(html).toContain('data-state="late"');
+    expect(html).toContain('هم‌گام‌سازی دیر شده؛</span> آخرین: ۸ ساعت پیش (۲۸ آبان ۰۱:۵۴)');
+    // The page's own bar is the status; this one repeats it beside the buttons.
+    expect(html).not.toContain('role="status"');
+    expect(html).not.toContain('در صف');
+    expect(html).not.toContain('<details');
+
+    expect(syncSentence(freshness('2026-11-19T05:58:00Z', at('2026-11-19T08:00:00Z')))).toBe(
+      'هر دستور در صف می‌ماند تا رایانه آن را بردارد. هم‌گام‌سازی روزی سه بار است (۰۹:۲۵، ۱۵:۲۵، ۲۱:۲۵؛ وقت تهران)؛ بعدی حدود ۱۵:۲۵.',
+    );
+    // With the computer silent, or never seen, no next time is named.
+    for (const loaded of [LOADED, null]) {
+      const sentence = syncSentence(freshness(loaded, at('2026-11-20T04:24:00Z')));
+      expect(sentence).toContain('روزی سه بار است (۰۹:۲۵، ۱۵:۲۵، ۲۱:۲۵؛ وقت تهران).');
+      expect(sentence).not.toContain('بعدی');
+    }
+  });
+
+  it("names the next slot in a queued command's success line only when one can be promised", () => {
+    const beat = (loaded_at: string | null): ConsoleHeartbeat => ({ loaded_at, queued });
+    // Syncing: the schedule's next slot.
+    expect(queuedWords(beat('2026-11-19T05:58:00Z'), at('2026-11-19T08:00:00Z'))).toBe(
+      'ثبت شد. رایانه در هم‌گام‌سازی بعدی (حدود ۱۵:۲۵) آن را انجام می‌دهد.',
+    );
+    expect(queuedWords(beat('2026-11-19T17:58:00Z'), at('2026-11-19T18:30:00Z'))).toContain(
+      '(حدود ۰۹:۲۵)',
+    );
+    // Late: the computer may be back by the next slot, which is named as the schedule's.
+    expect(queuedWords(beat(LOADED), at('2026-11-19T06:56:00Z'))).toContain('(حدود ۱۵:۲۵)');
+    // Silent or never seen: the command waits, and no time is promised (design spec, section 6).
+    for (const loaded of [LOADED, null]) {
+      const words = queuedWords(beat(loaded), at('2026-11-20T04:24:00Z'));
+      expect(words).toBe('ثبت شد. دستور در صف می‌ماند تا رایانه برگردد.');
+      expect(words).not.toMatch(/[۰-۹]{2}:[۰-۹]{2}/);
+    }
+    // A sync overdue inside its grace, or the heartbeat unread: "the next sync", without a time.
+    for (const words of [
+      queuedWords(beat(LOADED), at('2026-11-19T06:45:00Z')),
+      queuedWords(null, at('2026-11-19T08:00:00Z')),
+    ]) {
+      expect(words).toBe('ثبت شد. رایانه در هم‌گام‌سازی بعدی آن را انجام می‌دهد.');
+    }
+  });
+
+  it('finds no "hourly sync" wording and one spelling of «هم‌گام‌سازی» in the console\'s strings', () => {
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const path = join(dir, entry.name);
+        if (entry.isDirectory()) walk(path);
+        else if (/\.tsx?$/.test(entry.name) && !/\.spec\.tsx?$/.test(entry.name)) files.push(path);
+      }
+    };
+    walk(__dirname);
+    const lib = join(__dirname, '..', '..', 'lib');
+    for (const name of readdirSync(lib))
+      if (/^console-.*\.ts$/.test(name)) files.push(join(lib, name));
+    expect(files.length).toBeGreaterThan(40);
+    const HOURLY =
+      /هم‌?گام‌سازی\s+ساعتی|ساعتی\s+هم‌?گام|هر\s+ساعت\s+هم‌?گام|hourly\s+sync|اجرای روزانه‌ی ۸ صبح/i;
+    for (const file of files) {
+      const text = readFileSync(file, 'utf8');
+      expect(text, file).not.toMatch(HOURLY);
+      // «هم‌گام» with its half-space, never joined.
+      expect(text, file).not.toContain('همگام');
+    }
+  });
+
+  it("ages on the browser from the server's instant, with no request (rule 4 without keeping the session)", () => {
+    // Only elapsed time is read from the browser: a clock set a day wrong changes nothing.
+    const rendered = at('2026-11-19T08:00:00Z').getTime();
+    const wrong = at('2026-11-18T03:00:00Z').getTime();
+    expect(agedClock(rendered, wrong, wrong)).toBe(rendered);
+    expect(agedClock(rendered, wrong, wrong + 90_000)).toBe(rendered + 90_000);
+    expect(agedClock(rendered, wrong, wrong - 5_000)).toBe(rendered);
+
+    // The server's HTML is the bar at the server's instant, so hydration changes nothing.
+    const beat: ConsoleHeartbeat = { loaded_at: '2026-11-19T05:58:00Z', queued };
+    expect(renderToStaticMarkup(<LiveHeartbeat heartbeat={beat} renderedAt={rendered} />)).toBe(
+      bar(beat, '2026-11-19T08:00:00Z'),
+    );
+    expect(
+      renderToStaticMarkup(<LiveHeartbeat heartbeat={beat} renderedAt={rendered} compact />),
+    ).toBe(bar(beat, '2026-11-19T08:00:00Z', true));
+    expect(renderToStaticMarkup(<LiveSyncSentence heartbeat={beat} renderedAt={rendered} />)).toBe(
+      syncSentence(freshness(beat.loaded_at, at('2026-11-19T08:00:00Z'))),
+    );
+    expect(renderToStaticMarkup(<LiveSyncSentence heartbeat={null} renderedAt={rendered} />)).toBe(
+      'هر دستور در صف می‌ماند تا رایانه آن را بردارد.',
+    );
+
+    // Left open and untouched, the same bar becomes late, then silent, by the clock alone.
+    const after = (hours: number) =>
+      freshness(beat.loaded_at, new Date(agedClock(rendered, wrong, wrong + hours * 3_600_000)));
+    expect(after(0).state).toBe('fresh');
+    expect(after(5).state).toBe('late');
+    expect(after(25).state).toBe('silent');
+    // The clock file asks the server for nothing.
+    const source = readFileSync(join(__dirname, 'heartbeat-clock.tsx'), 'utf8');
+    expect(source).not.toMatch(/fetch\(|useRouter|router\.|console-api|console-actions/);
+  });
+});
+
+/**
+ * T-1906, review of PR #957: asking for the layout again restarts the
+ * session's 12-hour idle clock, so it happens only after the person has
+ * touched the page. A console left open and untouched makes no request.
+ */
+describe('asking for the layout again (T-1906)', () => {
+  const MINUTE = 60_000;
+  function page(start = 1_000_000) {
+    const state = { now: start, visible: true, online: true, asked: 0 };
+    const refresher = layoutRefresher({
+      refresh: () => {
+        state.asked += 1;
+      },
+      now: () => state.now,
+      visible: () => state.visible,
+      online: () => state.online,
+    });
+    const pass = (ms: number) => {
+      state.now += ms;
+    };
+    return { state, refresher, pass };
+  }
+
+  it('is ten minutes at most, and counts touching, typing, scrolling and coming to the window as input', () => {
+    expect(LAYOUT_MAX_AGE_MS).toBe(10 * MINUTE);
+    expect([...INPUT_EVENTS]).toEqual(['pointerdown', 'keydown', 'touchstart', 'wheel']);
+  });
+
+  it('holds the rule: old, touched since it arrived, seen and online', () => {
+    const fine = { visible: true, online: true };
+    const old = 1_000 + LAYOUT_MAX_AGE_MS + 1;
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 2_000 }, old, fine)).toBe(true);
+    // Exactly at the limit is not old yet.
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 2_000 }, old - 1, fine)).toBe(false);
+    // Input before the render arrived is not input since.
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 900 }, old, fine)).toBe(false);
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 1_000 }, old, fine)).toBe(false);
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 2_000 }, old, { ...fine, visible: false })).toBe(
+      false,
+    );
+    expect(shouldRefresh({ seenAt: 1_000, inputAt: 2_000 }, old, { ...fine, online: false })).toBe(
+      false,
+    );
+  });
+
+  it('makes no request without input, however long the page stays open', () => {
+    const { state, refresher, pass } = page();
+    // A visible, online tab, ticking every minute for thirteen hours, and coming back from hidden.
+    for (let minute = 0; minute < 13 * 60; minute += 1) {
+      pass(MINUTE);
+      refresher.tick();
+    }
+    state.visible = false;
+    pass(MINUTE);
+    refresher.tick();
+    state.visible = true;
+    refresher.tick();
+    expect(state.asked).toBe(0);
+  });
+
+  it('asks once after input when the layout is old, and not again until the next input', () => {
+    const { state, refresher, pass } = page();
+    // Touched a minute in: too young to ask.
+    pass(MINUTE);
+    refresher.input();
+    expect(state.asked).toBe(0);
+    // Old at the next tick, and touched since it arrived: one ask.
+    pass(10 * MINUTE);
+    refresher.tick();
+    expect(state.asked).toBe(1);
+    // The new render arrives; with no further input, hours of ticks ask nothing.
+    refresher.rendered();
+    for (let minute = 0; minute < 180; minute += 1) {
+      pass(MINUTE);
+      refresher.tick();
+    }
+    expect(state.asked).toBe(1);
+    // Touching an old page asks at once, once.
+    refresher.input();
+    refresher.input();
+    refresher.tick();
+    expect(state.asked).toBe(2);
+  });
+
+  it('asks once per age even when the ask fails, and not while hidden or offline', () => {
+    const { state, refresher, pass } = page();
+    pass(11 * MINUTE);
+    state.online = false;
+    refresher.input();
+    state.online = true;
+    state.visible = false;
+    refresher.tick();
+    expect(state.asked).toBe(0);
+    // Seen again, with the earlier touch still newer than the render: one ask.
+    state.visible = true;
+    refresher.tick();
+    expect(state.asked).toBe(1);
+    // No new render came back (the ask failed): nothing more for this age without new input.
+    pass(5 * MINUTE);
+    refresher.tick();
+    expect(state.asked).toBe(1);
+    pass(6 * MINUTE);
+    refresher.tick();
+    expect(state.asked).toBe(1);
+  });
+
+  it('wires the menu to it: input listeners, and nothing asked at render', () => {
+    const source = readFileSync(join(__dirname, 'console-nav.tsx'), 'utf8');
+    // The only `router.refresh()` is the refresher's.
+    expect(source.split('router.refresh()')).toHaveLength(2);
+    expect(source).toContain(
+      'for (const name of INPUT_EVENTS) window.addEventListener(name, made.input',
+    );
+    expect(source).not.toMatch(/setInterval\(\s*\(\)\s*=>\s*router/);
   });
 });
 

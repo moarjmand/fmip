@@ -149,6 +149,12 @@ async function walk(page: Page, base: string, seen: () => Promise<string[]>): Pr
       await expect(page, address).not.toHaveURL(/\/login$/);
       await expect(page.locator('body')).toHaveCSS('font-family', /Vazirmatn/);
       await expect(page.locator('main').first()).toBeVisible();
+      // T-1906: the computer's heartbeat bar is on every page, in a state it can
+      // know (a snapshot is loaded and the API answers), drawn under the policy.
+      const heartbeat = page.getByTestId('pc-heartbeat');
+      await expect(heartbeat, address).toBeVisible();
+      await expect(heartbeat, address).toHaveAttribute('data-state', /^(fresh|late|silent)$/);
+      await expect(heartbeat.getByRole('status'), address).toBeVisible();
       await page.waitForLoadState('networkidle');
       await seen();
     });
@@ -226,6 +232,9 @@ test.describe('the agents console under its enforced content policy', () => {
     // The agent page drew its schematic as inline SVG.
     await page.goto(`/agents/agents/${AGENT}`);
     await expect(page.locator('main svg').first()).toBeVisible();
+    // And, above its controls, the heartbeat in one line with the sync's real times (T-1906).
+    await expect(page.getByTestId('pc-heartbeat-compact')).toBeVisible();
+    await expect(page.locator('main')).toContainText('هم‌گام‌سازی روزی سه بار است');
     await attachPicture(page, '/agents');
     await registerWorker(page, '/agents');
     // A client-side move between pages asks for the payload under the policy too.

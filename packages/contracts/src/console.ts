@@ -118,3 +118,16 @@ export {
   CONSOLE_CANVAS_TAGS,
   CONSOLE_CANVAS_TEXT_MAX,
 } from './console-canvas';
+// The computer's heartbeat and the sync's times, stated once (T-1906, D-456).
+export {
+  CONSOLE_DAILY_RUN_TIME,
+  CONSOLE_HEARTBEAT_STATES,
+  CONSOLE_SILENT_HOURS,
+  CONSOLE_SYNC_EARLY_MINUTES,
+  CONSOLE_SYNC_GRACE_MINUTES,
+  CONSOLE_SYNC_TIME_ZONE,
+  CONSOLE_SYNC_TIMES,
+  consolePcState,
+  syncSlotAfter,
+  syncSlotAtOrBefore,
+} from './console-heartbeat';

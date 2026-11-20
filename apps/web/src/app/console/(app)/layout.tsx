@@ -2,9 +2,10 @@ import { redirect } from 'next/navigation';
 import { ConsoleLink as Link } from '@/app/console/console-link';
 import type { ReactNode } from 'react';
 import { signOut } from '@/lib/console-actions';
-import { consoleMe, consoleRequestCounts } from '@/lib/console-api';
+import { consoleHeartbeat, consoleMe, consoleRequestCounts } from '@/lib/console-api';
 import { consoleBase, consoleUrl } from '@/lib/console-base';
 import { ConsoleNav, type ConsoleNavItem } from '@/app/console/console-nav';
+import { LiveHeartbeat } from '@/app/console/heartbeat-clock';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,8 +33,11 @@ const NAV = [
 export default async function ConsoleAppLayout({ children }: { children: ReactNode }) {
   const me = await consoleMe();
   if (!me.ok) redirect(await consoleUrl('/login'));
-  // The open requests' count beside their link (T-1728); none when it cannot be read.
-  const counts = await consoleRequestCounts();
+  // The open requests' count beside their link (T-1728), none when it cannot be
+  // read; and the computer's heartbeat on every page (T-1906), said as unread
+  // when it cannot.
+  const [counts, heartbeat] = await Promise.all([consoleRequestCounts(), consoleHeartbeat()]);
+  const now = new Date();
   const openRequests = counts.ok ? counts.data.open : 0;
   const base = await consoleBase();
   const items: ConsoleNavItem[] = await Promise.all(
@@ -57,7 +61,7 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
           کنسول عامل‌ها
           <span className="ms-2 text-xs font-normal text-caption">Stadiomind</span>
         </Link>
-        <ConsoleNav items={items} base={base} />
+        <ConsoleNav items={items} base={base} renderedAt={now.getTime()} />
         <div className="flex items-center gap-3 text-sm lg:border-t lg:border-default lg:px-6 lg:pt-3">
           <span className="min-w-0 truncate text-muted">{me.data.display_name}</span>
           <form action={signOut} className="ms-auto">
@@ -70,7 +74,13 @@ export default async function ConsoleAppLayout({ children }: { children: ReactNo
           </form>
         </div>
       </header>
-      <main className="page-frame flex min-w-0 flex-col gap-5 py-5 lg:flex-1">{children}</main>
+      <main className="page-frame flex min-w-0 flex-col gap-5 py-5 lg:flex-1">
+        <LiveHeartbeat
+          heartbeat={heartbeat.ok ? heartbeat.data : null}
+          renderedAt={now.getTime()}
+        />
+        {children}
+      </main>
     </div>
   );
 }

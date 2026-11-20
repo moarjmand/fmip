@@ -4,8 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { ConsoleCanvasKey } from '@fmip/contracts';
 import { dayToIso, isoToDay, jalaliMonthLength, jalaliToDay } from '@fmip/contracts/console';
-import { apiErrorWords } from '@/app/console/words';
-import { applyConsoleCookie, consoleCall } from './console-api';
+import { apiErrorWords, queuedWords } from '@/app/console/words';
+import { applyConsoleCookie, consoleCall, consoleHeartbeat } from './console-api';
 import { consoleUrl } from './console-base';
 
 /**
@@ -87,7 +87,10 @@ export async function queueCommand(_: ConsoleFormState, form: FormData): Promise
   });
   if (!result.ok) return failed(result.error?.message, 'دستور ثبت نشد.');
   revalidatePath('/console', 'layout');
-  return { error: null, done: 'ثبت شد. رایانه در همگام‌سازی بعدی آن را انجام می‌دهد.' };
+  // T-1906: the next sync by the schedule, never "within the hour", and no
+  // time at all while the computer is silent.
+  const heartbeat = await consoleHeartbeat();
+  return { error: null, done: queuedWords(heartbeat.ok ? heartbeat.data : null, new Date()) };
 }
 
 /**

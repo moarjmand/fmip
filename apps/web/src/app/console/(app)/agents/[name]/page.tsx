@@ -7,8 +7,9 @@ import {
   type ConsoleMemorySource,
 } from '@fmip/contracts';
 import { queueCommand } from '@/lib/console-actions';
-import { consoleCommands, consoleSnapshot } from '@/lib/console-api';
+import { consoleCommands, consoleHeartbeat, consoleSnapshot } from '@/lib/console-api';
 import { ConsoleForm } from '../../../console-form';
+import { LiveHeartbeat, LiveSyncSentence } from '../../../heartbeat-clock';
 import {
   Badge,
   Card,
@@ -56,13 +57,18 @@ function Reason() {
 /** One agent (T-1698, D-340): how it works, what it can touch, what feeds its memory and what it holds, its runs, and its controls. */
 export default async function ConsoleAgentPage({ params }: Params) {
   const { name } = await params;
-  const [snapshotResult, commandsResult] = await Promise.all([
+  const [snapshotResult, commandsResult, heartbeatResult] = await Promise.all([
     consoleSnapshot(),
     consoleCommands(),
+    consoleHeartbeat(),
   ]);
   const snapshot = snapshotResult.ok ? snapshotResult.data.snapshot : null;
   const agent = snapshot?.agents.find((a) => a.name === name);
   if (snapshot === null || agent === undefined) notFound();
+
+  // T-1906: the computer's state beside the controls, and the sync's real times.
+  const renderedAt = new Date().getTime();
+  const heartbeat = heartbeatResult.ok ? heartbeatResult.data : null;
 
   const findings = snapshot.findings.filter((f) => f.agent === name);
   const open = findings.filter((f) => f.status === 'open');
@@ -182,9 +188,10 @@ export default async function ConsoleAgentPage({ params }: Params) {
       </Card>
 
       <Card title="کنترل">
+        <LiveHeartbeat heartbeat={heartbeat} renderedAt={renderedAt} compact />
         <p className="mb-4 text-sm text-muted">
-          هر دستور در صف می‌ماند تا رایانه آن را بردارد (همگام‌سازی ساعتی و اجرای روزانه‌ی ۸ صبح)؛
-          نتیجه زیر «دستورها» دیده می‌شود.
+          <LiveSyncSentence heartbeat={heartbeat} renderedAt={renderedAt} /> نتیجه زیر «دستورها»
+          دیده می‌شود.
         </p>
         <div className="grid gap-5 md:grid-cols-2">
           <ConsoleForm action={queueCommand} submit={agent.paused ? 'ادامه بده' : 'متوقف کن'}>
