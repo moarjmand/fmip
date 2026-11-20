@@ -77,6 +77,33 @@ const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
   [/^Not a command the console knows\.$/, () => 'کنسول این دستور را نمی‌شناسد.'],
   [/^Give a reason, up to (\d+) characters\.$/, (m) => `دلیل را بنویسید (تا ${fa(m[1]!)} نویسه).`],
   [/^Every value must be text\.$/, () => 'همه‌ی مقدارها باید متن باشند.'],
+  // T-1880: the commands' limits, and the push service a browser may name.
+  [
+    /^A command carries up to (\d+) values of (\d+) characters\.$/,
+    (m) => `هر دستور حداکثر ${fa(m[1]!)} مقدار دارد و هر مقدار تا ${fa(m[2]!)} نویسه است.`,
+  ],
+  [
+    /^That is the most commands an hour allows/,
+    () => 'به سقف دستورهای یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
+    /^That is the most immediate runs an hour allows/,
+    () => 'به سقف اجراهای فوری یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
+    /^This agent already has a run waiting\.$/,
+    () =>
+      'برای این عامل یک اجرای فوری در صف است؛ تا رایانه آن را برندارد، اجرای دیگری ثبت نمی‌شود.',
+  ],
+  [
+    /^That is the most test messages an hour allows/,
+    () => 'به سقف پیام‌های آزمایشی یک ساعت رسیده‌اید؛ کمی بعد دوباره امتحان کنید.',
+  ],
+  [
+    /^endpoint is the https:\/\/ address of a browser's push service\.$/,
+    () =>
+      'نشانی اعلانی که این مرورگر داد از سرویس‌های اعلان شناخته‌شده نیست؛ یادآور روی این مرورگر روشن نشد.',
+  ],
   [/^Choose an answer\.$/, () => 'یک گزینه را انتخاب کنید.'],
   [/^Not a model the agents run on\.$/, () => 'عامل‌ها با این مدل کار نمی‌کنند.'],
   [/^Not a schedule the daily run knows\.$/, () => 'اجرای روزانه این برنامه را نمی‌شناسد.'],
@@ -321,6 +348,7 @@ const AUDIT_ACTIONS: Record<string, string> = {
   'calendar.subscription_added': 'اشتراک تازه',
   'calendar.subscription_changed': 'تغییر اشتراک',
   'calendar.reminders_on': 'روشن کردن یادآور در مرورگر',
+  'calendar.push_test': 'پیام آزمایشی یادآور',
   'calendar.reminders_off': 'خاموش کردن یادآور در مرورگر',
   'requests.alerts_on': 'روشن کردن اعلان درخواست‌های تازه',
   'requests.alerts_off': 'خاموش کردن اعلان درخواست‌های تازه',
@@ -415,6 +443,7 @@ export function auditReasonWords(reason: string): string {
     [/^event deleted$/, () => 'رویداد حذف شد'],
     [/^import-calendar, filed for (.+)$/, (m) => `بارگذاری فهرست اشتراک‌ها به نام ${m[1]}`],
     [/^reminders switched on in a browser$/, () => 'یادآور در یک مرورگر روشن شد'],
+    [/^test message asked$/, () => 'پیام آزمایشی خواسته شد'],
     [/^reminders switched off in a browser$/, () => 'یادآور در یک مرورگر خاموش شد'],
     [/^new-request notifications switched on$/, () => 'اعلان درخواست‌های تازه روشن شد'],
     [/^new-request notifications switched off$/, () => 'اعلان درخواست‌های تازه خاموش شد'],

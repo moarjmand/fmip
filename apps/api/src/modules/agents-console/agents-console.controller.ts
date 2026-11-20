@@ -52,6 +52,7 @@ import {
   AGENT_NAME,
   CONSOLE_COOKIE,
   MESSAGE_ID,
+  RUN_CEILING,
   SESSION_IDLE_HOURS,
   afterFailure,
   checkCard,
@@ -240,8 +241,18 @@ export class AgentsConsoleController {
     return { commands: await this.store.commands() };
   }
 
+  /**
+   * A command for the maintainer's computer. Audited, and held per person to
+   * the `console_command` ceiling and, for `agent.run`, the tighter
+   * `console_command_run` (T-1880); an agent with a run already waiting gets
+   * no second one (409).
+   */
   @Post('commands')
-  async queue(@Body() body: unknown, @Req() request: FastifyRequest): Promise<ConsoleCommand> {
+  async queue(
+    @Body() body: unknown,
+    @Req() request: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<ConsoleCommand> {
     const actor = await this.person(request);
     const latest = await this.store.latestSnapshot();
     const agents = latest?.snapshot.agents.map((agent) => agent.name) ?? [];
@@ -249,7 +260,21 @@ export class AgentsConsoleController {
       latest?.snapshot.decisions.filter((d) => d.status === 'open').map((d) => d.id) ?? [];
     const checked = checkCommand(body, agents, decisions);
     if (!checked.ok) throw invalid(checked.reason);
-    return this.store.queueCommand(checked.command, actor);
+    const outcome = await this.store.queueCommand(checked.command, actor);
+    if (outcome.kind === 'limited')
+      return refuseOverRate(
+        reply,
+        { ok: false, retryAfterSeconds: outcome.retryAfterSeconds },
+        outcome.ceiling === RUN_CEILING
+          ? 'That is the most immediate runs an hour allows.'
+          : 'That is the most commands an hour allows.',
+      );
+    if (outcome.kind === 'waiting')
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'This agent already has a run waiting.',
+      } satisfies ApiError);
+    return outcome.command;
   }
 
   @Get('board')
@@ -587,9 +612,10 @@ export class AgentsConsoleController {
   }
 
   /**
-   * Streams a picture: never cached by anyone but the viewer's own browser
-   * (`private`), shown in place rather than saved, its type not to be
-   * guessed, and nothing in it able to run (`sandbox`).
+   * Streams a picture: kept by no one, the viewer's own browser included
+   * (`private, no-store`, like every console answer, T-1881), shown in place
+   * rather than saved, its type not to be guessed, and nothing in it able to
+   * run (`sandbox`).
    */
   private async serveImage(
     id: string,
@@ -613,7 +639,7 @@ export class AgentsConsoleController {
       .status(200)
       .header('content-type', row.content_type)
       .header('content-length', String(file.size))
-      .header('cache-control', 'private, max-age=3600')
+      .header('cache-control', 'private, no-store')
       .header('content-disposition', `inline; filename="${name}"`)
       .header('x-content-type-options', 'nosniff')
       .header('content-security-policy', "default-src 'none'; sandbox")

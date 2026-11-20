@@ -4,7 +4,9 @@ import { fileURLToPath } from 'node:url';
 import type { ConsoleCommand } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
 import {
+  type ConsoleState,
   DEFAULT_SCHEDULES,
+  type SyncSteps,
   accessOf,
   agentOf,
   applyCommand,
@@ -16,6 +18,7 @@ import {
   reportsFrom,
   skillsOf,
   stepsOf,
+  syncCommands,
 } from './snapshot.ts';
 
 const AGENT = `---
@@ -323,5 +326,110 @@ describe('commands on the computer', () => {
     );
     expect(missing).toMatchObject({ finish: true, status: 'failed' });
     expect(missing.state.agents).toEqual({});
+  });
+});
+
+describe('sync, with stand-ins for the server and the files (T-1878)', () => {
+  const agents = ['ops-release'];
+  const ID = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
+
+  /** Stand-ins that record what happened in order; `finish` fails for the ids in `down`. */
+  function standIns(taken: ConsoleCommand[], down: readonly string[] = [], publishFails = false) {
+    const log: string[] = [];
+    const saved: ConsoleState[] = [];
+    const steps: SyncSteps = {
+      load: () => {
+        log.push('load');
+        return emptyState();
+      },
+      take: () => {
+        log.push('take');
+        return taken;
+      },
+      save: (state) => {
+        log.push('save');
+        saved.push(structuredClone(state));
+      },
+      finish: (id, status) => {
+        log.push(`finish ${id.slice(-1)} ${status}`);
+        if (down.includes(id)) throw new Error('ssh fmip-prod failed: refused');
+      },
+      publish: () => {
+        log.push('publish');
+        if (publishFails) throw new Error('ssh fmip-prod failed: timed out');
+      },
+    };
+    return { steps, log, saved };
+  }
+
+  const taken = [
+    command({ id: ID(1), kind: 'agent.pause' }),
+    command({ id: ID(2), kind: 'agent.model', payload: { model: 'haiku' } }),
+    command({ id: ID(3), kind: 'agent.run' }),
+    command({ id: ID(4), kind: 'agent.pause', target: 'ghost' }),
+  ];
+
+  it('saves what was applied before it reports anything back', () => {
+    const { steps, log, saved } = standIns(taken);
+    const { state, failures } = syncCommands(steps, agents);
+    expect(failures).toEqual([]);
+    expect(log).toEqual([
+      'load',
+      'take',
+      'save',
+      'finish 1 done',
+      'finish 2 done',
+      'finish 4 failed',
+      'publish',
+    ]);
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toEqual(state);
+    expect(state.agents['ops-release']).toEqual({ paused: true, model: 'haiku' });
+    expect(state.runRequests.map((r) => r.id)).toEqual([ID(3)]);
+  });
+
+  it('survives a report that fails: state saved, the next command still reported, the failure named', () => {
+    const { steps, log, saved } = standIns(taken, [ID(1)]);
+    const { state, failures } = syncCommands(steps, agents);
+    // The first report failed; the second and the fourth were still sent, and the snapshot published.
+    expect(log).toEqual([
+      'load',
+      'take',
+      'save',
+      'finish 1 done',
+      'finish 2 done',
+      'finish 4 failed',
+      'publish',
+    ]);
+    expect(saved[0]!.agents['ops-release']).toEqual({ paused: true, model: 'haiku' });
+    expect(saved[0]!.runRequests).toHaveLength(1);
+    expect(state).toEqual(saved[0]);
+    expect(failures).toHaveLength(1);
+    expect(failures[0]).toContain(ID(1));
+    expect(failures[0]).toContain('did not reach the server');
+  });
+
+  it('keeps the saved state when every report and the publish fail', () => {
+    const { steps, log, saved } = standIns(taken, [ID(1), ID(2), ID(4)], true);
+    const { failures } = syncCommands(steps, agents);
+    expect(log.indexOf('save')).toBeLessThan(log.indexOf('finish 1 done'));
+    expect(saved).toHaveLength(1);
+    expect(failures).toHaveLength(4);
+    expect(failures.at(-1)).toContain('not published');
+  });
+
+  it('leaves out a command without a UUID id and one of a kind it does not know, and says so', () => {
+    const odd = [
+      command({ id: `${ID(1)}; x` }),
+      command({ id: ID(2), kind: 'agent.dance' as ConsoleCommand['kind'] }),
+      command({ id: ID(3), kind: 'agent.pause' }),
+    ];
+    const { steps, log } = standIns(odd);
+    const { state, failures } = syncCommands(steps, agents);
+    expect(state.agents['ops-release']).toEqual({ paused: true });
+    expect(log).toEqual(['load', 'take', 'save', 'finish 2 failed', 'finish 3 done', 'publish']);
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toContain('without a UUID id');
+    expect(failures[1]).toContain(ID(2));
   });
 });

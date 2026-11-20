@@ -37,6 +37,14 @@ export const SNAPSHOT_MAX_BYTES = 8 * 1024 * 1024;
 /** A memory file's or a report's text is cut to this many characters. */
 export const TEXT_MAX = 6000;
 export const REASON_MAX = 500;
+/** How many values a command's payload holds (the console sends at most four)... */
+export const COMMAND_VALUES_MAX = 8;
+/** ...and how long a value's name is. A value is as long as a reason at most. */
+export const COMMAND_KEY_MAX = 40;
+/** The `rate_limit` row of a console person's commands, of every kind (T-1880)... */
+export const COMMAND_CEILING = 'console_command';
+/** ...and of `agent.run` alone, each an agent started at once on the maintainer's computer. */
+export const RUN_CEILING = 'console_command_run';
 /** The agent whose open findings show their title and severity only (D-340). */
 export const WITHHELD_AGENT = 'security';
 
@@ -172,6 +180,18 @@ export function checkCommand(
   const values = isObject(payload) ? payload : {};
   if (!Object.values(values).every(isString))
     return { ok: false, reason: 'Every value must be text.' };
+  // T-1880: what a command carries is a choice and a short note, never a document.
+  if (
+    Object.keys(values).length > COMMAND_VALUES_MAX ||
+    Object.entries(values).some(
+      ([key, value]) => key.length > COMMAND_KEY_MAX || (value as string).length > REASON_MAX,
+    )
+  ) {
+    return {
+      ok: false,
+      reason: `A command carries up to ${COMMAND_VALUES_MAX} values of ${REASON_MAX} characters.`,
+    };
+  }
   const k = kind as ConsoleCommandRequest['kind'];
   if (k === 'decision.answer') {
     if (!isString(target) || !decisions.includes(target))
@@ -260,6 +280,21 @@ export function replyText(raw: string): string {
   const chars = [...text];
   if (chars.length <= CONSOLE_REPLY_MAX) return text;
   return `${chars.slice(0, CONSOLE_REPLY_MAX - 1).join('')}…`;
+}
+
+/** The longest outcome a command keeps. */
+export const COMMAND_OUTCOME_MAX = 1000;
+
+/**
+ * A command's outcome as the computer sent it on standard input (T-1878),
+ * cut to the longest a command keeps. It is text to show: whatever it holds
+ * (a `$(...)`, a backtick, a quote, a new line) is kept as written.
+ */
+export function outcomeText(raw: string): string {
+  const text = cleanText(raw).trim();
+  const chars = [...text];
+  if (chars.length <= COMMAND_OUTCOME_MAX) return text;
+  return `${chars.slice(0, COMMAND_OUTCOME_MAX - 1).join('')}…`;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;

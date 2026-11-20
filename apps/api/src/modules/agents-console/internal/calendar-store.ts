@@ -84,6 +84,11 @@ export type EventOutcome =
  * with its `console_audit` row in the same transaction (rule 10), the
  * previous value with it.
  */
+/** The `rate_limit` row of a console person's test messages to their own browsers (T-1880)... */
+export const PUSH_TEST_CEILING = 'console_push_test';
+/** ...and the audit action each one is counted by. */
+export const PUSH_TEST_ACTION = 'calendar.push_test';
+
 @Injectable()
 export class PostgresCalendarStore {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
@@ -418,6 +423,56 @@ export class PostgresCalendarStore {
         previous: { request_alerts: before },
         next: { request_alerts: on },
       });
+    });
+  }
+
+  /**
+   * A test message asked for (T-1880), held to the `console_push_test`
+   * ceiling: the person's own `calendar.push_test` audit rows in the clock
+   * hour, with the person's row locked so two asks at once count one after
+   * the other. Allowed, it writes that row (the ask is the record; what was
+   * delivered is the answer); refused, it is counted in `rate_refusal` like
+   * the API's other ceilings (T-811). A missing `rate_limit` row means no
+   * ceiling.
+   */
+  async takePushTest(
+    actor: ConsoleMe,
+  ): Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }> {
+    return this.transaction(async (client) => {
+      await client.query(`SELECT 1 FROM console_user WHERE id = $1 FOR UPDATE`, [actor.id]);
+      const { rows } = await client.query<{
+        per_hour: number | null;
+        used: number;
+        retry_after: number;
+      }>(
+        `SELECT l.per_hour,
+                (SELECT count(*) FROM console_audit
+                  WHERE actor_id = $1 AND action = $3
+                    AND created_at >= date_trunc('hour', now()))::int AS used,
+                ceil(extract(epoch FROM date_trunc('hour', now()) + interval '1 hour' - now()))::int
+                  AS retry_after
+           FROM (SELECT 1) AS one LEFT JOIN rate_limit l ON l.action = $2`,
+        [actor.id, PUSH_TEST_CEILING, PUSH_TEST_ACTION],
+      );
+      const row = rows[0];
+      if (row !== undefined && row.per_hour !== null && row.used >= row.per_hour) {
+        // The day is the application's, like the report's (RateLimitsService).
+        await client.query(
+          `INSERT INTO rate_refusal (action, day, count) VALUES ($1, $2::date, 1)
+           ON CONFLICT (action, day) DO UPDATE SET count = rate_refusal.count + 1`,
+          [PUSH_TEST_CEILING, new Date().toISOString().slice(0, 10)],
+        );
+        return { ok: false as const, retryAfterSeconds: Math.max(1, row.retry_after) };
+      }
+      await writeConsoleAudit(client, {
+        actorId: actor.id,
+        actorName: actor.username,
+        action: PUSH_TEST_ACTION,
+        targetType: 'console_user',
+        targetId: actor.id,
+        reason: 'test message asked',
+      });
+      return { ok: true as const };
     });
   }
 

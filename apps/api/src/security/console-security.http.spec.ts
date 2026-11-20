@@ -901,7 +901,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       });
 
       const device = (n: string) => ({
-        endpoint: `https://push.example.test/t813/${RUN}/${n}`,
+        endpoint: `https://fcm.googleapis.com/fcm/send/t813-${RUN}-${n}`,
         keys: { p256dh: `p256dh-${n}`, auth: `auth-${n}` },
       });
       const devices = async (who: Who) =>
