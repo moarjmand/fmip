@@ -843,6 +843,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('competition 
       ['Relegation Round', TEAMS.gamma, TEAMS.alpha, [2, 0]],
       ['MLS Cup - Round 1', TEAMS.epsilon, TEAMS.delta, [3, 0]],
       ['Semi-finals', TEAMS.alpha, TEAMS.gamma, [1, 0]],
+      // The MLS Cup play-offs by the league's own names (T-1946).
+      ['Wild Card', TEAMS.gamma, TEAMS.alpha, [2, 0]],
+      ['Round One', TEAMS.epsilon, TEAMS.delta, [3, 0]],
+      ['Conference Semifinals', TEAMS.alpha, TEAMS.gamma, [1, 0]],
     ];
     for (const [round, home, away, score] of rounds) {
       const id = await fixture(OLD_SEASON, OLD_STAGE, home, away, '2025-05-10T15:00:00Z', score);

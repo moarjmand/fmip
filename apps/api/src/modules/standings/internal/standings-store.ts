@@ -24,7 +24,10 @@ import type { Result } from './table';
  * "Relegation Round" or "Relegation/Promotion" (a tie; the numbered
  * "Relegation Round - 3" of a split league is the table's), "1st Round" and the
  * like (the Eredivisie's play-off rounds; a league's own rounds are
- * "Regular Season - N"), and anything under "MLS Cup".
+ * "Regular Season - N"), and anything under "MLS Cup". T-1946: the MLS Cup
+ * play-offs by the league's own names, as the adapter now writes them ("Wild
+ * Card", "Round One", "Conference Semifinals"; "Conference Finals" and "MLS
+ * Cup" were already left out), while a season has no stage for them yet.
  */
 const LEAGUE_ROUND = `(f.round IS NULL OR NOT (
     (f.round ~* '(^|[^a-z])(finals?|semi-finals?|quarter-finals?|play-?offs?|play-in|decider)([^a-z]|$)'
@@ -34,6 +37,7 @@ const LEAGUE_ROUND = `(f.round IS NULL OR NOT (
     OR f.round ~* '^relegation/promotion$'
     OR f.round ~* '^[0-9]+(st|nd|rd|th) round$'
     OR f.round ~* '^mls cup'
+    OR f.round ~* '^(wild card|round one|conference semi-?finals)$'
   ))`;
 
 /** A leader as the standings boundary knows it: goals, not minutes (T-824 adds those in the catalog). */

@@ -14017,6 +14017,31 @@
     "text": "",
     "status": "untranslated"
   },
+  "stage.name.wildCard": {
+    "source": "Wild Card",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.roundOne": {
+    "source": "Round One",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.conferenceSemifinals": {
+    "source": "Conference Semifinals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.conferenceFinals": {
+    "source": "Conference Finals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "stage.name.mlsCup": {
+    "source": "MLS Cup",
+    "text": "",
+    "status": "untranslated"
+  },
   "stage.roundNumber": {
     "source": "Round {round}",
     "text": "",

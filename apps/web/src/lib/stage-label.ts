@@ -40,6 +40,11 @@ export const STAGE_KEYS = [
   'stage.name.relegationRound',
   'stage.name.apertura',
   'stage.name.clausura',
+  'stage.name.wildCard',
+  'stage.name.roundOne',
+  'stage.name.conferenceSemifinals',
+  'stage.name.conferenceFinals',
+  'stage.name.mlsCup',
   'stage.league',
   'stage.group',
   'stage.round',
@@ -80,6 +85,13 @@ const NAMES: ReadonlyMap<string, StageKey> = new Map([
   // A season played in two halves, each a group stage of two zones (T-1668).
   ['Apertura', 'stage.name.apertura'],
   ['Clausura', 'stage.name.clausura'],
+  // The MLS Cup play-offs, in the league's own names as the adapter writes
+  // them in place of the provider's "Round of 32" and "Round of 16" (T-1946).
+  ['Wild Card', 'stage.name.wildCard'],
+  ['Round One', 'stage.name.roundOne'],
+  ['Conference Semifinals', 'stage.name.conferenceSemifinals'],
+  ['Conference Finals', 'stage.name.conferenceFinals'],
+  ['MLS Cup', 'stage.name.mlsCup'],
 ]);
 
 /** A count or a round as the provider writes it: no leading zero. */
