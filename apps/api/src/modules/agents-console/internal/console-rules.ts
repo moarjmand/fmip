@@ -8,10 +8,13 @@ import {
   CONSOLE_REJECT_REASON_MIN,
   CONSOLE_REPLY_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
+  CONSOLE_SNOOZE_MAX_DAYS,
+  CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
   CONSOLE_USERNAME_PATTERN,
   type ConsoleBoardCardInput,
   type ConsoleCommand,
   type ConsoleCommandRequest,
+  type ConsoleFinding,
   type ConsoleFindingCommandKind,
   type ConsoleFindingPending,
   type ConsoleSnapshot,
@@ -53,12 +56,13 @@ export const RUN_CEILING = 'console_command_run';
 /** The agent whose open findings show their title and severity only (D-340). */
 export const WITHHELD_AGENT = 'security';
 
-/**
- * The statuses in which that agent's finding is not settled, so the server's
- * own net removes its detail whatever the computer sent: `open`, and a
- * person's triage of it (T-1907), which closes nothing by itself.
- */
-export const WITHHELD_STATUSES: readonly string[] = ['open', 'planned', 'rejected', 'snoozed'];
+const SECURITY_ID = /^sec-\d{4}-\d{2}-\d{2}-\d+$/i;
+/** A security finding: the security agent's, or one whose id is `sec-YYYY-MM-DD-NN` (D-455 point 2). */
+export const isSecurityFinding = (finding: { id: string; agent: string }): boolean =>
+  finding.agent === WITHHELD_AGENT || SECURITY_ID.test(finding.id.trim());
+
+/** The statuses after which a finding takes no triage: only reopening follows, which is not a console command. */
+export const CLOSED_STATUSES: readonly string[] = ['fixed', 'wontfix', 'duplicate', 'rejected'];
 
 /** The console's tokens are hashed apart from the site's, though with the same secret. */
 export const consoleTokenText = (token: string): string => `console:${token}`;
@@ -157,9 +161,11 @@ export function checkSnapshot(
         },
       })),
       // `pending` is the server's own word (T-1907): whatever the computer sent there is dropped.
+      // The server's own net: a security finding the computer did not mark releasable
+      // loses its detail and its related ids, in every status, new and closed alike.
       findings: snapshot.findings.map(({ pending: _pending, ...finding }) =>
-        finding.agent === WITHHELD_AGENT && WITHHELD_STATUSES.includes(finding.status)
-          ? { ...finding, detail: null }
+        isSecurityFinding(finding) && finding.releasable !== true
+          ? { ...finding, detail: null, related: null }
           : finding,
       ),
       reports: snapshot.reports.map((report) =>
@@ -186,18 +192,43 @@ function isDay(value: unknown): value is string {
   return !Number.isNaN(at.getTime()) && at.toISOString().slice(0, 10) === value;
 }
 
+/** What a triage command is judged by: the finding as the loaded snapshot has it. */
+export type TriageFinding = Pick<ConsoleFinding, 'id' | 'agent' | 'severity' | 'status'>;
+
+/** The longest a finding of this severity may be snoozed, in days. */
+export const snoozeMaxDays = (severity: string): number =>
+  severity === 'critical' || severity === 'major'
+    ? CONSOLE_SNOOZE_MAX_DAYS_SEVERE
+    : CONSOLE_SNOOZE_MAX_DAYS;
+
+/**
+ * A triage reason as stored: one line. Line ends become spaces and the
+ * characters that only reorder or hide text (the bidirectional controls and
+ * the zero-width ones) are removed, so what a person typed cannot dress
+ * itself as something else on the finding's line, where agents read it.
+ */
+export function triageReason(raw: string): string {
+  return cleanText(raw)
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /**
  * A command as a person asked it, or the reason it cannot be asked. A triage
- * command (T-1907, D-456 point 2) names a finding the loaded snapshot holds;
- * a reject needs a reason of three characters or more, a snooze a day after
- * `now`'s UTC day. Its payload is rebuilt here from what the kind takes, so
- * nothing else a client sent travels to the computer.
+ * command (T-1907, D-456 point 2) names a finding the loaded snapshot holds
+ * and that is not closed; a reject needs a reason of three characters or
+ * more, a snooze a day after `now`'s UTC day and within the limit for the
+ * finding's severity (90 days, 14 for critical and major). Its payload is
+ * rebuilt here from what the kind takes, so nothing else a client sent
+ * travels to the computer. Who may triage a security finding is the store's
+ * to check, with the account's row.
  */
 export function checkCommand(
   body: unknown,
   agents: readonly string[],
   decisions: readonly string[],
-  findings: readonly string[] = [],
+  findings: readonly TriageFinding[] = [],
   now: Date = new Date(),
 ): { ok: true; command: ConsoleCommandRequest } | { ok: false; reason: string } {
   if (!isObject(body)) return { ok: false, reason: 'Say what to do.' };
@@ -225,9 +256,12 @@ export function checkCommand(
   }
   const k = kind as ConsoleCommandRequest['kind'];
   if (isFindingCommand(k)) {
-    if (!isString(target) || !findings.includes(target))
-      return { ok: false, reason: 'No such finding.' };
-    const why = cleanText(reason).trim();
+    const finding = isString(target) ? findings.find((f) => f.id === target) : undefined;
+    if (finding === undefined) return { ok: false, reason: 'No such finding.' };
+    if (CLOSED_STATUSES.includes(finding.status))
+      return { ok: false, reason: `This finding is closed (${finding.status}).` };
+    const why = triageReason(reason);
+    if (why === '') return { ok: false, reason: `Give a reason, up to ${REASON_MAX} characters.` };
     const payload: Record<string, string> = {};
     if (k === 'finding.reject') {
       if ([...why].length < CONSOLE_REJECT_REASON_MIN) {
@@ -240,11 +274,25 @@ export function checkCommand(
       payload.reason = why;
     }
     if (k === 'finding.snooze') {
-      if (!isDay(values.until) || values.until <= now.toISOString().slice(0, 10))
+      const today = now.toISOString().slice(0, 10);
+      if (!isDay(values.until) || values.until <= today)
         return { ok: false, reason: 'Snooze until a day after today, YYYY-MM-DD.' };
+      const limit = snoozeMaxDays(finding.severity);
+      const last = new Date(Date.parse(`${today}T00:00:00Z`) + limit * 86_400_000)
+        .toISOString()
+        .slice(0, 10);
+      if (values.until > last) {
+        return {
+          ok: false,
+          reason:
+            limit === CONSOLE_SNOOZE_MAX_DAYS
+              ? `A finding is snoozed for ${limit} days at most: until ${last} or sooner.`
+              : `A ${finding.severity} finding is snoozed for ${limit} days at most: until ${last} or sooner.`,
+        };
+      }
       payload.until = values.until;
     }
-    return { ok: true, command: { kind: k, target, payload, reason: why } };
+    return { ok: true, command: { kind: k, target: finding.id, payload, reason: why } };
   }
   if (k === 'decision.answer') {
     if (!isString(target) || !decisions.includes(target))

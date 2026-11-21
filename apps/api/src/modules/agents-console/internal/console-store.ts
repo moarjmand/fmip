@@ -112,7 +112,9 @@ const command = (r: CommandRow): ConsoleCommand => ({
 export type QueueCommandOutcome =
   | { kind: 'ok'; command: ConsoleCommand }
   | { kind: 'limited'; ceiling: string; retryAfterSeconds: number }
-  | { kind: 'waiting' };
+  | { kind: 'waiting' }
+  /** A security finding's triage asked by an account that is not the console's owner (T-1907). */
+  | { kind: 'owner_only' };
 
 /** What a command changes, as the loaded snapshot had it, for the audit row's previous value. */
 export type CommandPrevious = Record<string, string | null>;
@@ -619,15 +621,23 @@ export class PostgresConsoleStore {
    * A triage command (T-1907) is a command like the others: counted in the
    * same hourly ceiling, and one finding takes one at a time, `waiting` while
    * an earlier one is still queued or taken. Its audit row names the finding
-   * and carries `previous`, the status the loaded snapshot showed.
+   * and carries `previous`, the status and the snooze day the loaded snapshot
+   * showed. With `ownerOnly` (a security finding; D-456, the maintainer on
+   * 2026-11-21) only the console's owner (`console_user.owner`, D-427 point 6)
+   * may ask: any other account gets `owner_only`, and nothing is queued.
    */
   async queueCommand(
     request: ConsoleCommandRequest,
     actor: ConsoleMe,
     previous?: CommandPrevious,
+    ownerOnly = false,
   ): Promise<QueueCommandOutcome> {
     return this.transaction(async (client) => {
-      await client.query(`SELECT 1 FROM console_user WHERE id = $1 FOR UPDATE`, [actor.id]);
+      const account = await client.query<{ owner: boolean }>(
+        `SELECT owner FROM console_user WHERE id = $1 FOR UPDATE`,
+        [actor.id],
+      );
+      if (ownerOnly && account.rows[0]?.owner !== true) return { kind: 'owner_only' };
       const run = request.kind === 'agent.run';
       const { rows: verdict } = await client.query<{
         per_hour: number | null;
@@ -730,11 +740,6 @@ export class PostgresConsoleStore {
     return rows.map(command);
   }
 
-  /**
-   * The computer takes every queued command, oldest first; never one of a
-   * disabled account (T-1880: `disable-user` cancels them, and this holds one
-   * queued by a request that was already past its session check).
-   */
   /** The triage commands the computer has not reported back (T-1907): queued or taken, oldest first. */
   async openTriage(): Promise<ConsoleCommand[]> {
     const { rows } = await this.pool.query<CommandRow>(
@@ -747,13 +752,24 @@ export class PostgresConsoleStore {
     return rows.map(command);
   }
 
-  async takeCommands(): Promise<ConsoleCommand[]> {
+  /**
+   * The computer takes every queued command, oldest first; never one of a
+   * disabled account (T-1880: `disable-user` cancels them, and this holds one
+   * queued by a request that was already past its session check). A finding's
+   * triage (T-1907) is handed over only to a computer that asks for it
+   * (`withTriage`, the CLI's `take-commands --with triage`): a publisher from
+   * before T-1907 would report a kind it does not know as failed, so for it
+   * those commands stay queued.
+   */
+  async takeCommands(withTriage = false): Promise<ConsoleCommand[]> {
     const { rows } = await this.pool.query<CommandRow>(
       `UPDATE console_command c SET status = 'taken', taken_at = now()
          FROM console_user u
         WHERE c.status = 'queued' AND u.id = c.requested_by AND u.disabled_at IS NULL
+          AND ($1::boolean OR c.kind NOT LIKE 'finding.%')
         RETURNING c.id, c.kind, c.target, c.payload, c.status, u.display_name AS requested_by,
                   u.username AS requested_by_username, c.requested_at, c.finished_at, c.outcome`,
+      [withTriage],
     );
     return rows.map(command).sort((a, b) => a.requested_at.localeCompare(b.requested_at));
   }

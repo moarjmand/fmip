@@ -89,6 +89,8 @@ export interface TaskRowRequest {
   /** The id its row was given, once the pull request exists and until it is on the finding. */
   task?: string;
   pull_request?: string;
+  /** The outcome still owed to the server, when everything else is done and the report failed. */
+  outcome?: string;
 }
 
 export const emptyState = (): ConsoleState => ({

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   ConflictException,
+  ForbiddenException,
   Controller,
   Delete,
   Get,
@@ -61,6 +62,7 @@ import {
   checkMessage,
   consoleCookie,
   isFindingCommand,
+  isSecurityFinding,
   withPendingTriage,
   consoleTokenText,
   isConsoleUsername,
@@ -264,7 +266,9 @@ export class AgentsConsoleController {
    * no second one (409). A triage command (T-1907: `finding.accept`,
    * `finding.reject`, `finding.snooze`) names a finding of the loaded
    * snapshot, is counted in the same ceiling, and is audited with the status
-   * the snapshot showed; a finding with one still waiting takes no second.
+   * and the snooze day the snapshot showed; a finding with one still waiting
+   * takes no second (409), a closed finding takes none (400), and a security
+   * finding takes one from the console's owner alone (403).
    */
   @Post('commands')
   async queue(
@@ -278,21 +282,22 @@ export class AgentsConsoleController {
     const decisions =
       latest?.snapshot.decisions.filter((d) => d.status === 'open').map((d) => d.id) ?? [];
     const findings = latest?.snapshot.findings ?? [];
-    const checked = checkCommand(
-      body,
-      agents,
-      decisions,
-      findings.map((finding) => finding.id),
-    );
+    const checked = checkCommand(body, agents, decisions, findings);
     if (!checked.ok) throw invalid(checked.reason);
     const triage = isFindingCommand(checked.command.kind);
+    const finding = triage ? findings.find((f) => f.id === checked.command.target) : undefined;
     const outcome = await this.store.queueCommand(
       checked.command,
       actor,
-      triage
-        ? { status: findings.find((f) => f.id === checked.command.target)?.status ?? null }
-        : undefined,
+      finding === undefined ? undefined : { status: finding.status, until: finding.until ?? null },
+      // A security finding is the owner's alone to triage (D-456, 2026-11-21).
+      finding !== undefined && isSecurityFinding(finding),
     );
+    if (outcome.kind === 'owner_only')
+      throw new ForbiddenException({
+        error: 'forbidden',
+        message: "Only the console's owner may triage a security finding.",
+      } satisfies ApiError);
     if (outcome.kind === 'limited')
       return refuseOverRate(
         reply,

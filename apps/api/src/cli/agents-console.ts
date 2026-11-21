@@ -48,7 +48,7 @@ import { leaveWhenWritten } from './leave';
  *
  *     docker compose exec -T api node dist/cli/agents-console.js invite --name "Mostafa"
  *     ... load-snapshot < snapshot.json
- *     ... take-commands
+ *     ... take-commands [--with triage]
  *     ... finish-command --id <uuid> --status done|failed < outcome.txt
  *     ... import-board --as <username> < cards.json
  *     ... import-calendar --as <username> < calendar.json
@@ -68,7 +68,8 @@ import { leaveWhenWritten } from './leave';
  * open for three days; only the link holds the token. `load-snapshot` reads
  * the computer's snapshot from standard input, checks it and stores it with
  * an open security finding's detail removed. `take-commands` prints the
- * queued commands as JSON and marks them taken; `finish-command` writes one's
+ * queued commands as JSON and marks them taken (a finding's triage, T-1907,
+ * only `--with triage`: for a publisher from before it they stay queued); `finish-command` writes one's
  * outcome back, read from standard input (T-1878: never from the arguments, so
  * no shell on the way expands it; `--outcome "text"`, the form before, is
  * still read for one release, for a publisher not yet updated). `import-board` moves the project board's cards from its
@@ -125,7 +126,7 @@ import { leaveWhenWritten } from './leave';
 export type ConsoleCliArgs =
   | { kind: 'invite'; name: string }
   | { kind: 'load-snapshot' }
-  | { kind: 'take-commands' }
+  | { kind: 'take-commands'; triage: boolean }
   | {
       kind: 'finish-command';
       id: string;
@@ -175,7 +176,8 @@ export function parseConsoleArgs(argv: string[]): ConsoleCliArgs {
     case 'load-snapshot':
       return { kind: 'load-snapshot' };
     case 'take-commands':
-      return { kind: 'take-commands' };
+      // T-1907: a finding's triage is handed over only to a publisher that asks for it.
+      return { kind: 'take-commands', triage: flags.get('with') === 'triage' };
     case 'import-board': {
       const as = flags.get('as')?.trim().toLowerCase() ?? '';
       if (as === '')
@@ -453,7 +455,7 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
         return 0;
       }
       case 'take-commands':
-        process.stdout.write(`${JSON.stringify(await store.takeCommands())}\n`);
+        process.stdout.write(`${JSON.stringify(await store.takeCommands(args.triage))}\n`);
         return 0;
       case 'finish-command': {
         const outcome = outcomeText(args.outcome ?? (await readStdin()));

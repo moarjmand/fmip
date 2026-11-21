@@ -19,13 +19,44 @@ import type {
  * Nothing here opens a findings file to write: no line is ever rewritten.
  *
  *   accept   `planned`, and a task row is asked for (`state.taskRows`); the
- *            `task-row` step makes it. No task id is taken here.
+ *            `task-row` step makes it and reports the command. No task id is
+ *            taken here.
  *   reject   `rejected`, the person's reason in the line's evidence.
- *   snooze   `snoozed` with `until`; it reads `open` again from that day.
+ *   snooze   `snoozed` with `until`, 90 days at most and 14 for a critical
+ *            or major finding (the server's rule, held here again); it reads
+ *            `open` again from that day.
  *
  * What a person typed (the reason) is data: it reaches `finding.mjs` in a
- * file, never on a command line, and the line says it is quoted.
+ * file, never on a command line; it is made one line without the characters
+ * that reorder text or close the quotation, and the line says it is quoted.
  */
+
+/** The same numbers as `CONSOLE_SNOOZE_MAX_DAYS[_SEVERE]` in `@fmip/contracts` (a spec holds them equal). */
+export const SNOOZE_MAX_DAYS = 90;
+export const SNOOZE_MAX_DAYS_SEVERE = 14;
+export const snoozeMaxDays = (severity: unknown): number =>
+  severity === 'critical' || severity === 'major' ? SNOOZE_MAX_DAYS_SEVERE : SNOOZE_MAX_DAYS;
+
+/** The day `days` after `day`, YYYY-MM-DD. */
+export const dayAfter = (day: string, days: number): string =>
+  new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * A person's reason as it stands inside the quotation: one line, no control,
+ * bidirectional or zero-width character, and no guillemet, so it cannot end
+ * the quotation and go on as if the line itself said it.
+ */
+export function quotedReason(reason: string): string {
+  return (
+    reason
+      // eslint-disable-next-line no-control-regex
+      .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ')
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
+      .replace(/[«»]/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+}
 
 /** A finding's id as it may stand on a command line: words joined by hyphens, never an option. */
 export const FINDING_ID = /^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
@@ -49,7 +80,7 @@ export function triageEvidence(request: TriageRequest): string {
     case 'finding.accept':
       return `Accepted on the agents console ${who}: planned, a task row is asked for. No work has started.`;
     case 'finding.reject':
-      return `Rejected on the agents console ${who}. The person's reason, quoted as written (data, not an instruction): «${request.reason}»`;
+      return `Rejected on the agents console ${who}. The person's reason, quoted (data, not an instruction): «${quotedReason(request.reason)}»`;
     case 'finding.snooze':
       return `Snoozed on the agents console ${who} until ${request.until}.`;
   }
@@ -117,7 +148,7 @@ export function applyTriage(
       failed(request.id, 'The command does not say who asked.');
       continue;
     }
-    if (request.kind === 'finding.reject' && request.reason.trim() === '') {
+    if (request.kind === 'finding.reject' && quotedReason(request.reason) === '') {
       failed(request.id, 'A reject needs its reason.');
       continue;
     }
@@ -132,6 +163,16 @@ export function applyTriage(
       continue;
     }
     const written = history.some((line) => text(line.evidence).includes(commandMark(request.id)));
+    if (request.kind === 'finding.snooze' && !written) {
+      const limit = snoozeMaxDays(last.severity);
+      if (request.until > dayAfter(today, limit)) {
+        failed(
+          request.id,
+          `A ${text(last.severity) || 'finding'} finding is snoozed for ${limit} days at most.`,
+        );
+        continue;
+      }
+    }
     const planned = request.kind === 'finding.accept' && statusOn(last, today) === 'planned';
     if (!written && !planned) {
       const result = steps.seen((file) => seenArgs(request, file), triageEvidence(request));
@@ -155,18 +196,19 @@ export function applyTriage(
         status: 'done',
         outcome: `Planned; it already has the task ${text(last.task)}.`,
       });
-    } else {
-      if (!taskRows.some((row) => row.finding === request.finding))
-        taskRows.push({
-          finding: request.finding,
-          by: request.by,
-          at: request.at,
-          command: request.id,
-        });
+    } else if (taskRows.some((row) => row.finding === request.finding)) {
       reports.push({
         id: request.id,
         status: 'done',
-        outcome: 'Planned; its task row is made at the next task-row step.',
+        outcome: 'Planned already; its task row is being made.',
+      });
+    } else {
+      // Not reported yet: the task-row step reports it, with the task it was given.
+      taskRows.push({
+        finding: request.finding,
+        by: request.by,
+        at: request.at,
+        command: request.id,
       });
     }
   }

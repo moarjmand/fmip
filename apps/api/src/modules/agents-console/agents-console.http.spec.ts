@@ -578,7 +578,10 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
   describe('finding triage (T-1907, D-456 point 2)', () => {
     let mate = '';
     const OPEN = `ops-${RUN}-01`;
+    const CLOSED = `ops-${RUN}-02`;
     const SECURITY = `sec-${RUN}-01`;
+    const inDays = (days: number) =>
+      new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
     const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
     const today = new Date().toISOString().slice(0, 10);
 
@@ -635,15 +638,27 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
             title: 'Weakness',
             opened_at: GENERATED,
             detail: 'how to use it',
-            related: null,
+            related: OPEN,
             until: tomorrow,
+          },
+          {
+            id: CLOSED,
+            agent: 'ops-release',
+            severity: 'minor',
+            status: 'fixed',
+            title: 'Done',
+            opened_at: GENERATED,
+            detail: 'was fixed',
+            related: null,
           },
         ],
       });
       if (!checked.ok) throw new Error(checked.reason);
       await store.loadSnapshot(checked.snapshot);
       // Nothing of an earlier test is left waiting.
-      await store.takeCommands();
+      await store.takeCommands(true);
+      // The first account is the console's owner (D-427 point 6), as the maintainer's is.
+      expect((await store.setOwner(name, 'the triage spec')).kind).toBe('ok');
     });
 
     it('refuses a reject without a reason, a snooze into the past and an unknown finding, for either account alike', async () => {
@@ -686,6 +701,30 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
             },
             'Give a reason, up to 500 characters.',
           ],
+          // A major finding is snoozed for 14 days at most (D-456, 2026-11-21).
+          [
+            {
+              kind: 'finding.snooze',
+              target: OPEN,
+              payload: { until: inDays(15) },
+              reason: 'later',
+            },
+            `A major finding is snoozed for 14 days at most: until ${inDays(14)} or sooner.`,
+          ],
+          // A closed finding takes no triage; reopening is not a console command.
+          [
+            { kind: 'finding.reject', target: CLOSED, reason: 'not ours' },
+            'This finding is closed (fixed).',
+          ],
+          [
+            {
+              kind: 'finding.snooze',
+              target: CLOSED,
+              payload: { until: tomorrow },
+              reason: 'later',
+            },
+            'This finding is closed (fixed).',
+          ],
         ] as const) {
           const refused = await send('POST', 'commands', body, who);
           expect(refused.statusCode).toBe(400);
@@ -727,9 +766,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         actor_name: `${name}_tri`,
         target_type: 'finding',
         reason: 'Not ours: the provider fixed it.',
-        previous: { status: 'open' },
         next: { reason: 'Not ours: the provider fixed it.' },
       });
+      expect(audit?.previous).toEqual({ status: 'open', until: null });
       expect(Date.now() - audit!.created_at.getTime()).toBeLessThan(60_000);
 
       // With the computer off the command stays queued: the finding is as it was, with the command beside it.
@@ -760,8 +799,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         message: 'This finding already has a command waiting.',
       });
 
+      // A publisher from before T-1907 does not ask for triage: for it the command stays queued,
+      // never handed over to be reported failed.
+      expect((await store.takeCommands()).some((c) => c.id === command.id)).toBe(false);
+      expect((await finding(OPEN))?.pending?.command_id).toBe(command.id);
+      const { rows: still } = await pool.query<{ status: string }>(
+        `SELECT status FROM console_command WHERE id = $1`,
+        [command.id],
+      );
+      expect(still[0]?.status).toBe('queued');
       // The computer takes it with the asker's username, for the line's `by`...
-      const taken = (await store.takeCommands()).find((c) => c.id === command.id);
+      const taken = (await store.takeCommands(true)).find((c) => c.id === command.id);
       expect(taken).toMatchObject({
         requested_by_username: `${name}_tri`,
         payload: { reason: 'Not ours: the provider fixed it.' },
@@ -784,7 +832,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         actor_name: name,
         previous: { status: 'open' },
       });
-      await store.takeCommands();
+      await store.takeCommands(true);
 
       try {
         await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_command'`);
@@ -803,29 +851,60 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       }
     });
 
-    it('triages a security finding by its id while its detail stays withheld', async () => {
-      // Snoozed is not settled: the server's own net keeps the detail back.
+    it('lets the owner alone triage a security finding, by its id, while its detail stays withheld', async () => {
+      // The computer did not say it may be shown: the server keeps the detail and the related ids back.
       expect(await finding(SECURITY)).toMatchObject({
         status: 'snoozed',
         until: tomorrow,
         detail: null,
+        related: null,
       });
-      const queued = await send(
-        'POST',
-        'commands',
+      // The teammate's account is refused, whatever the command, and nothing is queued or audited.
+      for (const body of [
         { kind: 'finding.accept', target: SECURITY, reason: 'fix it this week' },
-        mate,
+        { kind: 'finding.reject', target: SECURITY, reason: 'not a weakness' },
+        { kind: 'finding.snooze', target: SECURITY, payload: { until: tomorrow }, reason: 'later' },
+      ]) {
+        const refused = await send('POST', 'commands', body, mate);
+        expect(refused.statusCode).toBe(403);
+        expect(refused.json<ApiError>()).toEqual({
+          error: 'forbidden',
+          message: "Only the console's owner may triage a security finding.",
+        });
+      }
+      expect((await store.openTriage()).filter((c) => c.target === SECURITY)).toEqual([]);
+      expect(await auditOf('command.finding_reject', SECURITY)).toBeUndefined();
+      // Another finding is still the teammate's to triage (the first tests), and the owner's.
+
+      // A critical finding is snoozed for 14 days at most, by the owner too.
+      const long = await send('POST', 'commands', {
+        kind: 'finding.snooze',
+        target: SECURITY,
+        payload: { until: inDays(15) },
+        reason: 'later',
+      });
+      expect(long.statusCode).toBe(400);
+      expect(long.json<ApiError>().message).toBe(
+        `A critical finding is snoozed for 14 days at most: until ${inDays(14)} or sooner.`,
       );
+
+      const queued = await send('POST', 'commands', {
+        kind: 'finding.accept',
+        target: SECURITY,
+        reason: 'fix it this week',
+      });
       expect(queued.statusCode).toBe(201);
       expect(JSON.stringify(queued.json())).not.toContain('how to use it');
-      expect(await auditOf('command.finding_accept', SECURITY)).toMatchObject({
-        previous: { status: 'snoozed' },
-      });
+      // The audit row holds the previous status and the previous snooze day.
+      const audit = await auditOf('command.finding_accept', SECURITY);
+      expect(audit).toMatchObject({ actor_name: name, target_type: 'finding' });
+      expect(audit?.previous).toEqual({ status: 'snoozed', until: tomorrow });
       expect(await finding(SECURITY, mate)).toMatchObject({
         detail: null,
+        related: null,
         pending: { kind: 'finding.accept' },
       });
-      await store.takeCommands();
+      await store.takeCommands(true);
     });
   });
 

@@ -68,6 +68,10 @@ export const CONSOLE_FINDING_COMMAND_KINDS = [
 export type ConsoleFindingCommandKind = (typeof CONSOLE_FINDING_COMMAND_KINDS)[number];
 /** The shortest reason a reject carries, in characters. */
 export const CONSOLE_REJECT_REASON_MIN = 3;
+/** A snooze is at most this many days from today (D-456, the maintainer on 2026-11-21)... */
+export const CONSOLE_SNOOZE_MAX_DAYS = 90;
+/** ...and this many for a critical or major finding. */
+export const CONSOLE_SNOOZE_MAX_DAYS_SEVERE = 14;
 
 /**
  * A triage command a person asked for that the computer has not reported
@@ -240,6 +244,13 @@ export interface ConsoleFinding {
   triaged_by?: string | null;
   /** Added by the server, never by the computer: the triage command not yet applied, if any. */
   pending?: ConsoleFindingPending | null;
+  /**
+   * A security finding only, set by the computer (T-1907): its detail may be
+   * shown (resolved by the security agent's own re-check, or marked public,
+   * D-455 point 2). Without it the server removes `detail` and `related` of
+   * every security finding, whatever its status.
+   */
+  releasable?: boolean;
 }
 
 export interface ConsoleReport {
@@ -324,7 +335,12 @@ export interface ConsoleCommandRequest {
   target: string;
   /** `{ model }`, `{ schedule }`, `{ answer, note? }`, `{ until }` for a snooze; empty for the rest. */
   payload: Record<string, string>;
-  /** Why; for `finding.reject` it is the reject's reason, 3 characters or more, kept in the payload too. */
+  /**
+   * Why. Every kind needs one, 1 to 500 characters, `finding.accept` and
+   * `finding.snooze` included; for `finding.reject` it is the reject's reason,
+   * 3 characters or more, and is kept in the payload too. A triage reason is
+   * stored as one line.
+   */
   reason: string;
 }
 

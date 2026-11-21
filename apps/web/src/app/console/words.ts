@@ -316,7 +316,7 @@ export const COMMAND_WORDS: Record<ConsoleCommandKind, string> = {
   // T-1907: a finding's triage; the buttons themselves are T-1908's.
   'finding.accept': 'قبول یافته',
   'finding.reject': 'رد یافته',
-  'finding.snooze': 'تعویق یافته',
+  'finding.snooze': 'به تعویق انداختن یافته',
 };
 
 const SCHEDULES: Record<string, string> = {

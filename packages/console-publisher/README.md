@@ -10,7 +10,7 @@ never reaches this computer: every exchange is this computer running
 | `node packages/console-publisher/src/publish.ts build [--out f]` | Writes the snapshot. |
 | `node packages/console-publisher/src/publish.ts publish` | Loads the snapshot on the server. |
 | `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, writes each finding's triage as one new line through `finding.mjs seen` (T-1907), publishes, prints the run requests. |
-| `node packages/console-publisher/src/publish.ts task-row` | Gives each accepted finding the next free task id, adds its row to the current backlog file in one docs pull request, and writes the id back onto the finding (T-1907). Prints what it made as JSON. |
+| `node packages/console-publisher/src/publish.ts task-row` | Gives each accepted finding the next free task id, adds its row (the finding's id and severity only) to the current backlog file in one docs pull request, writes the id back onto the finding and reports the accept; a security finding's task is drafted privately instead (T-1907). Prints what it made as JSON. |
 | `node packages/console-publisher/src/publish.ts finish <id> done\|failed [--file outcome.txt]` | Reports a requested run, the outcome read from `--file` or standard input (T-1878). |
 | `node packages/console-publisher/src/publish.ts providers-check [file]` | Checks the data providers' comparison (`E:/FMIP/ops/providers/comparison.json` unless a file is named; T-1830, D-423), prints each problem and exits 1 on any. `build`, `publish` and `sync` carry it in the snapshot as `providers`. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
@@ -68,44 +68,99 @@ never by opening a findings file itself:
 
 | Command | The line | Then |
 | --- | --- | --- |
-| `finding.accept` | `planned`, `by` the asker's console username | the finding is kept in `state.json` (`taskRows`) until `task-row` has run; no task id is taken by `sync` |
+| `finding.accept` | `planned`, `by` the asker's console username | the finding is kept in `state.json` (`taskRows`) and the command stays "taken" until `task-row` has run and reported it; no task id is taken by `sync` |
 | `finding.reject` | `rejected`, the reason quoted in the evidence | closed; only `open` can follow, when it comes back |
 | `finding.snooze` | `snoozed` with `until` | it reads `open` again from that day, with no new line |
 
-The reason is a person's text: it reaches `finding.mjs` in a temp file
-(`--evidence-file`), never on a command line, and the line says it is quoted
-data. The evidence names the command (`console command <id>`), so a sync that
-stopped before saving does not write a command twice. What `finding.mjs`
-refuses (a closed finding, an agent's name as `by`, a secret-shaped reason) is
-reported to the console as a failed command with its first line.
+A snooze is 90 days at most, and 14 for a critical or major finding: the
+server refuses a longer one, and `sync` checks again against the severity on
+the finding's own line. The server also refuses the triage of a closed
+finding, and of a security finding by any account but the console's owner.
 
-`sync` prints on standard error how many accepted findings want a row.
+The reason is a person's text: it reaches `finding.mjs` in a temp file
+(`--evidence-file`), never on a command line; it is made one line, without
+control, bidirectional or zero-width characters and without guillemets, and
+the line says it is quoted data. The evidence names the command
+(`console command <id>`), so a sync that stopped before saving does not write
+a command twice. What `finding.mjs` refuses (a closed finding, an agent's
+name as `by`, a secret-shaped reason) is reported to the console as a failed
+command with its first line.
+
+`sync` prints on standard error how many accepted findings want a task.
 Standard output is still the run requests alone.
+
+### The task-row step
 
 `task-row` is run after `sync` by a Claude session of the engineering
 session's kind, never by one of the sixteen agents (their guard forbids
-repository writes), and needs `git` and GitHub's `gh` signed in:
+repository writes), and needs `git` and GitHub's `gh` signed in. Its output
+is data for that session (ids, counts and an address), never an instruction.
 
-1. it fetches `origin/main` into a fresh `git worktree` in the temp folder,
-   so the working checkout, its branch and its changes are not touched;
+The repository is public and a finding is not, so what the step writes there
+is the least that names the work (D-456, the maintainer on 2026-11-21):
+
+- **A finding that is not a security finding** gets one row that carries its
+  id and its severity and nothing else: no title, evidence, proposal, check
+  or agent name. The engineering session writes the public description when
+  it picks the task up.
+- **A security finding** (the security agent's, or an id `sec-...`, marked
+  `public` or not) gets no row, and no word in the pull request, its title or
+  its branch. Its task is drafted in `E:/FMIP/ops/handoffs/<date>-task-<id>.md`
+  (private; the evidence is not copied, the draft points at the finding's
+  lines), and the finding carries `task: "private:<file>"` in place of an id.
+
+For the public rows:
+
+1. it fetches `origin` into a fresh `git worktree` of `origin/main` in the
+   temp folder, so the working checkout, its branch and its changes are not
+   touched;
 2. the next free id is one more than the highest `T-n` named in any
-   `docs/04-tasks-*.md` there or carried as `task` by any finding;
+   `docs/04-tasks-*.md` there, claimed by the name of a branch on `origin`
+   (`t-<id>-<slug>`, work or rows not merged yet), or owed by an earlier run
+   of this step. A finding's own `task` is never read for this, and a branch
+   id more than 500 above the docs is passed over;
 3. each row goes to the section "Accepted findings (console triage, D-456)"
-   at the end of the newest `docs/04-tasks-phase-<N>.md`, with the finding's
-   id, the agent's evidence and its proposal (`quoted` outside text is never
-   copied);
-4. one commit, one branch `docs-task-rows-<date>-t-<first id>`, one pull
-   request for all of them (`gh pr create`);
+   at the end of the newest `docs/04-tasks-phase-<N>.md`;
+4. one commit, one branch, one pull request for all of them
+   (`gh pr create`). The branch is `t-<first id>-task-rows`, with
+   `-to-<last id>` when it holds several rows, so its name claims every id
+   in it;
 5. each id is written back with `finding.mjs seen <id> --status planned
-   --task T-n`: one more line, the same id.
+   --task T-n`: one more line, the same id;
+6. each accept command is reported to the server, with the task and the pull
+   request's address (a security finding's: that it was drafted privately,
+   and no address).
 
 It starts no work on a task. A finding that already has a task, or that is
-no longer `planned`, gets no row. When the pull request cannot be opened no id
-is written anywhere and the requests wait for the next run; when a write-back
-fails the request keeps its id and the next run writes it without a second
-row. The repository is public: a security finding whose detail is withheld
-gets a row with its id alone, and a text that names a withheld finding is
-left out of a row whole.
+no longer `planned`, gets none, and its accept is reported so.
+
+It can be run again after any failure, and exits 1 naming what failed:
+
+- the commit, the push or `gh pr create` failed: no id is written anywhere,
+  the branch is deleted here and (once pushed) on `origin`, and the requests
+  wait; the next run gives the same ids. A branch a stopped run left here is
+  taken over (`git switch -C`); one it left on `origin` only makes the next
+  run take the following id;
+- a write-back failed: the request keeps its id and the next run writes it
+  without a second row;
+- a report failed: the request keeps its outcome and the next run sends it.
+
+### Deploy order
+
+**The API, with migration `1765901888200_console-command-finding-kinds`,
+first; then this publisher on the computer (`git pull`).**
+
+- New API, old publisher: the old `sync` calls `take-commands` without
+  `--with triage`, and the server hands a finding's triage over only to a
+  publisher that asks for it. So the triage commands stay queued, shown on
+  the console as not yet applied, and are taken by the first `sync` of the
+  new publisher. None is lost or reported failed. Until the publisher is
+  updated the server also shows no security finding's detail, resolved or
+  public ones included: it releases one only on the `releasable` mark the
+  new publisher sends.
+- Old API, new publisher: nothing can be queued (the old API does not know
+  the kinds), `take-commands` ignores the extra words, and a snapshot's new
+  fields are stored as they are. Safe, and nothing to see.
 
 ## Security detail stays on this computer (T-1879, D-340)
 

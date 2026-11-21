@@ -46,6 +46,7 @@ import {
   type FinishStatus,
   type ReplyStatus,
   finishCall,
+  remoteCommand,
   parseFinishArgs,
   replyCall,
   sshTarget,
@@ -54,13 +55,7 @@ import { type LabRead, labFrom } from './lab.ts';
 import { checkout, makeTaskRows } from './task-row.ts';
 import { applyTriage, findingDoor, readFindingLines as findingLinesOf } from './triage.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
-import {
-  SECURITY_AGENT,
-  type SecurityLedger,
-  guardText,
-  securityLedger,
-  withholds,
-} from './redact.ts';
+import { SECURITY_AGENT, type SecurityLedger, guardText, securityLedger } from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -109,11 +104,14 @@ import {
  *
  *     node packages/console-publisher/src/publish.ts task-row
  *
- * has given it the next free task id, added its row to the current backlog
- * file in one docs pull request (a fresh `git worktree` of `origin/main`,
- * `gh pr create`), and written the id back onto the finding (`task-row.ts`).
- * It is run by a Claude session of the engineering session's kind, never by
- * one of the sixteen agents, and starts no work on the task.
+ * has given it the next free task id, added its row (the finding's id and
+ * severity, nothing of its text) to the current backlog file in one docs pull
+ * request (a fresh `git worktree` of `origin/main`, `gh pr create`), written
+ * the id back onto the finding and reported the accept (`task-row.ts`). A
+ * security finding gets no row: its task is drafted in
+ * `E:/FMIP/ops/handoffs/` and the finding carries a private marker. It is run
+ * by a Claude session of the engineering session's kind, never by one of the
+ * sixteen agents, and starts no work on the task.
  *
  * The model lab's ledger (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`,
  * kept by the model scientist, goes into every snapshot as `model_lab` after
@@ -171,6 +169,8 @@ const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
 const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
 const LAB_FILE = join(OPS, 'model', 'ledger.json');
 const PROVIDERS_FILE = join(OPS, 'providers', 'comparison.json');
+/** Where a security finding's task is drafted (T-1907): private, never in the repository. */
+const HANDOFFS_DIR = join(OPS, 'handoffs');
 /** The one door for findings (T-1884): every triage line is written through it (T-1907). */
 const FINDING_SCRIPT = join(ROOT, '.claude', 'skills', 'team-charter', 'bin', 'finding.mjs');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
@@ -484,7 +484,12 @@ export function main(argv = process.argv.slice(2)): number {
       const { state, failures } = syncCommands(
         {
           load: loadState,
-          take: () => JSON.parse(ssh(`${CLI} take-commands`) || '[]') as ConsoleCommand[],
+          // `--with triage` (T-1907): the server keeps a finding's triage queued for a
+          // publisher that does not ask for it, which would report it failed.
+          take: () =>
+            JSON.parse(
+              ssh(remoteCommand(CLI, ['take-commands', '--with', 'triage'])) || '[]',
+            ) as ConsoleCommand[],
           save: saveState,
           finish: finishRemote,
           publish: (next) => {
@@ -507,28 +512,31 @@ export function main(argv = process.argv.slice(2)): number {
     }
     case 'task-row': {
       // T-1907 (D-456 point 2): the rows of the accepted findings, in one docs pull request.
-      const lines = readFindingLines();
-      const ledger = securityLedger(lines);
       const door = findingDoor(FINDING_SCRIPT, OPS);
       const work = checkout(ROOT);
       const result = makeTaskRows(loadState(), {
         history: door.history,
         seen: door.seen,
-        withheld: (finding, agent) => withholds(ledger, finding, agent),
-        guard: (value) => guardText(value, ledger).text,
-        findingTasks: () =>
-          lines.map((line) => (typeof line.record.task === 'string' ? line.record.task : '')),
         backlogs: work.backlogs,
+        branches: work.branches,
         pullRequest: work.pullRequest,
+        // A security finding's task: a file that stays under the ops folder.
+        writePrivate: (name, content) => {
+          mkdirSync(HANDOFFS_DIR, { recursive: true });
+          writeFileSync(join(HANDOFFS_DIR, name), content);
+        },
+        finish: finishRemote,
         close: work.close,
       });
       saveState(result.state);
       for (const failure of result.failures) process.stderr.write(`task-row: ${failure}\n`);
+      // What is printed names no security finding: this output is read by a session and kept in logs.
       process.stdout.write(
         `${JSON.stringify({
           pull_request: result.pullRequest,
           made: result.made,
-          skipped: result.skipped,
+          drafted_privately: result.drafted,
+          skipped: result.skipped.length,
           waiting: result.state.taskRows.length,
         })}\n`,
       );

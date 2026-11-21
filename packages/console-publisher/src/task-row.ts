@@ -2,38 +2,47 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { isSecurityFinding } from './redact.ts';
 import type { ConsoleState, TaskRowRequest } from './snapshot.ts';
 import { type SeenResult, TRIAGE_BY, FINDING_ID, statusOn } from './triage.ts';
 
 /**
- * The `task-row` step (T-1907, D-456 point 2): an accepted finding gets its
- * row in the backlog by itself. Run on the maintainer's computer by a Claude
- * session of the engineering session's kind, never by one of the sixteen
- * agents (their guard forbids repository writes):
+ * The `task-row` step (T-1907, D-456 point 2 and its addition of 2026-11-21):
+ * an accepted finding gets its task by itself. Run on the maintainer's
+ * computer by a Claude session of the engineering session's kind, never by
+ * one of the sixteen agents (their guard forbids repository writes):
  *
  *     node packages/console-publisher/src/publish.ts task-row
  *
- * For every finding `sync` left in `state.taskRows` it takes the next free
- * task id, adds one row (the finding's id, evidence and proposal) to the
- * current backlog file, opens ONE docs pull request with all of them, and
- * writes each id back onto its finding (`task`) through `finding.mjs seen`.
- * It starts no work on the task. A finding that already has a task, or that
- * is no longer `planned`, gets no row.
+ * The repository is public and a finding is not. So:
  *
- * The repository is public: a security finding whose detail is withheld
- * (D-455 point 2) gets a row with its id alone, and every other text passes
- * the same rule (`guard`) before it is written.
+ *   - A finding that is NOT a security finding gets one row in the current
+ *     backlog file that carries its id and its severity and nothing else: no
+ *     title, evidence, proposal or check. The engineering session writes the
+ *     public description when it picks the task up. All the rows of one run
+ *     go in ONE docs pull request, whose title and body name ids alone; each
+ *     id is then written back onto its finding (`task`).
+ *   - A SECURITY finding (the security agent's, or an id `sec-...`, marked
+ *     public or not) gets no row, and no word in the pull request: its task
+ *     is drafted in a file under the ops folder (`handoffs/`), which never
+ *     leaves the computer through this step, and the finding gets a private
+ *     marker (`private:<file>`) in place of a task id.
+ *
+ * It starts no work on a task, and reports each accept command's outcome to
+ * the server when its task exists. A finding that already has a task, or
+ * that is no longer `planned`, gets none.
  */
 
 /** The section the rows go to, at the end of the current backlog file. */
 export const SECTION = '## Accepted findings (console triage, D-456)';
 const SECTION_INTRO =
   'Rows written by the `task-row` step of the console publisher (T-1907) when a person accepts a\n' +
-  'finding on the agents console. Each is a stub from the finding as its agent wrote it: it is\n' +
-  'written in full, with its file list and its real acceptance criteria, when it is picked up.';
+  'finding on the agents console. Each names the finding and its severity only: the engineering\n' +
+  'session writes the description, the file list and the acceptance criteria when it picks it up.';
 const TABLE_HEAD = '| ID | Task | Deps | Acceptance |\n|---|---|---|---|';
-/** The longest a finding's text is in a row's cell. */
-export const CELL_MAX = 600;
+const SEVERITIES = ['critical', 'major', 'minor', 'info'];
+/** A branch's id further than this above the docs' highest is a stray name, not a task. */
+export const BRANCH_ID_WINDOW = 500;
 
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 
@@ -44,6 +53,39 @@ export function highestTaskId(texts: readonly string[]): number {
     for (const match of body.matchAll(/\bT-(\d{1,6})\b/g))
       highest = Math.max(highest, Number(match[1]));
   return highest;
+}
+
+/**
+ * The task ids the names of `origin`'s branches claim: `t-<id>-<slug>` (the
+ * project's rule for a task's branch), and both ends of this step's own
+ * `t-<first>-task-rows-to-<last>`.
+ */
+export function branchTaskIds(branches: readonly string[]): number[] {
+  const ids: number[] = [];
+  for (const name of branches) {
+    const first = /^t-(\d{1,6})-/i.exec(name)?.[1];
+    if (first === undefined) continue;
+    ids.push(Number(first));
+    const last = /-task-rows-to-(\d{1,6})$/i.exec(name)?.[1];
+    if (last !== undefined) ids.push(Number(last));
+  }
+  return ids;
+}
+
+/**
+ * The next free task id: one more than the highest in the backlog files of
+ * `main`, on a branch of `origin` (work or rows not merged yet), or owed by
+ * this step. A finding's own `task` is never read for this: any agent can
+ * write one. A branch id far above the docs is passed over.
+ */
+export function nextTaskId(
+  backlogs: readonly string[],
+  branchIds: readonly number[],
+  owed: readonly string[] = [],
+): number {
+  const inDocs = highestTaskId(backlogs);
+  const onBranches = branchIds.filter((id) => id <= inDocs + BRANCH_ID_WINDOW);
+  return Math.max(inDocs, highestTaskId(owed), ...onBranches) + 1;
 }
 
 /** The current backlog: `04-tasks-phase-<N>.md` with the highest N. */
@@ -57,61 +99,33 @@ export function currentBacklog(names: readonly string[]): string | null {
   return best?.name ?? null;
 }
 
-/** Text as one cell of a Markdown table: one line, no cell or code-span break, cut. */
-export function cell(value: string, max = CELL_MAX): string {
+/**
+ * Text as one cell of a Markdown table on GitHub: one line, nothing that
+ * breaks the cell or a code span, and nothing GitHub turns into a mention,
+ * an issue link, a link or a picture (`@`, `#`, brackets, `!`, a bare URL).
+ */
+export function cell(value: string, max = 80): string {
   const flat = value
     .replace(/\s+/g, ' ')
     .replace(/\\/g, '\\\\')
-    .replace(/\|/g, '\\|')
+    .replace(/[|@#[\]!*_~]/g, (c) => `\\${c}`)
     .replace(/`/g, "'")
     .replace(/</g, '&lt;')
+    .replace(/:\/\//g, ':\\/\\/')
+    .replace(/\bwww\./gi, 'www\\.')
     .trim();
   const chars = [...flat];
   return chars.length <= max ? flat : `${chars.slice(0, max - 1).join('')}…`;
 }
 
-export interface RowSource {
-  /** The finding's latest line. */
-  record: Record<string, unknown>;
-  /** A security finding whose detail stays on the computer. */
-  withheld: boolean;
-}
+/** A severity out of the fixed list, or `unknown`: never a word a finding line invented. */
+export const severityOf = (record: Record<string, unknown>): string =>
+  SEVERITIES.find((s) => s === record.severity) ?? 'unknown';
 
-/** What stands in a row for a text that names a withheld security finding. */
-export const WITHHELD_TEXT =
-  "(withheld: it names a security finding whose detail stays on the maintainer's computer, D-455)";
-
-/**
- * One backlog row for an accepted finding. `guard` is the security text rule
- * (`guardText`): a title, evidence, proposal or check it would change is left
- * out whole, since the row is read by anyone.
- */
-export function taskRow(
-  task: string,
-  finding: string,
-  source: RowSource,
-  guard: (value: string) => string = (value) => value,
-): string {
-  const { withheld } = source;
-  const record: Record<string, unknown> = { ...source.record };
-  for (const key of ['title', 'evidence', 'proposal', 'verify']) {
-    const value = text(record[key]);
-    if (value !== '' && guard(value) !== value) record[key] = WITHHELD_TEXT;
-  }
-  const from = `finding \`${finding}\`, ${cell(text(record.agent), 40)}, ${cell(text(record.severity), 20)}; accepted on the agents console, D-456 point 2`;
-  if (withheld) {
-    return `| \`[ ]\` ${task} | A security finding (${from}). Its title and detail are withheld here (D-455 point 2): read the finding on the maintainer's computer | — | \`- [ ]\` the security agent re-checks the finding and marks it \`resolved\` |`;
-  }
-  const parts = [
-    `${cell(text(record.title), 200)} (${from})`,
-    text(record.evidence) === '' ? '' : `Evidence: ${cell(text(record.evidence))}`,
-    text(record.proposal) === '' ? '' : `Proposal: ${cell(text(record.proposal))}`,
-  ].filter((part) => part !== '');
-  const check =
-    text(record.verify) === ''
-      ? `the finding's agent re-checks it and marks it \`resolved\``
-      : cell(text(record.verify), 300);
-  return `| \`[ ]\` ${task} | ${parts.join('. ')} | — | \`- [ ]\` ${check} |`;
+/** One backlog row for an accepted finding: its id and its severity, nothing of its text. */
+export function taskRow(task: string, finding: string, severity: string): string {
+  if (!FINDING_ID.test(finding)) throw new Error('A row names a finding by its id.');
+  return `| \`[ ]\` ${task} | Finding \`${finding}\` (${cell(severity, 20)}), accepted on the agents console (D-456 point 2). The engineering session writes this row in full when it picks the task up | — | \`- [ ]\` written when the task is picked up |`;
 }
 
 /** The backlog with the rows added to its triage section, which is made at the end when missing. */
@@ -141,6 +155,46 @@ export function addRows(backlog: string, rows: readonly string[]): string {
   return lines.join('\n');
 }
 
+/** The marker a security finding carries in place of a task id. */
+export const privateMarker = (file: string): string => `private:${file}`;
+export const privateDraftName = (finding: string, today: string): string =>
+  `${today}-task-${finding}.md`;
+
+/**
+ * The private draft of a security finding's task. It stays under the ops
+ * folder; the finding's own lines, in the same folder, hold the evidence.
+ */
+export function privateDraft(
+  finding: string,
+  record: Record<string, unknown>,
+  request: TaskRowRequest,
+  today: string,
+): string {
+  return [
+    `# Task draft for security finding ${finding}`,
+    '',
+    'PRIVATE. Not for the public repository: no task row and no pull request names this finding',
+    '(D-456, the maintainer on 2026-11-21). The maintainer decides in his own session how the work',
+    'is described in public, if at all.',
+    '',
+    `- Finding: ${finding}`,
+    `- Severity: ${severityOf(record)}`,
+    `- Accepted on the agents console by ${request.by} on ${today} (console command ${request.command})`,
+    `- Title: ${text(record.title).replace(/\s+/g, ' ')}`,
+    '',
+    '## Proposal, as the finding has it',
+    '',
+    text(record.proposal) || '(none written)',
+    '',
+    '## Evidence',
+    '',
+    `Read the lines of ${finding} in the findings folder; they are not copied here.`,
+    '',
+    'No work on this has started.',
+    '',
+  ].join('\n');
+}
+
 export interface MadeRow {
   finding: string;
   task: string;
@@ -150,35 +204,40 @@ export interface MadeRow {
 export interface TaskRowSteps {
   /** Every line of that finding, oldest first. */
   history(finding: string): Record<string, unknown>[];
-  /** Whether that finding's detail stays on the computer (D-455 point 2). */
-  withheld(finding: string, agent: string): boolean;
-  /** Any text bound for the public repository, after the security text rule. */
-  guard(value: string): string;
-  /** Every `task` any finding line carries: ids already given out, merged or not. */
-  findingTasks(): string[];
   /** The backlog files of the newest `main` (`docs/04-tasks-*.md`). */
   backlogs(): { name: string; text: string }[];
+  /** The names of `origin`'s branches. */
+  branches(): string[];
   /** Writes the file, commits, pushes and opens the docs pull request; its address. Throws when it cannot. */
   pullRequest(name: string, content: string, made: readonly MadeRow[]): string;
+  /** Writes a private draft under the ops folder's `handoffs/`. */
+  writePrivate(name: string, content: string): void;
   seen(args: (evidenceFile: string) => string[], evidence: string): SeenResult;
+  /** Reports an accept command's outcome to the server; may throw. */
+  finish(id: string, status: 'done' | 'failed', outcome: string): void;
   /** Puts away whatever `backlogs` opened. */
   close?(): void;
 }
 
 export interface TaskRowResult {
   state: ConsoleState;
+  /** The public rows made by this run. */
   made: MadeRow[];
-  /** Requests that got no row, and why. */
+  /** How many security findings got a private draft; never which. */
+  drafted: number;
+  /** Requests that got no task, and why. */
   skipped: { finding: string; reason: string }[];
   pullRequest: string | null;
-  /** What went wrong after the pull request was opened; the request is kept for the next run. */
+  /** What went wrong; each request it concerns is kept for the next run. */
   failures: string[];
 }
 
-type Pending = TaskRowRequest;
+const COMMAND_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const reasonOf = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
 
 const writeBackArgs =
-  (request: Pending, task: string) =>
+  (request: TaskRowRequest, task: string) =>
   (file: string): string[] => [
     'seen',
     request.finding,
@@ -193,11 +252,14 @@ const writeBackArgs =
   ];
 
 /**
- * Makes the rows `state.taskRows` asks for. No id is taken unless the pull
- * request was opened: when `pullRequest` throws, this throws and the caller
- * keeps the state it had. The rows are in the docs before any id is written
- * on a finding; a write-back that fails keeps its request, with its id, and
- * the next run writes it without a second row.
+ * Makes the tasks `state.taskRows` asks for. Nothing here throws for a step
+ * that failed: the failure is named and its request kept, so the next run
+ * takes it up where it stopped.
+ *
+ *   - no id is on a finding unless its row is in an opened pull request;
+ *   - a write-back that fails keeps its id and is written by the next run
+ *     without a second row;
+ *   - a report that fails keeps its outcome and is sent by the next run.
  */
 export function makeTaskRows(
   state: ConsoleState,
@@ -207,88 +269,137 @@ export function makeTaskRows(
   const result: TaskRowResult = {
     state: structuredClone(state),
     made: [],
+    drafted: 0,
     skipped: [],
     pullRequest: null,
     failures: [],
   };
-  const requests = result.state.taskRows ?? [];
-  const kept: Pending[] = [];
-  const wanted: { request: Pending; source: RowSource }[] = [];
-  const skip = (finding: string, reason: string) => result.skipped.push({ finding, reason });
+  /** Requests whose task exists (a row in a pull request, or a private draft) and is owed to the finding. */
+  const owed: TaskRowRequest[] = [];
+  /** Requests with nothing left but the report to the server. */
+  const settled: TaskRowRequest[] = [];
+  const left: TaskRowRequest[] = [];
+  const wanted: { request: TaskRowRequest; severity: string }[] = [];
+  const skip = (request: TaskRowRequest, reason: string) => {
+    result.skipped.push({ finding: String(request.finding), reason });
+    settled.push({ ...request, outcome: `Planned; no task was made: ${reason}` });
+  };
   try {
-    for (const request of requests) {
+    for (const request of result.state.taskRows ?? []) {
       if (!FINDING_ID.test(request.finding) || !TRIAGE_BY.test(request.by)) {
-        skip(String(request.finding), 'The request names no finding or no person.');
-        continue;
-      }
-      // A row made by a run whose write-back failed: only the write-back is left.
-      if (request.task !== undefined) {
-        kept.push(request);
-        continue;
-      }
-      const history = steps.history(request.finding);
-      const latest = history.at(-1);
-      // The evidence is the agent's own: a person's triage line (`by`) says who decided, not what was seen.
-      const seenBy = history.findLast((line) => text(line.by) === '');
-      const record: Record<string, unknown> | undefined =
-        latest === undefined ? undefined : { ...latest, evidence: (seenBy ?? latest).evidence };
-      if (record === undefined) skip(request.finding, 'No such finding on the computer.');
-      else if (text(record.task) !== '')
-        skip(request.finding, `It already has the task ${text(record.task)}.`);
-      else if (statusOn(record, today) !== 'planned')
-        skip(request.finding, `It is no longer planned (${text(record.status)}).`);
-      else if (wanted.some((w) => w.request.finding === request.finding))
-        skip(request.finding, 'Asked for twice; one row is made.');
-      else
-        wanted.push({
-          request,
-          source: { record, withheld: steps.withheld(request.finding, text(record.agent)) },
+        result.skipped.push({
+          finding: String(request.finding),
+          reason: 'The request names no finding or no person.',
         });
-    }
-    if (wanted.length > 0) {
-      const backlogs = steps.backlogs();
-      const name = currentBacklog(backlogs.map((file) => file.name));
-      const backlog = backlogs.find((file) => file.name === name);
-      if (backlog === undefined) throw new Error('No docs/04-tasks-phase-<N>.md to add a row to.');
-      // Ids in the docs, on any finding, and given out by a run whose write-back is still owed.
-      let next =
-        highestTaskId([
-          ...backlogs.map((file) => file.text),
-          ...steps.findingTasks(),
-          ...kept.map((request) => request.task ?? ''),
-        ]) + 1;
-      const rows: string[] = [];
-      for (const { request, source } of wanted) {
-        const task = `T-${next}`;
-        next += 1;
-        rows.push(taskRow(task, request.finding, source, steps.guard));
-        result.made.push({ finding: request.finding, task });
+        continue;
       }
-      // When this throws nothing was claimed: the caller keeps the state it had.
-      const address = steps.pullRequest(backlog.name, addRows(backlog.text, rows), result.made);
-      result.pullRequest = address;
-      wanted.forEach(({ request }, i) =>
-        kept.push({ ...request, task: result.made[i]!.task, pull_request: address }),
-      );
+      if (request.outcome !== undefined) {
+        settled.push(request);
+        continue;
+      }
+      if (request.task !== undefined) {
+        owed.push(request);
+        continue;
+      }
+      const record = steps.history(request.finding).at(-1);
+      if (record === undefined) skip(request, 'No such finding on the computer.');
+      else if (text(record.task) !== '') skip(request, 'It already has a task.');
+      else if (statusOn(record, today) !== 'planned') skip(request, 'It is no longer planned.');
+      else if (
+        wanted.some((w) => w.request.finding === request.finding) ||
+        owed.some((o) => o.finding === request.finding)
+      )
+        skip(request, 'Asked for twice; one task is made.');
+      else if (isSecurityFinding(request.finding, text(record.agent))) {
+        // Private: a file under the ops folder, and a marker on the finding. Nothing public.
+        const name = privateDraftName(request.finding, today);
+        try {
+          steps.writePrivate(name, privateDraft(request.finding, record, request, today));
+          owed.push({ ...request, task: privateMarker(name) });
+          result.drafted += 1;
+        } catch (error) {
+          result.failures.push(`A private draft was not written: ${reasonOf(error)}`);
+          left.push(request);
+        }
+      } else wanted.push({ request, severity: severityOf(record) });
     }
-    // The id goes back onto the finding: one more line, the same id.
-    const left: Pending[] = [];
-    for (const request of kept) {
+
+    if (wanted.length > 0) {
+      try {
+        const backlogs = steps.backlogs();
+        const name = currentBacklog(backlogs.map((file) => file.name));
+        const backlog = backlogs.find((file) => file.name === name);
+        if (backlog === undefined)
+          throw new Error('No docs/04-tasks-phase-<N>.md to add a row to.');
+        let next = nextTaskId(
+          backlogs.map((file) => file.text),
+          branchTaskIds(steps.branches()),
+          owed.map((request) => request.task ?? ''),
+        );
+        const made: MadeRow[] = [];
+        const rows: string[] = [];
+        for (const { request, severity } of wanted) {
+          const task = `T-${next}`;
+          next += 1;
+          rows.push(taskRow(task, request.finding, severity));
+          made.push({ finding: request.finding, task });
+        }
+        const address = steps.pullRequest(backlog.name, addRows(backlog.text, rows), made);
+        result.made = made;
+        result.pullRequest = address;
+        wanted.forEach(({ request }, i) =>
+          owed.push({ ...request, task: made[i]!.task, pull_request: address }),
+        );
+      } catch (error) {
+        // No id was claimed: the requests wait for the next run.
+        result.failures.push(`The docs pull request was not opened: ${reasonOf(error)}`);
+        left.push(...wanted.map((w) => w.request));
+      }
+    }
+
+    // The task goes back onto the finding: one more line, the same id.
+    for (const request of owed) {
       const task = request.task!;
+      const isPrivate = task.startsWith('private:');
       const already = text(steps.history(request.finding).at(-1)?.task) === task;
       const written = already
         ? ({ ok: true } as const)
         : steps.seen(
             writeBackArgs(request, task),
-            `Task row ${task} added to the backlog for this finding${
-              request.pull_request === undefined ? '' : ` (${request.pull_request})`
-            }, asked by console command ${request.command}. No work on it has started.`,
+            isPrivate
+              ? `Its task is drafted privately on the maintainer's computer (${task.slice('private:'.length)} under handoffs/), asked by console command ${request.command}. No public row. No work on it has started.`
+              : `Task row ${task} added to the backlog for this finding${
+                  request.pull_request === undefined ? '' : ` (${request.pull_request})`
+                }, asked by console command ${request.command}. No work on it has started.`,
           );
-      if (written.ok) continue;
-      result.failures.push(
-        `${request.finding}: ${task} is in the pull request but was not written on the finding: ${written.reason}`,
-      );
-      left.push(request);
+      if (!written.ok) {
+        result.failures.push(
+          isPrivate
+            ? `A private draft was made but not marked on its finding: ${written.reason}`
+            : `${request.finding}: ${task} is in the pull request but was not written on the finding: ${written.reason}`,
+        );
+        left.push(request);
+        continue;
+      }
+      settled.push({
+        ...request,
+        outcome: isPrivate
+          ? "Planned; its task is drafted privately on the maintainer's computer."
+          : `Planned; task ${task}${request.pull_request === undefined ? '' : `: ${request.pull_request}`}`,
+      });
+    }
+
+    // Each accept command hears how it ended.
+    for (const request of settled) {
+      if (!COMMAND_UUID.test(request.command)) continue;
+      try {
+        steps.finish(request.command, 'done', request.outcome!);
+      } catch (error) {
+        result.failures.push(
+          `Command ${request.command} is done here, but its outcome did not reach the server: ${reasonOf(error)}`,
+        );
+        left.push(request);
+      }
     }
     result.state.taskRows = left;
     return result;
@@ -314,28 +425,43 @@ export const run: Run = (program, args, cwd) => {
 
 export interface Checkout {
   backlogs(): { name: string; text: string }[];
+  branches(): string[];
   pullRequest(name: string, content: string, made: readonly MadeRow[]): string;
   close(): void;
+}
+
+/** The step's branch: `t-<first id>-task-rows`, with `-to-<last id>` when it holds several rows. */
+export function rowsBranch(made: readonly MadeRow[]): string {
+  const numbers = made.map((row) => /^T-(\d+)$/.exec(row.task)?.[1]);
+  if (numbers.length === 0 || numbers.some((n) => n === undefined))
+    throw new Error('A pull request needs its task ids.');
+  const first = numbers[0]!;
+  const last = numbers.at(-1)!;
+  return first === last ? `t-${first}-task-rows` : `t-${first}-task-rows-to-${last}`;
 }
 
 /**
  * A fresh checkout of `origin/main` beside the working one (`git worktree`),
  * so the maintainer's own checkout, whatever branch and changes it holds, is
- * not touched. The branch is `docs-task-rows-<date>-t-<first id>`; the commit
- * holds the backlog file alone. `open` opens the pull request (GitHub's `gh`
- * by default) and answers its address.
+ * not touched. The commit holds the backlog file alone. `open` opens the pull
+ * request (GitHub's `gh` by default) and answers its address.
+ *
+ * It can be run again after any failure: the branch is made with `switch -C`
+ * (a branch left by a run that stopped is taken over), and when the commit,
+ * the push or the pull request fails, the branch is deleted here and, once
+ * pushed, on `origin`, so the next run starts clean with the same id. Should
+ * that clean-up fail too, the branch left on `origin` only makes the next run
+ * take the following id (`branchTaskIds`).
  */
 export function checkout(
   root: string,
   options: {
     exec?: Run;
-    now?: Date;
     /** Opens the pull request for the pushed branch; the default runs `gh pr create`. */
     open?: (branch: string, title: string, body: string, cwd: string) => string;
   } = {},
 ): Checkout {
   const exec = options.exec ?? run;
-  const day = (options.now ?? new Date()).toISOString().slice(0, 10);
   const open =
     options.open ??
     ((branch, title, body, cwd) => {
@@ -364,9 +490,17 @@ export function checkout(
       }
     });
   let tree: string | null = null;
+  const made = new Set<string>();
+  const quietly = (program: string, args: readonly string[], cwd: string): void => {
+    try {
+      exec(program, args, cwd);
+    } catch {
+      // Clean-up is best effort; the next run does not depend on it.
+    }
+  };
   const worktree = (): string => {
     if (tree !== null) return tree;
-    exec('git', ['fetch', '--quiet', 'origin', 'main'], root);
+    exec('git', ['fetch', '--quiet', '--prune', 'origin'], root);
     const folder = join(mkdtempSync(join(tmpdir(), 'fmip-task-row-')), 'checkout');
     exec('git', ['worktree', 'add', '--quiet', '--detach', folder, 'origin/main'], root);
     tree = folder;
@@ -380,39 +514,53 @@ export function checkout(
         .sort()
         .map((name) => ({ name, text: readFileSync(join(docs, name), 'utf8') }));
     },
-    pullRequest: (name, content, made) => {
+    branches: () =>
+      exec('git', ['ls-remote', '--heads', 'origin'], root)
+        .split('\n')
+        .map((line) => /\trefs\/heads\/(.+)$/.exec(line)?.[1] ?? '')
+        .filter((name) => name !== ''),
+    pullRequest: (name, content, rows) => {
       const cwd = worktree();
-      const ids = made.map((row) => row.task);
-      const branch = `docs-task-rows-${day}-${ids[0]!.toLowerCase()}`;
+      const ids = rows.map((row) => row.task);
+      const branch = rowsBranch(rows);
       const title = `docs: task row${ids.length === 1 ? '' : 's'} ${ids.join(', ')} for accepted findings`;
       const body = [
         'Rows added by the `task-row` step of the console publisher (T-1907, D-456 point 2): each',
-        'finding below was accepted on the agents console. A row is a stub; no work on it has started.',
+        'finding below was accepted on the agents console. A row names the finding and its severity',
+        'only; the engineering session writes it in full when it picks the task up. No work has started.',
         '',
-        ...made.map((row) => `- ${row.task}: finding \`${row.finding}\``),
+        ...rows.map((row) => `- ${row.task}: finding \`${row.finding}\``),
         '',
       ].join('\n');
-      exec('git', ['switch', '--quiet', '-c', branch], cwd);
-      writeFileSync(join(cwd, 'docs', name), content);
-      exec('git', ['add', '--', `docs/${name}`], cwd);
-      exec('git', ['commit', '--quiet', '-m', title], cwd);
-      exec('git', ['push', '--quiet', '-u', 'origin', branch], cwd);
-      return open(branch, title, body, cwd);
+      let pushed = false;
+      made.add(branch);
+      try {
+        exec('git', ['switch', '--quiet', '-C', branch, 'origin/main'], cwd);
+        writeFileSync(join(cwd, 'docs', name), content);
+        exec('git', ['add', '--', `docs/${name}`], cwd);
+        exec('git', ['commit', '--quiet', '-m', title], cwd);
+        exec('git', ['push', '--quiet', '-u', 'origin', branch], cwd);
+        pushed = true;
+        return open(branch, title, body, cwd);
+      } catch (error) {
+        if (pushed) quietly('git', ['push', '--quiet', 'origin', '--delete', branch], cwd);
+        throw error;
+      }
     },
     close: () => {
-      if (tree === null) return;
-      const folder = tree;
-      tree = null;
-      try {
-        exec('git', ['worktree', 'remove', '--force', folder], root);
-      } catch {
-        rmSync(folder, { recursive: true, force: true });
+      if (tree !== null) {
+        const folder = tree;
+        tree = null;
         try {
-          exec('git', ['worktree', 'prune'], root);
+          exec('git', ['worktree', 'remove', '--force', folder], root);
         } catch {
-          // The next `git worktree prune` clears it.
+          rmSync(folder, { recursive: true, force: true });
+          quietly('git', ['worktree', 'prune'], root);
         }
       }
+      // The branch is on `origin` (or was given up): no copy of it is kept here.
+      for (const branch of made) quietly('git', ['branch', '-D', branch], root);
+      made.clear();
     },
   };
 }
