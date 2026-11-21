@@ -27,6 +27,8 @@ import {
   SCORER_SIDE,
   SCORER_UNIT,
   STATUS_ITEM,
+  STATUS_LINE,
+  STATUS_STACKED,
   scorerFit,
 } from './match-centre-view';
 import { ratingsOf } from './match-stats-panels';
@@ -954,21 +956,33 @@ describe('live', () => {
     const html = view(centre({ status: 'finished', minute: null, scores }));
     const text = html.replace(/<[^>]+>/g, '');
     expect(text).toMatch(/2–2/);
+    expect(text).toContain('Pens 1–4 · 90′ 0–0 · HT 0–0');
     // Three items, each its words and its score in one piece that never
-    // breaks inside, the separator held to the item before it (T-1947).
-    expect(text).toContain('Pens 1–4\u00a0· 90′ 0–0\u00a0· HT 0–0');
-    const items = [
-      ...html.matchAll(
-        /<span class="([^"]*)" data-status-item=""[^>]*>(.*?)<\/span>(?= <span class="[^"]*" data-status-item|<\/span><\/div>)/g,
-      ),
-    ];
-    expect(items.map((i) => i[1])).toEqual([STATUS_ITEM, STATUS_ITEM, STATUS_ITEM]);
+    // breaks inside; on a phone they are stacked and the separators, elements
+    // of their own, are not drawn, so none sits at a row's edge (T-1947).
+    expect(html).toContain(
+      `<span class="${STATUS_LINE} ${STATUS_STACKED}" data-status-line="stacked">`,
+    );
+    expect(STATUS_STACKED.split(' ')).toEqual(
+      expect.arrayContaining(['max-md:flex', 'max-md:flex-col', 'max-md:items-center']),
+    );
     expect(STATUS_ITEM.split(' ')).toContain('whitespace-nowrap');
-    expect(items.map((i) => i[2]!.replace(/<[^>]+>/g, ''))).toEqual([
-      'Pens 1–4\u00a0·',
-      '90′ 0–0\u00a0·',
-      'HT 0–0',
-    ]);
+    const items = [...html.matchAll(/<span class="([^"]*)" data-status-item=""/g)];
+    expect(items.map((i) => i[1])).toEqual([STATUS_ITEM, STATUS_ITEM, STATUS_ITEM]);
+    expect(
+      html.split('<span class="max-md:hidden" data-status-separator=""> · </span>'),
+    ).toHaveLength(3);
+    // An ordinary result's line is one row with its separator, as it was.
+    const plain = view(
+      centre({
+        status: 'finished',
+        minute: null,
+        scores: { ...scores, extra_time: null, penalties: null, current: { home: 0, away: 0 } },
+      }),
+    );
+    expect(plain).toContain(`<span class="${STATUS_LINE}" data-status-line="row">`);
+    expect(plain).toContain('<span class="" data-status-separator=""> · </span>');
+    expect(plain.replace(/<[^>]+>/g, '')).toContain('FT · HT 0–0');
     // Without extra time no ninety-minute line.
     const ft = view(
       centre({

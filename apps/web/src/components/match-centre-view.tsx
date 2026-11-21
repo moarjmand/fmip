@@ -598,6 +598,13 @@ function Hero({
     disputed && 'text-muted',
   );
   const scorers = scorersOf(centre, locale);
+  // More than "FT · HT 1-0" under the score: stacked on a phone (T-1947).
+  const statusStacked = f.scores.penalties !== null || ninety !== null;
+  const statusSeparator = (
+    <span className={cx(statusStacked && 'max-md:hidden')} data-status-separator="">
+      {' · '}
+    </span>
+  );
   // Each side's name is a 44px target on a phone (T-1553), centred in its
   // column there; from 768px the line's own height, aligned by its row.
   const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
@@ -715,15 +722,17 @@ function Hero({
             <span className="text-sm font-semibold text-muted max-md:hidden">{kickoffDay}</span>
           ) : (
             f.status !== 'live' && (
-              // On a phone the line takes at most 120px before it wraps
-              // (T-1947): the middle column is as wide as its widest line,
-              // and a shoot-out's ("Pens 2-4 · 90 minutes 1-1 · HT 1-0",
-              // 206px in Persian) left each side 61px of a 375px screen.
-              // An ordinary result's line is up to 105px and stays one line.
-              <span className={STATUS_LINE}>
-                {/* Each item, its words and its score, is one piece: the
-                    line breaks only between items, the separator held to
-                    the item before it (T-1947). */}
+              // The line under the score (T-1947). An ordinary result's is
+              // one row, "FT · HT 1-0", as it always was. One that also says
+              // a shoot-out or the ninety minutes ("Pens 2-4 · 90 minutes 1-1
+              // · HT 1-0", 206px in Persian, which left each side 61px of a
+              // 375px screen) is, on a phone, its items stacked with no
+              // separator: a middle dot at a row's edge reads as a zero
+              // beside Persian digits and would misstate a score.
+              <span
+                className={cx(STATUS_LINE, statusStacked && STATUS_STACKED)}
+                data-status-line={statusStacked ? 'stacked' : 'row'}
+              >
                 <span className={STATUS_ITEM} data-status-item="">
                   <span data-testid="match-status">{status}</span>
                   {f.scores.penalties !== null && (
@@ -736,21 +745,19 @@ function Hero({
                       />
                     </>
                   )}
-                  {(ninety !== null || f.scores.half_time !== null) && '\u00a0·'}
                 </span>
                 {ninety !== null && (
                   <>
-                    {' '}
+                    {statusSeparator}
                     <span className={STATUS_ITEM} data-status-item="" data-testid="ninety">
                       <MessageText message={m['status.regularTime']} />{' '}
                       <Score home={ninety.home} away={ninety.away} locale={locale} />
-                      {f.scores.half_time !== null && '\u00a0·'}
                     </span>
                   </>
                 )}
                 {f.scores.half_time !== null && (
                   <>
-                    {' '}
+                    {statusSeparator}
                     <span className={STATUS_ITEM} data-status-item="">
                       <MessageText message={m['status.halfTime']} />{' '}
                       <Score
@@ -1050,9 +1057,10 @@ export const SCORER_NAME = 'max-w-full min-w-0 overflow-x-clip text-ellipsis whi
 export const SCORER_MINUTES = 'max-w-full min-w-0';
 /** An item of the line under the score, "90 minutes 1-1": never broken inside. */
 export const STATUS_ITEM = 'whitespace-nowrap';
-/** The line under the score once play is over; on a phone, 120px before it wraps. */
-export const STATUS_LINE =
-  'text-xs font-bold text-muted max-md:max-w-30 max-md:text-center max-md:text-balance md:text-sm';
+/** The line under the score once play is over. */
+export const STATUS_LINE = 'text-xs font-bold text-muted md:text-sm';
+/** On a phone, a long line's items one under another, centred; one row from 768px. */
+export const STATUS_STACKED = 'max-md:flex max-md:flex-col max-md:items-center';
 
 /**
  * A scorer's unit on a phone (D-395): measured at 375, the band's column is

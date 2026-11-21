@@ -61,6 +61,40 @@ const scorersOutside = (page: Page) =>
 const pageOverflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
+/**
+ * The line under the score as it is drawn: its visible boxes, items and
+ * separators, row by row from the inline start, and how many lines of text
+ * each item takes.
+ */
+const statusRows = (page: Page) =>
+  page.evaluate(() => {
+    const line = document.querySelector('[data-testid="match-header"] [data-status-line]')!;
+    const rtl = getComputedStyle(line).direction === 'rtl';
+    const boxes = [...line.querySelectorAll('[data-status-item], [data-status-separator]')]
+      .map((el) => ({
+        kind: el.hasAttribute('data-status-item') ? 'item' : 'separator',
+        box: el.getBoundingClientRect(),
+        lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+      }))
+      .filter((b) => b.box.width > 0 && b.box.height > 0);
+    const rows = new Map<number, typeof boxes>();
+    for (const b of boxes) {
+      // Boxes whose middles are within half a line of each other share a row.
+      const middle = b.box.top + b.box.height / 2;
+      const key = [...rows.keys()].find((k) => Math.abs(k - middle) < b.lineHeight / 2) ?? middle;
+      rows.set(key, [...(rows.get(key) ?? []), b]);
+    }
+    return {
+      items: boxes.filter((b) => b.kind === 'item').length,
+      itemLines: boxes.filter((b) => b.kind === 'item').map((b) => b.box.height / b.lineHeight),
+      rows: [...rows.values()].map((row) =>
+        row
+          .sort((a, b) => (rtl ? b.box.right - a.box.right : a.box.left - b.box.left))
+          .map((b) => b.kind),
+      ),
+    };
+  });
+
 /** Each side's column, in px. */
 const columns = (page: Page) =>
   page.evaluate(() =>
@@ -83,31 +117,22 @@ for (const width of [375, 320]) {
         for (const out of await scorersOutside(page)) expect(out).toBeLessThanOrEqual(0.5);
       });
 
-      test(`${locale}: the line under a shoot-out's score breaks only between its items`, async ({
+      test(`${locale}: the line under a shoot-out's score is whole items, no separator at a row's edge`, async ({
         page,
       }) => {
         await draw(page, 'reported', locale);
-        // "Pens 2–4 ·", "90 minutes 1–1 ·", "HT 1–0": each one piece on one
-        // line, its score beside its words; the line itself is on two or more.
-        const items = await page
-          .getByTestId('match-header')
-          .locator('[data-status-item]')
-          .evaluateAll((list) =>
-            list.map((item) => ({
-              // One line: no taller than a line and a half of its text.
-              lines:
-                item.getBoundingClientRect().height / parseFloat(getComputedStyle(item).lineHeight),
-              top: Math.round(item.getBoundingClientRect().top),
-              // No item ends its line's separator on the next line.
-              text: item.textContent ?? '',
-            })),
-          );
-        expect(items).toHaveLength(3);
-        for (const item of items) expect(item.lines).toBeLessThan(1.5);
-        expect(new Set(items.map((i) => i.top)).size).toBeGreaterThanOrEqual(2);
-        // The separator closes the item before it, so it never starts a line.
-        expect(items.map((i) => i.text.trim().endsWith('·'))).toEqual([true, true, false]);
-        for (const item of items) expect(item.text.trim().startsWith('·')).toBe(false);
+        const rows = await statusRows(page);
+        // "Pens 2–4", "90 minutes 1–1", "HT 1–0": more than one row here.
+        expect(rows.items).toBe(3);
+        expect(rows.rows.length).toBeGreaterThanOrEqual(2);
+        // Each item is on one row, its score beside its words.
+        for (const lines of rows.itemLines) expect(lines).toBeLessThan(1.5);
+        // No row starts or ends with a separator: beside Persian digits a
+        // middle dot reads as a zero.
+        for (const row of rows.rows) {
+          expect(row[0]).toBe('item');
+          expect(row[row.length - 1]).toBe('item');
+        }
         expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
       });
 
@@ -161,6 +186,22 @@ test.describe('the match band at 375px, what stays as it was (T-1947)', () => {
       expect(
         await header.locator('[data-status-item]').first().locator('..').evaluate(oneLine),
       ).toBe(true);
+      // One row, as it always was: its separator between the two items.
+      expect((await statusRows(page)).rows).toEqual([['item', 'separator', 'item']]);
+    });
+  }
+});
+
+test.describe('the line under the score on a desktop (T-1947)', () => {
+  test.use({ viewport: { width: 1280, height: 800 } });
+
+  for (const locale of ['fa', 'en'] as const) {
+    test(`${locale}: a shoot-out's line is one row, a separator between each two items`, async ({
+      page,
+    }) => {
+      await draw(page, 'reported', locale);
+      const { rows } = await statusRows(page);
+      expect(rows).toEqual([['item', 'separator', 'item', 'separator', 'item']]);
     });
   }
 });
