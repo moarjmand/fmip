@@ -1,0 +1,3 @@
+- [Bundle attribution](bundle-attribution.md) — estimate match-centre first-load per module from an existing .next (Turbopack hoists the live view into one chunk)
+- [Health baselines](baselines.md) — fan-out, big files, migrations as of 2026-11-02; boundary-check.sh fan-out miscount and how to recount
+- [Numbering and lookups](numbering-and-lookups.md) — next free D/T and migration timestamps on origin; social=friends graph; console has no owner role, no encryption at rest

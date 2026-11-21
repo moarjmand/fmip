@@ -1,0 +1,1 @@
+- [Weekly check baselines](weekly-check-baselines.md) — ports/SSH/failed logins, D-332 header stages, decided items, memory is published to the console, findings-append method

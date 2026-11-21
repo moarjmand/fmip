@@ -1,0 +1,5 @@
+- [Baselines](baselines.md) — 2026-11-02 figures: API-Football usage, backup bytes, member counts, news sources, line-up lead time
+- [Where things are](where-things-are.md) — register/report paths, terms URLs that 403, tables to query, findings-append gotcha
+- [Ruled out and decided](ruled-out-and-decided.md) — notification_delivery no emails; news-image case; privacy draft, Sportmonks, sign-up source cookie advice; 2026-11-13 provider comparison
+- [Social video baseline](social-video-baseline.md) — 2026-11-19 video tools: Remotion 3-person threshold, Buffer video/AI-label/audio API facts, Sora gone
+- [Social publishing baseline](social-publishing-baseline.md) — Buffer terms/limits, X/IG rules, sanctions reading, blocked doc hosts (2026-11-14, 11-17)

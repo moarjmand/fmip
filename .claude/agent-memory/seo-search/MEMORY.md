@@ -1,0 +1,1 @@
+- [Baselines](baselines.md) - sitemap count, titles, og:image state as of 2026-11-09

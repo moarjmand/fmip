@@ -1,0 +1,2 @@
+- [Watch baselines](watch-baselines.md) — 2026-11-16: 0.7.0 published since 11-13 (D-410), no candidate; drift ~12-21/12-28; 2 bands fail; SQL post-promotion quirks
+- [D-450 recalibration draft](recalibration-d450.md) — 2026-11-17 uncommitted draft: temp+draw, half strength, fit 10-10..11-17, one look at 1,000; goal-level baselines

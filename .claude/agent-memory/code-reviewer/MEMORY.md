@@ -1,0 +1,21 @@
+- [Review toolbox](review-toolbox.md) — scratch Vitest render, contracts alias/tsconfig, CI logs, no-checks = conflict, console dev/E2E facts, DB specs, baselines, moving head
+- [Table and contract gotchas](table-and-contract-gotchas.md) — table() is league-stage only (group cups look tableless); old web throws on new enum keys
+- [Ingestion review leads](ingestion-review-leads.md) — one worker, 30 s caps (post_match has none), tiers, budget ceilings, list-vs-detail, write semantics, NOTIFY paths
+- [Placeholder forecast versions](forecast-placeholder-versions.md) — probabilities-null versions are stored and can be latest; "no forecast" must check every version
+- [Shoot-out and news text leads](shootout-and-news-text-leads.md) — INCIDENT_KEY also names kick rows; in_shootout not always set; text cleaners permanent; pens without AET
+- [State-machine trigger leads](state-machine-trigger-leads.md) — same-state writes, stale actor columns, CHECK vs pure-rule events, way back to a person
+- [Sensitive lexicon leads](sensitive-lexicon-leads.md) — probe misses and football/country false positives; Iran team headlines left to the maintainer
+- [Score copies outside the read model](score-copies-outside-read-model.md) — evaluation/settlement actual, form/H2H, catalog stores keep printing a score fixtures withholds
+- [Social publishing leads](social-publishing-review-leads.md) — last_updated_at = last change; called vs correct; edits; own goals; #896 IG cap + sensitive-after-approval; review without git fetch
+- [Review-checks false alarms and load facts](review-checks-false-alarms.md) — highlightly FLAG false; web is one Node process; x-rtl valid; Intl zones unbounded; no DOM test env in web
+- [DB specs and passwords](db-specs-and-passwords.md) — never read .env for the DB password; run unit/web specs, rely on CI Verify for http specs
+- [News word lists review](news-word-lists-review.md) — otherCodeOf also filters GNews at write (irreversible); probe metaphors; local DB has no news
+- [Exercising data migrations locally](exercising-data-migrations-locally.md) — local DBs have no catalog data; synthetic teams+mappings in a rolled-back txn, psql via stdin, linker test setup
+- [Review techniques for SQL rewrites](review-techniques-sql.md) — prove old vs new query; pg_trgm threshold float4/float8 boundary trap; local test DBs are empty
+- [Mail and log leads](mail-log-leads.md) — where member mail reaches logs since D-430; NODE_ENV=production map (CI journeys unset); nodemailer error echoes address
+- [Data-quality review leads](data-quality-review-leads.md) — lineup_not_eleven includes over-eleven; line-ups replace; coverage one row per season+module; watchdog caller
+- [Person merge review leads](person-merge-review-leads.md) — D-446: T-1866/T-1868 asks, coach_spell replace, T-1864 sweep, T-1865 tombstone reads (id-param leaks); GUC flags, FK-less refs
+- [Console security review leads](console-security-review-leads.md) — caddy adapt proof, redaction on real briefs, range ids, sync abort, flaky search spec
+- [Model version review leads](model-version-review-leads.md) — contract examples compared not written; backtest_version guard (tune.py not); one_look list; SQL probe
+- [Console security review leads](console-security-review-leads.md) — uncached session check, PUBLIC_WRITES = guest writes, run marks are queued work, member push gap, search flake
+- [Hook and ops-tool review](hook-and-ops-tool-review.md) — fresh scratch clone per round, team-guard probes, OPS_ROOT isolation proof, PR-on-disk forms T-1885 allows

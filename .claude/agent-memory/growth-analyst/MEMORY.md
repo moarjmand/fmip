@@ -1,0 +1,2 @@
+- [Growth baseline](baseline.md) — first read 2026-11-09 numbers, dashboard users explained
+- [Baselines 2026-11-14](baselines.md) — member counts, signup_source_monthly state, where schema bits live

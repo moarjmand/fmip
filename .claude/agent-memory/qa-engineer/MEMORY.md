@@ -1,0 +1,1 @@
+- [Walk gotchas](walk-gotchas.md) — shared browser tabs get hijacked, iframe measuring trick, false alarms ruled out
