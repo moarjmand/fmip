@@ -53,7 +53,7 @@ edit the file mid-audit.
 | T1 uneven_league_season | An ended league season whose clubs played different numbers of regular-season matches. |
 | T2 club_without_conference | A club of a conference league with no conference. |
 | N1 match_without_stage_or_round | A current-season match with no name to show. |
-| N2 league_round_without_stage | A round of a current league season that is not one of its own ("Regular Season - n") and has no stage: a play-off shown under the provider's words or with no stage name; the stage is the operator's to add (`catalog --add-stage`). |
+| N2 league_round_without_stage | A round of a current league season that is not one of its own ("Regular Season - n") and has no stage: a play-off shown under the provider's words or with no stage name; the stage is the operator's to add (`catalog --add-stage`). MLS's "Round One" is left out (a series, no stage on purpose; golden.md). |
 | I1 duplicate_club_in_competition | Two club entities with one name in one competition: likely one club twice (rule 1). |
 | I2 person_on_both_sides | One person on both line-ups: two people resolved to one, or a line-up on the wrong side. The sample is `fixture <uuid> person <name>`. |
 | I3 sides_malformed | A match without exactly one home and one away club. |

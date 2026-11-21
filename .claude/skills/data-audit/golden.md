@@ -53,3 +53,7 @@ or by a page check in `SKILL.md`.
 - **R3b, past seasons:** shoot-outs whose first kick the feed never stored (154). Report the count,
   not each match.
 - **T1, Major League Soccer 2020/21:** the MLS-is-Back group stage.
+- **N2, MLS "Round One" without a stage (T-1946):** the MLS Cup's Round One is a best-of-three
+  series; a stage holds one match or two legs, so a stage for it would show a wrong format and a
+  wrong winner. Its matches carry the name on the round and no stage, and N2 leaves that round
+  out by name. Not a finding until stages can describe a series; then the exemption is removed.

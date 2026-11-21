@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '@/i18n/messages';
 import { stageName } from '@/lib/competition';
-import { STAGE_KEYS, stageAndRound, stageLabel, type StageKey } from '@/lib/stage-label';
+import {
+  STAGE_KEYS,
+  stageAndRound,
+  stageAndRoundLabels,
+  stageLabel,
+  type StageKey,
+} from '@/lib/stage-label';
 
 const sayIn =
   (locale: 'en' | 'fa') =>
@@ -155,5 +161,16 @@ describe('stageAndRound (T-1343)', () => {
     expect(stageAndRound(null, 'Round of 16')).toEqual(['Round of 16']);
     expect(stageAndRound('League Stage', null)).toEqual(['League Stage']);
     expect(stageAndRound(undefined, '')).toEqual([]);
+  });
+});
+
+describe("MLS's Round One with no stage (T-1946)", () => {
+  it('shows its name from the round alone, and once when a stage names it too', () => {
+    // A best-of-three series has no stage of ours; the round carries the name.
+    expect(stageAndRoundLabels(null, 'Round One', sayIn('en'), 'en')).toEqual(['Round One']);
+    expect(stageAndRoundLabels(null, 'Round One', sayIn('fa'), 'fa')).toEqual(['دور اول']);
+    expect(stageAndRoundLabels('Wild Card', 'Wild Card', sayIn('fa'), 'fa')).toEqual([
+      'وایلد کارت',
+    ]);
   });
 });
