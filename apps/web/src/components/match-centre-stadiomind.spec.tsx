@@ -20,7 +20,14 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, SCORER_NAME, SCORER_UNIT, scorerFit } from './match-centre-view';
+import {
+  MatchCentreView,
+  SCORER_MINUTES,
+  SCORER_NAME,
+  SCORER_SIDE,
+  SCORER_UNIT,
+  scorerFit,
+} from './match-centre-view';
 import { ratingsOf } from './match-stats-panels';
 import { liveSlots } from './match-live-slots';
 import { LiveClockProvider } from './live-age';
@@ -810,12 +817,12 @@ const section = (html: string, testId: string) => {
   const start = html.indexOf(`data-testid="${testId}"`);
   return html.slice(start, html.indexOf('</section>', start));
 };
-// A scorer's unit in the band as it is drawn (T-1796, T-1947): the name, the
-// part that may give way, then the minutes and, when another scorer follows,
-// the separator, in the part that never shrinks.
-const unit = (who: string, at: string, more = false, fit = '') =>
-  `<span class="${SCORER_UNIT}${fit && ` ${fit}`}"><bdi class="${SCORER_NAME}">${who}</bdi>` +
-  `<span class="shrink-0">\u00a0${at}${more ? '\u00a0·' : ''}</span></span>`;
+// A scorer's unit in the band as it is drawn (T-1796, T-1947): the name,
+// then the minutes and, when another scorer follows, the separator.
+const unit = (side: 'home' | 'away', who: string, at: string, more = false, fit = '') =>
+  `<span class="${SCORER_UNIT} ${SCORER_SIDE[side]}${fit && ` ${fit}`}">` +
+  `<bdi class="${SCORER_NAME}">${who}</bdi>` +
+  `<span class="${SCORER_MINUTES}">\u00a0${at}${more ? '\u00a0·' : ''}</span></span>`;
 
 describe('live', () => {
   it('says "Not in yet" for statistics the feed has not sent, and that nothing is estimated', () => {
@@ -1203,7 +1210,7 @@ describe('live', () => {
     const band = html.slice(html.indexOf('data-testid="scorers-home"'));
     expect(
       band.startsWith(
-        `data-testid="scorers-home">${unit('A. Mac Allister', '۴۰′', true)} ${unit('F. Wirtz', '۵۴′')}</span>`,
+        `data-testid="scorers-home">${unit('home', 'A. Mac Allister', '۴۰′', true)} ${unit('home', 'F. Wirtz', '۵۴′')}</span>`,
       ),
     ).toBe(true);
     expect(scorerFit('A. Mac Allister 40′')).toBe('');
@@ -1212,33 +1219,11 @@ describe('live', () => {
     );
   });
 
-  it('never lets a scorer be wider than his column: a long name gives way, his minutes stay (T-1947)', () => {
-    // Finding qa-2026-11-20-01: "M. Guilavogui ۶۳′" on /fa at 375px. The unit
-    // was `nowrap` with nothing holding it to the column, so one wider than
-    // the column widened the page.
+  it('holds a scorer to his column: two parts that may sit on two rows, the step-down kept (T-1947)', () => {
+    // Finding qa-2026-11-20-01. What the classes do in a browser is measured
+    // in `tests/e2e/scorer-fit.spec.ts`, on the markup `match-band-fit.spec.tsx`
+    // keeps; here, that the band is made of these parts.
     const html = view(
-      centre(
-        {},
-        {
-          timeline: {
-            coverage: 'available',
-            last_updated_at: null,
-            data: [incident(63, 'goal', 'home', 'Morgan Guilavogui')],
-          },
-        },
-      ),
-      undefined,
-      'fa',
-    );
-    expect(html).toContain(`data-testid="scorers-home">${unit('M. Guilavogui', '۶۳′')}</span>`);
-    // The unit: one line, held to the column's width. `tests/e2e/scorer-fit.spec.ts`
-    // draws these two in a browser, so a change here is a change there.
-    expect(SCORER_UNIT).toBe('inline-flex max-w-full items-baseline whitespace-nowrap');
-    // The name: allowed to shrink below its own width, ending in an ellipsis.
-    // Clipped along the line only, so Persian letters keep their tops and tails.
-    expect(SCORER_NAME).toBe('min-w-0 overflow-x-clip text-ellipsis');
-    // The step-down for a long unit (D-395) still rides on the unit.
-    const long = view(
       centre(
         {},
         {
@@ -1248,19 +1233,33 @@ describe('live', () => {
             data: [
               incident(12, 'goal', 'home', 'Dominic Calvert-Lewin'),
               { ...incident(45, 'goal', 'home', 'Dominic Calvert-Lewin'), id: 'g2', added_time: 2 },
+              incident(63, 'goal', 'away', 'Morgan Guilavogui'),
             ],
           },
         },
       ),
+      undefined,
+      'fa',
     );
-    expect(long).toContain(
-      unit(
-        'D. Calvert-Lewin',
-        '12′, 45+2′',
-        false,
-        'max-md:text-[10px] max-md:font-stretch-condensed',
-      ),
+    expect(html).toContain(
+      `data-testid="scorers-home">${unit('home', 'D. Calvert-Lewin', '۱۲′, ۴۵+۲′', false, 'max-md:text-[10px] max-md:font-stretch-condensed')}</span>`,
     );
+    expect(html).toContain(
+      `data-testid="scorers-away">${unit('away', 'M. Guilavogui', '۶۳′')}</span>`,
+    );
+    const classes = (list: string) => list.split(' ');
+    // The unit: never wider than its column, its parts free to take a row each.
+    expect(classes(SCORER_UNIT)).toEqual(
+      expect.arrayContaining(['inline-flex', 'max-w-full', 'flex-wrap', 'overflow-x-clip']),
+    );
+    // The name: one line, and able to give way when a row is too narrow for it.
+    expect(classes(SCORER_NAME)).toEqual(
+      expect.arrayContaining(['max-w-full', 'min-w-0', 'text-ellipsis', 'whitespace-nowrap']),
+    );
+    // The minutes: no wider than the column, and not held to one line.
+    expect(classes(SCORER_MINUTES)).toEqual(expect.arrayContaining(['max-w-full', 'min-w-0']));
+    expect(classes(SCORER_MINUTES)).not.toContain('whitespace-nowrap');
+    expect(classes(SCORER_MINUTES)).not.toContain('shrink-0');
   });
 
   it('writes each side’s scorers under its name, and none when an own goal is in the list', () => {
@@ -1274,8 +1273,8 @@ describe('live', () => {
     );
     // Each scorer one unit that never wraps inside (T-1796, D-395): the name
     // isolated, then its minutes; lines break only between scorers.
-    expect(html).toContain(`data-testid="scorers-home">${unit('N. Jackson', '6′, 60′')}<`);
-    expect(html).toContain(`data-testid="scorers-away">${unit('E. Haaland', '52′')}<`);
+    expect(html).toContain(`data-testid="scorers-home">${unit('home', 'N. Jackson', '6′, 60′')}<`);
+    expect(html).toContain(`data-testid="scorers-away">${unit('away', 'E. Haaland', '52′')}<`);
     const own = view(
       centre(
         {},
@@ -1316,7 +1315,7 @@ describe('the match centre review (T-1550)', () => {
         { timeline: { coverage: 'available', last_updated_at: null, data: kicks } },
       ),
     );
-    expect(html).toContain(`data-testid="scorers-home">${unit('Mauricio', '30′')}<`);
+    expect(html).toContain(`data-testid="scorers-home">${unit('home', 'Mauricio', '30′')}<`);
     expect(html).not.toContain('G. Gómez 91′');
     expect(html).not.toContain('data-testid="scorers-away"');
   });

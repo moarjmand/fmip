@@ -679,7 +679,7 @@ function Hero({
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-home"
                 >
-                  {scorerLine(scorers.home)}
+                  {scorerLine(scorers.home, 'home')}
                 </span>
               )}
             </span>
@@ -715,7 +715,12 @@ function Hero({
             <span className="text-sm font-semibold text-muted max-md:hidden">{kickoffDay}</span>
           ) : (
             f.status !== 'live' && (
-              <span className="text-xs font-bold text-muted md:text-sm">
+              // On a phone the line takes at most 120px before it wraps
+              // (T-1947): the middle column is as wide as its widest line,
+              // and a shoot-out's ("Pens 2-4 · 90 minutes 1-1 · HT 1-0",
+              // 206px in Persian) left each side 61px of a 375px screen.
+              // An ordinary result's line is up to 105px and stays one line.
+              <span className={STATUS_LINE}>
                 <span data-testid="match-status">{status}</span>
                 {f.scores.penalties !== null && (
                   <>
@@ -762,7 +767,7 @@ function Hero({
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-away"
                 >
-                  {scorerLine(scorers.away)}
+                  {scorerLine(scorers.away, 'away')}
                 </span>
               )}
             </span>
@@ -991,19 +996,20 @@ function scorersOf(
  * each scorer is one unbreakable unit, his name isolated (a Latin name
  * inside Persian) and his minutes, the separator held to the unit before it.
  *
- * A unit is never wider than its column (T-1947, finding qa-2026-11-20-01):
- * one that does not fit, a long Latin name in Vazirmatn or a narrow column
- * beside a wide score, gives up the end of the name to an ellipsis and keeps
- * its minutes, so it cannot push the page sideways. One that fits is drawn
- * as before: the no-break spaces sit inside the part that never shrinks.
+ * A unit is never wider than its column (T-1947, finding qa-2026-11-20-01),
+ * so it cannot push the page sideways. One that fits is one line, drawn as
+ * before. One that does not, a long Latin name in Vazirmatn or a column made
+ * narrow by a wide score, puts its minutes on a line of their own, a long
+ * list of them breaking between minutes; only a name wider than the whole
+ * column loses its end to an ellipsis.
  */
-function scorerLine(list: [string, string][]) {
+function scorerLine(list: [string, string][], side: 'home' | 'away') {
   return list.map(([who, at], i) => (
     <Fragment key={who}>
       {i > 0 && ' '}
-      <span className={cx(SCORER_UNIT, scorerFit(`${who} ${at}`))}>
+      <span className={cx(SCORER_UNIT, SCORER_SIDE[side], scorerFit(`${who} ${at}`))}>
         <bdi className={SCORER_NAME}>{who}</bdi>
-        <span className="shrink-0">
+        <span className={SCORER_MINUTES}>
           {'\u00a0'}
           {at}
           {i < list.length - 1 && '\u00a0·'}
@@ -1013,13 +1019,27 @@ function scorerLine(list: [string, string][]) {
   ));
 }
 
-/** A scorer's unit: one line, at most as wide as the band's column (T-1947). */
-export const SCORER_UNIT = 'inline-flex max-w-full items-baseline whitespace-nowrap';
 /**
- * The name is the part that gives way. Clipped along the line only, so no
- * letter loses its top or its tail and the unit keeps its baseline.
+ * A scorer's unit (T-1947): a row of two parts, at most as wide as the band's
+ * column, that becomes two rows when the parts do not fit side by side.
+ * Clipped along the line as the last word: whatever a part does, the unit
+ * adds nothing to the page's width.
  */
-export const SCORER_NAME = 'min-w-0 overflow-x-clip text-ellipsis';
+export const SCORER_UNIT =
+  'inline-flex max-w-full flex-wrap items-baseline overflow-x-clip max-md:justify-center';
+/** From 768px a side's lines are set towards its crest, as its name is. */
+export const SCORER_SIDE = { home: 'md:justify-end', away: 'md:justify-start' } as const;
+/**
+ * The name never breaks; alone on its row and still too wide, it gives way.
+ * Clipped along the line only, so no letter loses its top or its tail and
+ * the unit keeps its baseline.
+ */
+export const SCORER_NAME = 'max-w-full min-w-0 overflow-x-clip text-ellipsis whitespace-nowrap';
+/** The minutes break only at the spaces between them ("12′, 45+2′, 90+4′"). */
+export const SCORER_MINUTES = 'max-w-full min-w-0';
+/** The line under the score once play is over; on a phone, 120px before it wraps. */
+export const STATUS_LINE =
+  'text-xs font-bold text-muted max-md:max-w-30 max-md:text-center max-md:text-balance md:text-sm';
 
 /**
  * A scorer's unit on a phone (D-395): measured at 375, the band's column is
