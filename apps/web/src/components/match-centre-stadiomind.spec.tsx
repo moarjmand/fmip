@@ -20,7 +20,17 @@ import {
   receipt,
 } from '../app/[locale]/match/[id]/forecast-reality';
 import { ForecastPanel } from './forecast-panel';
-import { MatchCentreView, scorerFit } from './match-centre-view';
+import {
+  MatchCentreView,
+  SCORER_MINUTES,
+  SCORER_NAME,
+  SCORER_SIDE,
+  SCORER_UNIT,
+  STATUS_ITEM,
+  STATUS_LINE,
+  STATUS_STACKED,
+  scorerFit,
+} from './match-centre-view';
 import { ratingsOf } from './match-stats-panels';
 import { liveSlots } from './match-live-slots';
 import { LiveClockProvider } from './live-age';
@@ -810,6 +820,12 @@ const section = (html: string, testId: string) => {
   const start = html.indexOf(`data-testid="${testId}"`);
   return html.slice(start, html.indexOf('</section>', start));
 };
+// A scorer's unit in the band as it is drawn (T-1796, T-1947): the name,
+// then the minutes and, when another scorer follows, the separator.
+const unit = (side: 'home' | 'away', who: string, at: string, more = false, fit = '') =>
+  `<span class="${SCORER_UNIT} ${SCORER_SIDE[side]}${fit && ` ${fit}`}">` +
+  `<bdi class="${SCORER_NAME}">${who}</bdi>` +
+  `<span class="${SCORER_MINUTES}">\u00a0${at}${more ? '\u00a0·' : ''}</span></span>`;
 
 describe('live', () => {
   it('says "Not in yet" for statistics the feed has not sent, and that nothing is estimated', () => {
@@ -941,6 +957,32 @@ describe('live', () => {
     const text = html.replace(/<[^>]+>/g, '');
     expect(text).toMatch(/2–2/);
     expect(text).toContain('Pens 1–4 · 90′ 0–0 · HT 0–0');
+    // Three items, each its words and its score in one piece that never
+    // breaks inside; on a phone they are stacked and the separators, elements
+    // of their own, are not drawn, so none sits at a row's edge (T-1947).
+    expect(html).toContain(
+      `<span class="${STATUS_LINE} ${STATUS_STACKED}" data-status-line="stacked">`,
+    );
+    expect(STATUS_STACKED.split(' ')).toEqual(
+      expect.arrayContaining(['max-md:flex', 'max-md:flex-col', 'max-md:items-center']),
+    );
+    expect(STATUS_ITEM.split(' ')).toContain('whitespace-nowrap');
+    const items = [...html.matchAll(/<span class="([^"]*)" data-status-item=""/g)];
+    expect(items.map((i) => i[1])).toEqual([STATUS_ITEM, STATUS_ITEM, STATUS_ITEM]);
+    expect(
+      html.split('<span class="max-md:hidden" data-status-separator=""> · </span>'),
+    ).toHaveLength(3);
+    // An ordinary result's line is one row with its separator, as it was.
+    const plain = view(
+      centre({
+        status: 'finished',
+        minute: null,
+        scores: { ...scores, extra_time: null, penalties: null, current: { home: 0, away: 0 } },
+      }),
+    );
+    expect(plain).toContain(`<span class="${STATUS_LINE}" data-status-line="row">`);
+    expect(plain).toContain('<span class="" data-status-separator=""> · </span>');
+    expect(plain.replace(/<[^>]+>/g, '')).toContain('FT · HT 0–0');
     // Without extra time no ninety-minute line.
     const ft = view(
       centre({
@@ -1195,13 +1237,58 @@ describe('live', () => {
       'fa',
     );
     const band = html.slice(html.indexOf('data-testid="scorers-home"'));
-    expect(band).toMatch(
-      /^data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>A\. Mac Allister<\/bdi>\u00a0۴۰′<\/span>\u00a0· <span class="whitespace-nowrap"><bdi>F\. Wirtz<\/bdi>\u00a0۵۴′<\/span><\/span>/,
-    );
+    expect(
+      band.startsWith(
+        `data-testid="scorers-home">${unit('home', 'A. Mac Allister', '۴۰′', true)} ${unit('home', 'F. Wirtz', '۵۴′')}</span>`,
+      ),
+    ).toBe(true);
     expect(scorerFit('A. Mac Allister 40′')).toBe('');
     expect(scorerFit('D. Calvert-Lewin 12′, 45+2′')).toBe(
       'max-md:text-[10px] max-md:font-stretch-condensed',
     );
+  });
+
+  it('holds a scorer to his column: two parts that may sit on two rows, the step-down kept (T-1947)', () => {
+    // Finding qa-2026-11-20-01. What the classes do in a browser is measured
+    // in `tests/e2e/scorer-fit.spec.ts`, on the markup `match-band-fit.spec.tsx`
+    // keeps; here, that the band is made of these parts.
+    const html = view(
+      centre(
+        {},
+        {
+          timeline: {
+            coverage: 'available',
+            last_updated_at: null,
+            data: [
+              incident(12, 'goal', 'home', 'Dominic Calvert-Lewin'),
+              { ...incident(45, 'goal', 'home', 'Dominic Calvert-Lewin'), id: 'g2', added_time: 2 },
+              incident(63, 'goal', 'away', 'Morgan Guilavogui'),
+            ],
+          },
+        },
+      ),
+      undefined,
+      'fa',
+    );
+    expect(html).toContain(
+      `data-testid="scorers-home">${unit('home', 'D. Calvert-Lewin', '۱۲′, ۴۵+۲′', false, 'max-md:text-[10px] max-md:font-stretch-condensed')}</span>`,
+    );
+    expect(html).toContain(
+      `data-testid="scorers-away">${unit('away', 'M. Guilavogui', '۶۳′')}</span>`,
+    );
+    const classes = (list: string) => list.split(' ');
+    // The unit: never wider than its column, its parts free to take a row each.
+    expect(classes(SCORER_UNIT)).toEqual(
+      expect.arrayContaining(['inline-flex', 'max-w-full', 'flex-wrap', 'overflow-x-clip']),
+    );
+    // The name: one line, and able to give way when a row is too narrow for it.
+    expect(classes(SCORER_NAME)).toEqual(
+      expect.arrayContaining(['max-w-full', 'min-w-0', 'text-ellipsis', 'whitespace-nowrap']),
+    );
+    // The minutes: no wider than the column, and not held to one line.
+    expect(classes(SCORER_MINUTES)).toEqual(expect.arrayContaining(['max-w-full', 'min-w-0']));
+    expect(classes(SCORER_MINUTES)).not.toContain('whitespace-nowrap');
+    expect(classes(SCORER_MINUTES)).not.toContain('shrink-0');
   });
 
   it('writes each side’s scorers under its name, and none when an own goal is in the list', () => {
@@ -1215,12 +1302,8 @@ describe('live', () => {
     );
     // Each scorer one unit that never wraps inside (T-1796, D-395): the name
     // isolated, then its minutes; lines break only between scorers.
-    expect(html).toContain(
-      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>N. Jackson</bdi>\u00a06′, 60′</span><',
-    );
-    expect(html).toContain(
-      'data-testid="scorers-away"><span class="whitespace-nowrap"><bdi>E. Haaland</bdi>\u00a052′</span><',
-    );
+    expect(html).toContain(`data-testid="scorers-home">${unit('home', 'N. Jackson', '6′, 60′')}<`);
+    expect(html).toContain(`data-testid="scorers-away">${unit('away', 'E. Haaland', '52′')}<`);
     const own = view(
       centre(
         {},
@@ -1261,9 +1344,7 @@ describe('the match centre review (T-1550)', () => {
         { timeline: { coverage: 'available', last_updated_at: null, data: kicks } },
       ),
     );
-    expect(html).toContain(
-      'data-testid="scorers-home"><span class="whitespace-nowrap"><bdi>Mauricio</bdi>\u00a030′</span><',
-    );
+    expect(html).toContain(`data-testid="scorers-home">${unit('home', 'Mauricio', '30′')}<`);
     expect(html).not.toContain('G. Gómez 91′');
     expect(html).not.toContain('data-testid="scorers-away"');
   });

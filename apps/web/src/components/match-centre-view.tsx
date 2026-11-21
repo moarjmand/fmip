@@ -598,6 +598,13 @@ function Hero({
     disputed && 'text-muted',
   );
   const scorers = scorersOf(centre, locale);
+  // More than "FT · HT 1-0" under the score: stacked on a phone (T-1947).
+  const statusStacked = f.scores.penalties !== null || ninety !== null;
+  const statusSeparator = (
+    <span className={cx(statusStacked && 'max-md:hidden')} data-status-separator="">
+      {' · '}
+    </span>
+  );
   // Each side's name is a 44px target on a phone (T-1553), centred in its
   // column there; from 768px the line's own height, aligned by its row.
   const teamLink = 'flex min-h-touch min-w-0 items-center justify-center md:block md:min-h-0';
@@ -679,7 +686,7 @@ function Hero({
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-home"
                 >
-                  {scorerLine(scorers.home)}
+                  {scorerLine(scorers.home, 'home')}
                 </span>
               )}
             </span>
@@ -715,34 +722,50 @@ function Hero({
             <span className="text-sm font-semibold text-muted max-md:hidden">{kickoffDay}</span>
           ) : (
             f.status !== 'live' && (
-              <span className="text-xs font-bold text-muted md:text-sm">
-                <span data-testid="match-status">{status}</span>
-                {f.scores.penalties !== null && (
-                  <>
-                    {' '}
-                    <Score
-                      home={f.scores.penalties.home}
-                      away={f.scores.penalties.away}
-                      locale={locale}
-                    />
-                  </>
-                )}
+              // The line under the score (T-1947). An ordinary result's is
+              // one row, "FT · HT 1-0", as it always was. One that also says
+              // a shoot-out or the ninety minutes ("Pens 2-4 · 90 minutes 1-1
+              // · HT 1-0", 206px in Persian, which left each side 61px of a
+              // 375px screen) is, on a phone, its items stacked with no
+              // separator: a middle dot at a row's edge reads as a zero
+              // beside Persian digits and would misstate a score.
+              <span
+                className={cx(STATUS_LINE, statusStacked && STATUS_STACKED)}
+                data-status-line={statusStacked ? 'stacked' : 'row'}
+              >
+                <span className={STATUS_ITEM} data-status-item="">
+                  <span data-testid="match-status">{status}</span>
+                  {f.scores.penalties !== null && (
+                    <>
+                      {' '}
+                      <Score
+                        home={f.scores.penalties.home}
+                        away={f.scores.penalties.away}
+                        locale={locale}
+                      />
+                    </>
+                  )}
+                </span>
                 {ninety !== null && (
-                  <span data-testid="ninety">
-                    {' · '}
-                    <MessageText message={m['status.regularTime']} />{' '}
-                    <Score home={ninety.home} away={ninety.away} locale={locale} />
-                  </span>
+                  <>
+                    {statusSeparator}
+                    <span className={STATUS_ITEM} data-status-item="" data-testid="ninety">
+                      <MessageText message={m['status.regularTime']} />{' '}
+                      <Score home={ninety.home} away={ninety.away} locale={locale} />
+                    </span>
+                  </>
                 )}
                 {f.scores.half_time !== null && (
                   <>
-                    {' · '}
-                    <MessageText message={m['status.halfTime']} />{' '}
-                    <Score
-                      home={f.scores.half_time.home}
-                      away={f.scores.half_time.away}
-                      locale={locale}
-                    />
+                    {statusSeparator}
+                    <span className={STATUS_ITEM} data-status-item="">
+                      <MessageText message={m['status.halfTime']} />{' '}
+                      <Score
+                        home={f.scores.half_time.home}
+                        away={f.scores.half_time.away}
+                        locale={locale}
+                      />
+                    </span>
                   </>
                 )}
               </span>
@@ -762,7 +785,7 @@ function Hero({
                   className="text-xs text-muted max-md:pb-1.5 md:text-sm"
                   data-testid="scorers-away"
                 >
-                  {scorerLine(scorers.away)}
+                  {scorerLine(scorers.away, 'away')}
                 </span>
               )}
             </span>
@@ -990,19 +1013,54 @@ function scorersOf(
  * A side's scorers, broken into lines only between scorers (T-1796, D-395):
  * each scorer is one unbreakable unit, his name isolated (a Latin name
  * inside Persian) and his minutes, the separator held to the unit before it.
+ *
+ * A unit is never wider than its column (T-1947, finding qa-2026-11-20-01),
+ * so it cannot push the page sideways. One that fits is one line, drawn as
+ * before. One that does not, a long Latin name in Vazirmatn or a column made
+ * narrow by a wide score, puts its minutes on a line of their own, a long
+ * list of them breaking between minutes; only a name wider than the whole
+ * column loses its end to an ellipsis.
  */
-function scorerLine(list: [string, string][]) {
+function scorerLine(list: [string, string][], side: 'home' | 'away') {
   return list.map(([who, at], i) => (
     <Fragment key={who}>
-      {i > 0 && '\u00a0· '}
-      <span className={cx('whitespace-nowrap', scorerFit(`${who} ${at}`))}>
-        <bdi>{who}</bdi>
-        {'\u00a0'}
-        {at}
+      {i > 0 && ' '}
+      <span className={cx(SCORER_UNIT, SCORER_SIDE[side], scorerFit(`${who} ${at}`))}>
+        <bdi className={SCORER_NAME}>{who}</bdi>
+        <span className={SCORER_MINUTES}>
+          {'\u00a0'}
+          {at}
+          {i < list.length - 1 && '\u00a0·'}
+        </span>
       </span>
     </Fragment>
   ));
 }
+
+/**
+ * A scorer's unit (T-1947): a row of two parts, at most as wide as the band's
+ * column, that becomes two rows when the parts do not fit side by side.
+ * Clipped along the line as the last word: whatever a part does, the unit
+ * adds nothing to the page's width.
+ */
+export const SCORER_UNIT =
+  'inline-flex max-w-full flex-wrap items-baseline overflow-x-clip max-md:justify-center';
+/** From 768px a side's lines are set towards its crest, as its name is. */
+export const SCORER_SIDE = { home: 'md:justify-end', away: 'md:justify-start' } as const;
+/**
+ * The name never breaks; alone on its row and still too wide, it gives way.
+ * Clipped along the line only, so no letter loses its top or its tail and
+ * the unit keeps its baseline.
+ */
+export const SCORER_NAME = 'max-w-full min-w-0 overflow-x-clip text-ellipsis whitespace-nowrap';
+/** The minutes break only at the spaces between them ("12′, 45+2′, 90+4′"). */
+export const SCORER_MINUTES = 'max-w-full min-w-0';
+/** An item of the line under the score, "90 minutes 1-1": never broken inside. */
+export const STATUS_ITEM = 'whitespace-nowrap';
+/** The line under the score once play is over. */
+export const STATUS_LINE = 'text-xs font-bold text-muted md:text-sm';
+/** On a phone, a long line's items one under another, centred; one row from 768px. */
+export const STATUS_STACKED = 'max-md:flex max-md:flex-col max-md:items-center';
 
 /**
  * A scorer's unit on a phone (D-395): measured at 375, the band's column is
