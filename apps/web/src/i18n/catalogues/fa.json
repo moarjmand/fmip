@@ -17054,6 +17054,36 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "stage.name.wildCard": {
+    "source": "Wild Card",
+    "text": "وایلد کارت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.roundOne": {
+    "source": "Round One",
+    "text": "دور اول",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.conferenceSemifinals": {
+    "source": "Conference Semifinals",
+    "text": "نیمه‌نهایی کنفرانس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.conferenceFinals": {
+    "source": "Conference Finals",
+    "text": "فینال کنفرانس",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "stage.name.mlsCup": {
+    "source": "MLS Cup",
+    "text": "ام‌ال‌اس کاپ",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175)."
+  },
   "stage.roundNumber": {
     "source": "Round {round}",
     "text": "دور {round}",

@@ -215,6 +215,24 @@ WITH x AS (
 SELECT 'N1 match_without_stage_or_round', 'minor', count(*), string_agg(label, '; ') FILTER (WHERE rn <= 5)
   FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
 
+-- N2 (T-1946): a current league season's round with no stage is one of its own rounds
+-- ("Regular Season - 12"). Any other stage-less round is a play-off the season has no stage
+-- for: shown under the provider's cup words (MLS's "Round of 16"), or with no stage at all.
+-- One violation per season and round; the sample is `competition season "round" (matches)`.
+-- Left out by name: "Round One", the MLS Cup's best-of-three series, which keeps its name on the
+-- round and has no stage on purpose until stages can describe a series (`stage.legs` is 1 or 2;
+-- golden.md, "Accepted"). Remove that line when it gets its stage.
+WITH x AS (
+  SELECT c.name || ' ' || s.label || ' "' || f.round || '" (' || count(*) || ')' AS label
+    FROM fixture f JOIN season s ON s.id = f.season_id AND s.is_current
+    JOIN competition c ON c.id = s.competition_id AND c.kind = 'league'
+   WHERE f.stage_id IS NULL AND coalesce(f.round, '') <> ''
+     AND f.round !~* '^regular season - [0-9]+$' AND f.round !~* '^round one$'
+     AND f.status <> 'cancelled'
+   GROUP BY c.name, s.label, f.season_id, f.round)
+SELECT 'N2 league_round_without_stage', 'minor', count(*), string_agg(label, '; ') FILTER (WHERE rn <= 5)
+  FROM (SELECT x.*, row_number() OVER () AS rn FROM x) y;
+
 -- I1 (rule 1): two club entities with one name that both played in one competition: a likely
 -- duplicate. (Clubs carry no country yet, I4, so a name shared across leagues -- Valencia of Spain
 -- and of the AFC Champions League Two -- is not a finding.)

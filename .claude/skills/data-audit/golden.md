@@ -17,6 +17,7 @@ or by a page check in `SKILL.md`.
 | 8 | 2026-10-31, agent | Brasileirão zones never served (looked up by the shown label) | competition page | page check P3 (zones legend) | T-1674, D-323 |
 | 9 | 2026-10-28, maintainer | Line-ups swapped between the sides | match page | I2 (one person on both sides) | 2026-10-28 round |
 | 10 | 2026-10-28, maintainer | Line-ups late: our job, not the feed | match page an hour before | S4 (job failing or stopped) | 2026-10-28 round |
+| 11 | 2026-11-20, auditor | MLS Cup play-off matches under the provider's "Round of 32" / "Round of 16", with no stage (aud-2026-11-20-01) | match page, fixtures, score cards | N2 (a league round with no stage that is not "Regular Season - n"), page check P2 | T-1946 |
 
 ## Found by the first audit (2026-10-31), not yet fixed
 
@@ -52,3 +53,7 @@ or by a page check in `SKILL.md`.
 - **R3b, past seasons:** shoot-outs whose first kick the feed never stored (154). Report the count,
   not each match.
 - **T1, Major League Soccer 2020/21:** the MLS-is-Back group stage.
+- **N2, MLS "Round One" without a stage (T-1946):** the MLS Cup's Round One is a best-of-three
+  series; a stage holds one match or two legs, so a stage for it would show a wrong format and a
+  wrong winner. Its matches carry the name on the round and no stage, and N2 leaves that round
+  out by name. Not a finding until stages can describe a series; then the exemption is removed.

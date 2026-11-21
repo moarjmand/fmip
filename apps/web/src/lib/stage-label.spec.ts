@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { t } from '@/i18n/messages';
 import { stageName } from '@/lib/competition';
-import { STAGE_KEYS, stageAndRound, stageLabel, type StageKey } from '@/lib/stage-label';
+import {
+  STAGE_KEYS,
+  stageAndRound,
+  stageAndRoundLabels,
+  stageLabel,
+  type StageKey,
+} from '@/lib/stage-label';
 
 const sayIn =
   (locale: 'en' | 'fa') =>
@@ -111,6 +117,17 @@ describe('stage and round labels (T-1339)', () => {
     expect(en('Apertura - Round of 16')).toBe('Apertura, Round of 16');
     expect(fa('Apertura - Quarter-finals')).toBe('آپرتورا، یک‌چهارم نهایی');
     expect(fa('Clausura - Final')).toBe('کلاسورا، فینال');
+    // The MLS Cup play-offs in the league's own names (T-1946).
+    expect(en('Wild Card')).toBe('Wild Card');
+    expect(en('Round One')).toBe('Round One');
+    expect(en('Conference Semifinals')).toBe('Conference Semifinals');
+    expect(en('Conference Finals')).toBe('Conference Finals');
+    expect(en('MLS Cup')).toBe('MLS Cup');
+    expect(fa('Wild Card')).toBe('وایلد کارت');
+    expect(fa('Round One')).toBe('دور اول');
+    expect(fa('Conference Semifinals')).toBe('نیمه‌نهایی کنفرانس');
+    expect(fa('Conference Finals')).toBe('فینال کنفرانس');
+    expect(fa('MLS Cup')).toBe('ام‌ال‌اس کاپ');
     // A named round under a stage we cannot name is still not shown.
     expect(fa('Unknown Stage - Final')).toBeNull();
   });
@@ -144,5 +161,16 @@ describe('stageAndRound (T-1343)', () => {
     expect(stageAndRound(null, 'Round of 16')).toEqual(['Round of 16']);
     expect(stageAndRound('League Stage', null)).toEqual(['League Stage']);
     expect(stageAndRound(undefined, '')).toEqual([]);
+  });
+});
+
+describe("MLS's Round One with no stage (T-1946)", () => {
+  it('shows its name from the round alone, and once when a stage names it too', () => {
+    // A best-of-three series has no stage of ours; the round carries the name.
+    expect(stageAndRoundLabels(null, 'Round One', sayIn('en'), 'en')).toEqual(['Round One']);
+    expect(stageAndRoundLabels(null, 'Round One', sayIn('fa'), 'fa')).toEqual(['دور اول']);
+    expect(stageAndRoundLabels('Wild Card', 'Wild Card', sayIn('fa'), 'fa')).toEqual([
+      'وایلد کارت',
+    ]);
   });
 });

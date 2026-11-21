@@ -166,6 +166,35 @@ export function stageKindOf(round: string): StageKind | null {
   return null;
 }
 
+/** Major League Soccer's id at this provider. */
+const MLS_LEAGUE_ID = '253';
+
+/**
+ * The provider's words for the rounds of the MLS Cup play-offs, and the
+ * league's own (T-1946). The provider files them as "Round of 32" and "Round
+ * of 16" of the league, which read as a cup's rounds and are not what the
+ * league calls them: nine clubs of each conference qualify, the eighth and
+ * ninth play the Wild Card, and Round One is a best-of-three series.
+ */
+const MLS_PLAYOFF_ROUNDS: ReadonlyMap<string, string> = new Map([
+  ['round of 32', 'Wild Card'],
+  ['round of 16', 'Round One'],
+  ['quarter-finals', 'Conference Semifinals'],
+  ['semi-finals', 'Conference Finals'],
+  ['final', 'MLS Cup'],
+]);
+
+/**
+ * A competition's own name for a round the provider names in its generic
+ * words (T-1946): today the MLS Cup play-offs only, known by the provider's
+ * league id, never by the league's name (rule 1). Any other round, and every
+ * other competition's, is returned as given.
+ */
+export function roundNameOf(leagueExternalId: string, round: string): string {
+  if (leagueExternalId !== MLS_LEAGUE_ID) return round;
+  return MLS_PLAYOFF_ROUNDS.get(round.trim().toLowerCase()) ?? round;
+}
+
 // ---------------------------------------------------------------------------
 // Fixtures
 // ---------------------------------------------------------------------------
@@ -247,8 +276,11 @@ export function mapFixture(item: unknown, receivedAt: string): NormalisedFixture
     return null;
   }
 
-  const round = str(league.round);
-  const stageKind = round === null ? null : stageKindOf(round);
+  // The stage kind is read from the provider's words; the round and the stage
+  // carry the competition's own name where it has one (T-1946).
+  const providerRound = str(league.round);
+  const stageKind = providerRound === null ? null : stageKindOf(providerRound);
+  const round = providerRound === null ? null : roundNameOf(leagueId, providerRound);
   const venue = rec(fixture.venue);
   const venueName = entityName(venue.name);
   const referee = refereeName(fixture.referee);

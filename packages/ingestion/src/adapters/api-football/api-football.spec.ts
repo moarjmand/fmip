@@ -22,6 +22,7 @@ import {
   mapStatus,
   seasonLabel,
   seasonYear,
+  roundNameOf,
   stageKindOf,
   statValue,
 } from './map';
@@ -1287,5 +1288,49 @@ describe('a name the provider pads is stored tidy (T-1711)', () => {
       '2026-09-10T19:05:00Z',
     );
     expect(fixture).toBeNull();
+  });
+});
+
+describe("the MLS Cup play-offs under the league's own names (T-1946)", () => {
+  const item = (leagueId: number, round: string): unknown => ({
+    fixture: { id: 1, date: '2026-11-21T19:00:00+00:00', status: { short: 'NS' } },
+    league: { id: leagueId, name: 'Major League Soccer', season: 2026, round },
+    teams: { home: { id: 44, name: 'Home' }, away: { id: 50, name: 'Away' } },
+    goals: {},
+    score: {},
+  });
+  const mapped = (leagueId: number, round: string) =>
+    mapFixture(item(leagueId, round), '2026-11-20T10:00:00Z');
+
+  it('names each play-off round of the league (provider id 253)', () => {
+    expect(roundNameOf('253', 'Round of 32')).toBe('Wild Card');
+    expect(roundNameOf('253', 'Round of 16')).toBe('Round One');
+    expect(roundNameOf('253', 'Quarter-finals')).toBe('Conference Semifinals');
+    expect(roundNameOf('253', 'Semi-finals')).toBe('Conference Finals');
+    expect(roundNameOf('253', 'Final')).toBe('MLS Cup');
+    expect(roundNameOf('253', ' round of 16 ')).toBe('Round One');
+  });
+
+  it("leaves the league's own rounds and words it does not know as given", () => {
+    expect(roundNameOf('253', 'Regular Season - 12')).toBe('Regular Season - 12');
+    expect(roundNameOf('253', 'Round of 8')).toBe('Round of 8');
+  });
+
+  it('leaves every other competition alone, whatever it is called', () => {
+    expect(roundNameOf('2', 'Round of 16')).toBe('Round of 16');
+    expect(mapped(2, 'Round of 16')?.round).toBe('Round of 16');
+    expect(mapped(2, 'Round of 16')?.stage).toEqual({ name: 'Round of 16', kind: 'knockout' });
+  });
+
+  it('carries the name as the round and as a knockout stage of the fixture', () => {
+    const fixture = mapped(253, 'Round of 16');
+    expect(fixture?.round).toBe('Round One');
+    expect(fixture?.stage).toEqual({ name: 'Round One', kind: 'knockout' });
+    expect(mapped(253, 'Round of 32')?.stage).toEqual({ name: 'Wild Card', kind: 'knockout' });
+    expect(mapped(253, 'Final')?.stage).toEqual({ name: 'MLS Cup', kind: 'knockout' });
+    expect(mapped(253, 'Regular Season - 3')?.stage).toEqual({
+      name: 'Regular Season',
+      kind: 'league',
+    });
   });
 });
