@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { isSecurityFinding } from './redact.ts';
 import type {
   CommandReport,
   ConsoleState,
@@ -51,7 +52,7 @@ export function quotedReason(reason: string): string {
     reason
       // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ')
-      .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
+      .replace(/[\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu, '')
       .replace(/[«»]/g, '"')
       .replace(/\s+/g, ' ')
       .trim()
@@ -160,6 +161,12 @@ export function applyTriage(
     const last = history.at(-1);
     if (last === undefined) {
       failed(request.id, `No finding ${request.finding} on the computer.`);
+      continue;
+    }
+    // The server's rule, held here again: a security finding is the owner's alone to triage.
+    // Only the server says who the owner is (`requested_by_owner` on the command it handed over).
+    if (isSecurityFinding(request.finding, text(last.agent)) && request.owner !== true) {
+      failed(request.id, "Only the console's owner may triage a security finding.");
       continue;
     }
     const written = history.some((line) => text(line.evidence).includes(commandMark(request.id)));

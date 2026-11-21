@@ -76,6 +76,8 @@ export interface TriageRequest {
   until: string;
   /** The console username of who asked: the line's `by`. */
   by: string;
+  /** Whether the server said the asker is the console's owner; a security finding needs it. */
+  owner?: boolean;
   at: string;
 }
 
@@ -492,6 +494,7 @@ export function applyCommand(
       reason: command.payload.reason ?? '',
       until: command.payload.until ?? '',
       by: command.requested_by_username ?? '',
+      owner: command.requested_by_owner === true,
       at: command.requested_at,
     });
     return {

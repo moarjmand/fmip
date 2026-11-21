@@ -355,6 +355,12 @@ export interface ConsoleCommand {
   requested_by: string;
   /** The asker's username (T-1907): what a triage line on the computer names in `by`. */
   requested_by_username?: string;
+  /**
+   * Set by the server alone, on the commands it hands to the computer
+   * (T-1907): whether the asker is the console's owner. The computer checks it
+   * again before it writes a security finding's triage.
+   */
+  requested_by_owner?: boolean;
   requested_at: string;
   finished_at: string | null;
   outcome: string | null;

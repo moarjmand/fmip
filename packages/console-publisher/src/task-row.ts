@@ -215,6 +215,12 @@ export interface TaskRowSteps {
   seen(args: (evidenceFile: string) => string[], evidence: string): SeenResult;
   /** Reports an accept command's outcome to the server; may throw. */
   finish(id: string, status: 'done' | 'failed', outcome: string): void;
+  /**
+   * Keeps a failure's detail in a file under the ops folder. What this step
+   * prints is read by a session and kept in logs, so nothing printed names a
+   * security finding, counts them, or repeats what `finding.mjs` said.
+   */
+  note(detail: string): void;
   /** Puts away whatever `backlogs` opened. */
   close?(): void;
 }
@@ -223,14 +229,22 @@ export interface TaskRowResult {
   state: ConsoleState;
   /** The public rows made by this run. */
   made: MadeRow[];
-  /** How many security findings got a private draft; never which. */
+  /** How many security findings got a private draft. For the caller's own use: never printed. */
   drafted: number;
   /** Requests that got no task, and why. */
   skipped: { finding: string; reason: string }[];
   pullRequest: string | null;
-  /** What went wrong; each request it concerns is kept for the next run. */
+  /**
+   * What went wrong, in words fit to print: each names a step, never a
+   * security finding, a count of them, a draft's path or `finding.mjs`'s own
+   * words (those go to `note`). Each request it concerns is kept for the next run.
+   */
   failures: string[];
 }
+
+/** What is printed when a task kept on the computer could not be finished: no id, no count, no path. */
+export const PRIVATE_FAILURE =
+  "A task kept on the computer only was not finished; the detail is in the step's log under the ops folder.";
 
 const COMMAND_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const reasonOf = (error: unknown): string =>
@@ -280,6 +294,11 @@ export function makeTaskRows(
   const settled: TaskRowRequest[] = [];
   const left: TaskRowRequest[] = [];
   const wanted: { request: TaskRowRequest; severity: string }[] = [];
+  /** One neutral line however many there are: the detail stays in the log on the computer. */
+  const privateFailure = (detail: string) => {
+    steps.note(detail);
+    if (!result.failures.includes(PRIVATE_FAILURE)) result.failures.push(PRIVATE_FAILURE);
+  };
   const skip = (request: TaskRowRequest, reason: string) => {
     result.skipped.push({ finding: String(request.finding), reason });
     settled.push({ ...request, outcome: `Planned; no task was made: ${reason}` });
@@ -318,7 +337,9 @@ export function makeTaskRows(
           owed.push({ ...request, task: privateMarker(name) });
           result.drafted += 1;
         } catch (error) {
-          result.failures.push(`A private draft was not written: ${reasonOf(error)}`);
+          privateFailure(
+            `${request.finding}: the private draft was not written: ${reasonOf(error)}`,
+          );
           left.push(request);
         }
       } else wanted.push({ request, severity: severityOf(record) });
@@ -373,11 +394,18 @@ export function makeTaskRows(
                 }, asked by console command ${request.command}. No work on it has started.`,
           );
       if (!written.ok) {
-        result.failures.push(
-          isPrivate
-            ? `A private draft was made but not marked on its finding: ${written.reason}`
-            : `${request.finding}: ${task} is in the pull request but was not written on the finding: ${written.reason}`,
-        );
+        if (isPrivate) {
+          privateFailure(
+            `${request.finding}: ${task} was not marked on the finding: ${written.reason}`,
+          );
+        } else {
+          steps.note(
+            `${request.finding}: ${task} was not written on the finding: ${written.reason}`,
+          );
+          result.failures.push(
+            `${request.finding}: ${task} is in the pull request but was not written on the finding; the reason is in the step's log under the ops folder.`,
+          );
+        }
         left.push(request);
         continue;
       }
@@ -446,12 +474,18 @@ export function rowsBranch(made: readonly MadeRow[]): string {
  * not touched. The commit holds the backlog file alone. `open` opens the pull
  * request (GitHub's `gh` by default) and answers its address.
  *
- * It can be run again after any failure: the branch is made with `switch -C`
- * (a branch left by a run that stopped is taken over), and when the commit,
- * the push or the pull request fails, the branch is deleted here and, once
- * pushed, on `origin`, so the next run starts clean with the same id. Should
- * that clean-up fail too, the branch left on `origin` only makes the next run
- * take the following id (`branchTaskIds`).
+ * It can be run again after any failure: the local branch is made with
+ * `switch -C` (one left by a run that stopped is taken over), and when the
+ * commit, the push or the pull request fails, the branch is deleted here and,
+ * once pushed, on `origin`, so the next run starts clean with the same id.
+ * Should that clean-up fail too, the branch left on `origin` only makes the
+ * next run take the following id (`branchTaskIds`).
+ *
+ * It never touches a branch on `origin` it did not make in this run: the
+ * push is `--force-with-lease=<branch>:` (the branch must not exist there),
+ * and the clean-up deletes it with `--force-with-lease=<branch>:<the commit
+ * this run pushed>`. A branch of that name already on `origin` stops the
+ * step with a message, claims no id, and stays as it was.
  */
 export function checkout(
   root: string,
@@ -533,17 +567,41 @@ export function checkout(
         '',
       ].join('\n');
       let pushed = false;
+      let sha = '';
       made.add(branch);
       try {
         exec('git', ['switch', '--quiet', '-C', branch, 'origin/main'], cwd);
         writeFileSync(join(cwd, 'docs', name), content);
         exec('git', ['add', '--', `docs/${name}`], cwd);
         exec('git', ['commit', '--quiet', '-m', title], cwd);
-        exec('git', ['push', '--quiet', '-u', 'origin', branch], cwd);
+        sha = exec('git', ['rev-parse', 'HEAD'], cwd).trim();
+        try {
+          // The lease with nothing after the colon: the branch must not be on origin yet.
+          exec('git', ['push', '--quiet', `--force-with-lease=${branch}:`, 'origin', branch], cwd);
+        } catch (error) {
+          const there = exec('git', ['ls-remote', '--heads', 'origin', branch], cwd).trim() !== '';
+          if (!there) throw error;
+          throw new Error(
+            `The branch ${branch} is already on origin and this run did not make it: it is left as it is and no id was claimed. Delete or merge it, then run task-row again.`,
+          );
+        }
         pushed = true;
         return open(branch, title, body, cwd);
       } catch (error) {
-        if (pushed) quietly('git', ['push', '--quiet', 'origin', '--delete', branch], cwd);
+        // Only what this run pushed is deleted: the lease names its commit.
+        if (pushed)
+          quietly(
+            'git',
+            [
+              'push',
+              '--quiet',
+              `--force-with-lease=${branch}:${sha}`,
+              'origin',
+              '--delete',
+              branch,
+            ],
+            cwd,
+          );
         throw error;
       }
     },

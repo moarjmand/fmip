@@ -86,6 +86,8 @@ interface CommandRow {
   status: ConsoleCommand['status'];
   requested_by: string;
   requested_by_username: string;
+  /** Read only where the computer takes the commands. */
+  requested_by_owner?: boolean;
   requested_at: Date;
   finished_at: Date | null;
   outcome: string | null;
@@ -99,6 +101,7 @@ const command = (r: CommandRow): ConsoleCommand => ({
   status: r.status,
   requested_by: r.requested_by,
   requested_by_username: r.requested_by_username,
+  ...(r.requested_by_owner === undefined ? {} : { requested_by_owner: r.requested_by_owner }),
   requested_at: r.requested_at.toISOString(),
   finished_at: r.finished_at?.toISOString() ?? null,
   outcome: r.outcome,
@@ -759,7 +762,10 @@ export class PostgresConsoleStore {
    * triage (T-1907) is handed over only to a computer that asks for it
    * (`withTriage`, the CLI's `take-commands --with triage`): a publisher from
    * before T-1907 would report a kind it does not know as failed, so for it
-   * those commands stay queued.
+   * those commands stay queued. Each command says whether its asker is the
+   * console's owner (`requested_by_owner`, from the account's row, never from
+   * what a client sent): the computer refuses a security finding's triage
+   * without it, as `queueCommand` already did here.
    */
   async takeCommands(withTriage = false): Promise<ConsoleCommand[]> {
     const { rows } = await this.pool.query<CommandRow>(
@@ -768,7 +774,8 @@ export class PostgresConsoleStore {
         WHERE c.status = 'queued' AND u.id = c.requested_by AND u.disabled_at IS NULL
           AND ($1::boolean OR c.kind NOT LIKE 'finding.%')
         RETURNING c.id, c.kind, c.target, c.payload, c.status, u.display_name AS requested_by,
-                  u.username AS requested_by_username, c.requested_at, c.finished_at, c.outcome`,
+                  u.username AS requested_by_username, u.owner AS requested_by_owner,
+                  c.requested_at, c.finished_at, c.outcome`,
       [withTriage],
     );
     return rows.map(command).sort((a, b) => a.requested_at.localeCompare(b.requested_at));

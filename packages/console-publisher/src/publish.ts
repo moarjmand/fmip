@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -171,6 +172,8 @@ const LAB_FILE = join(OPS, 'model', 'ledger.json');
 const PROVIDERS_FILE = join(OPS, 'providers', 'comparison.json');
 /** Where a security finding's task is drafted (T-1907): private, never in the repository. */
 const HANDOFFS_DIR = join(OPS, 'handoffs');
+/** The task-row step's own log: what failed, in full, for the maintainer; never printed. */
+const TASK_ROW_LOG = join(OPS, 'console', 'task-row.log');
 /** The one door for findings (T-1884): every triage line is written through it (T-1907). */
 const FINDING_SCRIPT = join(ROOT, '.claude', 'skills', 'team-charter', 'bin', 'finding.mjs');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
@@ -526,19 +529,23 @@ export function main(argv = process.argv.slice(2)): number {
           writeFileSync(join(HANDOFFS_DIR, name), content);
         },
         finish: finishRemote,
+        // The detail of a failure stays in a file under the ops folder.
+        note: (detail) => {
+          mkdirSync(dirname(TASK_ROW_LOG), { recursive: true });
+          appendFileSync(TASK_ROW_LOG, `${new Date().toISOString()} ${detail}\n`);
+        },
         close: work.close,
       });
       saveState(result.state);
+      // What is printed is read by a session and kept in logs: it names no security finding,
+      // does not count them, and repeats neither a draft's path nor finding.mjs's words.
       for (const failure of result.failures) process.stderr.write(`task-row: ${failure}\n`);
-      // What is printed names no security finding: this output is read by a session and kept in logs.
+      if (result.drafted > 0)
+        process.stderr.write(
+          'task-row: some tasks are kept on the computer only (the ops folder has them).\n',
+        );
       process.stdout.write(
-        `${JSON.stringify({
-          pull_request: result.pullRequest,
-          made: result.made,
-          drafted_privately: result.drafted,
-          skipped: result.skipped.length,
-          waiting: result.state.taskRows.length,
-        })}\n`,
+        `${JSON.stringify({ pull_request: result.pullRequest, made: result.made })}\n`,
       );
       return result.failures.length === 0 ? 0 : 1;
     }

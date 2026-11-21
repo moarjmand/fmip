@@ -203,13 +203,14 @@ export const snoozeMaxDays = (severity: string): number =>
 
 /**
  * A triage reason as stored: one line. Line ends become spaces and the
- * characters that only reorder or hide text (the bidirectional controls and
- * the zero-width ones) are removed, so what a person typed cannot dress
+ * characters that only reorder or hide text (the bidirectional controls, the
+ * Arabic letter mark included, the zero-width ones and the tag characters)
+ * are removed, so what a person typed cannot dress
  * itself as something else on the finding's line, where agents read it.
  */
 export function triageReason(raw: string): string {
   return cleanText(raw)
-    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '')
+    .replace(/[\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu, '')
     .replace(/\s+/g, ' ')
     .trim();
 }

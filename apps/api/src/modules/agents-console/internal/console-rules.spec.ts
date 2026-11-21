@@ -493,6 +493,7 @@ describe("a finding's triage (T-1907, D-456 point 2)", () => {
     });
     // One line, and nothing that reorders or hides text: it is quoted on the finding's line.
     expect(triageReason('a\n\nb\u202Ec\u202C \u2066d\u2069\u200B\te')).toBe('a bc d e');
+    expect(triageReason('a\u061Cb\u{E0001}\u{E0041}\u{E007F}c')).toBe('abc');
     expect(check({ kind: 'finding.accept', target: findings[0], reason: '\u202E\u200B' })).toEqual({
       ok: false,
       reason: 'Give a reason, up to 500 characters.',

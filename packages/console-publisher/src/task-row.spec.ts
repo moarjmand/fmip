@@ -13,6 +13,7 @@ import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { type ConsoleState, type TriageRequest, emptyState } from './snapshot.ts';
 import {
+  PRIVATE_FAILURE,
   SECTION,
   type TaskRowSteps,
   addRows,
@@ -160,6 +161,7 @@ describe('the task-row step, on a temp checkout', () => {
   let ops = '';
   let opened: { branch: string; title: string; body: string }[] = [];
   let finished: { id: string; status: string; outcome: string }[] = [];
+  let notes: string[] = [];
   const env = () => ({ ...process.env, OPS_ROOT: ops, FINDING_TODAY: TODAY });
   const git = (cwd: string, ...args: string[]): string => run('git', args, cwd).trim();
 
@@ -204,6 +206,8 @@ describe('the task-row step, on a temp checkout', () => {
       reason: '',
       until: '',
       by,
+      // The server said the asker is the owner: a security finding needs it.
+      owner: by === 'mostafa',
       at: '2026-11-21T10:00:00.000Z',
     };
     const applied = applyTriage({ ...state, triage: [request] }, door(), TODAY);
@@ -231,6 +235,9 @@ describe('the task-row step, on a temp checkout', () => {
       finish: (id, status, outcome) => {
         finished.push({ id, status, outcome });
       },
+      note: (detail) => {
+        notes.push(detail);
+      },
       close: tree.close,
       ...over,
     };
@@ -252,6 +259,7 @@ describe('the task-row step, on a temp checkout', () => {
   beforeEach(() => {
     opened = [];
     finished = [];
+    notes = [];
     home = mkdtempSync(join(tmpdir(), 'fmip-task-row-spec-'));
     origin = join(home, 'origin.git');
     work = join(home, 'work');
@@ -508,6 +516,86 @@ describe('the task-row step, on a temp checkout', () => {
     expect(second).toMatchObject({ made: [{ finding: score, task: 'T-1948' }], failures: [] });
   });
 
+  it('leaves a branch on origin that this run did not make, and claims no id', () => {
+    const disk = add('ops-release', 'The disk of the server is nearly full');
+    const state = accept(emptyState(), 1, disk);
+    // Someone else's branch of the very name the step would use, with work of its own on it,
+    // pushed after the step listed origin's branches.
+    git(work, 'checkout', '--quiet', '-b', 't-1946-task-rows');
+    writeFileSync(join(work, 'theirs.txt'), "not the step's\n");
+    git(work, 'add', 'theirs.txt');
+    git(work, 'commit', '--quiet', '-m', 'feat: their work');
+    git(work, 'push', '--quiet', 'origin', 't-1946-task-rows');
+    const theirs = git(origin, 'rev-parse', 't-1946-task-rows');
+    git(work, 'checkout', '--quiet', 'main');
+    git(work, 'branch', '-D', 't-1946-task-rows');
+    const before = readFindingLines(ops);
+
+    for (const open of [
+      undefined,
+      // Even with the pull request step failing, the clean-up deletes only what this run pushed.
+      () => {
+        throw new Error('gh pr failed');
+      },
+    ]) {
+      const tree = checkout(work, open === undefined ? {} : { open });
+      const result = makeTaskRows(
+        state,
+        steps({
+          backlogs: tree.backlogs,
+          branches: () => ['main'],
+          pullRequest: tree.pullRequest,
+          close: tree.close,
+        }),
+        TODAY,
+      );
+      expect(result.made).toEqual([]);
+      expect(result.failures).toEqual([
+        'The docs pull request was not opened: The branch t-1946-task-rows is already on origin and this run did not make it: it is left as it is and no id was claimed. Delete or merge it, then run task-row again.',
+      ]);
+      expect(result.state.taskRows).toEqual(state.taskRows);
+      // The branch survives, commit for commit.
+      expect(git(origin, 'rev-parse', 't-1946-task-rows')).toBe(theirs);
+      expect(git(origin, 'show', 't-1946-task-rows:theirs.txt')).toBe("not the step's");
+      expect(readFindingLines(ops)).toEqual(before);
+      expect(finished).toEqual([]);
+    }
+
+    // With origin's branches listed, the step simply takes the id after it.
+    const next = makeTaskRows(state, steps(), TODAY);
+    expect(next).toMatchObject({ made: [{ finding: disk, task: 'T-1947' }], failures: [] });
+    expect(git(origin, 'rev-parse', 't-1946-task-rows')).toBe(theirs);
+  });
+
+  it('prints nothing of a security finding when its private task fails, however many', () => {
+    const weak = add('security', 'A response header is missing on the console');
+    const other = add('security', 'An old cookie flag');
+    let state = accept(emptyState(), 1, weak);
+    state = accept(state, 2, other);
+    // The draft of one cannot be written; the marker of the other is refused by finding.mjs.
+    const result = makeTaskRows(
+      state,
+      steps({
+        writePrivate: (name) => {
+          if (name.includes(weak)) throw new Error(`EACCES: ${name}`);
+        },
+        seen: () => ({ ok: false, reason: `${other} of 2026-11-21 is locked` }),
+      }),
+      TODAY,
+    );
+    expect(result.failures).toEqual([PRIVATE_FAILURE]);
+    const printed = [...result.failures, JSON.stringify(result.made), String(result.pullRequest)];
+    for (const kept of [weak, other, 'sec-', '2026-11-21', 'handoffs', 'EACCES', 'locked', '2'])
+      expect(printed.join('\n')).not.toContain(kept);
+    // The detail is kept for the maintainer, on the computer.
+    expect(notes).toHaveLength(2);
+    expect(notes.join('\n')).toContain(weak);
+    expect(notes.join('\n')).toContain('is locked');
+    // Both wait for the next run.
+    expect(result.state.taskRows.map((row) => row.finding).sort()).toEqual([other, weak].sort());
+    expect(finished).toEqual([]);
+  });
+
   it('keeps the id of a row whose write-back failed, and writes it on the next run without a second row', () => {
     const disk = add('ops-release', 'The disk of the server is nearly full');
     const state = accept(emptyState(), 1, disk);
@@ -516,7 +604,11 @@ describe('the task-row step, on a temp checkout', () => {
       steps({ seen: () => ({ ok: false, reason: 'the lock is held' }) }),
       TODAY,
     );
-    expect(first.failures).toHaveLength(1);
+    // What finding.mjs said goes to the log on the computer, not to what is printed.
+    expect(first.failures).toEqual([
+      `${disk}: T-1946 is in the pull request but was not written on the finding; the reason is in the step's log under the ops folder.`,
+    ]);
+    expect(notes).toEqual([`${disk}: T-1946 was not written on the finding: the lock is held`]);
     expect(first.state.taskRows).toMatchObject([
       { finding: disk, task: 'T-1946', pull_request: 'https://example.test/pull/1' },
     ]);

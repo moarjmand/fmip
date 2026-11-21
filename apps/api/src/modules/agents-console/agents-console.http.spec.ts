@@ -812,6 +812,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
       const taken = (await store.takeCommands(true)).find((c) => c.id === command.id);
       expect(taken).toMatchObject({
         requested_by_username: `${name}_tri`,
+        // ...and the server's own word on whether the asker is the owner: the teammate is not.
+        requested_by_owner: false,
         payload: { reason: 'Not ours: the provider fixed it.' },
       });
       // ...and until it reports back the command is still not applied.
@@ -904,7 +906,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         related: null,
         pending: { kind: 'finding.accept' },
       });
-      await store.takeCommands(true);
+      // The computer is told the asker is the owner, and checks it again before it writes.
+      expect((await store.takeCommands(true)).find((c) => c.target === SECURITY)).toMatchObject({
+        requested_by_username: name,
+        requested_by_owner: true,
+      });
     });
   });
 

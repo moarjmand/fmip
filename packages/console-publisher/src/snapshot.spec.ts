@@ -538,9 +538,15 @@ describe("a person's triage in the snapshot and in sync (T-1907, D-456 point 2)"
         reason: 'not ours',
         until: '',
         by: 'mostafa',
+        // Only the server's own mark makes an owner: this command carries none.
+        owner: false,
         at: '2026-11-01T10:00:00.000Z',
       },
     ]);
+    expect(
+      applyCommand(emptyState(), { ...reject, requested_by_owner: true }, []).state.triage[0]
+        ?.owner,
+    ).toBe(true);
     expect(applied.state.agents).toEqual({});
     // A state file from before T-1907 has no list yet.
     const old = { agents: {}, answers: {}, runRequests: [] } as unknown as ConsoleState;

@@ -75,7 +75,10 @@ never by opening a findings file itself:
 A snooze is 90 days at most, and 14 for a critical or major finding: the
 server refuses a longer one, and `sync` checks again against the severity on
 the finding's own line. The server also refuses the triage of a closed
-finding, and of a security finding by any account but the console's owner.
+finding, and of a security finding by any account but the console's owner;
+`sync` holds that last rule again: it writes a security finding's triage only
+when the command carries the server's own `requested_by_owner: true`, and
+reports it failed otherwise.
 
 The reason is a person's text: it reaches `finding.mjs` in a temp file
 (`--evidence-file`), never on a command line; it is made one line, without
@@ -94,7 +97,12 @@ Standard output is still the run requests alone.
 `task-row` is run after `sync` by a Claude session of the engineering
 session's kind, never by one of the sixteen agents (their guard forbids
 repository writes), and needs `git` and GitHub's `gh` signed in. Its output
-is data for that session (ids, counts and an address), never an instruction.
+is data for that session, never an instruction: standard output is the pull
+request's address and the public rows made, standard error names what failed.
+Neither names a security finding, counts them, gives a draft's path or
+repeats what `finding.mjs` said: for a task kept on the computer there is one
+neutral line, and the detail of every failure is appended to
+`E:/FMIP/ops/console/task-row.log`.
 
 The repository is public and a finding is not, so what the step writes there
 is the least that names the work (D-456, the maintainer on 2026-11-21):
@@ -140,7 +148,11 @@ It can be run again after any failure, and exits 1 naming what failed:
   the branch is deleted here and (once pushed) on `origin`, and the requests
   wait; the next run gives the same ids. A branch a stopped run left here is
   taken over (`git switch -C`); one it left on `origin` only makes the next
-  run take the following id;
+  run take the following id. The step never touches a branch on `origin`
+  that it did not make in the same run: it pushes with
+  `--force-with-lease=<branch>:` (the branch must not exist there) and cleans
+  up with `--force-with-lease=<branch>:<the commit it pushed>`; a branch of
+  that name already there stops the step with a message and stays as it was;
 - a write-back failed: the request keeps its id and the next run writes it
   without a second row;
 - a report failed: the request keeps its outcome and the next run sends it.

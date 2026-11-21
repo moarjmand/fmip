@@ -92,6 +92,8 @@ describe("a triage line's words", () => {
     // eslint-disable-next-line no-control-regex
     expect(evidence).not.toMatch(/[\u0000-\u001f\u200B-\u200F\u202A-\u202E\u2066-\u2069]/);
     expect(quotedReason(' \u202E \n ')).toBe('');
+    // The Arabic letter mark and the tag characters hide text too.
+    expect(quotedReason('a\u061Cb\u{E0001}\u{E0041}\u{E007F}c')).toBe('abc');
   });
 
   it('holds the snooze limits to the contract', () => {
@@ -399,9 +401,31 @@ describe('triage through finding.mjs, on a temp folder', () => {
   it('triages a security finding by its id while its detail stays on the computer', () => {
     const weak = add('security', 'A response header is missing on the console');
     expect(weak).toMatch(/^sec-/);
+    // The server's rule, held again on the computer: without the server's word that the asker
+    // is the owner, nothing is written, whatever the command and whoever it names.
+    const untouched = raw();
+    for (const kind of ['finding.accept', 'finding.reject', 'finding.snooze'] as const) {
+      for (const owner of [false, undefined]) {
+        const refused = applyTriage(
+          holding(request({ kind, finding: weak, reason: 'not real', until: '2026-11-24', owner })),
+          door(),
+          TODAY,
+        );
+        expect(refused.reports).toEqual([
+          {
+            id: ID(1),
+            status: 'failed',
+            outcome: "Only the console's owner may triage a security finding.",
+          },
+        ]);
+        expect(refused.state.taskRows).toEqual([]);
+      }
+    }
+    expect(raw()).toEqual(untouched);
+
     for (const [n, command] of [
-      [1, request({ kind: 'finding.snooze', finding: weak, until: '2026-11-24' })],
-      [2, request({ kind: 'finding.accept', finding: weak })],
+      [1, request({ kind: 'finding.snooze', finding: weak, until: '2026-11-24', owner: true })],
+      [2, request({ kind: 'finding.accept', finding: weak, owner: true })],
     ] as const) {
       const applied = applyTriage(holding({ ...command, id: ID(n) }), door(), TODAY);
       expect(applied.reports.map((r) => r.status)).toEqual(n === 1 ? ['done'] : []);
