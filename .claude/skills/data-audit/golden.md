@@ -17,6 +17,7 @@ or by a page check in `SKILL.md`.
 | 8 | 2026-10-31, agent | Brasileirão zones never served (looked up by the shown label) | competition page | page check P3 (zones legend) | T-1674, D-323 |
 | 9 | 2026-10-28, maintainer | Line-ups swapped between the sides | match page | I2 (one person on both sides) | 2026-10-28 round |
 | 10 | 2026-10-28, maintainer | Line-ups late: our job, not the feed | match page an hour before | S4 (job failing or stopped) | 2026-10-28 round |
+| 11 | 2026-11-20, auditor | MLS Cup play-off matches under the provider's "Round of 32" / "Round of 16", with no stage (aud-2026-11-20-01) | match page, fixtures, score cards | N2 (a league round with no stage that is not "Regular Season - n"), page check P2 | T-1946 |
 
 ## Found by the first audit (2026-10-31), not yet fixed
 

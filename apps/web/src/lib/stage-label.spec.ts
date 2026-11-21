@@ -111,6 +111,17 @@ describe('stage and round labels (T-1339)', () => {
     expect(en('Apertura - Round of 16')).toBe('Apertura, Round of 16');
     expect(fa('Apertura - Quarter-finals')).toBe('آپرتورا، یک‌چهارم نهایی');
     expect(fa('Clausura - Final')).toBe('کلاسورا، فینال');
+    // The MLS Cup play-offs in the league's own names (T-1946).
+    expect(en('Wild Card')).toBe('Wild Card');
+    expect(en('Round One')).toBe('Round One');
+    expect(en('Conference Semifinals')).toBe('Conference Semifinals');
+    expect(en('Conference Finals')).toBe('Conference Finals');
+    expect(en('MLS Cup')).toBe('MLS Cup');
+    expect(fa('Wild Card')).toBe('وایلد کارت');
+    expect(fa('Round One')).toBe('دور اول');
+    expect(fa('Conference Semifinals')).toBe('نیمه‌نهایی کنفرانس');
+    expect(fa('Conference Finals')).toBe('فینال کنفرانس');
+    expect(fa('MLS Cup')).toBe('ام‌ال‌اس کاپ');
     // A named round under a stage we cannot name is still not shown.
     expect(fa('Unknown Stage - Final')).toBeNull();
   });
