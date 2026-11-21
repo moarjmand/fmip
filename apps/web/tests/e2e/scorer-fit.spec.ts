@@ -83,6 +83,34 @@ for (const width of [375, 320]) {
         for (const out of await scorersOutside(page)) expect(out).toBeLessThanOrEqual(0.5);
       });
 
+      test(`${locale}: the line under a shoot-out's score breaks only between its items`, async ({
+        page,
+      }) => {
+        await draw(page, 'reported', locale);
+        // "Pens 2–4 ·", "90 minutes 1–1 ·", "HT 1–0": each one piece on one
+        // line, its score beside its words; the line itself is on two or more.
+        const items = await page
+          .getByTestId('match-header')
+          .locator('[data-status-item]')
+          .evaluateAll((list) =>
+            list.map((item) => ({
+              // One line: no taller than a line and a half of its text.
+              lines:
+                item.getBoundingClientRect().height / parseFloat(getComputedStyle(item).lineHeight),
+              top: Math.round(item.getBoundingClientRect().top),
+              // No item ends its line's separator on the next line.
+              text: item.textContent ?? '',
+            })),
+          );
+        expect(items).toHaveLength(3);
+        for (const item of items) expect(item.lines).toBeLessThan(1.5);
+        expect(new Set(items.map((i) => i.top)).size).toBeGreaterThanOrEqual(2);
+        // The separator closes the item before it, so it never starts a line.
+        expect(items.map((i) => i.text.trim().endsWith('·'))).toEqual([true, true, false]);
+        for (const item of items) expect(item.text.trim().startsWith('·')).toBe(false);
+        expect(await pageOverflow(page)).toBeLessThanOrEqual(0);
+      });
+
       test(`${locale}: three minutes and two scorers a side stay in their column`, async ({
         page,
       }) => {
@@ -130,7 +158,9 @@ test.describe('the match band at 375px, what stays as it was (T-1947)', () => {
           .evaluate((n) => [n.scrollWidth, n.clientWidth]);
         expect(inner).toBeLessThanOrEqual(outer);
       }
-      expect(await header.getByTestId('match-status').locator('..').evaluate(oneLine)).toBe(true);
+      expect(
+        await header.locator('[data-status-item]').first().locator('..').evaluate(oneLine),
+      ).toBe(true);
     });
   }
 });

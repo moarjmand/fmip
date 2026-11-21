@@ -26,6 +26,7 @@ import {
   SCORER_NAME,
   SCORER_SIDE,
   SCORER_UNIT,
+  STATUS_ITEM,
   scorerFit,
 } from './match-centre-view';
 import { ratingsOf } from './match-stats-panels';
@@ -953,7 +954,21 @@ describe('live', () => {
     const html = view(centre({ status: 'finished', minute: null, scores }));
     const text = html.replace(/<[^>]+>/g, '');
     expect(text).toMatch(/2–2/);
-    expect(text).toContain('Pens 1–4 · 90′ 0–0 · HT 0–0');
+    // Three items, each its words and its score in one piece that never
+    // breaks inside, the separator held to the item before it (T-1947).
+    expect(text).toContain('Pens 1–4\u00a0· 90′ 0–0\u00a0· HT 0–0');
+    const items = [
+      ...html.matchAll(
+        /<span class="([^"]*)" data-status-item=""[^>]*>(.*?)<\/span>(?= <span class="[^"]*" data-status-item|<\/span><\/div>)/g,
+      ),
+    ];
+    expect(items.map((i) => i[1])).toEqual([STATUS_ITEM, STATUS_ITEM, STATUS_ITEM]);
+    expect(STATUS_ITEM.split(' ')).toContain('whitespace-nowrap');
+    expect(items.map((i) => i[2]!.replace(/<[^>]+>/g, ''))).toEqual([
+      'Pens 1–4\u00a0·',
+      '90′ 0–0\u00a0·',
+      'HT 0–0',
+    ]);
     // Without extra time no ninety-minute line.
     const ft = view(
       centre({

@@ -721,33 +721,44 @@ function Hero({
               // 206px in Persian) left each side 61px of a 375px screen.
               // An ordinary result's line is up to 105px and stays one line.
               <span className={STATUS_LINE}>
-                <span data-testid="match-status">{status}</span>
-                {f.scores.penalties !== null && (
+                {/* Each item, its words and its score, is one piece: the
+                    line breaks only between items, the separator held to
+                    the item before it (T-1947). */}
+                <span className={STATUS_ITEM} data-status-item="">
+                  <span data-testid="match-status">{status}</span>
+                  {f.scores.penalties !== null && (
+                    <>
+                      {' '}
+                      <Score
+                        home={f.scores.penalties.home}
+                        away={f.scores.penalties.away}
+                        locale={locale}
+                      />
+                    </>
+                  )}
+                  {(ninety !== null || f.scores.half_time !== null) && '\u00a0·'}
+                </span>
+                {ninety !== null && (
                   <>
                     {' '}
-                    <Score
-                      home={f.scores.penalties.home}
-                      away={f.scores.penalties.away}
-                      locale={locale}
-                    />
+                    <span className={STATUS_ITEM} data-status-item="" data-testid="ninety">
+                      <MessageText message={m['status.regularTime']} />{' '}
+                      <Score home={ninety.home} away={ninety.away} locale={locale} />
+                      {f.scores.half_time !== null && '\u00a0·'}
+                    </span>
                   </>
-                )}
-                {ninety !== null && (
-                  <span data-testid="ninety">
-                    {' · '}
-                    <MessageText message={m['status.regularTime']} />{' '}
-                    <Score home={ninety.home} away={ninety.away} locale={locale} />
-                  </span>
                 )}
                 {f.scores.half_time !== null && (
                   <>
-                    {' · '}
-                    <MessageText message={m['status.halfTime']} />{' '}
-                    <Score
-                      home={f.scores.half_time.home}
-                      away={f.scores.half_time.away}
-                      locale={locale}
-                    />
+                    {' '}
+                    <span className={STATUS_ITEM} data-status-item="">
+                      <MessageText message={m['status.halfTime']} />{' '}
+                      <Score
+                        home={f.scores.half_time.home}
+                        away={f.scores.half_time.away}
+                        locale={locale}
+                      />
+                    </span>
                   </>
                 )}
               </span>
@@ -1037,6 +1048,8 @@ export const SCORER_SIDE = { home: 'md:justify-end', away: 'md:justify-start' } 
 export const SCORER_NAME = 'max-w-full min-w-0 overflow-x-clip text-ellipsis whitespace-nowrap';
 /** The minutes break only at the spaces between them ("12′, 45+2′, 90+4′"). */
 export const SCORER_MINUTES = 'max-w-full min-w-0';
+/** An item of the line under the score, "90 minutes 1-1": never broken inside. */
+export const STATUS_ITEM = 'whitespace-nowrap';
 /** The line under the score once play is over; on a phone, 120px before it wraps. */
 export const STATUS_LINE =
   'text-xs font-bold text-muted max-md:max-w-30 max-md:text-center max-md:text-balance md:text-sm';
