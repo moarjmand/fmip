@@ -657,3 +657,42 @@ describe('the other text the publisher uploads (review of #947)', () => {
     expect(guardText(plain, LEDGER)).toEqual({ text: plain, withheld: [] });
   });
 });
+
+describe('what the computer tells the server it released (T-1907)', () => {
+  const line = (record: Record<string, unknown>): FindingLine => ({
+    file: '2026-11-21.jsonl',
+    record: { severity: 'major', title: 'A title', evidence: 'the evidence', ...record },
+  });
+  const lines = [
+    line({ id: 'sec-2026-11-21-01', agent: 'security', status: 'open' }),
+    line({ id: 'sec-2026-11-21-02', agent: 'security', status: 'resolved' }),
+    line({ id: 'sec-2026-11-21-03', agent: 'security', status: 'planned', by: 'mostafa' }),
+    line({ id: 'sec-2026-11-21-04', agent: 'security', status: 'open', public: true }),
+    line({ id: 'ops-2026-11-21-01', agent: 'ops-release', status: 'open' }),
+  ];
+
+  it('marks a released security finding `releasable`, and no other finding', () => {
+    const snapshot = snapshotOf(
+      {
+        generated_at: '2026-11-21T12:00:00.000Z',
+        agents: [],
+        // A flag that came from anywhere else is not kept.
+        findings: findingsFrom(lines, '2026-11-21').map((f) => ({ ...f, releasable: true })),
+        reports: [],
+        brief: null,
+        decisions: [],
+      },
+      securityLedger(lines),
+    );
+    expect(
+      Object.fromEntries(snapshot.findings.map((f) => [f.id, [f.releasable, f.detail !== null]])),
+    ).toEqual({
+      'sec-2026-11-21-01': [undefined, false],
+      'sec-2026-11-21-02': [true, true],
+      // A person's triage releases nothing.
+      'sec-2026-11-21-03': [undefined, false],
+      'sec-2026-11-21-04': [true, true],
+      'ops-2026-11-21-01': [undefined, true],
+    });
+  });
+});

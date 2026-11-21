@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CONSOLE_FINDING_COMMAND_KINDS } from '@fmip/contracts';
 import Fastify from 'fastify';
 import { describe, expect, it } from 'vitest';
 import { CEILINGS, EXEMPT, coverageOf, refusalCountedOnResponse } from './inventory';
@@ -39,6 +40,18 @@ describe('the rate-limit inventory', () => {
   it('names every ceiling once', () => {
     const actions = CEILINGS.map((c) => c.action);
     expect(new Set(actions).size).toBe(actions.length);
+  });
+
+  it("holds a finding's triage commands to the console's command ceiling (T-1907)", () => {
+    expect(coverageOf('POST /console/commands')).toEqual({
+      kind: 'limited',
+      actions: ['console_command', 'console_command_run'],
+    });
+    const ceiling = CEILINGS.find((c) => c.action === 'console_command');
+    for (const kind of CONSOLE_FINDING_COMMAND_KINDS) expect(ceiling?.what).toContain(kind);
+    const doc = readFileSync(join(__dirname, '../../../../../docs/02-architecture.md'), 'utf8');
+    const row = doc.split('\n').find((line) => line.startsWith('| `console_command` |'));
+    for (const kind of CONSOLE_FINDING_COMMAND_KINDS) expect(row).toContain(kind);
   });
 
   it('is written down in docs/02-architecture.md, route by route', () => {

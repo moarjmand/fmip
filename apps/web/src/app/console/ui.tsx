@@ -136,6 +136,10 @@ export const STATUS_WORDS: Record<string, string> = {
   fixed: 'رفع شده',
   wontfix: 'رفع نمی‌شود',
   duplicate: 'تکراری',
+  // T-1907: a person's triage. «پذیرفته», as D-456 point 2 has it for `planned`.
+  planned: 'پذیرفته',
+  rejected: 'رد شده',
+  snoozed: 'به تعویق افتاده',
   queued: 'در صف',
   taken: 'برداشته شد',
   done: 'انجام شد',

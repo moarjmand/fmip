@@ -386,13 +386,16 @@ export function withholdSecurity(
             : agent.memory.entries.map((entry) => ({ ...entry, text: clean(entry.text) })),
       },
     })),
-    findings: parts.findings.map((finding) =>
+    findings: parts.findings.map(({ releasable: _releasable, ...finding }) =>
       withholds(ledger, finding.id, finding.agent)
         ? { ...finding, detail: null, related: null }
         : {
             ...finding,
             detail: finding.detail === null ? null : clean(finding.detail),
             related: finding.related === null ? null : clean(finding.related),
+            // T-1907: said to the server, whose own net removes the detail of every
+            // security finding that does not carry this, whatever its status.
+            ...(isSecurityFinding(finding.id, finding.agent) ? { releasable: true } : {}),
           },
     ),
     reports: parts.reports.map((report) =>

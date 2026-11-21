@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   ConflictException,
+  ForbiddenException,
   Controller,
   Delete,
   Get,
@@ -60,6 +61,9 @@ import {
   checkCommand,
   checkMessage,
   consoleCookie,
+  isFindingCommand,
+  isSecurityFinding,
+  withPendingTriage,
   consoleTokenText,
   isConsoleUsername,
   isLocked,
@@ -231,9 +235,12 @@ export class AgentsConsoleController {
   async snapshot(@Req() request: FastifyRequest): Promise<ConsoleSnapshotResponse> {
     await this.person(request);
     const latest = await this.store.latestSnapshot();
-    return latest === null
-      ? { snapshot: null, loaded_at: null }
-      : { snapshot: latest.snapshot, loaded_at: latest.loaded_at.toISOString() };
+    if (latest === null) return { snapshot: null, loaded_at: null };
+    // T-1907: each finding with the triage command still waiting for the computer.
+    return {
+      snapshot: withPendingTriage(latest.snapshot, await this.store.openTriage()),
+      loaded_at: latest.loaded_at.toISOString(),
+    };
   }
 
   /**
@@ -256,7 +263,12 @@ export class AgentsConsoleController {
    * A command for the maintainer's computer. Audited, and held per person to
    * the `console_command` ceiling and, for `agent.run`, the tighter
    * `console_command_run` (T-1880); an agent with a run already waiting gets
-   * no second one (409).
+   * no second one (409). A triage command (T-1907: `finding.accept`,
+   * `finding.reject`, `finding.snooze`) names a finding of the loaded
+   * snapshot, is counted in the same ceiling, and is audited with the status
+   * and the snooze day the snapshot showed; a finding with one still waiting
+   * takes no second (409), a closed finding takes none (400), and a security
+   * finding takes one from the console's owner alone (403).
    */
   @Post('commands')
   async queue(
@@ -269,9 +281,23 @@ export class AgentsConsoleController {
     const agents = latest?.snapshot.agents.map((agent) => agent.name) ?? [];
     const decisions =
       latest?.snapshot.decisions.filter((d) => d.status === 'open').map((d) => d.id) ?? [];
-    const checked = checkCommand(body, agents, decisions);
+    const findings = latest?.snapshot.findings ?? [];
+    const checked = checkCommand(body, agents, decisions, findings);
     if (!checked.ok) throw invalid(checked.reason);
-    const outcome = await this.store.queueCommand(checked.command, actor);
+    const triage = isFindingCommand(checked.command.kind);
+    const finding = triage ? findings.find((f) => f.id === checked.command.target) : undefined;
+    const outcome = await this.store.queueCommand(
+      checked.command,
+      actor,
+      finding === undefined ? undefined : { status: finding.status, until: finding.until ?? null },
+      // A security finding is the owner's alone to triage (D-456, 2026-11-21).
+      finding !== undefined && isSecurityFinding(finding),
+    );
+    if (outcome.kind === 'owner_only')
+      throw new ForbiddenException({
+        error: 'forbidden',
+        message: "Only the console's owner may triage a security finding.",
+      } satisfies ApiError);
     if (outcome.kind === 'limited')
       return refuseOverRate(
         reply,
@@ -283,7 +309,9 @@ export class AgentsConsoleController {
     if (outcome.kind === 'waiting')
       throw new ConflictException({
         error: 'conflict',
-        message: 'This agent already has a run waiting.',
+        message: triage
+          ? 'This finding already has a command waiting.'
+          : 'This agent already has a run waiting.',
       } satisfies ApiError);
     return outcome.command;
   }

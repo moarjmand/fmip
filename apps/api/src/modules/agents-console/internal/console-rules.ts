@@ -3,12 +3,20 @@ import {
   CONSOLE_AGENT_SCHEDULES,
   CONSOLE_BOARD_COLUMNS,
   CONSOLE_COMMAND_KINDS,
+  CONSOLE_FINDING_COMMAND_KINDS,
   CONSOLE_MESSAGE_MAX,
+  CONSOLE_REJECT_REASON_MIN,
   CONSOLE_REPLY_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
+  CONSOLE_SNOOZE_MAX_DAYS,
+  CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
   CONSOLE_USERNAME_PATTERN,
   type ConsoleBoardCardInput,
+  type ConsoleCommand,
   type ConsoleCommandRequest,
+  type ConsoleFinding,
+  type ConsoleFindingCommandKind,
+  type ConsoleFindingPending,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
 import { checkModelLab } from './model-lab-rules';
@@ -47,6 +55,14 @@ export const COMMAND_CEILING = 'console_command';
 export const RUN_CEILING = 'console_command_run';
 /** The agent whose open findings show their title and severity only (D-340). */
 export const WITHHELD_AGENT = 'security';
+
+const SECURITY_ID = /^sec-\d{4}-\d{2}-\d{2}-\d+$/i;
+/** A security finding: the security agent's, or one whose id is `sec-YYYY-MM-DD-NN` (D-455 point 2). */
+export const isSecurityFinding = (finding: { id: string; agent: string }): boolean =>
+  finding.agent === WITHHELD_AGENT || SECURITY_ID.test(finding.id.trim());
+
+/** The statuses after which a finding takes no triage: only reopening follows, which is not a console command. */
+export const CLOSED_STATUSES: readonly string[] = ['fixed', 'wontfix', 'duplicate', 'rejected'];
 
 /** The console's tokens are hashed apart from the site's, though with the same secret. */
 export const consoleTokenText = (token: string): string => `console:${token}`;
@@ -144,9 +160,12 @@ export function checkSnapshot(
           entries: agent.memory.entries.map((entry) => ({ ...entry, text: cut(entry.text) })),
         },
       })),
-      findings: snapshot.findings.map((finding) =>
-        finding.agent === WITHHELD_AGENT && finding.status === 'open'
-          ? { ...finding, detail: null }
+      // `pending` is the server's own word (T-1907): whatever the computer sent there is dropped.
+      // The server's own net: a security finding the computer did not mark releasable
+      // loses its detail and its related ids, in every status, new and closed alike.
+      findings: snapshot.findings.map(({ pending: _pending, ...finding }) =>
+        isSecurityFinding(finding) && finding.releasable !== true
+          ? { ...finding, detail: null, related: null }
           : finding,
       ),
       reports: snapshot.reports.map((report) =>
@@ -163,11 +182,55 @@ export function checkSnapshot(
   };
 }
 
-/** A command as a person asked it, or the reason it cannot be asked. */
+export const isFindingCommand = (kind: unknown): kind is ConsoleFindingCommandKind =>
+  (CONSOLE_FINDING_COMMAND_KINDS as readonly unknown[]).includes(kind);
+
+/** A calendar day that exists, YYYY-MM-DD. */
+function isDay(value: unknown): value is string {
+  if (!isString(value) || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const at = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(at.getTime()) && at.toISOString().slice(0, 10) === value;
+}
+
+/** What a triage command is judged by: the finding as the loaded snapshot has it. */
+export type TriageFinding = Pick<ConsoleFinding, 'id' | 'agent' | 'severity' | 'status'>;
+
+/** The longest a finding of this severity may be snoozed, in days. */
+export const snoozeMaxDays = (severity: string): number =>
+  severity === 'critical' || severity === 'major'
+    ? CONSOLE_SNOOZE_MAX_DAYS_SEVERE
+    : CONSOLE_SNOOZE_MAX_DAYS;
+
+/**
+ * A triage reason as stored: one line. Line ends become spaces and the
+ * characters that only reorder or hide text (the bidirectional controls, the
+ * Arabic letter mark included, the zero-width ones and the tag characters)
+ * are removed, so what a person typed cannot dress
+ * itself as something else on the finding's line, where agents read it.
+ */
+export function triageReason(raw: string): string {
+  return cleanText(raw)
+    .replace(/[\u061C\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]|[\u{E0000}-\u{E007F}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * A command as a person asked it, or the reason it cannot be asked. A triage
+ * command (T-1907, D-456 point 2) names a finding the loaded snapshot holds
+ * and that is not closed; a reject needs a reason of three characters or
+ * more, a snooze a day after `now`'s UTC day and within the limit for the
+ * finding's severity (90 days, 14 for critical and major). Its payload is
+ * rebuilt here from what the kind takes, so nothing else a client sent
+ * travels to the computer. Who may triage a security finding is the store's
+ * to check, with the account's row.
+ */
 export function checkCommand(
   body: unknown,
   agents: readonly string[],
   decisions: readonly string[],
+  findings: readonly TriageFinding[] = [],
+  now: Date = new Date(),
 ): { ok: true; command: ConsoleCommandRequest } | { ok: false; reason: string } {
   if (!isObject(body)) return { ok: false, reason: 'Say what to do.' };
   const { kind, target, payload, reason } = body;
@@ -193,6 +256,45 @@ export function checkCommand(
     };
   }
   const k = kind as ConsoleCommandRequest['kind'];
+  if (isFindingCommand(k)) {
+    const finding = isString(target) ? findings.find((f) => f.id === target) : undefined;
+    if (finding === undefined) return { ok: false, reason: 'No such finding.' };
+    if (CLOSED_STATUSES.includes(finding.status))
+      return { ok: false, reason: `This finding is closed (${finding.status}).` };
+    const why = triageReason(reason);
+    if (why === '') return { ok: false, reason: `Give a reason, up to ${REASON_MAX} characters.` };
+    const payload: Record<string, string> = {};
+    if (k === 'finding.reject') {
+      if ([...why].length < CONSOLE_REJECT_REASON_MIN) {
+        return {
+          ok: false,
+          reason: `Say why it is rejected, in ${CONSOLE_REJECT_REASON_MIN} characters or more.`,
+        };
+      }
+      // The computer writes the reason on the finding's line; the queue keeps no other copy.
+      payload.reason = why;
+    }
+    if (k === 'finding.snooze') {
+      const today = now.toISOString().slice(0, 10);
+      if (!isDay(values.until) || values.until <= today)
+        return { ok: false, reason: 'Snooze until a day after today, YYYY-MM-DD.' };
+      const limit = snoozeMaxDays(finding.severity);
+      const last = new Date(Date.parse(`${today}T00:00:00Z`) + limit * 86_400_000)
+        .toISOString()
+        .slice(0, 10);
+      if (values.until > last) {
+        return {
+          ok: false,
+          reason:
+            limit === CONSOLE_SNOOZE_MAX_DAYS
+              ? `A finding is snoozed for ${limit} days at most: until ${last} or sooner.`
+              : `A ${finding.severity} finding is snoozed for ${limit} days at most: until ${last} or sooner.`,
+        };
+      }
+      payload.until = values.until;
+    }
+    return { ok: true, command: { kind: k, target: finding.id, payload, reason: why } };
+  }
   if (k === 'decision.answer') {
     if (!isString(target) || !decisions.includes(target))
       return { ok: false, reason: 'No such open decision.' };
@@ -222,6 +324,39 @@ export function checkCommand(
       payload: values as Record<string, string>,
       reason: reason.trim(),
     },
+  };
+}
+
+/**
+ * The snapshot as a console person reads it (T-1907): each finding with the
+ * triage command asked for it that the computer has not reported back, the
+ * newest when there are several, or `null`. `commands` is the queue's open
+ * rows (`queued` and `taken`); every other kind and status is passed over.
+ */
+export function withPendingTriage(
+  snapshot: ConsoleSnapshot,
+  commands: readonly ConsoleCommand[],
+): ConsoleSnapshot {
+  const pending = new Map<string, ConsoleFindingPending>();
+  for (const command of commands) {
+    if (!isFindingCommand(command.kind)) continue;
+    if (command.status !== 'queued' && command.status !== 'taken') continue;
+    const held = pending.get(command.target);
+    if (held !== undefined && held.requested_at >= command.requested_at) continue;
+    pending.set(command.target, {
+      command_id: command.id,
+      kind: command.kind,
+      requested_by: command.requested_by,
+      requested_at: command.requested_at,
+      until: command.kind === 'finding.snooze' ? (command.payload.until ?? null) : null,
+    });
+  }
+  return {
+    ...snapshot,
+    findings: snapshot.findings.map((finding) => ({
+      ...finding,
+      pending: pending.get(finding.id) ?? null,
+    })),
   };
 }
 

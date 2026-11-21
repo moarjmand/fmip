@@ -193,11 +193,12 @@ export const CEILINGS: readonly CeilingDefinition[] = [
   // model, schedule, a decision's answer). Counted from the person's own
   // `console_command` rows this hour, before the insert; `agent.run`, which
   // starts an agent at once, is held to a tighter ceiling of its own as well.
+  // T-1907: the three triage commands of a finding are counted here too.
   {
     action: 'console_command',
     subject: 'console_user',
     enforced: 'api',
-    what: "Commands to the maintainer's computer from the agents console: pausing, resuming and running an agent, its model and schedule, and a decision's answer.",
+    what: "Commands to the maintainer's computer from the agents console: pausing, resuming and running an agent, its model and schedule, a decision's answer, and a finding's triage (`finding.accept`, `finding.reject`, `finding.snooze`, T-1907).",
     routes: ['POST /console/commands'],
   },
   {

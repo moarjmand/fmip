@@ -49,7 +49,45 @@ export interface ConsoleInvitationView {
 // --- The snapshot ----------------------------------------------------------
 
 export type ConsoleSeverity = 'critical' | 'major' | 'minor' | 'info';
-export type ConsoleFindingStatus = 'open' | 'fixed' | 'wontfix' | 'duplicate';
+/**
+ * `planned`, `rejected` and `snoozed` are a person's triage (T-1907, D-456
+ * point 2): accepted with a task row asked for or made and no work started,
+ * turned down with a reason, or put off until a date. A snooze that has run
+ * out reads `open` again. `planned`, not `accepted`: the team charter's
+ * `accepted` already means "known, nothing to do" (`wontfix` here).
+ */
+export type ConsoleFindingStatus =
+  'open' | 'fixed' | 'wontfix' | 'duplicate' | 'planned' | 'rejected' | 'snoozed';
+
+/** The three triage commands (T-1907), each naming a finding of the loaded snapshot. */
+export const CONSOLE_FINDING_COMMAND_KINDS = [
+  'finding.accept',
+  'finding.reject',
+  'finding.snooze',
+] as const;
+export type ConsoleFindingCommandKind = (typeof CONSOLE_FINDING_COMMAND_KINDS)[number];
+/** The shortest reason a reject carries, in characters. */
+export const CONSOLE_REJECT_REASON_MIN = 3;
+/** A snooze is at most this many days from today (D-456, the maintainer on 2026-11-21)... */
+export const CONSOLE_SNOOZE_MAX_DAYS = 90;
+/** ...and this many for a critical or major finding. */
+export const CONSOLE_SNOOZE_MAX_DAYS_SEVERE = 14;
+
+/**
+ * A triage command a person asked for that the computer has not reported
+ * back yet (T-1907): still in the queue, or taken and not finished. The
+ * server adds it to `GET /console/snapshot`; the finding's own status changes
+ * only when the computer has appended the line and published again.
+ */
+export interface ConsoleFindingPending {
+  command_id: string;
+  kind: ConsoleFindingCommandKind;
+  /** The console user who asked (display name). */
+  requested_by: string;
+  requested_at: string;
+  /** `finding.snooze` only: the day it would wake, YYYY-MM-DD. */
+  until: string | null;
+}
 
 /** Where an agent's memory comes from: a file it reads, a skill, its own memory. */
 export interface ConsoleMemorySource {
@@ -198,6 +236,21 @@ export interface ConsoleFinding {
    */
   detail: string | null;
   related: string | null;
+  /** The task row made for it, `T-n` (T-1907); absent or null when it has none. */
+  task?: string | null;
+  /** A snoozed finding's wake day, YYYY-MM-DD; null otherwise. Absent before T-1907. */
+  until?: string | null;
+  /** Who triaged it (`planned`, `rejected`, `snoozed`): the console username; null otherwise. */
+  triaged_by?: string | null;
+  /** Added by the server, never by the computer: the triage command not yet applied, if any. */
+  pending?: ConsoleFindingPending | null;
+  /**
+   * A security finding only, set by the computer (T-1907): its detail may be
+   * shown (resolved by the security agent's own re-check, or marked public,
+   * D-455 point 2). Without it the server removes `detail` and `related` of
+   * every security finding, whatever its status.
+   */
+  releasable?: boolean;
 }
 
 export interface ConsoleReport {
@@ -265,6 +318,10 @@ export const CONSOLE_COMMAND_KINDS = [
   'agent.model',
   'agent.schedule',
   'decision.answer',
+  // T-1907 (D-456 point 2): a person's triage of a finding.
+  'finding.accept',
+  'finding.reject',
+  'finding.snooze',
 ] as const;
 export type ConsoleCommandKind = (typeof CONSOLE_COMMAND_KINDS)[number];
 
@@ -274,10 +331,16 @@ export const CONSOLE_AGENT_SCHEDULES = ['daily', 'weekly', 'monthly', 'on-demand
 /** `POST /console/commands`. */
 export interface ConsoleCommandRequest {
   kind: ConsoleCommandKind;
-  /** The agent's name, or the decision's id for `decision.answer`. */
+  /** The agent's name, the decision's id for `decision.answer`, the finding's id for `finding.*`. */
   target: string;
-  /** `{ model }`, `{ schedule }`, `{ answer, note? }`; empty for the rest. */
+  /** `{ model }`, `{ schedule }`, `{ answer, note? }`, `{ until }` for a snooze; empty for the rest. */
   payload: Record<string, string>;
+  /**
+   * Why. Every kind needs one, 1 to 500 characters, `finding.accept` and
+   * `finding.snooze` included; for `finding.reject` it is the reject's reason,
+   * 3 characters or more, and is kept in the payload too. A triage reason is
+   * stored as one line.
+   */
   reason: string;
 }
 
@@ -290,6 +353,14 @@ export interface ConsoleCommand {
   payload: Record<string, string>;
   status: ConsoleCommandStatus;
   requested_by: string;
+  /** The asker's username (T-1907): what a triage line on the computer names in `by`. */
+  requested_by_username?: string;
+  /**
+   * Set by the server alone, on the commands it hands to the computer
+   * (T-1907): whether the asker is the console's owner. The computer checks it
+   * again before it writes a security finding's triage.
+   */
+  requested_by_owner?: boolean;
   requested_at: string;
   finished_at: string | null;
   outcome: string | null;

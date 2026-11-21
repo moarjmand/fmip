@@ -5,6 +5,7 @@ import type {
   ConsoleCommand,
   ConsoleDecision,
   ConsoleFinding,
+  ConsoleFindingCommandKind,
   ConsoleFindingStatus,
   ConsoleMemoryEntry,
   ConsoleMemorySource,
@@ -57,9 +58,50 @@ export interface ConsoleState {
   agents: Record<string, { paused?: boolean; model?: string; schedule?: string }>;
   answers: Record<string, { answer: string; note: string; by: string; at: string }>;
   runRequests: { id: string; agent: string; requested_by: string; at: string }[];
+  /** Triage commands taken from the server and not yet written to the findings files (T-1907). */
+  triage: TriageRequest[];
+  /** Accepted findings that still want their task row; the `task-row` step makes it (T-1907). */
+  taskRows: TaskRowRequest[];
 }
 
-export const emptyState = (): ConsoleState => ({ agents: {}, answers: {}, runRequests: [] });
+/** One `finding.accept`, `finding.reject` or `finding.snooze` as the computer took it. */
+export interface TriageRequest {
+  /** The command's id. */
+  id: string;
+  kind: ConsoleFindingCommandKind;
+  finding: string;
+  /** A reject's reason, as the person wrote it: data, never a command. */
+  reason: string;
+  /** A snooze's wake day. */
+  until: string;
+  /** The console username of who asked: the line's `by`. */
+  by: string;
+  /** Whether the server said the asker is the console's owner; a security finding needs it. */
+  owner?: boolean;
+  at: string;
+}
+
+/** An accepted finding waiting for its row in the backlog. */
+export interface TaskRowRequest {
+  finding: string;
+  by: string;
+  at: string;
+  /** The accept command that asked for it. */
+  command: string;
+  /** The id its row was given, once the pull request exists and until it is on the finding. */
+  task?: string;
+  pull_request?: string;
+  /** The outcome still owed to the server, when everything else is done and the report failed. */
+  outcome?: string;
+}
+
+export const emptyState = (): ConsoleState => ({
+  agents: {},
+  answers: {},
+  runRequests: [],
+  triage: [],
+  taskRows: [],
+});
 
 export interface AgentFile {
   name: string;
@@ -176,7 +218,18 @@ export interface FindingLine {
 }
 
 const SEVERITIES: ConsoleSeverity[] = ['critical', 'major', 'minor', 'info'];
-const STATUSES: ConsoleFindingStatus[] = ['open', 'fixed', 'wontfix', 'duplicate'];
+/** `planned`, `rejected` and `snoozed` are a person's triage (T-1907, D-456 point 2). */
+const STATUSES: ConsoleFindingStatus[] = [
+  'open',
+  'fixed',
+  'wontfix',
+  'duplicate',
+  'planned',
+  'rejected',
+  'snoozed',
+];
+const TRIAGED: readonly ConsoleFindingStatus[] = ['planned', 'rejected', 'snoozed'];
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /**
  * The team charter's own words for a closed finding (T-1870): `resolved` is a
  * fix someone re-checked, `accepted` is known and explained with nothing to do.
@@ -189,20 +242,35 @@ const CHARTER_STATUSES: Readonly<Record<string, ConsoleFindingStatus>> = {
 };
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
 
-/** Every finding once, the latest line of each id winning; files in date order. */
-export function findingsFrom(lines: readonly FindingLine[]): ConsoleFinding[] {
+/**
+ * Every finding once, the latest line of each id winning; files in date order.
+ * A snoozed finding reads `open` again from its `until` day, as `finding.mjs`
+ * reads it (T-1907); one whose line names no day was never put off. `today`
+ * is the UTC day, given so a test fixes the clock.
+ */
+export function findingsFrom(
+  lines: readonly FindingLine[],
+  today: string = new Date().toISOString().slice(0, 10),
+): ConsoleFinding[] {
   const byId = new Map<string, ConsoleFinding>();
+  /** What the agent last saw, per id: a person's triage line says who decided, not what was seen. */
+  const seen = new Map<string, string>();
   for (const { file, record } of lines) {
     const id = text(record.id);
     const agent = text(record.agent);
     if (id === '' || agent === '') continue;
     const severity = SEVERITIES.find((s) => s === record.severity) ?? 'info';
-    const status =
+    const written =
       STATUSES.find((s) => s === record.status) ?? CHARTER_STATUSES[text(record.status)] ?? 'open';
+    const until = DAY.test(text(record.until)) ? text(record.until) : null;
+    const status = written === 'snoozed' && (until === null || until <= today) ? 'open' : written;
+    const triage = text(record.by) !== '' && TRIAGED.includes(written);
+    if (!triage) seen.set(id, text(record.evidence));
     const parts = [
-      text(record.evidence),
+      triage ? (seen.get(id) ?? '') : text(record.evidence),
       text(record.likely_cause) === '' ? '' : `Likely cause: ${text(record.likely_cause)}`,
       text(record.proposal) === '' ? '' : `Proposal: ${text(record.proposal)}`,
+      triage ? `Triage: ${text(record.evidence)}` : '',
     ].filter((part) => part !== '');
     const previous = byId.get(id);
     byId.set(id, {
@@ -214,6 +282,9 @@ export function findingsFrom(lines: readonly FindingLine[]): ConsoleFinding[] {
       opened_at: previous?.opened_at ?? (text(record.first_seen) || file.slice(0, 10)),
       detail: parts.join('\n\n'),
       related: text(record.related) || null,
+      task: text(record.task) || null,
+      until: status === 'snoozed' ? until : null,
+      triaged_by: TRIAGED.includes(status) ? text(record.by) || null : null,
     });
   }
   return [...byId.values()].sort(
@@ -400,7 +471,8 @@ export function snapshotOf(
 /**
  * A command applied to the console's state on the computer. A pause, a model,
  * a schedule and an answer are done at once; a run waits for the daily run,
- * or the console's hourly sync, to start the agent (`finish` false).
+ * or the console's hourly sync, to start the agent (`finish` false); a
+ * finding's triage waits in `triage` for `applyTriage` (`finish` false).
  */
 export function applyCommand(
   state: ConsoleState,
@@ -408,6 +480,30 @@ export function applyCommand(
   agents: readonly string[],
 ): { state: ConsoleState; finish: boolean; status: 'done' | 'failed'; outcome: string } {
   const next: ConsoleState = structuredClone(state);
+  // T-1907: a triage command is kept here first, so it survives whatever happens
+  // next; `applyTriage` writes it through `finding.mjs` and reports it.
+  if (
+    command.kind === 'finding.accept' ||
+    command.kind === 'finding.reject' ||
+    command.kind === 'finding.snooze'
+  ) {
+    (next.triage ??= []).push({
+      id: command.id,
+      kind: command.kind,
+      finding: command.target,
+      reason: command.payload.reason ?? '',
+      until: command.payload.until ?? '',
+      by: command.requested_by_username ?? '',
+      owner: command.requested_by_owner === true,
+      at: command.requested_at,
+    });
+    return {
+      state: next,
+      finish: false,
+      status: 'done',
+      outcome: 'Waiting to be written to the findings file.',
+    };
+  }
   const isAgent = agents.includes(command.target);
   const agent = (next.agents[command.target] ??= {});
   const failed = (outcome: string) => ({ state, finish: true, status: 'failed' as const, outcome });
@@ -482,6 +578,17 @@ export interface SyncSteps {
   /** Reports one command's outcome to the server; may throw (ssh down, an older server). */
   finish(id: string, status: 'done' | 'failed', outcome: string): void;
   publish(state: ConsoleState): void;
+  /**
+   * Writes the triage commands the state holds to the findings files (T-1907,
+   * `applyTriage`): the state without them, and each one's outcome to report.
+   */
+  triage?(state: ConsoleState): { state: ConsoleState; reports: CommandReport[] };
+}
+
+export interface CommandReport {
+  id: string;
+  status: 'done' | 'failed';
+  outcome: string;
 }
 
 const COMMAND_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -503,7 +610,7 @@ export function syncCommands(
   let state = steps.load();
   const taken = steps.take();
   const failures: string[] = [];
-  const reports: { id: string; status: 'done' | 'failed'; outcome: string }[] = [];
+  const reports: CommandReport[] = [];
   for (const command of taken) {
     if (typeof command.id !== 'string' || !COMMAND_UUID.test(command.id)) {
       failures.push('A command without a UUID id was left out.');
@@ -525,6 +632,18 @@ export function syncCommands(
     }
   }
   steps.save(state);
+  // T-1907: the triage commands are saved above before a line is written, and
+  // the state without them is saved before any of them is reported.
+  if (steps.triage !== undefined && (state.triage ?? []).length > 0) {
+    try {
+      const written = steps.triage(state);
+      state = written.state;
+      reports.push(...written.reports);
+      steps.save(state);
+    } catch (error) {
+      failures.push(`The triage commands were not written: ${reasonOf(error)}`);
+    }
+  }
   for (const report of reports) {
     try {
       steps.finish(report.id, report.status, report.outcome);
