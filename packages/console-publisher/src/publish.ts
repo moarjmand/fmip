@@ -51,8 +51,16 @@ import {
   sshTarget,
 } from './remote.ts';
 import { type LabRead, labFrom } from './lab.ts';
+import { checkout, makeTaskRows } from './task-row.ts';
+import { applyTriage, findingDoor, readFindingLines as findingLinesOf } from './triage.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
-import { SECURITY_AGENT, type SecurityLedger, guardText, securityLedger } from './redact.ts';
+import {
+  SECURITY_AGENT,
+  type SecurityLedger,
+  guardText,
+  securityLedger,
+  withholds,
+} from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -93,6 +101,19 @@ import {
  * What reaches the server's shell (T-1878): `remote.ts` builds every command
  * line from the fixed prefix, flags, ids checked as UUIDs and statuses from a
  * fixed list; any text a person or an agent wrote goes on standard input.
+ *
+ * A finding's triage (T-1907, D-456 point 2): `sync` also writes each
+ * `finding.accept`, `finding.reject` and `finding.snooze` it took as one new
+ * line of that finding through `.claude/skills/team-charter/bin/finding.mjs
+ * seen` (`triage.ts`), and keeps each accepted finding in the state until
+ *
+ *     node packages/console-publisher/src/publish.ts task-row
+ *
+ * has given it the next free task id, added its row to the current backlog
+ * file in one docs pull request (a fresh `git worktree` of `origin/main`,
+ * `gh pr create`), and written the id back onto the finding (`task-row.ts`).
+ * It is run by a Claude session of the engineering session's kind, never by
+ * one of the sixteen agents, and starts no work on the task.
  *
  * The model lab's ledger (T-1752, D-371): `E:/FMIP/ops/model/ledger.json`,
  * kept by the model scientist, goes into every snapshot as `model_lab` after
@@ -150,6 +171,8 @@ const REQUESTS_FILE = join(OPS, 'console', 'requests.json');
 const REQUEST_IMAGES_DIR = join(OPS, 'console', 'requests');
 const LAB_FILE = join(OPS, 'model', 'ledger.json');
 const PROVIDERS_FILE = join(OPS, 'providers', 'comparison.json');
+/** The one door for findings (T-1884): every triage line is written through it (T-1907). */
+const FINDING_SCRIPT = join(ROOT, '.claude', 'skills', 'team-charter', 'bin', 'finding.mjs');
 const SSH_HOST = process.env.FMIP_SSH_HOST ?? 'fmip-prod';
 /** The fixed prefix of every remote command line; `remote.ts` checks every word after it. */
 const CLI = 'cd /opt/fmip && docker compose exec -T api node dist/cli/agents-console.js';
@@ -221,20 +244,7 @@ export function readProviders(path = PROVIDERS_FILE): ProvidersRead {
 }
 
 /** Every line of the findings files, in date order. */
-function readFindingLines(): FindingLine[] {
-  const findingLines: FindingLine[] = [];
-  for (const name of files(join(OPS, 'findings'), '.jsonl')) {
-    for (const line of read(join(OPS, 'findings', name)).split(/\r?\n/)) {
-      if (line.trim() === '') continue;
-      try {
-        findingLines.push({ file: name, record: JSON.parse(line) as Record<string, unknown> });
-      } catch {
-        // A half-written line is skipped; the next run writes it whole.
-      }
-    }
-  }
-  return findingLines;
-}
+const readFindingLines = (): FindingLine[] => findingLinesOf(OPS);
 
 export function buildSnapshot(state: ConsoleState): ConsoleSnapshot {
   const skillNames = existsSync(join(ROOT, '.claude', 'skills'))
@@ -480,13 +490,49 @@ export function main(argv = process.argv.slice(2)): number {
           publish: (next) => {
             process.stderr.write(`${publish(buildSnapshot(next))}\n`);
           },
+          // T-1907: a finding's triage, one appended line each through finding.mjs.
+          triage: (held) => applyTriage(held, findingDoor(FINDING_SCRIPT, OPS)),
         },
         agents,
       );
       for (const failure of failures) process.stderr.write(`sync: ${failure}\n`);
+      // Standard output stays the run requests alone: the scheduled task parses it.
+      if ((state.taskRows ?? []).length > 0)
+        process.stderr.write(
+          `sync: ${state.taskRows.length} accepted finding(s) want a task row; run task-row.\n`,
+        );
       // The run requests are printed even then: they are saved, and the task starts them.
       process.stdout.write(`${JSON.stringify(state.runRequests)}\n`);
       return failures.length === 0 ? 0 : 1;
+    }
+    case 'task-row': {
+      // T-1907 (D-456 point 2): the rows of the accepted findings, in one docs pull request.
+      const lines = readFindingLines();
+      const ledger = securityLedger(lines);
+      const door = findingDoor(FINDING_SCRIPT, OPS);
+      const work = checkout(ROOT);
+      const result = makeTaskRows(loadState(), {
+        history: door.history,
+        seen: door.seen,
+        withheld: (finding, agent) => withholds(ledger, finding, agent),
+        guard: (value) => guardText(value, ledger).text,
+        findingTasks: () =>
+          lines.map((line) => (typeof line.record.task === 'string' ? line.record.task : '')),
+        backlogs: work.backlogs,
+        pullRequest: work.pullRequest,
+        close: work.close,
+      });
+      saveState(result.state);
+      for (const failure of result.failures) process.stderr.write(`task-row: ${failure}\n`);
+      process.stdout.write(
+        `${JSON.stringify({
+          pull_request: result.pullRequest,
+          made: result.made,
+          skipped: result.skipped,
+          waiting: result.state.taskRows.length,
+        })}\n`,
+      );
+      return result.failures.length === 0 ? 0 : 1;
     }
     case 'lab-check': {
       const lab = readLab();
@@ -638,7 +684,7 @@ export function main(argv = process.argv.slice(2)): number {
     }
     default:
       process.stderr.write(
-        'build [--out file] | publish | sync | lab-check | providers-check [file] | finish <id> done|failed [--file f] | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
+        'build [--out file] | publish | sync | task-row | lab-check | providers-check [file] | finish <id> done|failed [--file f] | chat-pull | chat-reply <id> answered|failed [--file f] | requests-pull [--status s] | request-result <id> in_progress|done|cancelled [--file f] | request-ask <id> [--file f]\n',
       );
       return 2;
   }

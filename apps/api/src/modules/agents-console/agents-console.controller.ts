@@ -60,6 +60,8 @@ import {
   checkCommand,
   checkMessage,
   consoleCookie,
+  isFindingCommand,
+  withPendingTriage,
   consoleTokenText,
   isConsoleUsername,
   isLocked,
@@ -231,9 +233,12 @@ export class AgentsConsoleController {
   async snapshot(@Req() request: FastifyRequest): Promise<ConsoleSnapshotResponse> {
     await this.person(request);
     const latest = await this.store.latestSnapshot();
-    return latest === null
-      ? { snapshot: null, loaded_at: null }
-      : { snapshot: latest.snapshot, loaded_at: latest.loaded_at.toISOString() };
+    if (latest === null) return { snapshot: null, loaded_at: null };
+    // T-1907: each finding with the triage command still waiting for the computer.
+    return {
+      snapshot: withPendingTriage(latest.snapshot, await this.store.openTriage()),
+      loaded_at: latest.loaded_at.toISOString(),
+    };
   }
 
   /**
@@ -256,7 +261,10 @@ export class AgentsConsoleController {
    * A command for the maintainer's computer. Audited, and held per person to
    * the `console_command` ceiling and, for `agent.run`, the tighter
    * `console_command_run` (T-1880); an agent with a run already waiting gets
-   * no second one (409).
+   * no second one (409). A triage command (T-1907: `finding.accept`,
+   * `finding.reject`, `finding.snooze`) names a finding of the loaded
+   * snapshot, is counted in the same ceiling, and is audited with the status
+   * the snapshot showed; a finding with one still waiting takes no second.
    */
   @Post('commands')
   async queue(
@@ -269,9 +277,22 @@ export class AgentsConsoleController {
     const agents = latest?.snapshot.agents.map((agent) => agent.name) ?? [];
     const decisions =
       latest?.snapshot.decisions.filter((d) => d.status === 'open').map((d) => d.id) ?? [];
-    const checked = checkCommand(body, agents, decisions);
+    const findings = latest?.snapshot.findings ?? [];
+    const checked = checkCommand(
+      body,
+      agents,
+      decisions,
+      findings.map((finding) => finding.id),
+    );
     if (!checked.ok) throw invalid(checked.reason);
-    const outcome = await this.store.queueCommand(checked.command, actor);
+    const triage = isFindingCommand(checked.command.kind);
+    const outcome = await this.store.queueCommand(
+      checked.command,
+      actor,
+      triage
+        ? { status: findings.find((f) => f.id === checked.command.target)?.status ?? null }
+        : undefined,
+    );
     if (outcome.kind === 'limited')
       return refuseOverRate(
         reply,
@@ -283,7 +304,9 @@ export class AgentsConsoleController {
     if (outcome.kind === 'waiting')
       throw new ConflictException({
         error: 'conflict',
-        message: 'This agent already has a run waiting.',
+        message: triage
+          ? 'This finding already has a command waiting.'
+          : 'This agent already has a run waiting.',
       } satisfies ApiError);
     return outcome.command;
   }

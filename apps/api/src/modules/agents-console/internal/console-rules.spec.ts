@@ -2,6 +2,7 @@ import {
   CONSOLE_MESSAGE_MAX,
   CONSOLE_REPLY_MAX,
   CONSOLE_SNAPSHOT_SCHEMA,
+  type ConsoleCommand,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +25,7 @@ import {
   isLocked,
   outcomeText,
   replyText,
+  withPendingTriage,
 } from './console-rules';
 
 const NOW = new Date('2026-11-01T12:00:00Z');
@@ -447,5 +449,152 @@ describe('what the account commands tell the operator (T-1880)', () => {
       code: 1,
       out: 'No console account mate.\n',
     });
+  });
+});
+
+describe("a finding's triage (T-1907, D-456 point 2)", () => {
+  const findings = ['ops-2026-11-01-01', 'sec-2026-11-01-01'];
+  const check = (body: Record<string, unknown>, now = NOW) =>
+    checkCommand(body, ['data-auditor'], [], findings, now);
+
+  it('takes an accept, a reject with its reason and a snooze to a later day', () => {
+    expect(check({ kind: 'finding.accept', target: findings[0], reason: 'worth doing' })).toEqual({
+      ok: true,
+      command: {
+        kind: 'finding.accept',
+        target: findings[0],
+        payload: {},
+        reason: 'worth doing',
+      },
+    });
+    // The reason travels in the payload: the queue keeps no other copy for the computer.
+    expect(
+      check({ kind: 'finding.reject', target: findings[0], reason: ' not\r\nours ' }),
+    ).toMatchObject({
+      ok: true,
+      command: { payload: { reason: 'not\nours' }, reason: 'not\nours' },
+    });
+    const snoozed = check({
+      kind: 'finding.snooze',
+      target: findings[1],
+      payload: { until: '2026-11-02', reason: 'smuggled', note: 'x' },
+      reason: 'after the release',
+    });
+    // Only what the kind takes travels to the computer.
+    expect(snoozed).toMatchObject({ ok: true, command: { payload: { until: '2026-11-02' } } });
+    expect(snoozed.ok && Object.keys(snoozed.command.payload)).toEqual(['until']);
+  });
+
+  it('refuses a reject without a reason of three characters', () => {
+    for (const reason of ['ok', ' a ', 'نه']) {
+      expect(check({ kind: 'finding.reject', target: findings[0], reason })).toEqual({
+        ok: false,
+        reason: 'Say why it is rejected, in 3 characters or more.',
+      });
+    }
+    expect(check({ kind: 'finding.reject', target: findings[0], reason: '' }).ok).toBe(false);
+    expect(check({ kind: 'finding.reject', target: findings[0] }).ok).toBe(false);
+    expect(check({ kind: 'finding.reject', target: findings[0], reason: 'خیر' }).ok).toBe(true);
+    // The value keeps D-455's cap of 500 characters.
+    expect(
+      check({ kind: 'finding.reject', target: findings[0], reason: 'x'.repeat(REASON_MAX + 1) }).ok,
+    ).toBe(false);
+  });
+
+  it('refuses a snooze to today, into the past, or to a day that does not exist', () => {
+    const snooze = (until: unknown, now = NOW) =>
+      check(
+        { kind: 'finding.snooze', target: findings[0], payload: { until }, reason: 'later' },
+        now,
+      );
+    for (const until of ['2026-11-01', '2026-10-31', '2026-02-30', '2026-13-01', 'tomorrow', '']) {
+      expect(snooze(until)).toEqual({
+        ok: false,
+        reason: 'Snooze until a day after today, YYYY-MM-DD.',
+      });
+    }
+    expect(check({ kind: 'finding.snooze', target: findings[0], reason: 'later' }).ok).toBe(false);
+    expect(snooze('2026-11-02').ok).toBe(true);
+    // The day is the server's UTC day: a minute before midnight, tomorrow is still tomorrow.
+    expect(snooze('2026-11-02', new Date('2026-11-01T23:59:00Z')).ok).toBe(true);
+    expect(snooze('2026-11-02', new Date('2026-11-02T00:00:00Z')).ok).toBe(false);
+  });
+
+  it('refuses a finding the loaded snapshot does not hold', () => {
+    for (const kind of ['finding.accept', 'finding.reject', 'finding.snooze']) {
+      expect(
+        check({
+          kind,
+          target: 'ops-2026-11-01-99',
+          payload: { until: '2026-12-01' },
+          reason: 'why',
+        }),
+      ).toEqual({ ok: false, reason: 'No such finding.' });
+    }
+    // An agent's name is not a finding, and with no snapshot there is none.
+    expect(check({ kind: 'finding.accept', target: 'data-auditor', reason: 'why' }).ok).toBe(false);
+    expect(
+      checkCommand({ kind: 'finding.accept', target: findings[0], reason: 'why' }, [], []).ok,
+    ).toBe(false);
+  });
+
+  const queued = (over: Partial<ConsoleCommand>): ConsoleCommand => ({
+    id: 'c-1',
+    kind: 'finding.snooze',
+    target: 'sec-1',
+    payload: { until: '2026-12-01' },
+    status: 'queued',
+    requested_by: 'Mostafa',
+    requested_at: '2026-11-01T10:00:00.000Z',
+    finished_at: null,
+    outcome: null,
+    ...over,
+  });
+
+  it('shows each finding with the command not yet applied, and no other', () => {
+    const shown = withPendingTriage(snapshot(), [
+      queued({}),
+      // A newer one wins; a finished one, another kind and another finding are passed over.
+      queued({
+        id: 'c-2',
+        kind: 'finding.accept',
+        payload: {},
+        status: 'taken',
+        requested_at: '2026-11-01T11:00:00.000Z',
+      }),
+      queued({ id: 'c-3', status: 'done', requested_at: '2026-11-01T12:00:00.000Z' }),
+      queued({ id: 'c-4', kind: 'agent.run', requested_at: '2026-11-01T12:00:00.000Z' }),
+      queued({ id: 'c-5', target: 'gone' }),
+    ]);
+    expect(shown.findings.map((f) => [f.id, f.pending?.command_id ?? null])).toEqual([
+      ['sec-1', 'c-2'],
+      ['sec-0', null],
+      ['dat-1', null],
+    ]);
+    expect(shown.findings[0]?.pending).toEqual({
+      command_id: 'c-2',
+      kind: 'finding.accept',
+      requested_by: 'Mostafa',
+      requested_at: '2026-11-01T11:00:00.000Z',
+      until: null,
+    });
+    expect(withPendingTriage(snapshot(), [queued({})]).findings[0]?.pending?.until).toBe(
+      '2026-12-01',
+    );
+  });
+
+  it("keeps a triaged security finding's detail back, and drops a `pending` the computer sent", () => {
+    for (const status of ['planned', 'rejected', 'snoozed'] as const) {
+      const base = snapshot();
+      const checked = checkSnapshot({
+        ...base,
+        findings: [
+          { ...base.findings[0]!, status, detail: 'how to use it', pending: { command_id: 'x' } },
+        ],
+      });
+      if (!checked.ok) throw new Error(checked.reason);
+      expect(checked.snapshot.findings[0]).toMatchObject({ status, detail: null });
+      expect('pending' in checked.snapshot.findings[0]!).toBe(false);
+    }
   });
 });

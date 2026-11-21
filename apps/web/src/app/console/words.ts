@@ -313,6 +313,10 @@ export const COMMAND_WORDS: Record<ConsoleCommandKind, string> = {
   'agent.model': 'تغییر مدل',
   'agent.schedule': 'تغییر برنامه',
   'decision.answer': 'پاسخ به تصمیم',
+  // T-1907: a finding's triage; the buttons themselves are T-1908's.
+  'finding.accept': 'قبول یافته',
+  'finding.reject': 'رد یافته',
+  'finding.snooze': 'تعویق یافته',
 };
 
 const SCHEDULES: Record<string, string> = {

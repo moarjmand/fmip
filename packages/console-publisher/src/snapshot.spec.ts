@@ -433,3 +433,201 @@ describe('sync, with stand-ins for the server and the files (T-1878)', () => {
     expect(failures[1]).toContain(ID(2));
   });
 });
+
+describe("a person's triage in the snapshot and in sync (T-1907, D-456 point 2)", () => {
+  const ID = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
+  const line = (file: string, record: Record<string, unknown>) => ({
+    file: `${file}.jsonl`,
+    record: { agent: 'ops-release', severity: 'major', title: 'Disk', ...record },
+  });
+  const lines = [
+    line('2026-11-01', { id: 'p', status: 'new', evidence: 'df 91%', proposal: 'prune' }),
+    line('2026-11-02', {
+      id: 'p',
+      status: 'planned',
+      by: 'mostafa',
+      evidence: 'Accepted on the agents console by mostafa.',
+      proposal: 'prune',
+      task: 'T-1946',
+    }),
+    line('2026-11-01', { id: 'r', status: 'open', evidence: 'slow page' }),
+    line('2026-11-02', {
+      id: 'r',
+      status: 'rejected',
+      by: 'teammate',
+      evidence: 'Rejected: «not ours»',
+    }),
+    line('2026-11-02', { id: 's', status: 'snoozed', by: 'mostafa', until: '2026-11-10' }),
+    // A snooze that names no day was never put off; one written by hand without `by` is read too.
+    line('2026-11-02', { id: 'n', status: 'snoozed', by: 'mostafa' }),
+    line('2026-11-02', { id: 'h', status: 'snoozed', until: '2026-11-10', evidence: 'by hand' }),
+    line('2026-11-02', { id: 'a', status: 'accepted', evidence: 'known' }),
+  ];
+  const on = (day: string) => new Map(findingsFrom(lines, day).map((f) => [f.id, f]));
+
+  it('carries planned, rejected and snoozed, with the task, the day and who decided', () => {
+    const findings = on('2026-11-03');
+    expect(findings.get('p')).toMatchObject({
+      status: 'planned',
+      task: 'T-1946',
+      triaged_by: 'mostafa',
+      until: null,
+      opened_at: '2026-11-01',
+      // What the agent saw stays; the person's line is added, not put in its place.
+      detail: 'df 91%\n\nProposal: prune\n\nTriage: Accepted on the agents console by mostafa.',
+    });
+    expect(findings.get('r')).toMatchObject({
+      status: 'rejected',
+      triaged_by: 'teammate',
+      task: null,
+      detail: 'slow page\n\nTriage: Rejected: «not ours»',
+    });
+    expect(findings.get('s')).toMatchObject({
+      status: 'snoozed',
+      until: '2026-11-10',
+      triaged_by: 'mostafa',
+    });
+    expect(findings.get('h')).toMatchObject({
+      status: 'snoozed',
+      until: '2026-11-10',
+      triaged_by: null,
+      detail: 'by hand',
+    });
+    expect(findings.get('n')).toMatchObject({ status: 'open', until: null, triaged_by: null });
+    // The charter's `accepted` is still "known, nothing to do", never `planned`.
+    expect(findings.get('a')).toMatchObject({ status: 'wontfix', triaged_by: null });
+  });
+
+  it('reads a snoozed finding as open again from its day, with a fixed clock', () => {
+    expect(on('2026-11-09').get('s')).toMatchObject({ status: 'snoozed', until: '2026-11-10' });
+    expect(on('2026-11-10').get('s')).toMatchObject({
+      status: 'open',
+      until: null,
+      triaged_by: null,
+    });
+    expect(on('2027-01-01').get('s')?.status).toBe('open');
+    // A rejected or planned finding does not come back by the calendar.
+    expect(on('2027-01-01').get('r')?.status).toBe('rejected');
+    expect(on('2027-01-01').get('p')?.status).toBe('planned');
+  });
+
+  const reject = command({
+    id: ID(1),
+    kind: 'finding.reject',
+    target: 'ops-2026-11-01-01',
+    payload: { reason: 'not ours' },
+    requested_by: 'Mostafa A',
+    requested_by_username: 'mostafa',
+  });
+  const snooze = command({
+    id: ID(2),
+    kind: 'finding.snooze',
+    target: 'ops-2026-11-01-02',
+    payload: { until: '2026-12-01' },
+    requested_by_username: 'teammate',
+  });
+
+  it('keeps a triage command in the state until it is written, without touching an agent', () => {
+    const applied = applyCommand(emptyState(), reject, ['ops-release']);
+    expect(applied).toMatchObject({ finish: false, status: 'done' });
+    expect(applied.state.triage).toEqual([
+      {
+        id: ID(1),
+        kind: 'finding.reject',
+        finding: 'ops-2026-11-01-01',
+        reason: 'not ours',
+        until: '',
+        by: 'mostafa',
+        at: '2026-11-01T10:00:00.000Z',
+      },
+    ]);
+    expect(applied.state.agents).toEqual({});
+    // A state file from before T-1907 has no list yet.
+    const old = { agents: {}, answers: {}, runRequests: [] } as unknown as ConsoleState;
+    expect(applyCommand(old, snooze, []).state.triage).toMatchObject([
+      { kind: 'finding.snooze', until: '2026-12-01', by: 'teammate' },
+    ]);
+  });
+
+  it('saves the commands before a line is written, and the state without them before any is reported', () => {
+    const log: string[] = [];
+    const saved: ConsoleState[] = [];
+    const steps: SyncSteps = {
+      load: () => emptyState(),
+      take: () => [reject, command({ id: ID(3), kind: 'agent.pause' }), snooze],
+      save: (state) => {
+        log.push(`save ${state.triage.length}`);
+        saved.push(structuredClone(state));
+      },
+      triage: (state) => {
+        log.push(`triage ${state.triage.map((t) => t.id.slice(-1)).join(',')}`);
+        return {
+          state: { ...state, triage: [] },
+          reports: [
+            { id: ID(1), status: 'done', outcome: 'Rejected, with the reason.' },
+            { id: ID(2), status: 'failed', outcome: 'The computer could not write it: closed' },
+          ],
+        };
+      },
+      finish: (id, status) => {
+        log.push(`finish ${id.slice(-1)} ${status}`);
+      },
+      publish: (state) => {
+        log.push(`publish ${state.triage.length}`);
+      },
+    };
+    const { state, failures } = syncCommands(steps, ['ops-release']);
+    expect(failures).toEqual([]);
+    expect(log).toEqual([
+      'save 2',
+      'triage 1,2',
+      'save 0',
+      'finish 3 done',
+      'finish 1 done',
+      'finish 2 failed',
+      'publish 0',
+    ]);
+    expect(saved[0]?.triage.map((t) => t.id)).toEqual([ID(1), ID(2)]);
+    expect(state.triage).toEqual([]);
+  });
+
+  it('keeps the commands for the next sync when writing them throws, and still publishes', () => {
+    const log: string[] = [];
+    const steps: SyncSteps = {
+      load: () => emptyState(),
+      take: () => [reject],
+      save: (state) => {
+        log.push(`save ${state.triage.length}`);
+      },
+      triage: () => {
+        throw new Error('the findings folder is not there');
+      },
+      finish: () => {
+        log.push('finish');
+      },
+      publish: () => {
+        log.push('publish');
+      },
+    };
+    const { state, failures } = syncCommands(steps, []);
+    expect(failures).toEqual([
+      'The triage commands were not written: the findings folder is not there',
+    ]);
+    expect(log).toEqual(['save 1', 'publish']);
+    expect(state.triage).toHaveLength(1);
+
+    // The next sync takes nothing new and writes what was kept.
+    const next: SyncSteps = {
+      ...steps,
+      load: () => state,
+      take: () => [],
+      triage: (held) => ({
+        state: { ...held, triage: [] },
+        reports: [{ id: ID(1), status: 'done', outcome: 'Rejected, with the reason.' }],
+      }),
+    };
+    log.length = 0;
+    expect(syncCommands(next, []).failures).toEqual([]);
+    expect(log).toEqual(['save 1', 'save 0', 'finish', 'publish']);
+  });
+});

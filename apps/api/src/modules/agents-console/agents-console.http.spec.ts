@@ -575,6 +575,260 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
     }
   });
 
+  describe('finding triage (T-1907, D-456 point 2)', () => {
+    let mate = '';
+    const OPEN = `ops-${RUN}-01`;
+    const SECURITY = `sec-${RUN}-01`;
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const auditOf = async (action: string, target: string) => {
+      const { rows } = await pool.query<{
+        actor_name: string;
+        target_type: string;
+        reason: string;
+        previous: unknown;
+        next: unknown;
+        created_at: Date;
+      }>(
+        `SELECT actor_name, target_type, reason, previous, next, created_at FROM console_audit
+          WHERE action = $1 AND target_id = $2 ORDER BY created_at DESC LIMIT 1`,
+        [action, target],
+      );
+      return rows[0];
+    };
+    const finding = async (id: string, who = cookie) =>
+      (await get('snapshot', who))
+        .json<ConsoleSnapshotResponse>()
+        .snapshot?.findings.find((f) => f.id === id);
+
+    beforeAll(async () => {
+      const token = await invite(`AC ${RUN} triage mate`);
+      const accepted = await send(
+        'POST',
+        'invitations/accept',
+        { token, username: `${name}_tri`, password: PASSWORD },
+        null,
+      );
+      mate = cookieOf(accepted.headers['set-cookie']);
+      const latest = await store.latestSnapshot();
+      const checked = checkSnapshot({
+        ...latest!.snapshot,
+        findings: [
+          {
+            id: OPEN,
+            agent: 'ops-release',
+            severity: 'major',
+            status: 'open',
+            title: 'Disk',
+            opened_at: GENERATED,
+            detail: 'df 91%',
+            related: null,
+            // The computer cannot say a command is waiting: that word is the server's.
+            pending: { command_id: 'x', kind: 'finding.accept' },
+          },
+          {
+            id: SECURITY,
+            agent: 'security',
+            severity: 'critical',
+            status: 'snoozed',
+            title: 'Weakness',
+            opened_at: GENERATED,
+            detail: 'how to use it',
+            related: null,
+            until: tomorrow,
+          },
+        ],
+      });
+      if (!checked.ok) throw new Error(checked.reason);
+      await store.loadSnapshot(checked.snapshot);
+      // Nothing of an earlier test is left waiting.
+      await store.takeCommands();
+    });
+
+    it('refuses a reject without a reason, a snooze into the past and an unknown finding, for either account alike', async () => {
+      for (const who of [cookie, mate]) {
+        for (const [body, message] of [
+          [
+            { kind: 'finding.reject', target: OPEN, reason: 'no' },
+            'Say why it is rejected, in 3 characters or more.',
+          ],
+          [
+            { kind: 'finding.reject', target: OPEN, reason: '  \n ' },
+            'Give a reason, up to 500 characters.',
+          ],
+          [
+            { kind: 'finding.snooze', target: OPEN, payload: { until: today }, reason: 'later' },
+            'Snooze until a day after today, YYYY-MM-DD.',
+          ],
+          [
+            {
+              kind: 'finding.snooze',
+              target: OPEN,
+              payload: { until: '2020-01-01' },
+              reason: 'later',
+            },
+            'Snooze until a day after today, YYYY-MM-DD.',
+          ],
+          [
+            { kind: 'finding.snooze', target: OPEN, payload: {}, reason: 'later' },
+            'Snooze until a day after today, YYYY-MM-DD.',
+          ],
+          [
+            { kind: 'finding.accept', target: `ops-${RUN}-99`, reason: 'do it' },
+            'No such finding.',
+          ],
+          [
+            {
+              kind: 'finding.reject',
+              target: OPEN,
+              reason: 'x'.repeat(501),
+            },
+            'Give a reason, up to 500 characters.',
+          ],
+        ] as const) {
+          const refused = await send('POST', 'commands', body, who);
+          expect(refused.statusCode).toBe(400);
+          expect(refused.json<ApiError>()).toEqual({ error: 'validation', message });
+        }
+      }
+      // Nothing was queued, and nothing waits on the finding.
+      expect((await store.openTriage()).filter((c) => c.target === OPEN)).toEqual([]);
+      expect((await finding(OPEN))?.pending).toBeNull();
+    });
+
+    it('queues a reject with its reason, audited with the previous status, and shows it as not yet applied', async () => {
+      const queued = await send(
+        'POST',
+        'commands',
+        {
+          kind: 'finding.reject',
+          target: OPEN,
+          // Only what the kind takes travels to the computer.
+          payload: { until: tomorrow, note: 'extra' },
+          reason: '  Not ours: the provider fixed it.  ',
+        },
+        mate,
+      );
+      expect(queued.statusCode).toBe(201);
+      const command = queued.json<ConsoleCommand>();
+      expect(command).toMatchObject({
+        kind: 'finding.reject',
+        target: OPEN,
+        status: 'queued',
+        payload: { reason: 'Not ours: the provider fixed it.' },
+        requested_by: `AC ${RUN} triage mate`,
+        requested_by_username: `${name}_tri`,
+      });
+      expect(Object.keys(command.payload)).toEqual(['reason']);
+
+      const audit = await auditOf('command.finding_reject', OPEN);
+      expect(audit).toMatchObject({
+        actor_name: `${name}_tri`,
+        target_type: 'finding',
+        reason: 'Not ours: the provider fixed it.',
+        previous: { status: 'open' },
+        next: { reason: 'Not ours: the provider fixed it.' },
+      });
+      expect(Date.now() - audit!.created_at.getTime()).toBeLessThan(60_000);
+
+      // With the computer off the command stays queued: the finding is as it was, with the command beside it.
+      expect(await finding(OPEN)).toMatchObject({
+        status: 'open',
+        pending: {
+          command_id: command.id,
+          kind: 'finding.reject',
+          requested_by: `AC ${RUN} triage mate`,
+          until: null,
+        },
+      });
+      const { rows } = await pool.query<{ status: string }>(
+        `SELECT status FROM console_command WHERE id = $1`,
+        [command.id],
+      );
+      expect(rows[0]?.status).toBe('queued');
+
+      // One command at a time for a finding, whoever asks.
+      const second = await send('POST', 'commands', {
+        kind: 'finding.accept',
+        target: OPEN,
+        reason: 'do it',
+      });
+      expect(second.statusCode).toBe(409);
+      expect(second.json<ApiError>()).toEqual({
+        error: 'conflict',
+        message: 'This finding already has a command waiting.',
+      });
+
+      // The computer takes it with the asker's username, for the line's `by`...
+      const taken = (await store.takeCommands()).find((c) => c.id === command.id);
+      expect(taken).toMatchObject({
+        requested_by_username: `${name}_tri`,
+        payload: { reason: 'Not ours: the provider fixed it.' },
+      });
+      // ...and until it reports back the command is still not applied.
+      expect((await finding(OPEN))?.pending?.command_id).toBe(command.id);
+      await store.finishCommand(command.id, 'done', 'Rejected, with the reason.');
+      expect((await finding(OPEN))?.pending).toBeNull();
+    });
+
+    it('lets the other account accept and snooze, counted in the hourly ceiling', async () => {
+      const accepted = await send('POST', 'commands', {
+        kind: 'finding.accept',
+        target: OPEN,
+        reason: 'worth doing',
+      });
+      expect(accepted.statusCode).toBe(201);
+      expect(accepted.json<ConsoleCommand>().payload).toEqual({});
+      expect(await auditOf('command.finding_accept', OPEN)).toMatchObject({
+        actor_name: name,
+        previous: { status: 'open' },
+      });
+      await store.takeCommands();
+
+      try {
+        await pool.query(`UPDATE rate_limit SET per_hour = 1 WHERE action = 'console_command'`);
+        const over = await send('POST', 'commands', {
+          kind: 'finding.snooze',
+          target: OPEN,
+          payload: { until: tomorrow },
+          reason: 'after the release',
+        });
+        expect(over.statusCode).toBe(429);
+        expect(over.json<ApiError>().message).toMatch(
+          /^That is the most commands an hour allows\./,
+        );
+      } finally {
+        await pool.query(`UPDATE rate_limit SET per_hour = 40 WHERE action = 'console_command'`);
+      }
+    });
+
+    it('triages a security finding by its id while its detail stays withheld', async () => {
+      // Snoozed is not settled: the server's own net keeps the detail back.
+      expect(await finding(SECURITY)).toMatchObject({
+        status: 'snoozed',
+        until: tomorrow,
+        detail: null,
+      });
+      const queued = await send(
+        'POST',
+        'commands',
+        { kind: 'finding.accept', target: SECURITY, reason: 'fix it this week' },
+        mate,
+      );
+      expect(queued.statusCode).toBe(201);
+      expect(JSON.stringify(queued.json())).not.toContain('how to use it');
+      expect(await auditOf('command.finding_accept', SECURITY)).toMatchObject({
+        previous: { status: 'snoozed' },
+      });
+      expect(await finding(SECURITY, mate)).toMatchObject({
+        detail: null,
+        pending: { kind: 'finding.accept' },
+      });
+      await store.takeCommands();
+    });
+  });
+
   describe('chat with an agent (T-1722, D-350)', () => {
     const agent = 'data-auditor';
     const messages = `agents/${agent}/messages`;

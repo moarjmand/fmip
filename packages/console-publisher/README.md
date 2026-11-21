@@ -9,7 +9,8 @@ never reaches this computer: every exchange is this computer running
 | --- | --- |
 | `node packages/console-publisher/src/publish.ts build [--out f]` | Writes the snapshot. |
 | `node packages/console-publisher/src/publish.ts publish` | Loads the snapshot on the server. |
-| `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, publishes, prints the run requests. |
+| `node packages/console-publisher/src/publish.ts sync` | Takes the queued commands, applies them to `E:/FMIP/ops/console/state.json`, writes each finding's triage as one new line through `finding.mjs seen` (T-1907), publishes, prints the run requests. |
+| `node packages/console-publisher/src/publish.ts task-row` | Gives each accepted finding the next free task id, adds its row to the current backlog file in one docs pull request, and writes the id back onto the finding (T-1907). Prints what it made as JSON. |
 | `node packages/console-publisher/src/publish.ts finish <id> done\|failed [--file outcome.txt]` | Reports a requested run, the outcome read from `--file` or standard input (T-1878). |
 | `node packages/console-publisher/src/publish.ts providers-check [file]` | Checks the data providers' comparison (`E:/FMIP/ops/providers/comparison.json` unless a file is named; T-1830, D-423), prints each problem and exits 1 on any. `build`, `publish` and `sync` carry it in the snapshot as `providers`. |
 | `node packages/console-publisher/src/publish.ts chat-pull` | Takes the queued chat messages into `E:/FMIP/ops/console/chat-inbox.json` (T-1722). |
@@ -56,6 +57,55 @@ one is still sent, the snapshot is still published and the run requests still
 printed, and `sync` exits 1 (`syncCommands` in `src/snapshot.ts`). A command
 whose report failed stays "taken" on the console until someone runs `finish`
 for it.
+
+## A finding's triage (T-1907, D-456 point 2)
+
+The console's `finding.accept`, `finding.reject` and `finding.snooze` are
+commands like the others: `sync` takes them, keeps them in `state.json`
+(`triage`) and saves it, then writes each as ONE new line of that finding
+through `.claude/skills/team-charter/bin/finding.mjs seen` (`src/triage.ts`),
+never by opening a findings file itself:
+
+| Command | The line | Then |
+| --- | --- | --- |
+| `finding.accept` | `planned`, `by` the asker's console username | the finding is kept in `state.json` (`taskRows`) until `task-row` has run; no task id is taken by `sync` |
+| `finding.reject` | `rejected`, the reason quoted in the evidence | closed; only `open` can follow, when it comes back |
+| `finding.snooze` | `snoozed` with `until` | it reads `open` again from that day, with no new line |
+
+The reason is a person's text: it reaches `finding.mjs` in a temp file
+(`--evidence-file`), never on a command line, and the line says it is quoted
+data. The evidence names the command (`console command <id>`), so a sync that
+stopped before saving does not write a command twice. What `finding.mjs`
+refuses (a closed finding, an agent's name as `by`, a secret-shaped reason) is
+reported to the console as a failed command with its first line.
+
+`sync` prints on standard error how many accepted findings want a row.
+Standard output is still the run requests alone.
+
+`task-row` is run after `sync` by a Claude session of the engineering
+session's kind, never by one of the sixteen agents (their guard forbids
+repository writes), and needs `git` and GitHub's `gh` signed in:
+
+1. it fetches `origin/main` into a fresh `git worktree` in the temp folder,
+   so the working checkout, its branch and its changes are not touched;
+2. the next free id is one more than the highest `T-n` named in any
+   `docs/04-tasks-*.md` there or carried as `task` by any finding;
+3. each row goes to the section "Accepted findings (console triage, D-456)"
+   at the end of the newest `docs/04-tasks-phase-<N>.md`, with the finding's
+   id, the agent's evidence and its proposal (`quoted` outside text is never
+   copied);
+4. one commit, one branch `docs-task-rows-<date>-t-<first id>`, one pull
+   request for all of them (`gh pr create`);
+5. each id is written back with `finding.mjs seen <id> --status planned
+   --task T-n`: one more line, the same id.
+
+It starts no work on a task. A finding that already has a task, or that is
+no longer `planned`, gets no row. When the pull request cannot be opened no id
+is written anywhere and the requests wait for the next run; when a write-back
+fails the request keeps its id and the next run writes it without a second
+row. The repository is public: a security finding whose detail is withheld
+gets a row with its id alone, and a text that names a withheld finding is
+left out of a row whole.
 
 ## Security detail stays on this computer (T-1879, D-340)
 
