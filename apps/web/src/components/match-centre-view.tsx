@@ -990,19 +990,36 @@ function scorersOf(
  * A side's scorers, broken into lines only between scorers (T-1796, D-395):
  * each scorer is one unbreakable unit, his name isolated (a Latin name
  * inside Persian) and his minutes, the separator held to the unit before it.
+ *
+ * A unit is never wider than its column (T-1947, finding qa-2026-11-20-01):
+ * one that does not fit, a long Latin name in Vazirmatn or a narrow column
+ * beside a wide score, gives up the end of the name to an ellipsis and keeps
+ * its minutes, so it cannot push the page sideways. One that fits is drawn
+ * as before: the no-break spaces sit inside the part that never shrinks.
  */
 function scorerLine(list: [string, string][]) {
   return list.map(([who, at], i) => (
     <Fragment key={who}>
-      {i > 0 && '\u00a0· '}
-      <span className={cx('whitespace-nowrap', scorerFit(`${who} ${at}`))}>
-        <bdi>{who}</bdi>
-        {'\u00a0'}
-        {at}
+      {i > 0 && ' '}
+      <span className={cx(SCORER_UNIT, scorerFit(`${who} ${at}`))}>
+        <bdi className={SCORER_NAME}>{who}</bdi>
+        <span className="shrink-0">
+          {'\u00a0'}
+          {at}
+          {i < list.length - 1 && '\u00a0·'}
+        </span>
       </span>
     </Fragment>
   ));
 }
+
+/** A scorer's unit: one line, at most as wide as the band's column (T-1947). */
+export const SCORER_UNIT = 'inline-flex max-w-full items-baseline whitespace-nowrap';
+/**
+ * The name is the part that gives way. Clipped along the line only, so no
+ * letter loses its top or its tail and the unit keeps its baseline.
+ */
+export const SCORER_NAME = 'min-w-0 overflow-x-clip text-ellipsis';
 
 /**
  * A scorer's unit on a phone (D-395): measured at 375, the band's column is
