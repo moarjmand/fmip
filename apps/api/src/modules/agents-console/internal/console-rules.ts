@@ -19,7 +19,7 @@ import {
   type ConsoleFindingPending,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
-import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
+import { CONSOLE_WITHHELD_FINDING_TITLE, isConsoleSecurityId } from '@fmip/contracts/console';
 import { checkModelLab } from './model-lab-rules';
 import { checkProviders } from './providers-rules';
 
@@ -57,10 +57,12 @@ export const RUN_CEILING = 'console_command_run';
 /** The agent whose open findings show their id and severity only (D-340; no title since T-1948). */
 export const WITHHELD_AGENT = 'security';
 
-const SECURITY_ID = /^sec-\d{4}-\d{2}-\d{2}-\d+$/i;
-/** A security finding: the security agent's, or one whose id is `sec-YYYY-MM-DD-NN` (D-455 point 2). */
+/**
+ * A security finding: the security agent's, or one whose id is `sec-YYYY-MM-DD-NN` (D-455 point 2),
+ * read as the publisher reads it (T-1948): Persian or Arabic digits, another dash, hidden marks.
+ */
 export const isSecurityFinding = (finding: { id: string; agent: string }): boolean =>
-  finding.agent === WITHHELD_AGENT || SECURITY_ID.test(finding.id.trim());
+  finding.agent === WITHHELD_AGENT || isConsoleSecurityId(finding.id);
 
 /** The statuses after which a finding takes no triage: only reopening follows, which is not a console command. */
 export const CLOSED_STATUSES: readonly string[] = ['fixed', 'wontfix', 'duplicate', 'rejected'];

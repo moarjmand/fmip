@@ -56,7 +56,13 @@ import { type LabRead, labFrom } from './lab.ts';
 import { checkout, makeTaskRows } from './task-row.ts';
 import { applyTriage, findingDoor, readFindingLines as findingLinesOf } from './triage.ts';
 import { type ProvidersRead, providersFrom } from './providers.ts';
-import { SECURITY_AGENT, type SecurityLedger, guardText, securityLedger } from './redact.ts';
+import {
+  SECURITY_AGENT,
+  type SecurityLedger,
+  guardText,
+  runOutcome,
+  securityLedger,
+} from './redact.ts';
 import {
   DEFAULT_SCHEDULES,
   type ConsoleState,
@@ -587,9 +593,11 @@ export function main(argv = process.argv.slice(2)): number {
         return 2;
       }
       const state = loadState();
+      // T-1948: a security run's outcome (its report's path) does not leave the computer.
+      const agent = state.runRequests.find((request) => request.id === parsed.id)?.agent;
       state.runRequests = state.runRequests.filter((request) => request.id !== parsed.id);
       saveState(state);
-      finishRemote(parsed.id, parsed.status, outcome);
+      finishRemote(parsed.id, parsed.status, runOutcome(agent, outcome));
       return 0;
     }
     case 'chat-pull': {

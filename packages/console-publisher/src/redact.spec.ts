@@ -1,14 +1,18 @@
 import type { ConsoleMemoryEntry, ConsoleSnapshot } from '@fmip/contracts';
-import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
+import { CONSOLE_WITHHELD_FINDING_TITLE, isConsoleSecurityId } from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import {
   MEMORY_NOTE,
+  SECURITY_REPORT_TITLE,
+  SECURITY_RUN_NOTE,
   WITHHELD_NOTE,
   WITHHELD_TITLE,
   guardText,
+  isSecurityFinding,
   normalId,
   redactSecurityText,
   redactionsIn,
+  runOutcome,
   securityIdsIn,
   securityLedger,
   withheldIdsIn,
@@ -258,10 +262,15 @@ describe('the snapshot as it leaves the computer (T-1879)', () => {
         text: MEMORY_NOTE,
       },
     ]);
-    expect(sent.reports.find((r) => r.agent === 'security')).toMatchObject({
-      title: 'Weekly check',
+    // T-1948: not its first heading and not its file's name either.
+    expect(sent.reports.find((r) => r.agent === 'security')).toEqual({
+      agent: 'security',
+      date: '2026-11-19',
+      title: SECURITY_REPORT_TITLE,
+      path: 'ops/reports/security/',
       text: '',
     });
+    expect(whole).not.toContain('Weekly check');
     // Another agent's memory and a desk question's context follow the text rule.
     const chief = sent.agents.find((a) => a.name === 'chief-of-staff')!;
     expect(chief.memory.entries[0]!.text).toBe(
@@ -762,6 +771,168 @@ describe("a withheld security finding's title stays on the computer (T-1948)", (
     expect(guardText(`${HELD} quokka`, ledger).text).toBe(
       `[${HELD} · security · critical] — ${WITHHELD_NOTE}`,
     );
+  });
+
+  it('redacts the title of another finding and of a desk question that names a withheld one', () => {
+    const more = [
+      ...lines,
+      line({
+        id: 'rev-2026-11-22-01',
+        agent: 'code-reviewer',
+        status: 'open',
+        title: `Duplicate of ${HELD}: Zanzibar quokka bypasses xylophone login`,
+      }),
+      // A released security finding that names a withheld one in its title.
+      line({ id: 'sec-2026-11-22-05', status: 'resolved', title: `Follows ${NAMED} (walrus)` }),
+    ];
+    const out = snapshotOf(
+      {
+        generated_at: '2026-11-22T12:00:00.000Z',
+        agents: [],
+        findings: findingsFrom(more, '2026-11-22'),
+        reports: [],
+        brief: null,
+        decisions: [
+          {
+            id: 'q-9',
+            title: `Fix ${HELD} (quokka login) this week?`,
+            status: 'open',
+            summary: '',
+            options: [],
+            answer: null,
+            decided_by: null,
+            decided_at: null,
+          },
+          {
+            id: 'q-8',
+            title: 'Renew the certificate?',
+            status: 'open',
+            summary: '',
+            options: [],
+            answer: null,
+            decided_by: null,
+            decided_at: null,
+          },
+        ],
+      },
+      securityLedger(more),
+    );
+    const titles = Object.fromEntries(out.findings.map((f) => [f.id, f.title]));
+    expect(titles['rev-2026-11-22-01']).toBe(`[${HELD} · security · critical] — ${WITHHELD_NOTE}`);
+    expect(titles['sec-2026-11-22-05']).toBe(`[${NAMED} · security · critical] — ${WITHHELD_NOTE}`);
+    expect(titles['ops-2026-11-22-01']).toBe('Disk at 71%');
+    expect(out.decisions.map((d) => d.title)).toEqual([
+      `[${HELD} · security · critical] — ${WITHHELD_NOTE}`,
+      'Renew the certificate?',
+    ]);
+    const all = JSON.stringify(out).toLowerCase();
+    for (const word of WORDS) expect(all, word).not.toContain(word);
+  });
+
+  it("sends a security report's fixed title and its folder, and one fixed line for a security run", () => {
+    const out = snapshotOf(
+      {
+        generated_at: '2026-11-22T12:00:00.000Z',
+        agents: [],
+        findings: [],
+        reports: reportsFrom([
+          {
+            agent: 'security',
+            name: '2026-11-22-quokka-login-bypass.md',
+            text: '# Zanzibar quokka bypasses xylophone login\n\nHow.',
+          },
+          { agent: 'security', name: '2026-11-21.md', text: 'no heading' },
+          { agent: 'ops-release', name: '2026-11-22-disk.md', text: '# Disk\n\nfine' },
+        ]),
+        brief: null,
+        decisions: [],
+      },
+      ledger,
+    );
+    expect(out.reports.map((r) => [r.agent, r.date, r.title, r.path, r.text])).toEqual([
+      [
+        'ops-release',
+        '2026-11-22',
+        'Disk',
+        'ops/reports/ops-release/2026-11-22-disk.md',
+        '# Disk\n\nfine',
+      ],
+      ['security', '2026-11-22', SECURITY_REPORT_TITLE, 'ops/reports/security/', ''],
+      ['security', '2026-11-21', SECURITY_REPORT_TITLE, 'ops/reports/security/', ''],
+    ]);
+    const all = JSON.stringify(out).toLowerCase();
+    for (const word of WORDS) expect(all, word).not.toContain(word);
+    // `finish <id> done`: what the scheduled task reports is the report's path.
+    const reported = 'ops/reports/security/2026-11-22-quokka-login-bypass.md';
+    expect(runOutcome('security', reported)).toBe(SECURITY_RUN_NOTE);
+    expect(SECURITY_RUN_NOTE).not.toMatch(/quokka|\.md/);
+    expect(runOutcome('ops-release', 'ops/reports/ops-release/2026-11-22-disk.md')).toBe(
+      'ops/reports/ops-release/2026-11-22-disk.md',
+    );
+    // A request the state no longer has: the text rule alone (`guardText`) applies.
+    expect(runOutcome(undefined, 'done')).toBe('done');
+  });
+
+  it('redacts a block that carries a withheld title word for word, without the id', () => {
+    const prose = [
+      '# Brief',
+      '',
+      'Ops are fine.',
+      '',
+      'The team still has   ZANZIBAR quokka\tbypasses xylophone login open, and it is serious.',
+      '',
+      '- Released heading stays, as it should.',
+      '- One more: marzipan walrus token.',
+    ].join('\n');
+    expect(withheldIdsIn(prose, ledger)).toEqual([HELD, NAMED]);
+    expect(redactSecurityText(prose, ledger).split('\n')).toEqual([
+      '# Brief',
+      '',
+      'Ops are fine.',
+      '',
+      `[${HELD} · security · critical] — ${WITHHELD_NOTE}`,
+      '',
+      '- Released heading stays, as it should.',
+      `- [${NAMED} · security · critical] — ${WITHHELD_NOTE}`,
+    ]);
+    // A reworded title is not caught (the rule says so), and a very short one is not looked for.
+    expect(withheldIdsIn('A quokka can bypass the login.', ledger)).toEqual([]);
+    const short = securityLedger([line({ id: HELD, status: 'open', title: 'Login' })]);
+    expect(withheldIdsIn('The login page is fine.', short)).toEqual([]);
+  });
+
+  it('reads a security id as the contract does, however it is typed', () => {
+    const ids = [
+      'sec-2026-11-22-01',
+      ' SEC-2026-11-22-01 ',
+      'sec-۲۰۲۶-۱۱-۲۲-۰۱',
+      'sec-٢٠٢٦-١١-٢٢-٠١',
+      'sec\u20132026\u201111\u221222\u201401',
+      'se\u200Bc-2026-11-22-01',
+      'sec-2026-11-22-12345',
+      'sec-2026-11-22',
+      'sec-1',
+      'xsec-2026-11-22-01',
+      'ops-2026-11-22-01',
+      '',
+    ];
+    expect(ids.map((id) => isSecurityFinding(id, 'ops-release'))).toEqual(
+      ids.map(isConsoleSecurityId),
+    );
+    expect(ids.map(isConsoleSecurityId)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 
   it('leaves no word of a withheld title anywhere in the snapshot', () => {

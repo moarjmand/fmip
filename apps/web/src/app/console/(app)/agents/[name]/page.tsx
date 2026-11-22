@@ -274,10 +274,10 @@ export default async function ConsoleAgentPage({ params }: Params) {
             <p className="text-sm text-muted">گزارشی ننوشته.</p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {reports.map((report) => (
-                <li key={report.path} className="text-sm">
+              {reports.map((report, index) => (
+                <li key={`${report.path}:${report.date}:${index}`} className="text-sm">
                   <Link
-                    href={`/reports?path=${encodeURIComponent(report.path)}`}
+                    href={`/reports?path=${encodeURIComponent(report.path)}&date=${encodeURIComponent(report.date)}`}
                     className="text-fg hover:underline"
                     dir="auto"
                   >

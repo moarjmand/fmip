@@ -192,7 +192,14 @@ migration.
   updated or was rolled back.
 
 A snapshot loaded before either half keeps what it had until the next `sync`
-replaces it.
+replaces it. After both deploys and one fresh publish, the older stored
+snapshots (the last 30 rows of `console_snapshot`, about 5 to 10 days) still
+hold titles; they are never served, and clearing them is the maintainer's
+choice.
+
+The web is deployed with the API: the security agent's reports now share one
+path (their folder), and the reports page tells them apart by their day. An
+older page still opens them, the first of them whichever is chosen.
 
 ## Security detail stays on this computer (T-1879, D-340)
 
@@ -226,7 +233,14 @@ is the rule, and `snapshotOf` applies it to every snapshot:
    character and hidden marks ignored; a range or list after an id
    (`-01..03`, `-01–03`, `-01/02`, `-01, -02`, `-01 and 02`) names every id
    in it, and one withheld id among them redacts the block.
-4. The `security` agent's reports go out with no text, and its memory
+   Since T-1948 a block that carries a withheld finding's whole title, word
+   for word (any case, any spacing; titles under 12 characters are not looked
+   for), is redacted as if it named the id, and the same rule is applied to
+   the title of every other finding, report and desk question.
+4. The `security` agent's reports go out with no text, with one fixed title
+   (not the report's first heading) and their folder as the path (not the
+   file's name, T-1948); `finish` reports a run of the security agent as one
+   fixed line, whatever outcome it was given (`runOutcome`); and its memory
    (`.claude/agent-memory/security/`) is never read for the console: one
    entry says it is not shown.
 

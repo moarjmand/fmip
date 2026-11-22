@@ -4,6 +4,7 @@ import {
   CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
   CONSOLE_SYNC_TIME_ZONE,
   CONSOLE_WITHHELD_FINDING_TITLE,
+  isConsoleSecurityId,
   consolePcState,
   dayToIso,
   isoToDay,
@@ -71,7 +72,7 @@ export function triageCounts(
 
 /** The API's rule (`isSecurityFinding`): the security agent's, or an id `sec-YYYY-MM-DD-NN`. */
 export const isSecurityFinding = (finding: Pick<ConsoleFinding, 'id' | 'agent'>): boolean =>
-  finding.agent === 'security' || /^sec-\d{4}-\d{2}-\d{2}-\d+$/i.test(finding.id.trim());
+  finding.agent === 'security' || isConsoleSecurityId(finding.id);
 
 /**
  * What stands in place of a security finding's title while its detail is

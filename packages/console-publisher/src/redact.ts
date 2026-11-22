@@ -45,16 +45,24 @@ import type { ConsoleSeverity, ConsoleSnapshot } from '@fmip/contracts';
  *    range or a list after an id names every id in it (`-01..03`, `-01–03`,
  *    `-01 to 03`, `-01/02`, `-01, -02`, `-01 and 02`): if ANY of them is
  *    withheld, the block is redacted.
- * 4. The `security` agent's own reports go out with no text, and of its
- *    memory (`.claude/agent-memory/security/`) nothing: one entry says so.
+ *    d. (T-1948) a block that carries a withheld finding's whole title, word
+ *       for word (any case, any spacing; titles under 12 characters are not
+ *       looked for), is redacted as if it named the id.
+ *    The same rule is applied to the title of every finding that is not
+ *    withheld, of every report and of every desk question.
+ * 4. The `security` agent's own reports go out with no text, a fixed title
+ *    (`SECURITY_REPORT_TITLE`, not the report's first heading) and their
+ *    folder as the path (not the file's name); the outcome of a run of it
+ *    (`finish`) is one fixed line (`runOutcome`); and of its memory
+ *    (`.claude/agent-memory/security/`) nothing goes: one entry says so.
  *
  * The block rule is deliberately coarse: a bullet that names a withheld id
  * among other agents' items goes whole. The charter therefore asks for ONE
  * bullet or row per security finding, never mixed with other items.
  *
- * What the rule does not catch: detail written in a block that does not name
- * the id (a later paragraph, a report section under a heading without the
- * id). The agents' instructions keep such detail next to the id and out of
+ * What the rule does not catch: detail written in a block that names neither
+ * the id nor the whole title (a later paragraph, a report section under a
+ * heading without the id, a title reworded). The agents' instructions keep such detail next to the id and out of
  * the chat; this is the net under them, not the only guard.
  */
 
@@ -121,8 +129,11 @@ export function securityIdsIn(text: string): string[] {
   return [...ids];
 }
 
+/** The same rule as `isConsoleSecurityId` in `@fmip/contracts`, which the server uses (a spec holds them equal). */
+const SEC_ID_ANY = /^sec-\d{4}-\d{2}-\d{2}-\d+$/;
+
 export const isSecurityFinding = (id: string, agent: string): boolean =>
-  agent === SECURITY_AGENT || SEC_ID_EXACT.test(normalText(id).trim());
+  agent === SECURITY_AGENT || SEC_ID_ANY.test(normalText(id).trim());
 
 export interface SecurityFact {
   severity: ConsoleSeverity | null;
@@ -175,13 +186,26 @@ export function withholds(ledger: SecurityLedger, id: string, agent: string): bo
   return (fact !== undefined || isSecurityFinding(id, agent)) && fact?.releasable !== true;
 }
 
-/** The withheld ids a piece of text names, each once, in order. */
+/** Titles shorter than this are not looked for in text: a word or two would match anything. */
+export const TITLE_MATCH_MIN = 12;
+
+/** Text as a title is looked for in it: normal text, every run of white space one space. */
+const spaced = (text: string): string => normalText(text).replace(/\s+/g, ' ').trim();
+
+/**
+ * The withheld ids a piece of text names, each once, in order: by id, or
+ * (rule 3d, T-1948) by carrying the finding's whole title.
+ */
 export function withheldIdsIn(text: string, ledger: SecurityLedger): string[] {
   const found = new Set(securityIdsIn(text).filter((id) => ledger.get(id)?.releasable !== true));
-  // A security finding whose id is not the charter's shape is matched as written.
   const normal = normalText(text);
+  const flat = spaced(text);
   for (const [id, fact] of ledger) {
-    if (!fact.releasable && !SEC_ID_EXACT.test(id) && normal.includes(id)) found.add(id);
+    if (fact.releasable) continue;
+    // A security finding whose id is not the charter's shape is matched as written.
+    if (!SEC_ID_EXACT.test(id) && normal.includes(id)) found.add(id);
+    const title = spaced(fact.title);
+    if (title.length >= TITLE_MATCH_MIN && flat.includes(title)) found.add(id);
   }
   return [...found];
 }
@@ -196,6 +220,25 @@ export const WITHHELD_NOTE = 'جزئیات این یافته‌ی امنیتی �
  * title and the page draws.
  */
 export const WITHHELD_TITLE = 'یافته‌ی امنیتی؛ عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود';
+
+/** The title every report of the security agent goes out with (rule 4, T-1948). Persian, as above. */
+export const SECURITY_REPORT_TITLE = 'گزارش عامل امنیت؛ در کنسول نمایش داده نمی‌شود (D-340)';
+
+/** A path's folder, with its last slash: what is sent of where a security report is. */
+export const folderOf = (path: string): string => path.replace(/[^/\\]*$/, '');
+
+/** What is said of a run of the security agent, whatever it reported (rule 4, T-1948). */
+export const SECURITY_RUN_NOTE =
+  "The security agent's outcome and report stay on the computer (ops/reports/security/, D-340).";
+
+/**
+ * A run's outcome as `finish` may send it: the security agent's is one fixed
+ * line, since what it reports is the path of its report, whose file name can
+ * say what was found. `agent` is the run request's, `undefined` when the
+ * state no longer has the request.
+ */
+export const runOutcome = (agent: string | undefined, outcome: string): string =>
+  agent === SECURITY_AGENT ? SECURITY_RUN_NOTE : outcome;
 
 /** What the console shows in place of the security agent's memory. Persian, as above. */
 export const MEMORY_NOTE = 'حافظه‌ی عامل امنیت در کنسول نمایش داده نمی‌شود (D-340).';
@@ -405,6 +448,8 @@ export function withholdSecurity(
         ? { ...finding, title: WITHHELD_TITLE, detail: null, related: null }
         : {
             ...finding,
+            // Another finding's title can name a withheld one ("duplicate of sec-...: its title").
+            title: clean(finding.title),
             detail: finding.detail === null ? null : clean(finding.detail),
             related: finding.related === null ? null : clean(finding.related),
             // T-1907: said to the server, whose own net removes the detail of every
@@ -414,7 +459,7 @@ export function withholdSecurity(
     ),
     reports: parts.reports.map((report) =>
       report.agent === SECURITY_AGENT
-        ? { ...report, title: clean(report.title), text: '' }
+        ? { ...report, title: SECURITY_REPORT_TITLE, path: folderOf(report.path), text: '' }
         : { ...report, title: clean(report.title), text: clean(report.text) },
     ),
     brief:
@@ -424,6 +469,7 @@ export function withholdSecurity(
     // A desk question's context and options, and the answer shown (an option's label).
     decisions: parts.decisions.map((decision) => ({
       ...decision,
+      title: clean(decision.title),
       summary: clean(decision.summary),
       options: decision.options.map((option) => ({ ...option, label: clean(option.label) })),
       answer: decision.answer === null ? null : clean(decision.answer),

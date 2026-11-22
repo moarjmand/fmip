@@ -623,3 +623,22 @@ export interface ConsoleRequestDecide {
   /** Optional with `approve` or `reject`; required with `other`. */
   text?: string;
 }
+
+/**
+ * Whether an id is a security finding's, `sec-YYYY-MM-DD-NN`, however it was
+ * typed (T-1948): any case, Persian or Arabic digits, any dash character,
+ * zero-width and direction marks ignored. The server's net and the page use
+ * this; the publisher's `isSecurityFinding` reads ids the same way (a spec
+ * there holds the two equal), so an id the computer withholds is never one
+ * the server takes for an ordinary finding.
+ */
+export const isConsoleSecurityId = (id: string): boolean =>
+  /^sec-\d{4}-\d{2}-\d{2}-\d+$/.test(
+    id
+      .toLowerCase()
+      .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+      .replace(/[\u2010-\u2015\u2212]/g, '-')
+      .replace(/[\u06F0-\u06F9]/g, (c) => String(c.charCodeAt(0) - 0x06f0))
+      .replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660))
+      .trim(),
+  );

@@ -9,23 +9,24 @@ import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import { accountOutcomeText, parseConsoleArgs } from '../../../cli/agents-console';
 import {
-  COMMAND_OUTCOME_MAX,
-  LOCK_AFTER_FAILURES,
-  LOCK_MINUTES,
-  COMMAND_VALUES_MAX,
-  REASON_MAX,
-  TEXT_MAX,
   afterFailure,
   checkCard,
   checkCommand,
   checkMessage,
   checkSnapshot,
   cleanText,
+  COMMAND_OUTCOME_MAX,
+  COMMAND_VALUES_MAX,
   consoleCookie,
   isConsoleUsername,
   isLocked,
+  isSecurityFinding,
+  LOCK_AFTER_FAILURES,
+  LOCK_MINUTES,
   outcomeText,
+  REASON_MAX,
   replyText,
+  TEXT_MAX,
   triageReason,
   type TriageFinding,
   withPendingTriage,
@@ -657,6 +658,28 @@ describe("a finding's triage (T-1907, D-456 point 2)", () => {
     expect(withPendingTriage(snapshot(), [queued({})]).findings[0]?.pending?.until).toBe(
       '2026-12-01',
     );
+  });
+
+  it('takes a security id for one however it is typed, as the publisher does (T-1948)', () => {
+    const base = snapshot();
+    const one = { ...base.findings[0]!, agent: 'code-reviewer', title: 'Quokka', detail: 'how' };
+    const ids = [
+      'sec-۲۰۲۶-۱۱-۰۱-۰۷',
+      'SEC\u20132026\u201111\u221201\u201408',
+      'se\u200Bc-2026-11-01-09',
+    ];
+    const checked = checkSnapshot({
+      ...base,
+      findings: [...ids.map((id) => ({ ...one, id })), { ...one, id: 'rev-2026-11-01-01' }],
+    });
+    if (!checked.ok) throw new Error(checked.reason);
+    expect(checked.snapshot.findings.map((f) => [f.title, f.detail])).toEqual([
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      ['Quokka', 'how'],
+    ]);
+    for (const id of ids) expect(isSecurityFinding({ id, agent: 'code-reviewer' })).toBe(true);
   });
 
   it("keeps a security finding's title, detail and related ids back in every status, and drops a `pending` the computer sent", () => {
