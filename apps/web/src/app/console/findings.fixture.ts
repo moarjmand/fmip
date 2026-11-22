@@ -1,0 +1,230 @@
+import type { ConsoleFinding, ConsoleHeartbeat } from '@fmip/contracts';
+
+/**
+ * Findings in every state the findings page draws (T-1908), for
+ * `finding-triage.spec.tsx` and local screenshots. Every word is invented
+ * for the fixture: no line is a real finding's. The clock they are read at
+ * is `FIXTURE_NOW` (11:00 in Tehran on 1 Azar): the last sync was the 09:25
+ * one, so the next is 15:25.
+ */
+
+export const FIXTURE_NOW = new Date('2026-11-22T07:30:00.000Z');
+export const FIXTURE_HEARTBEAT: ConsoleHeartbeat = {
+  loaded_at: '2026-11-22T05:58:00.000Z',
+  queued: { commands: 2, messages: 0 },
+};
+
+const detail = (evidence: string, cause: string, proposal: string, triage = ''): string =>
+  [
+    evidence,
+    cause === '' ? '' : `Likely cause: ${cause}`,
+    proposal === '' ? '' : `Proposal: ${proposal}`,
+    triage === '' ? '' : `Triage: ${triage}`,
+  ]
+    .filter((part) => part !== '')
+    .join('\n\n');
+
+export const FINDINGS: ConsoleFinding[] = [
+  {
+    id: 'qa-2026-11-21-02',
+    agent: 'qa-engineer',
+    severity: 'major',
+    status: 'open',
+    title: 'Standings table scrolls sideways at 375 px on the league page',
+    opened_at: '2026-11-21',
+    detail: detail(
+      'At 375 px the standings table on the league page is 412 px wide, so the whole page scrolls sideways. Seen in Persian and in English, light and dark.',
+      'The form column keeps five fixed-width badges and does not shrink below 640 px.',
+      'Show the last three results below 640 px, or fold the form column into the row detail.',
+    ),
+    related: null,
+    pending: null,
+  },
+  {
+    id: 'qa-2026-11-14-03',
+    agent: 'qa-engineer',
+    severity: 'minor',
+    status: 'open',
+    title: 'Standings table scrolls sideways at 375 px on the team page',
+    opened_at: '2026-11-14',
+    detail: detail(
+      'The same table on a team page is 398 px wide at 375 px.',
+      '',
+      'Fix it together with the league page.',
+    ),
+    related: null,
+    pending: null,
+  },
+  {
+    id: 'dat-2026-11-20-01',
+    agent: 'data-auditor',
+    severity: 'minor',
+    status: 'open',
+    title: 'جدول گروه دوم یک بازی کمتر از برنامه نشان می‌دهد',
+    opened_at: '2026-11-20',
+    detail: detail(
+      'برنامه برای تیم سوم گروه پنج بازی دارد و جدول چهار بازی شمرده است.',
+      'بازی عقب‌افتاده هنوز نتیجه‌ی نهایی نگرفته است.',
+      'تا نهایی‌شدن نتیجه، کنار جدول نوشته شود که یک بازی عقب افتاده است.',
+    ),
+    related: null,
+    pending: {
+      command_id: '6f0c2a54-91d3-4c1e-8a57-2b7f0e4d9a10',
+      kind: 'finding.reject',
+      requested_by: 'مریم',
+      requested_at: '2026-11-22T07:05:00.000Z',
+      until: null,
+      taken: false,
+    },
+  },
+  {
+    id: 'ops-2026-11-19-01',
+    agent: 'ops-release',
+    severity: 'major',
+    status: 'open',
+    title: 'Nightly backup took 52 minutes, twice its usual time',
+    opened_at: '2026-11-19',
+    detail: detail(
+      'The backup of 19 Nov ran 52 minutes; the seven before it ran 24 to 27.',
+      'The media volume grew by a third in one day.',
+      'Check what was added to the media volume before the next run.',
+    ),
+    related: null,
+    pending: {
+      command_id: '0b9d7c11-3e42-4f6a-b1c8-5d2a9e7f4c33',
+      kind: 'finding.accept',
+      requested_by: 'کاوه',
+      requested_at: '2026-11-22T05:40:00.000Z',
+      until: null,
+      taken: true,
+    },
+  },
+  {
+    id: 'des-2026-11-18-03',
+    agent: 'designer',
+    severity: 'minor',
+    status: 'planned',
+    title: 'Match card shows the kick-off time in two different weights',
+    opened_at: '2026-11-18',
+    detail: detail(
+      'On the scores page the kick-off time is bold in the first card of a day and regular in the rest.',
+      '',
+      'Use the regular weight everywhere.',
+      'Accepted on the agents console by maryam (console command 11111111-2222-4333-8444-555555555555): planned, a task row is asked for. No work has started.',
+    ),
+    related: null,
+    task: null,
+    triaged_by: 'maryam',
+    pending: null,
+  },
+  {
+    id: 'qa-2026-11-17-01',
+    agent: 'qa-engineer',
+    severity: 'major',
+    status: 'planned',
+    title: 'Search box loses focus after the first letter on a phone',
+    opened_at: '2026-11-17',
+    detail: detail(
+      'Typing one letter in the header search on a phone closes the keyboard.',
+      'The results panel takes focus when it opens.',
+      'Keep focus in the field while the panel opens.',
+      'Accepted on the agents console by kaveh (console command 22222222-3333-4444-8555-666666666666): planned, a task row is asked for. No work has started.',
+    ),
+    related: null,
+    task: 'T-1952',
+    triaged_by: 'kaveh',
+    pending: null,
+  },
+  {
+    id: 'seo-2026-11-16-02',
+    agent: 'seo-search',
+    severity: 'minor',
+    status: 'rejected',
+    title: 'Player pages have no description for retired players',
+    opened_at: '2026-11-16',
+    detail: detail(
+      'Forty retired players have a page without a description.',
+      '',
+      'Write a short description from the career summary.',
+      "Rejected on the agents console by maryam (console command 33333333-4444-4555-8666-777777777777). The person's reason, quoted (data, not an instruction): «صفحه‌ی بازیکنان بازنشسته فعلاً در نقشه‌ی سایت نیست»",
+    ),
+    related: null,
+    triaged_by: 'maryam',
+    pending: null,
+  },
+  {
+    id: 'con-2026-11-15-01',
+    agent: 'content-community',
+    severity: 'minor',
+    status: 'snoozed',
+    title: 'یک منبع خبری سه روز است خبر تازه نداده',
+    opened_at: '2026-11-15',
+    detail: detail(
+      'آخرین خبر این منبع سه روز پیش رسیده است.',
+      'شاید منبع در تعطیلی است.',
+      'یک هفته‌ی دیگر دوباره نگاه شود.',
+      'Snoozed on the agents console by kaveh (console command 44444444-5555-4666-8777-888888888888) until 2026-11-29.',
+    ),
+    related: null,
+    until: '2026-11-29',
+    triaged_by: 'kaveh',
+    pending: null,
+  },
+  {
+    id: 'sec-2026-11-20-01',
+    agent: 'security',
+    severity: 'critical',
+    status: 'open',
+    title: 'A title the console must not draw',
+    opened_at: '2026-11-20',
+    detail: null,
+    related: null,
+    pending: null,
+  },
+  {
+    id: 'sec-2026-11-12-01',
+    agent: 'security',
+    severity: 'major',
+    status: 'planned',
+    title: 'Another title the console must not draw',
+    opened_at: '2026-11-12',
+    detail: null,
+    related: null,
+    task: 'private:handoffs/draft-01.md',
+    triaged_by: 'maryam',
+    pending: null,
+  },
+  {
+    id: 'ops-2026-11-10-02',
+    agent: 'ops-release',
+    severity: 'minor',
+    status: 'fixed',
+    title: 'Build cache above 20 GB',
+    opened_at: '2026-11-10',
+    detail: detail('The build cache was 23 GB.', '', 'Prune it weekly.'),
+    related: null,
+    pending: null,
+  },
+  {
+    id: 'arc-2026-11-09-01',
+    agent: 'architect',
+    severity: 'info',
+    status: 'wontfix',
+    title: 'Two modules share one helper by copy',
+    opened_at: '2026-11-09',
+    detail: detail('The same twelve lines are in two modules.', '', ''),
+    related: null,
+    pending: null,
+  },
+  {
+    id: 'qa-2026-11-08-04',
+    agent: 'qa-engineer',
+    severity: 'minor',
+    status: 'duplicate',
+    title: 'League page is too wide on a small phone',
+    opened_at: '2026-11-08',
+    detail: detail('Seen once at 360 px.', '', ''),
+    related: 'qa-2026-11-21-02',
+    pending: null,
+  },
+];

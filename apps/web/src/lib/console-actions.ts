@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { ConsoleCanvasKey } from '@fmip/contracts';
 import { dayToIso, isoToDay, jalaliMonthLength, jalaliToDay } from '@fmip/contracts/console';
+import { nextSyncWords } from '@/app/console/triage';
 import { apiErrorWords, queuedWords } from '@/app/console/words';
 import { applyConsoleCookie, consoleCall, consoleHeartbeat } from './console-api';
 import { consoleUrl } from './console-base';
@@ -18,7 +19,7 @@ import { consoleUrl } from './console-base';
 export interface ConsoleFormState {
   error: string | null;
   done: string | null;
-  /** The new request's id, after `createRequest` (T-1731: its pictures follow it). */
+  /** The new request's id, after `createRequest` (T-1731: its pictures follow it); `withdrawn` after a triage command's withdrawal (T-1908). */
   id?: string;
 }
 
@@ -91,6 +92,64 @@ export async function queueCommand(_: ConsoleFormState, form: FormData): Promise
   // time at all while the computer is silent.
   const heartbeat = await consoleHeartbeat();
   return { error: null, done: queuedWords(heartbeat.ok ? heartbeat.data : null, new Date()) };
+}
+
+const TRIAGE_DONE: Record<string, string> = {
+  'finding.accept': 'قبول ثبت شد.',
+  'finding.reject': 'رد ثبت شد.',
+  'finding.snooze': 'تعویق ثبت شد.',
+};
+
+/**
+ * A finding's triage from the findings page (T-1908, D-456 point 2): accept,
+ * reject with the person's reason, snooze until a day, or the withdrawal of
+ * one of those while the computer has not taken it. The API decides (who may,
+ * the limits, one command a finding); a refusal comes back in Persian for
+ * the form's `role="alert"`. The success line never says the finding has
+ * changed: the computer applies it at a sync, and the page shows it waiting
+ * until the snapshot carries the new status. An accept and a snooze carry a
+ * fixed reason, since the API wants one of every command.
+ */
+export async function triageFinding(
+  _: ConsoleFormState,
+  form: FormData,
+): Promise<ConsoleFormState> {
+  const kind = field(form, 'kind');
+  if (kind === 'withdraw') {
+    const result = await consoleCall(`commands/${encodeURIComponent(field(form, 'command'))}`, {
+      method: 'DELETE',
+    });
+    if (!result.ok) return failed(result.error?.message, 'انصراف ثبت نشد.');
+    revalidatePath('/console', 'layout');
+    return {
+      error: null,
+      done: 'انصراف ثبت شد: دستور از صف برداشته شد و یافته همان است که بود.',
+      id: 'withdrawn',
+    };
+  }
+  const done = TRIAGE_DONE[kind];
+  if (done === undefined) return { error: 'کنسول این دستور را نمی‌شناسد.', done: null };
+  const result = await consoleCall('commands', {
+    method: 'POST',
+    body: {
+      kind,
+      target: field(form, 'target'),
+      payload: kind === 'finding.snooze' ? { until: field(form, 'until') } : {},
+      reason:
+        kind === 'finding.reject'
+          ? field(form, 'reason')
+          : kind === 'finding.accept'
+            ? 'قبول از صفحه‌ی یافته‌ها'
+            : 'تعویق از صفحه‌ی یافته‌ها',
+    },
+  });
+  if (!result.ok) return failed(result.error?.message, 'تصمیم ثبت نشد.');
+  revalidatePath('/console', 'layout');
+  const heartbeat = await consoleHeartbeat();
+  return {
+    error: null,
+    done: `${done} رایانه هنوز آن را انجام نداده است؛ ${nextSyncWords(heartbeat.ok ? heartbeat.data : null, new Date())}`,
+  };
 }
 
 /**

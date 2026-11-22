@@ -133,9 +133,12 @@ describe('the console pieces', () => {
     ...overrides,
   });
 
-  it('shows an open security finding by its title, and says its detail stays on the computer', () => {
+  it('shows an open security finding without its title or detail, and says they stay on the computer', () => {
     const html = renderToStaticMarkup(<FindingRow finding={finding({})} />);
-    expect(html).toContain('A header is missing');
+    // T-1908 (D-456 point 3, pending the maintainer's word): the title is hidden as well as the detail.
+    expect(html).not.toContain('A header is missing');
+    expect(html).toContain('عنوان و جزئیات فقط روی رایانه است');
+    expect(html).toContain('<span class="text-xs text-caption" dir="ltr">sec-1</span>');
     expect(html).toContain('مهم');
     expect(html).toContain('فقط روی رایانه‌ی شماست');
     expect(html).not.toContain('<details');
@@ -143,6 +146,8 @@ describe('the console pieces', () => {
       <FindingRow finding={finding({ agent: 'data-auditor', detail: 'the evidence' })} />,
     );
     expect(other).toContain('the evidence');
+    // Any other finding's title is drawn as written, in its own direction.
+    expect(other).toContain('<bdi dir="auto">A header is missing</bdi>');
   });
 
   it('draws a bar a run, or says there is none', () => {

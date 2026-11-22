@@ -15,6 +15,7 @@ import {
   consolePcState,
   wallClock,
 } from '@fmip/contracts/console';
+import { WITHHELD_TITLE, findingParts, titleWithheld } from './triage';
 import { tehranClock as clock } from './words';
 
 /**
@@ -562,6 +563,44 @@ export function RunsBars({ runs }: { runs: ConsoleAgent['runs'] }) {
   );
 }
 
+/**
+ * A finding's title (T-1908, D-456 point 3, both defaults pending the
+ * maintainer's word): as written, in `bdi dir="auto"` so an English title
+ * keeps its own direction inside the Persian page; and for a security
+ * finding whose detail is withheld, a fixed phrase in its place, whatever
+ * the snapshot carries.
+ */
+export function FindingTitle({ finding }: { finding: ConsoleFinding }) {
+  return titleWithheld(finding) ? (
+    <span data-withheld="title">{WITHHELD_TITLE}</span>
+  ) : (
+    <bdi dir="auto">{finding.title}</bdi>
+  );
+}
+
+/**
+ * A finding's detail as the computer wrote it, its labelled paragraphs worded
+ * in Persian (T-1908): the evidence, the likely cause, the proposal, and a
+ * person's triage line, which is the computer's own English and stays
+ * left to right.
+ */
+export function FindingDetail({ detail }: { detail: string }) {
+  const parts = findingParts(detail);
+  const block = 'mt-1 whitespace-pre-wrap break-words text-sm text-muted';
+  return (
+    <>
+      {parts.evidence !== '' && <p className={block}>{parts.evidence}</p>}
+      {parts.cause !== '' && <p className={block}>علت احتمالی: {parts.cause}</p>}
+      {parts.proposal !== '' && <p className={block}>پیشنهاد: {parts.proposal}</p>}
+      {parts.triage !== '' && (
+        <p dir="ltr" className="mt-1 break-words text-start text-xs text-caption">
+          {parts.triage}
+        </p>
+      )}
+    </>
+  );
+}
+
 export function FindingRow({ finding }: { finding: ConsoleFinding }) {
   return (
     <li className="border-b border-default py-3 last:border-b-0">
@@ -575,7 +614,9 @@ export function FindingRow({ finding }: { finding: ConsoleFinding }) {
           · {agentTitle(finding.agent)} · {when(finding.opened_at, false)}
         </span>
       </div>
-      <p className="mt-1 text-sm font-bold text-fg">{finding.title}</p>
+      <p className="mt-1 text-sm font-bold text-fg">
+        <FindingTitle finding={finding} />
+      </p>
       {finding.detail === null ? (
         <p className="mt-1 text-xs text-caption">
           جزئیات یافته‌ی امنیتی باز فقط روی رایانه‌ی شماست (D-340).
@@ -584,7 +625,7 @@ export function FindingRow({ finding }: { finding: ConsoleFinding }) {
         finding.detail !== '' && (
           <details className="mt-1">
             <summary className="cursor-pointer text-xs text-muted">جزئیات</summary>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{finding.detail}</p>
+            <FindingDetail detail={finding.detail} />
           </details>
         )
       )}
