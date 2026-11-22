@@ -25,6 +25,13 @@ export interface ConsoleMe {
   id: string;
   username: string;
   display_name: string;
+  /**
+   * Whether this account is the console's owner (D-427 point 6; T-1908): the
+   * one account that triages a security finding (D-456, 2026-11-21). The page
+   * says why to the other one instead of offering a button the server refuses.
+   * Absent from an API built before T-1908.
+   */
+  owner?: boolean;
 }
 
 /** `POST /console/session`. */
@@ -87,6 +94,11 @@ export interface ConsoleFindingPending {
   requested_at: string;
   /** `finding.snooze` only: the day it would wake, YYYY-MM-DD. */
   until: string | null;
+  /**
+   * The computer has taken it (T-1908): it is being applied and can no longer
+   * be withdrawn (`DELETE /console/commands/:id`). Absent before T-1908.
+   */
+  taken?: boolean;
 }
 
 /** Where an agent's memory comes from: a file it reads, a skill, its own memory. */

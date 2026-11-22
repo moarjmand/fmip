@@ -39,8 +39,66 @@ export function queuedWords(heartbeat: ConsoleHeartbeat | null, now: Date): stri
   return `ثبت شد. رایانه در هم‌گام‌سازی بعدی (حدود ${tehranClock(pc.nextSlot)}) آن را انجام می‌دهد.`;
 }
 
+/** A day, YYYY-MM-DD, as «۱۲ آذر»; the text as it is when it is not a day. */
+function faDay(iso: string): string {
+  const date = new Date(`${iso}T12:00:00Z`);
+  return Number.isNaN(date.getTime())
+    ? iso
+    : new Intl.DateTimeFormat('fa-IR', {
+        timeZone: CONSOLE_SYNC_TIME_ZONE,
+        day: 'numeric',
+        month: 'long',
+      }).format(date);
+}
+
+/** A finding's status and severity where a refusal names them (T-1908); `ui.tsx` has the page's own. */
+const CLOSED_WORDS: Record<string, string> = {
+  fixed: 'رفع شده',
+  wontfix: 'رفع نمی‌شود',
+  duplicate: 'تکراری',
+  rejected: 'رد شده',
+};
+const SEVERE_WORDS: Record<string, string> = {
+  critical: 'بحرانی',
+  major: 'مهم',
+  minor: 'جزئی',
+  info: 'اطلاع',
+};
+
 /** The API's console messages (`agents-console.controller.ts`, `console-rules.ts`). */
 const API_MESSAGES: [RegExp, (m: RegExpExecArray) => string][] = [
+  // T-1908: the refusals of a finding's triage (T-1907 made them; D-456 point 2).
+  [
+    /^Only the console's owner may triage a security finding\.$/,
+    () =>
+      'تصمیم درباره‌ی یافته‌ی امنیتی فقط با حساب مالک کنسول (نگهدارنده) است؛ این حساب نمی‌تواند آن را قبول یا رد کند یا به تعویق بیندازد.',
+  ],
+  [
+    /^This finding already has a command waiting\.$/,
+    () =>
+      'برای این یافته یک دستور در انتظار رایانه است؛ تا انجام شود یا از آن انصراف دهید، دستور دیگری ثبت نمی‌شود.',
+  ],
+  [
+    /^This finding is closed \(([\w-]+)\)\.$/,
+    (m) =>
+      `این یافته بسته است (${CLOSED_WORDS[m[1]!] ?? 'بسته'}) و از کنسول تصمیم تازه‌ای نمی‌گیرد.`,
+  ],
+  [/^No such finding\.$/, () => 'این یافته در آخرین هم‌گام‌سازی نیست؛ صفحه را تازه کنید.'],
+  [
+    /^Say why it is rejected, in (\d+) characters or more\.$/,
+    (m) => `دلیل رد را بنویسید (دست‌کم ${fa(m[1]!)} نویسه).`,
+  ],
+  [/^Snooze until a day after today, YYYY-MM-DD\.$/, () => 'روز تعویق باید بعد از امروز باشد.'],
+  [
+    /^A (?:(critical|major|minor|info) )?finding is snoozed for (\d+) days at most: until (\S+) or sooner\.$/,
+    (m) =>
+      `${m[1] === undefined ? 'یافته' : `یافته‌ی ${SEVERE_WORDS[m[1]] ?? ''}`} حداکثر ${fa(m[2]!)} روز به تعویق می‌افتد: تا ${faDay(m[3]!)} یا زودتر.`,
+  ],
+  [/^No such command\.$/, () => 'این دستور دیگر در صف نیست؛ صفحه را تازه کنید.'],
+  [
+    /^The computer has already taken this command\.$/,
+    () => 'رایانه این دستور را برداشته است؛ دیگر نمی‌شود از آن انصراف داد.',
+  ],
   [/^Sign in to the console\.$/, () => 'وارد کنسول شوید.'],
   // The pre-launch checklist (T-1840, D-428).
   [/^An item needs its text\.$/, () => 'متن مورد را بنویسید.'],
@@ -334,6 +392,36 @@ export function outcomeWords(outcome: string): string {
     [/^Runs on (\S+) from its next run\.$/, (m) => `از اجرای بعدی با ${m[1]} کار می‌کند.`],
     [/^Scheduled (\S+)\.$/, (m) => `برنامه: ${SCHEDULES[m[1]!] ?? m[1]}.`],
     [/^Waiting for the next sync/, () => 'منتظر هم‌گام‌سازی بعدی برای شروع.'],
+    // T-1908: the computer's outcomes of a finding's triage (T-1907 writes them in English).
+    [/^Rejected, with the reason\.$/, () => 'رد شد، با دلیلش.'],
+    [
+      /^Snoozed until (\S+); it is open again from that day\.$/,
+      (m) => `تا ${faDay(m[1]!)} به تعویق افتاد؛ از آن روز دوباره باز است.`,
+    ],
+    [
+      /^Planned; it already has the task (T-\d+)\.$/,
+      (m) => `پذیرفته شد؛ ردیف کار ${m[1]} را از پیش دارد.`,
+    ],
+    [
+      /^Planned already; its task row is being made\.$/,
+      () => 'از پیش پذیرفته شده؛ ردیف کارش در حال ساخت است.',
+    ],
+    [
+      /^Planned; its task is drafted privately/,
+      () => 'پذیرفته شد؛ کارش به‌صورت خصوصی روی رایانه‌ی نگهدارنده پیش‌نویس شد.',
+    ],
+    [/^Planned; task (T-\d+)/, (m) => `پذیرفته شد؛ ردیف کار ${m[1]} ساخته شد.`],
+    [
+      /^Planned; no task was made/,
+      () => 'پذیرفته شد، ولی ردیف کار ساخته نشد؛ رایانه دوباره تلاش می‌کند.',
+    ],
+    [/^Withdrawn on the console\.$/, () => 'با انصراف در کنسول از صف برداشته شد.'],
+    [/^The computer could not write it/, () => 'رایانه نتوانست آن را روی یافته بنویسد.'],
+    [/^No finding \S+ on the computer\.$/, () => 'این یافته روی رایانه پیدا نشد.'],
+    [
+      /^Only the console's owner may triage a security finding\.$/,
+      () => 'رایانه آن را نپذیرفت: تصمیم یافته‌ی امنیتی فقط با مالک کنسول است.',
+    ],
     [/^Answer recorded/, () => 'پاسخ برای اجرای روزانه ثبت شد.'],
     [/^No agent (\S+) on the computer\.$/, (m) => `عاملی به نام ${m[1]} روی رایانه نیست.`],
   ];
@@ -355,6 +443,8 @@ export function deciderWords(by: string | null): string {
 }
 
 const AUDIT_ACTIONS: Record<string, string> = {
+  // T-1908: a triage command taken back before the computer took it.
+  'command.finding_withdraw': 'انصراف از دستور یافته',
   'console.sign_in': 'ورود',
   'console.sign_in_failed': 'ورود ناموفق',
   'console.locked': 'قفل شدن نام',
@@ -449,6 +539,7 @@ const CANVAS_FIELD_WORDS: Record<string, string> = {
 export function auditReasonWords(reason: string): string {
   const system: [RegExp, (m: RegExpExecArray) => string][] = [
     [/^signed in$/, () => 'وارد شد'],
+    [/^withdrawn on the console$/, () => 'انصراف در کنسول'],
     [/^wrong name or password$/, () => 'نام یا رمز نادرست'],
     [/^locked until (.+)$/, () => 'قفل تا مدتی پس از چند تلاش ناموفق'],
     [/^account opened for (.+)$/, (m) => `حساب برای ${m[1]} باز شد`],

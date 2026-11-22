@@ -316,6 +316,42 @@ export class AgentsConsoleController {
     return outcome.command;
   }
 
+  /**
+   * Takes back a finding's triage command that the computer has not taken yet
+   * (T-1908): the «انصراف» of the findings page. 404 for anything that is not
+   * such a command still open, 409 once the computer has taken it, 403 for a
+   * security finding's from an account that is not the owner, and for one of
+   * a finding that has left the snapshot. Audited. (`POST commands` refuses a
+   * finding the snapshot does not hold outright: `No such finding.`)
+   */
+  @Delete('commands/:id')
+  @HttpCode(204)
+  async withdraw(@Param('id') id: string, @Req() request: FastifyRequest): Promise<void> {
+    const actor = await this.person(request);
+    const latest = await this.store.latestSnapshot();
+    // A finding the loaded snapshot no longer holds cannot be shown not to be the security
+    // agent's (the command keeps its target, not the agent), so its command is the owner's alone.
+    const ownerOnly = (target: string): boolean => {
+      const finding = latest?.snapshot.findings.find((f) => f.id === target);
+      return finding === undefined || isSecurityFinding(finding);
+    };
+    const outcome = /^[0-9a-f-]{36}$/.test(id)
+      ? await this.store.withdrawTriage(id, actor, ownerOnly)
+      : 'missing';
+    if (outcome === 'missing')
+      throw new NotFoundException({ error: 'not_found', message: 'No such command.' });
+    if (outcome === 'owner_only')
+      throw new ForbiddenException({
+        error: 'forbidden',
+        message: "Only the console's owner may triage a security finding.",
+      } satisfies ApiError);
+    if (outcome === 'taken')
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'The computer has already taken this command.',
+      } satisfies ApiError);
+  }
+
   @Get('board')
   async board(@Req() request: FastifyRequest): Promise<{ cards: ConsoleBoardCard[] }> {
     await this.person(request);

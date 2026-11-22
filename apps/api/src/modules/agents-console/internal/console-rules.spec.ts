@@ -644,6 +644,8 @@ describe("a finding's triage (T-1907, D-456 point 2)", () => {
       requested_by: 'Mostafa',
       requested_at: '2026-11-01T11:00:00.000Z',
       until: null,
+      // T-1908: the computer has it, so it can no longer be withdrawn.
+      taken: true,
     });
     expect(withPendingTriage(snapshot(), [queued({})]).findings[0]?.pending?.until).toBe(
       '2026-12-01',

@@ -4,6 +4,12 @@
  * first-load bundle, and these are only the console's (the match centre went
  * 0.4 kB over its budget when they sat in the barrel). Types stay in the barrel.
  */
+// T-1908: the triage forms' limits, as the API checks them.
+export {
+  CONSOLE_REJECT_REASON_MIN,
+  CONSOLE_SNOOZE_MAX_DAYS,
+  CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
+} from './agents-console';
 export {
   CONSOLE_DECISION_CHOICES,
   CONSOLE_DECISION_TEXT_MAX,
