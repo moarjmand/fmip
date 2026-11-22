@@ -157,14 +157,14 @@ The agents console runs on the site's server. The detail of a security finding (
 or anything the security agent found) leaves this computer only when its latest line is `resolved`
 and that line is the security agent's own (no other agent's line closes a security finding, and
 any later line reopens it), or when a line of it carries `"public": true`, which only the
-maintainer decides. Until then the console shows its id, severity, status and title, and the
+maintainer decides. Until then the console shows its id, severity and status, never its title, and the
 publisher removes every block of a brief, a report, a memory file, a desk question's context or
 options, a chat reply, a command's outcome or a teammate request's result or question that names
 its id, alone or inside a range or list of ids (`sec-...-01..03`, `-01/02`)
 (`packages/console-publisher/src/redact.ts` states the rule). The security agent's reports and
 memory are not published at all. So, every agent:
 
-- outside the security agent's own report, name such a finding by id, severity and title. When more
+- outside the security agent's own report, name such a finding by id, severity and status, never its title. When more
   must be said (the brief, for the maintainer), keep it in the same list item or paragraph as the
   id, never in a later paragraph or under a heading without the id: the publisher withholds the
   block that names the id, and nothing else;

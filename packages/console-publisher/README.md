@@ -174,6 +174,33 @@ first; then this publisher on the computer (`git pull`).**
   the kinds), `take-commands` ignores the extra words, and a snapshot's new
   fields are stored as they are. Safe, and nothing to see.
 
+### Deploy order of T-1948 (a withheld security finding's title)
+
+**The API first; then this publisher on the computer (`git pull`).** No
+migration.
+
+- New API, old publisher: from the next snapshot it loads, the server stores
+  the fixed phrase over the title of every security finding that does not
+  carry `releasable: true`, so the findings list, a finding's page, the
+  overview and the agent pages cannot get the title from the server. The old
+  publisher's redaction line inside the brief, the reports, memory and desk
+  questions still carries the title: the server does not rewrite those texts.
+  That half closes only with the new publisher.
+- Old API, new publisher: the snapshot already holds the phrase and the
+  redaction lines hold no title, so the title does not leave the computer.
+  Safe by itself; the server's net is what covers a computer that was not
+  updated or was rolled back.
+
+A snapshot loaded before either half keeps what it had until the next `sync`
+replaces it. After both deploys and one fresh publish, the older stored
+snapshots (the last 30 rows of `console_snapshot`, about 5 to 10 days) still
+hold titles; they are never served, and clearing them is the maintainer's
+choice.
+
+The web is deployed with the API: the security agent's reports now share one
+path (their folder), and the reports page tells them apart by their day. An
+older page still opens them, the first of them whichever is chosen.
+
 ## Security detail stays on this computer (T-1879, D-340)
 
 The console runs on the site's server, so the detail of a security weakness
@@ -188,8 +215,11 @@ is the rule, and `snapshotOf` applies it to every snapshot:
    wrote it, and no later line says `"public": false`. `new`, `open`, `decide`,
    `fixed-unverified`, `accepted`, any other word and an id the files do not
    have are all withheld.
-2. A withheld finding keeps its id, severity, status, title and first day; its
-   `detail` and `related` go out as `null`.
+2. A withheld finding keeps its id, severity, status and first day; its
+   `detail` and `related` go out as `null`, and in place of its title goes
+   the fixed phrase `WITHHELD_TITLE` (T-1948, D-456's addition of
+   2026-11-22; the same words as `CONSOLE_WITHHELD_FINDING_TITLE` in
+   `@fmip/contracts`). The title is read here, in `E:/FMIP/ops/findings/`.
 3. The brief, every report, every memory entry and a desk question's context
    and options in the snapshot, and every text `publish.ts` uploads by itself
    (a chat reply, a command's outcome, a request's result or question), are
@@ -198,12 +228,19 @@ is the rule, and `snapshotOf` applies it to every snapshot:
    otherwise the list item (with what is indented under it), the table row or
    the paragraph that names one becomes a single line, and a redacted
    paragraph ending in a colon takes the list it introduced. The line keeps
-   the id, `security`, the severity and the title, and says the detail is not
-   shown. An id is read in any case, with Persian or Arabic digits, any dash
+   the id, `security` and the severity, and says the detail is not shown;
+   it never carries the title (T-1948). An id is read in any case, with Persian or Arabic digits, any dash
    character and hidden marks ignored; a range or list after an id
    (`-01..03`, `-01–03`, `-01/02`, `-01, -02`, `-01 and 02`) names every id
    in it, and one withheld id among them redacts the block.
-4. The `security` agent's reports go out with no text, and its memory
+   Since T-1948 a block that carries a withheld finding's whole title, word
+   for word (any case, any spacing; titles under 12 characters are not looked
+   for), is redacted as if it named the id, and the same rule is applied to
+   the title of every other finding, report and desk question.
+4. The `security` agent's reports go out with no text, with one fixed title
+   (not the report's first heading) and their folder as the path (not the
+   file's name, T-1948); `finish` reports a run of the security agent as one
+   fixed line, whatever outcome it was given (`runOutcome`); and its memory
    (`.claude/agent-memory/security/`) is never read for the console: one
    entry says it is not shown.
 

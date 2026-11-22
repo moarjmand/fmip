@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ConsoleFinding, ConsoleMe } from '@fmip/contracts';
-import { CONSOLE_SNOOZE_MAX_DAYS, CONSOLE_SNOOZE_MAX_DAYS_SEVERE } from '@fmip/contracts/console';
+import {
+  CONSOLE_SNOOZE_MAX_DAYS,
+  CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
+  CONSOLE_WITHHELD_FINDING_TITLE,
+} from '@fmip/contracts/console';
 import type * as ReactModule from 'react';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -642,6 +646,30 @@ describe("a finding's own page", () => {
     expect(ids('qa-2026-11-08-04')).toEqual([NEEDS]);
     expect(ids(SECURITY)).toEqual([]);
     expect(ids(SNOOZED)).toEqual([]);
+  });
+
+  it('reads nothing from the phrase the snapshot carries in place of a withheld title (T-1948)', () => {
+    // The page's phrase is the one the computer and the server write.
+    expect(WITHHELD_TITLE).toBe(CONSOLE_WITHHELD_FINDING_TITLE);
+    // As the API answers since T-1948: every withheld security finding has the same "title".
+    const sent = FINDINGS.map((f) =>
+      f.agent === 'security' && f.detail === null ? { ...f, title: WITHHELD_TITLE } : f,
+    );
+    const withheld = sent.filter((f) => f.title === WITHHELD_TITLE);
+    expect(withheld.length).toBeGreaterThan(1);
+    // Two findings with the same phrase are not the same subject, and it is like no real title.
+    for (const one of withheld) expect(similarFindings(one, sent)).toEqual([]);
+    for (const one of sent)
+      expect(
+        similarFindings(one, sent).filter((f) => f.title === WITHHELD_TITLE),
+        one.id,
+      ).toEqual([]);
+    // The row draws the phrase once, as the withheld mark and not as a title of its own.
+    const html = row(SECURITY, OWNER, { title: WITHHELD_TITLE });
+    expect(html.split(WITHHELD_TITLE)).toHaveLength(2);
+    expect(html).toContain('data-withheld="title"');
+    // The groups and their counts come from the status alone, whatever the title.
+    expect(triageCounts(sent)).toEqual(triageCounts(FINDINGS));
   });
 });
 

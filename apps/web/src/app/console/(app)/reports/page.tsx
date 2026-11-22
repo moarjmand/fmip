@@ -11,20 +11,23 @@ type Search = { searchParams: Promise<Record<string, string | string[] | undefin
 export default async function ConsoleReportsPage({ searchParams }: Search) {
   const query = await searchParams;
   const path = typeof query.path === 'string' ? query.path : '';
+  // T-1948: the security agent's reports share one path (their folder), so the day tells them apart.
+  const date = typeof query.date === 'string' ? query.date : '';
   const result = await consoleSnapshot();
   const reports = result.ok ? (result.data.snapshot?.reports ?? []) : [];
-  const chosen = reports.find((r) => r.path === path) ?? reports[0];
+  const chosen =
+    reports.find((r) => r.path === path && (date === '' || r.date === date)) ?? reports[0];
 
   return (
     <div className="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)]">
       <Card title="گزارش‌ها">
         <ul className="flex flex-col">
-          {reports.map((report) => (
-            <li key={report.path}>
+          {reports.map((report, index) => (
+            <li key={`${report.path}:${report.date}:${index}`}>
               <Link
-                href={`/reports?path=${encodeURIComponent(report.path)}`}
-                aria-current={report.path === chosen?.path ? 'page' : undefined}
-                className={`flex flex-col rounded-control px-2 py-2 text-sm hover:bg-surface-raised ${report.path === chosen?.path ? 'bg-surface-raised' : ''}`}
+                href={`/reports?path=${encodeURIComponent(report.path)}&date=${encodeURIComponent(report.date)}`}
+                aria-current={report === chosen ? 'page' : undefined}
+                className={`flex flex-col rounded-control px-2 py-2 text-sm hover:bg-surface-raised ${report === chosen ? 'bg-surface-raised' : ''}`}
               >
                 <span className="font-bold text-fg" dir="auto">
                   {report.title}

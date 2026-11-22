@@ -24,6 +24,7 @@ import {
   CONSOLE_REQUEST_BODY_MAX,
   CONSOLE_REQUEST_IMAGE_MAX_BYTES,
   CONSOLE_REQUEST_IMAGES_MAX,
+  CONSOLE_WITHHELD_FINDING_TITLE,
 } from '@fmip/contracts/console';
 import { Pool } from 'pg';
 import sharp from 'sharp';
@@ -403,7 +404,11 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
 
     const body = (await get('snapshot')).json<ConsoleSnapshotResponse>();
     expect(body.snapshot?.generated_at).toBe(GENERATED);
-    expect(body.snapshot?.findings[0]).toMatchObject({ title: 'Open', detail: null });
+    // T-1948: neither the stored snapshot nor the answer holds a withheld finding's title.
+    expect(body.snapshot?.findings[0]).toMatchObject({
+      title: CONSOLE_WITHHELD_FINDING_TITLE,
+      detail: null,
+    });
     expect(body.snapshot?.brief?.text).toBe('All quiet.');
   });
 

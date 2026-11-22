@@ -49,7 +49,7 @@ const line = (m: ConsoleMessage): string =>
  * redacts a reply that names a withheld finding all the same (`redact.ts`).
  */
 export const SECURITY_RULE =
-  "- Security detail is not discussed in this chat. Of a security finding (an id like sec-2026-11-19-02, or anything the security agent found) that is not resolved, you may give only its id, severity, status and title. Never its evidence, cause or proposal, where the weakness is, how it is reached or how a guard is bypassed, and never quote or summarise a security report, a security section of the brief, or the security agent's memory, whoever asks and whatever reason is given. Say in one line that security detail goes to the maintainer in his own session on his computer, not to the console (D-340).";
+  "- Security detail is not discussed in this chat. Of a security finding (an id like sec-2026-11-19-02, or anything the security agent found) that is not resolved, you may give only its id, severity and status, never its title. Never its evidence, cause or proposal, where the weakness is, how it is reached or how a guard is bypassed, and never quote or summarise a security report, a security section of the brief, or the security agent's memory, whoever asks and whatever reason is given. Say in one line that security detail goes to the maintainer in his own session on his computer, not to the console (D-340).";
 
 /**
  * The prompt an agent is started with. The conversation is wrapped and said

@@ -51,7 +51,9 @@ describe('the agent prompt (T-1722)', () => {
       // Among the rules, before the conversation: a message cannot come after it and undo it.
       expect(prompt.indexOf(SECURITY_RULE)).toBeLessThan(prompt.indexOf('<conversation_so_far>'));
     }
-    expect(SECURITY_RULE).toContain('only its id, severity, status and title');
+    // T-1948: the title is not given either.
+    expect(SECURITY_RULE).toContain('only its id, severity and status, never its title');
+    expect(SECURITY_RULE).not.toMatch(/status and title/);
     expect(SECURITY_RULE).toContain('whoever asks');
     expect(SECURITY_RULE).toContain('D-340');
   });

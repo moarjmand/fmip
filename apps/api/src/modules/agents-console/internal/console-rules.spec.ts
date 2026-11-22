@@ -5,26 +5,28 @@ import {
   type ConsoleCommand,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
+import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import { accountOutcomeText, parseConsoleArgs } from '../../../cli/agents-console';
 import {
-  COMMAND_OUTCOME_MAX,
-  LOCK_AFTER_FAILURES,
-  LOCK_MINUTES,
-  COMMAND_VALUES_MAX,
-  REASON_MAX,
-  TEXT_MAX,
   afterFailure,
   checkCard,
   checkCommand,
   checkMessage,
   checkSnapshot,
   cleanText,
+  COMMAND_OUTCOME_MAX,
+  COMMAND_VALUES_MAX,
   consoleCookie,
   isConsoleUsername,
   isLocked,
+  isSecurityFinding,
+  LOCK_AFTER_FAILURES,
+  LOCK_MINUTES,
   outcomeText,
+  REASON_MAX,
   replyText,
+  TEXT_MAX,
   triageReason,
   type TriageFinding,
   withPendingTriage,
@@ -142,11 +144,17 @@ describe('names and locks', () => {
 });
 
 describe('the snapshot', () => {
-  it('keeps an open security finding to its title and severity, and a security report empty', () => {
+  it('keeps an open security finding to its id and severity, and a security report empty', () => {
     const checked = checkSnapshot(snapshot());
     if (!checked.ok) throw new Error(checked.reason);
     const byId = new Map(checked.snapshot.findings.map((f) => [f.id, f]));
-    expect(byId.get('sec-1')).toMatchObject({ title: 'A header', severity: 'major', detail: null });
+    // T-1948: the title an old publisher still sends is replaced by the fixed phrase.
+    expect(byId.get('sec-1')).toMatchObject({
+      title: CONSOLE_WITHHELD_FINDING_TITLE,
+      severity: 'major',
+      detail: null,
+    });
+    expect(JSON.stringify(checked.snapshot.findings)).not.toContain('A header');
     expect(byId.get('sec-0')).toMatchObject({ detail: 'fixed detail', related: 'sec-1' });
     expect(byId.get('dat-1')?.detail).toBe('the detail');
     expect(checked.snapshot.reports.find((r) => r.agent === 'security')?.text).toBe('');
@@ -652,13 +660,36 @@ describe("a finding's triage (T-1907, D-456 point 2)", () => {
     );
   });
 
-  it("keeps a security finding's detail and related ids back in every status, and drops a `pending` the computer sent", () => {
+  it('takes a security id for one however it is typed, as the publisher does (T-1948)', () => {
+    const base = snapshot();
+    const one = { ...base.findings[0]!, agent: 'code-reviewer', title: 'Quokka', detail: 'how' };
+    const ids = [
+      'sec-۲۰۲۶-۱۱-۰۱-۰۷',
+      'SEC\u20132026\u201111\u221201\u201408',
+      'se\u200Bc-2026-11-01-09',
+    ];
+    const checked = checkSnapshot({
+      ...base,
+      findings: [...ids.map((id) => ({ ...one, id })), { ...one, id: 'rev-2026-11-01-01' }],
+    });
+    if (!checked.ok) throw new Error(checked.reason);
+    expect(checked.snapshot.findings.map((f) => [f.title, f.detail])).toEqual([
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      [CONSOLE_WITHHELD_FINDING_TITLE, null],
+      ['Quokka', 'how'],
+    ]);
+    for (const id of ids) expect(isSecurityFinding({ id, agent: 'code-reviewer' })).toBe(true);
+  });
+
+  it("keeps a security finding's title, detail and related ids back in every status, and drops a `pending` the computer sent", () => {
     const statuses = ['open', 'planned', 'rejected', 'snoozed', 'fixed', 'wontfix', 'duplicate'];
     for (const status of statuses as ConsoleSnapshot['findings'][number]['status'][]) {
       const base = snapshot();
       const one = {
         ...base.findings[0]!,
         status,
+        title: 'Quokka login bypass',
         detail: 'how to use it',
         related: 'sec-0, dat-1',
         pending: { command_id: 'x' },
@@ -683,6 +714,16 @@ describe("a finding's triage (T-1907, D-456 point 2)", () => {
         ['sec-2026-11-01-09', null, null],
         ['ops-1', 'how to use it', 'sec-0, dat-1'],
       ]);
+      // T-1948: an old publisher's title goes too, to the fixed phrase; a released one stays.
+      expect(checked.snapshot.findings.map((f) => f.title)).toEqual([
+        CONSOLE_WITHHELD_FINDING_TITLE,
+        CONSOLE_WITHHELD_FINDING_TITLE,
+        'Quokka login bypass',
+        CONSOLE_WITHHELD_FINDING_TITLE,
+        'Quokka login bypass',
+      ]);
+      const withheld = checked.snapshot.findings.filter((f) => f.detail === null);
+      expect(JSON.stringify(withheld).toLowerCase()).not.toMatch(/quokka|login|bypass/);
       expect(checked.snapshot.findings.some((f) => 'pending' in f)).toBe(false);
     }
   });

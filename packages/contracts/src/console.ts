@@ -9,6 +9,9 @@ export {
   CONSOLE_REJECT_REASON_MIN,
   CONSOLE_SNOOZE_MAX_DAYS,
   CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
+  // T-1948: what a withheld security finding carries in place of its title.
+  CONSOLE_WITHHELD_FINDING_TITLE,
+  isConsoleSecurityId,
 } from './agents-console';
 export {
   CONSOLE_DECISION_CHOICES,
