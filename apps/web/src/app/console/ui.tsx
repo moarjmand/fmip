@@ -564,8 +564,8 @@ export function RunsBars({ runs }: { runs: ConsoleAgent['runs'] }) {
 }
 
 /**
- * A finding's title (T-1908, D-456 point 3, both defaults pending the
- * maintainer's word): as written, in `bdi dir="auto"` so an English title
+ * A finding's title (T-1908, D-456 point 3; the withheld title was decided
+ * on 2026-11-22, T-1948): as written, in `bdi dir="auto"` so an English title
  * keeps its own direction inside the Persian page; and for a security
  * finding whose detail is withheld, a fixed phrase in its place, whatever
  * the snapshot carries.

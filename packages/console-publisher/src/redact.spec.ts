@@ -1,8 +1,10 @@
 import type { ConsoleMemoryEntry, ConsoleSnapshot } from '@fmip/contracts';
+import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
 import { describe, expect, it } from 'vitest';
 import {
   MEMORY_NOTE,
   WITHHELD_NOTE,
+  WITHHELD_TITLE,
   guardText,
   normalId,
   redactSecurityText,
@@ -201,11 +203,16 @@ describe('the snapshot as it leaves the computer (T-1879)', () => {
         id,
         agent: 'security',
         severity: 'major',
-        title: `Title of ${id}`,
+        // T-1948: the fixed phrase, never the title.
+        title: WITHHELD_TITLE,
         detail: null,
         related: null,
       });
+      expect(whole).not.toContain(`Title of ${id}`);
     }
+    // A released one keeps its title (T-1907's `releasable` rule).
+    expect(byId.get(RESOLVED)?.title).toBe(`Title of ${RESOLVED}`);
+    expect(byId.get(PUBLIC)?.title).toBe(`Title of ${PUBLIC}`);
     expect(byId.get(ACCEPTED)?.status).toBe('wontfix');
     expect(byId.get(RESOLVED)?.detail).toContain(`EVIDENCE-MARK of ${RESOLVED}`);
     expect(byId.get(PUBLIC)?.detail).toContain(`EVIDENCE-MARK of ${PUBLIC}`);
@@ -228,10 +235,10 @@ describe('the snapshot as it leaves the computer (T-1879)', () => {
       '',
       '## Security',
       '',
-      `- [${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+      `- [${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`,
       '- Headers were checked and are fine.',
       '',
-      `### [${OPEN} · security · major] Title of ${OPEN} — ${WITHHELD_NOTE}`,
+      `### [${OPEN} · security · major] — ${WITHHELD_NOTE}`,
       '',
       '## Decisions',
       '',
@@ -258,13 +265,13 @@ describe('the snapshot as it leaves the computer (T-1879)', () => {
     // Another agent's memory and a desk question's context follow the text rule.
     const chief = sent.agents.find((a) => a.name === 'chief-of-staff')!;
     expect(chief.memory.entries[0]!.text).toBe(
-      `Baseline: 3 findings a day.\n\n- [${DECIDE} · security · major] Title of ${DECIDE} — ${WITHHELD_NOTE}`,
+      `Baseline: 3 findings a day.\n\n- [${DECIDE} · security · major] — ${WITHHELD_NOTE}`,
     );
     expect(sent.decisions[0]!.summary).toBe(
-      `[${UNVERIFIED} · security · major] Title of ${UNVERIFIED} — ${WITHHELD_NOTE}`,
+      `[${UNVERIFIED} · security · major] — ${WITHHELD_NOTE}`,
     );
     // Its options and the answer shown (an option's label) too; the question itself stays.
-    const option = `[${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`;
+    const option = `[${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`;
     expect(sent.decisions[0]).toMatchObject({
       title: 'Fix it this week?',
       options: [
@@ -312,7 +319,7 @@ describe('the text rule (T-1879, rule 3)', () => {
       'sec-2026-11-19-11',
     ]);
     expect(normalId('SEC-2026-11-19-5')).toBe(RESOLVED);
-    // An unknown id shows the id alone: there is no severity or title to give.
+    // An unknown id shows the id alone: there is no severity to give.
     expect(withheldLine([UNKNOWN], LEDGER)).toBe(`[${UNKNOWN} · security] — ${WITHHELD_NOTE}`);
   });
 
@@ -328,7 +335,7 @@ describe('the text rule (T-1879, rule 3)', () => {
     ].join('\n');
     expect(redact(text).split('\n')).toEqual([
       '- before',
-      `- [${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+      `- [${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`,
       '- after',
     ]);
   });
@@ -348,10 +355,10 @@ describe('the text rule (T-1879, rule 3)', () => {
     expect(redact(text).split('\n')).toEqual([
       '| id | severity | note |',
       '| --- | --- | --- |',
-      `| [${DECIDE} · security · major] Title of ${DECIDE} — ${WITHHELD_NOTE} |`,
+      `| [${DECIDE} · security · major] — ${WITHHELD_NOTE} |`,
       '| ops-2026-11-19-01 | minor | disk |',
       '',
-      `[${OPEN} · security · major] Title of ${OPEN} — ${WITHHELD_NOTE}`,
+      `[${OPEN} · security · major] — ${WITHHELD_NOTE}`,
       '',
       'An unrelated paragraph.',
     ]);
@@ -370,7 +377,7 @@ describe('the text rule (T-1879, rule 3)', () => {
         'The next paragraph stays.',
       ].join('\n');
       expect(redact(text).split('\n')).toEqual([
-        `[${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+        `[${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`,
         '',
         'The next paragraph stays.',
       ]);
@@ -389,7 +396,7 @@ describe('the text rule (T-1879, rule 3)', () => {
     ].join('\n');
     expect(redact(text).split('\n')).toEqual([
       '## Findings',
-      `### [${OPEN} · security · major] Title of ${OPEN} — ${WITHHELD_NOTE}`,
+      `### [${OPEN} · security · major] — ${WITHHELD_NOTE}`,
       '',
       '### Another finding',
       'Stays.',
@@ -408,7 +415,7 @@ describe('the text rule (T-1879, rule 3)', () => {
     expect(sent.split('\n')).toEqual([
       'سلام. سه یافته‌ی امنیتی باز است.',
       '',
-      `- [${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+      `- [${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`,
       `- ${RESOLVED}: fixed and re-checked.`,
     ]);
     expect(withheldIdsIn(reply, LEDGER)).toEqual([ACCEPTED]);
@@ -558,15 +565,13 @@ describe('an id however it is written (review of #947, rule 3)', () => {
     const arabic = ACCEPTED.replace(/\d/g, (d) => c(0x0660 + Number(d)));
     expect(withheldIdsIn(`${persian} ${arabic}`, LEDGER)).toEqual([ACCEPTED]);
     const text = `- ${persian}: EVIDENCE-MARK`;
-    expect(redact(text)).toBe(
-      `- [${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
-    );
+    expect(redact(text)).toBe(`- [${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`);
   });
 });
 
 describe('fenced code and the section rule (review of #947, rule 3a)', () => {
   const redact = (text: string) => redactSecurityText(text, LEDGER);
-  const stub = `[${OPEN} · security · major] Title of ${OPEN} — ${WITHHELD_NOTE}`;
+  const stub = `[${OPEN} · security · major] — ${WITHHELD_NOTE}`;
 
   it('does not end a withheld section at a # line inside a fence', () => {
     for (const fence of ['```', '~~~', '````']) {
@@ -633,7 +638,7 @@ describe('the other text the publisher uploads (review of #947)', () => {
   it("guards a command's outcome, a request's result and a request's question", () => {
     const outcome = `Failed while reading ${ACCEPTED}: EVIDENCE-MARK`;
     expect(guardText(outcome, LEDGER)).toEqual({
-      text: `[${ACCEPTED} · security · major] Title of ${ACCEPTED} — ${WITHHELD_NOTE}`,
+      text: `[${ACCEPTED} · security · major] — ${WITHHELD_NOTE}`,
       withheld: [ACCEPTED],
     });
     const result = [
@@ -655,6 +660,114 @@ describe('the other text the publisher uploads (review of #947)', () => {
     // Text that names no withheld finding goes as written.
     const plain = 'Paused: the daily run skips it.';
     expect(guardText(plain, LEDGER)).toEqual({ text: plain, withheld: [] });
+  });
+});
+
+describe("a withheld security finding's title stays on the computer (T-1948)", () => {
+  const line = (record: Record<string, unknown>): FindingLine => ({
+    file: '2026-11-22.jsonl',
+    record: { agent: 'security', severity: 'critical', evidence: 'the evidence', ...record },
+  });
+  const HELD = 'sec-2026-11-22-01';
+  const NAMED = 'sec-2026-11-22-02';
+  const FREE = 'sec-2026-11-22-03';
+  const SHOWN = 'sec-2026-11-22-04';
+  const lines = [
+    line({ id: HELD, status: 'open', title: 'Zanzibar quokka bypasses xylophone login' }),
+    // Another agent's line under a security id: withheld all the same.
+    line({ id: NAMED, agent: 'code-reviewer', status: 'planned', title: 'Marzipan walrus token' }),
+    line({ id: FREE, status: 'resolved', title: 'Released heading stays' }),
+    line({ id: SHOWN, status: 'open', public: true, title: 'Public heading stays' }),
+    line({ id: 'ops-2026-11-22-01', agent: 'ops-release', status: 'open', title: 'Disk at 71%' }),
+  ];
+  const ledger = securityLedger(lines);
+  /** Every word of the two withheld titles. */
+  const WORDS = [
+    'zanzibar',
+    'quokka',
+    'bypasses',
+    'xylophone',
+    'login',
+    'marzipan',
+    'walrus',
+    'token',
+  ];
+  const text = [
+    '# Brief',
+    '',
+    `- ${HELD}: Zanzibar quokka bypasses xylophone login.`,
+    `- ${NAMED} waits for its task.`,
+    `- ${FREE}: Released heading stays.`,
+    '',
+    `## ${HELD} Zanzibar quokka bypasses xylophone login`,
+    '',
+    'How it is done.',
+  ].join('\n');
+  const sent = snapshotOf(
+    {
+      generated_at: '2026-11-22T12:00:00.000Z',
+      agents: [],
+      findings: findingsFrom(lines, '2026-11-22'),
+      reports: [
+        {
+          agent: 'chief-of-staff',
+          date: '2026-11-22',
+          title: `About ${NAMED}`,
+          path: 'reports/chief-of-staff/2026-11-22.md',
+          text,
+        },
+        {
+          agent: 'ops-release',
+          date: '2026-11-22',
+          title: 'Ops',
+          path: 'reports/ops-release/2026-11-22.md',
+          text: `| ${NAMED} | walrus |`,
+        },
+      ],
+      brief: { date: '2026-11-22', text },
+      decisions: [],
+    },
+    ledger,
+  );
+
+  it('says the same phrase as the contract, which the server and the page use', () => {
+    expect(WITHHELD_TITLE).toBe(CONSOLE_WITHHELD_FINDING_TITLE);
+  });
+
+  it('sends the fixed phrase in place of the title, and a released title as written', () => {
+    expect(Object.fromEntries(sent.findings.map((f) => [f.id, f.title]))).toEqual({
+      [HELD]: WITHHELD_TITLE,
+      [NAMED]: WITHHELD_TITLE,
+      [FREE]: 'Released heading stays',
+      [SHOWN]: 'Public heading stays',
+      'ops-2026-11-22-01': 'Disk at 71%',
+    });
+  });
+
+  it('writes a redaction line of the id and the severity alone', () => {
+    expect(withheldLine([HELD, NAMED], ledger)).toBe(
+      `[${HELD} · security · critical] ؛ [${NAMED} · security · critical] — ${WITHHELD_NOTE}`,
+    );
+    expect(sent.brief!.text.split('\n')).toEqual([
+      '# Brief',
+      '',
+      `- [${HELD} · security · critical] — ${WITHHELD_NOTE}`,
+      `- [${NAMED} · security · critical] — ${WITHHELD_NOTE}`,
+      `- ${FREE}: Released heading stays.`,
+      '',
+      `## [${HELD} · security · critical] — ${WITHHELD_NOTE}`,
+      '',
+    ]);
+    expect(sent.reports[0]!.title).toBe(`[${NAMED} · security · critical] — ${WITHHELD_NOTE}`);
+    expect(guardText(`${HELD} quokka`, ledger).text).toBe(
+      `[${HELD} · security · critical] — ${WITHHELD_NOTE}`,
+    );
+  });
+
+  it('leaves no word of a withheld title anywhere in the snapshot', () => {
+    const whole = JSON.stringify(sent).toLowerCase();
+    for (const word of WORDS) expect(whole, word).not.toContain(word);
+    expect(whole).toContain('released heading stays');
   });
 });
 

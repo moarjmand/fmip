@@ -19,6 +19,7 @@ import {
   type ConsoleFindingPending,
   type ConsoleSnapshot,
 } from '@fmip/contracts';
+import { CONSOLE_WITHHELD_FINDING_TITLE } from '@fmip/contracts/console';
 import { checkModelLab } from './model-lab-rules';
 import { checkProviders } from './providers-rules';
 
@@ -53,7 +54,7 @@ export const COMMAND_KEY_MAX = 40;
 export const COMMAND_CEILING = 'console_command';
 /** ...and of `agent.run` alone, each an agent started at once on the maintainer's computer. */
 export const RUN_CEILING = 'console_command_run';
-/** The agent whose open findings show their title and severity only (D-340). */
+/** The agent whose open findings show their id and severity only (D-340; no title since T-1948). */
 export const WITHHELD_AGENT = 'security';
 
 const SECURITY_ID = /^sec-\d{4}-\d{2}-\d{2}-\d+$/i;
@@ -162,10 +163,12 @@ export function checkSnapshot(
       })),
       // `pending` is the server's own word (T-1907): whatever the computer sent there is dropped.
       // The server's own net: a security finding the computer did not mark releasable
-      // loses its detail and its related ids, in every status, new and closed alike.
+      // loses its detail and its related ids, in every status, new and closed alike,
+      // and its title (T-1948): the fixed phrase is stored over whatever an older
+      // publisher sent, so the title is in no stored snapshot and no answer.
       findings: snapshot.findings.map(({ pending: _pending, ...finding }) =>
         isSecurityFinding(finding) && finding.releasable !== true
-          ? { ...finding, detail: null, related: null }
+          ? { ...finding, title: CONSOLE_WITHHELD_FINDING_TITLE, detail: null, related: null }
           : finding,
       ),
       reports: snapshot.reports.map((report) =>

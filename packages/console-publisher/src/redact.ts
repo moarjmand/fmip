@@ -20,8 +20,11 @@ import type { ConsoleSeverity, ConsoleSnapshot } from '@fmip/contracts';
  *    Everything else is WITHHELD: `new`, `open`, `decide`,
  *    `fixed-unverified`, `accepted`, any other word, and an id the findings
  *    files do not have at all.
- * 2. A withheld finding keeps its id, severity, status, title and first day;
- *    its `detail` and `related` are `null`.
+ * 2. A withheld finding keeps its id, severity, status and first day; its
+ *    `detail` and `related` are `null`, and its title is the fixed phrase
+ *    `WITHHELD_TITLE` (T-1948, D-456's addition of 2026-11-22: the title of a
+ *    withheld security finding is read in the ops files here, nowhere in the
+ *    console).
  * 3. Text (the brief, every report, every memory entry, a desk question's
  *    context and options, a chat reply, a command's outcome, a request's
  *    result or question) is redacted where it names a withheld id:
@@ -34,8 +37,9 @@ import type { ConsoleSeverity, ConsoleSnapshot } from '@fmip/contracts';
  *       table row); a fenced code block is never split;
  *    c. a redacted paragraph that ends with a colon takes the list items that
  *       follow it too (it introduced them).
- *    The one line is the id, `security`, the severity and title the findings
- *    files have for it, and a note that the detail is not shown.
+ *    The one line is the id, `security`, the severity the findings files
+ *    have for it, and a note that the detail is not shown; never the title
+ *    (T-1948).
  *    An id is read whatever way it is typed: any case, Persian or Arabic
  *    digits, any dash character, zero-width and direction marks ignored. A
  *    range or a list after an id names every id in it (`-01..03`, `-01–03`,
@@ -122,6 +126,7 @@ export const isSecurityFinding = (id: string, agent: string): boolean =>
 
 export interface SecurityFact {
   severity: ConsoleSeverity | null;
+  /** As the findings files have it. For this computer only: no text that leaves it carries it while withheld. */
   title: string;
   /** Whether its detail may leave the computer (rule 1). */
   releasable: boolean;
@@ -184,16 +189,25 @@ export function withheldIdsIn(text: string, ledger: SecurityLedger): string[] {
 /** Persian: the console shows the text as written (D-352). */
 export const WITHHELD_NOTE = 'جزئیات این یافته‌ی امنیتی در کنسول نمایش داده نمی‌شود (D-340).';
 
+/**
+ * What a withheld security finding carries in place of its title (T-1948).
+ * The same words as `CONSOLE_WITHHELD_FINDING_TITLE` in `@fmip/contracts` (a
+ * spec holds them equal), which the server writes over an older publisher's
+ * title and the page draws.
+ */
+export const WITHHELD_TITLE = 'یافته‌ی امنیتی؛ عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود';
+
 /** What the console shows in place of the security agent's memory. Persian, as above. */
 export const MEMORY_NOTE = 'حافظه‌ی عامل امنیت در کنسول نمایش داده نمی‌شود (D-340).';
 
-/** The one line a redacted block becomes: what the console may show of each finding, and the note. */
+/**
+ * The one line a redacted block becomes: each finding's id and severity, and
+ * the note. Every id it is given is a withheld one, so no title (T-1948).
+ */
 export function withheldLine(ids: readonly string[], ledger: SecurityLedger): string {
-  const named = ids.map((id) => {
-    const fact = ledger.get(id);
-    const label = `[${[id, 'security', fact?.severity].filter(Boolean).join(' · ')}]`;
-    return fact === undefined || fact.title === '' ? label : `${label} ${fact.title}`;
-  });
+  const named = ids.map(
+    (id) => `[${[id, 'security', ledger.get(id)?.severity].filter(Boolean).join(' · ')}]`,
+  );
   return `${named.join(' ؛ ')} — ${WITHHELD_NOTE}`;
 }
 
@@ -388,7 +402,7 @@ export function withholdSecurity(
     })),
     findings: parts.findings.map(({ releasable: _releasable, ...finding }) =>
       withholds(ledger, finding.id, finding.agent)
-        ? { ...finding, detail: null, related: null }
+        ? { ...finding, title: WITHHELD_TITLE, detail: null, related: null }
         : {
             ...finding,
             detail: finding.detail === null ? null : clean(finding.detail),

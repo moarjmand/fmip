@@ -3,6 +3,7 @@ import {
   CONSOLE_SNOOZE_MAX_DAYS,
   CONSOLE_SNOOZE_MAX_DAYS_SEVERE,
   CONSOLE_SYNC_TIME_ZONE,
+  CONSOLE_WITHHELD_FINDING_TITLE,
   consolePcState,
   dayToIso,
   isoToDay,
@@ -74,10 +75,15 @@ export const isSecurityFinding = (finding: Pick<ConsoleFinding, 'id' | 'agent'>)
 
 /**
  * What stands in place of a security finding's title while its detail is
- * withheld (D-456 point 3, a default pending the maintainer's word): the
- * console draws neither. The id still names it, and the actions work by id.
+ * withheld (D-456 point 3, decided by the maintainer on 2026-11-22: hidden
+ * everywhere in the console, both accounts): the console draws neither. Since
+ * T-1948 the snapshot does not carry the title either: the computer and the
+ * server put this same phrase in its place, so nothing here may read
+ * `finding.title` of a withheld finding as if it were its own (`similarFindings`
+ * does not, and nothing sorts or filters by a title). The id still names it,
+ * and the actions work by id.
  */
-export const WITHHELD_TITLE = 'یافته‌ی امنیتی؛ عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود';
+export const WITHHELD_TITLE = CONSOLE_WITHHELD_FINDING_TITLE;
 export const titleWithheld = (finding: Pick<ConsoleFinding, 'id' | 'agent' | 'detail'>): boolean =>
   isSecurityFinding(finding) && finding.detail === null;
 

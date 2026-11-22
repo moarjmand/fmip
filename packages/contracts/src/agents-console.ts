@@ -79,6 +79,16 @@ export const CONSOLE_REJECT_REASON_MIN = 3;
 export const CONSOLE_SNOOZE_MAX_DAYS = 90;
 /** ...and this many for a critical or major finding. */
 export const CONSOLE_SNOOZE_MAX_DAYS_SEVERE = 14;
+/**
+ * What a withheld security finding carries in place of its title (T-1948,
+ * D-456's addition of 2026-11-22): the computer sends this, the server writes
+ * it over whatever an older publisher sent, and the page draws it. Persian:
+ * the console shows text as written (D-352). The title itself is read in the
+ * ops files on the computer. Exported from `@fmip/contracts/console` only,
+ * like the console's other runtime constants (not the main barrel).
+ */
+export const CONSOLE_WITHHELD_FINDING_TITLE =
+  'یافته‌ی امنیتی؛ عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود';
 
 /**
  * A triage command a person asked for that the computer has not reported
@@ -244,7 +254,8 @@ export interface ConsoleFinding {
   opened_at: string;
   /**
    * `null` for a security finding that is not resolved or marked public
-   * (D-340, T-1879): its detail stays on the computer.
+   * (D-340, T-1879): its detail stays on the computer, and so does its title
+   * (T-1948): `title` is then `CONSOLE_WITHHELD_FINDING_TITLE`.
    */
   detail: string | null;
   related: string | null;
