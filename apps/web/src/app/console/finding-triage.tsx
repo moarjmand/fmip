@@ -1,8 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useActionState, useEffect, useRef, useState } from 'react';
 import type { ConsoleFindingCommandKind } from '@fmip/contracts';
-import { CONSOLE_REJECT_REASON_MIN } from '@fmip/contracts/console';
+import {
+  CONSOLE_REJECT_REASON_MIN,
+  CONSOLE_SYNC_TIME_ZONE,
+  dayToIso,
+  isoToDay,
+} from '@fmip/contracts/console';
 import { type ConsoleFormState, triageFinding } from '@/lib/console-actions';
 import type { TriageGroup } from './triage';
 
@@ -18,8 +23,8 @@ import type { TriageGroup } from './triage';
  * waiting, with the next sync, and the finding keeps the status the snapshot
  * has: never a finished state before the computer has applied it.
  *
- * Focus: opening «رد…» moves it to the reason field and «به تعویق…» to the
- * first day; closing a form returns it to the button that opened it; after a
+ * Focus: opening «رد…» moves it to the reason field, «به تعویق…» to the
+ * first day and «همین حالا تصمیم بگیرم» to «قبول»; closing a form returns it to the button that opened it; after a
  * command is taken or refused it rests on the row's outcome line, so a
  * keyboard or screen-reader user is not dropped at the top of the page when
  * the buttons give way to the waiting state.
@@ -57,8 +62,14 @@ export interface TriageView {
   snooze: {
     /** «فردا · ۲ آذر» and its day. */
     choices: { label: string; until: string }[];
-    /** Every day a snooze may name, worded, for the «تاریخ دیگر» list. */
-    days: { label: string; until: string }[];
+    /**
+     * The first and the last day a snooze may name, YYYY-MM-DD. The list
+     * between them is built here, in the browser, when the form opens: up to
+     * 90 worded days a row would otherwise travel with every finding of a
+     * list that is not paged.
+     */
+    min: string;
+    max: string;
     limit: string;
   };
 }
@@ -85,6 +96,70 @@ const PENDING_WHAT: Record<ConsoleFindingCommandKind, string> = {
 
 type Open = 'reject' | 'snooze' | null;
 
+/** A day as «شنبه ۳ آذر», in the Solar Hijri calendar and Tehran's day. */
+const dayWords = new Intl.DateTimeFormat('fa-IR', {
+  timeZone: CONSOLE_SYNC_TIME_ZONE,
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+});
+
+/** Every day from `min` to `max`, worded; never more than the API's longest snooze. */
+export function snoozeDayOptions(min: string, max: string): { label: string; until: string }[] {
+  const [first, last] = [isoToDay(min), isoToDay(max)];
+  if (first === null || last === null) return [];
+  return Array.from({ length: Math.min(Math.max(0, last - first + 1), 90) }, (_, index) => {
+    const until = dayToIso(first + index);
+    return { until, label: dayWords.format(new Date(`${until}T12:00:00Z`)) };
+  });
+}
+
+/**
+ * The triage card of a finding's own page. Below 768 px it is a bar fixed to
+ * the bottom of the window while there is something to decide or to wait
+ * for; its height changes with the form that is open, so it tells the page
+ * (`--triage-bar` on the document) how much room to leave under the content,
+ * and the last lines are never left behind it.
+ */
+export function TriageBar({
+  fixed,
+  labelledBy,
+  children,
+}: {
+  fixed: boolean;
+  labelledBy: string;
+  children: ReactNode;
+}) {
+  const bar = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const element = bar.current;
+    if (!fixed || element === null || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const tell = () => root.style.setProperty('--triage-bar', `${element.offsetHeight}px`);
+    const observer = new ResizeObserver(tell);
+    observer.observe(element);
+    tell();
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--triage-bar');
+    };
+  }, [fixed]);
+  return (
+    <section
+      ref={bar}
+      aria-labelledby={labelledBy}
+      className={
+        fixed
+          ? 'fixed start-0 end-0 bottom-0 z-20 max-h-[70dvh] overflow-y-auto border-t border-strong bg-surface p-3 md:static md:z-auto md:max-h-none md:overflow-visible md:rounded-card md:border md:border-default md:p-5'
+          : 'rounded-card border border-default bg-surface p-4 md:p-5'
+      }
+      data-triage-card={fixed ? 'fixed' : 'static'}
+    >
+      {children}
+    </section>
+  );
+}
+
 export function FindingTriage({ view, labelledBy }: { view: TriageView; labelledBy?: string }) {
   const [state, run, busy] = useActionState<ConsoleFormState, FormData>(triageFinding, {
     error: null,
@@ -103,6 +178,7 @@ export function FindingTriage({ view, labelledBy }: { view: TriageView; labelled
   const setOpen = (next: Open) => setChoice({ under: state, open: next, deciding });
   const reason = useRef<HTMLTextAreaElement>(null);
   const firstDay = useRef<HTMLButtonElement>(null);
+  const acceptButton = useRef<HTMLButtonElement>(null);
   const rejectButton = useRef<HTMLButtonElement>(null);
   const snoozeButton = useRef<HTMLButtonElement>(null);
   const outcome = useRef<HTMLDivElement>(null);
@@ -116,6 +192,11 @@ export function FindingTriage({ view, labelledBy }: { view: TriageView; labelled
     else if (opened.current === 'snooze') snoozeButton.current?.focus();
     opened.current = open;
   }, [open]);
+
+  // «همین حالا تصمیم بگیرم» gives way to the three buttons: focus goes to the first of them.
+  useEffect(() => {
+    if (deciding) acceptButton.current?.focus();
+  }, [deciding]);
 
   // An answer from the server: focus rests on the outcome (after the effect above, which may
   // have sent it to a button that is about to give way to the waiting state).
@@ -232,7 +313,7 @@ export function FindingTriage({ view, labelledBy }: { view: TriageView; labelled
               className={`${QUIET} mt-1`}
               onClick={() => setChoice({ under: state, open: null, deciding: true })}
             >
-              الان برگردد و تصمیم بگیرم
+              همین حالا تصمیم بگیرم
             </button>
           )}
         </div>
@@ -250,7 +331,7 @@ export function FindingTriage({ view, labelledBy }: { view: TriageView; labelled
             <form action={run}>
               <input type="hidden" name="kind" value="finding.accept" />
               <input type="hidden" name="target" value={view.id} />
-              <button type="submit" disabled={busy} className={PRIMARY}>
+              <button ref={acceptButton} type="submit" disabled={busy} className={PRIMARY}>
                 قبول
               </button>
             </form>
@@ -343,7 +424,7 @@ export function FindingTriage({ view, labelledBy }: { view: TriageView; labelled
                     <option value="" disabled>
                       روز را انتخاب کنید
                     </option>
-                    {view.snooze.days.map((day) => (
+                    {snoozeDayOptions(view.snooze.min, view.snooze.max).map((day) => (
                       <option key={day.until} value={day.until}>
                         {day.label}
                       </option>

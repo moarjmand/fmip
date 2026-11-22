@@ -77,7 +77,7 @@ export const isSecurityFinding = (finding: Pick<ConsoleFinding, 'id' | 'agent'>)
  * withheld (D-456 point 3, a default pending the maintainer's word): the
  * console draws neither. The id still names it, and the actions work by id.
  */
-export const WITHHELD_TITLE = 'یافته‌ی امنیتی؛ عنوان و جزئیات فقط روی رایانه است';
+export const WITHHELD_TITLE = 'یافته‌ی امنیتی؛ عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود';
 export const titleWithheld = (finding: Pick<ConsoleFinding, 'id' | 'agent' | 'detail'>): boolean =>
   isSecurityFinding(finding) && finding.detail === null;
 

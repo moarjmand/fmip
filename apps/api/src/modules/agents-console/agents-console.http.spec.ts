@@ -999,6 +999,50 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         message: 'The computer has already taken this command.',
       });
     });
+
+    it('keeps a finding that has left the snapshot to the owner: no triage of it, and its command is not withdrawn by the other account (T-1908)', async () => {
+      await pool.query(
+        `UPDATE console_command SET status = 'done', finished_at = now(), outcome = 'ended by the spec'
+          WHERE kind LIKE 'finding.%' AND status IN ('queued', 'taken') AND target = ANY($1)`,
+        [[OPEN, SECURITY]],
+      );
+      const asked = await send(
+        'POST',
+        'commands',
+        { kind: 'finding.snooze', target: OPEN, payload: { until: tomorrow }, reason: 'later' },
+        mate,
+      );
+      expect(asked.statusCode).toBe(201);
+      const id = asked.json<ConsoleCommand>().id;
+      const before = await store.latestSnapshot();
+      try {
+        // The next snapshot does not hold the finding: whose it was can no longer be read.
+        const without = checkSnapshot({ ...before!.snapshot, findings: [] });
+        if (!without.ok) throw new Error(without.reason);
+        await store.loadSnapshot(without.snapshot);
+        for (const who of [cookie, mate]) {
+          const triage = await send(
+            'POST',
+            'commands',
+            { kind: 'finding.accept', target: SECURITY, reason: 'do it' },
+            who,
+          );
+          expect(triage.statusCode).toBe(400);
+          expect(triage.json<ApiError>().message).toBe('No such finding.');
+        }
+        const refused = await send('DELETE', `commands/${id}`, undefined, mate);
+        expect(refused.statusCode).toBe(403);
+        expect(refused.json<ApiError>().error).toBe('forbidden');
+        const { rows } = await pool.query<{ status: string }>(
+          `SELECT status FROM console_command WHERE id = $1`,
+          [id],
+        );
+        expect(rows[0]?.status).toBe('queued');
+        expect((await send('DELETE', `commands/${id}`)).statusCode).toBe(204);
+      } finally {
+        await store.loadSnapshot(before!.snapshot);
+      }
+    });
   });
 
   describe('chat with an agent (T-1722, D-350)', () => {

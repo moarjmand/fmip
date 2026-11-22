@@ -1,5 +1,4 @@
 import type { ConsoleFinding, ConsoleHeartbeat, ConsoleMe } from '@fmip/contracts';
-import { CONSOLE_SYNC_TIME_ZONE, dayToIso, isoToDay } from '@fmip/contracts/console';
 import { ConsoleLink as Link } from './console-link';
 import { FindingTriage, type TriageView } from './finding-triage';
 import {
@@ -34,18 +33,8 @@ export interface TriageContext {
 export const OWNER_ONLY_WORDS =
   'تصمیم درباره‌ی یافته‌ی امنیتی فقط با حساب مالک کنسول (نگهدارنده) است. با این حساب نمی‌شود آن را قبول یا رد کرد یا به تعویق انداخت.';
 
-/** A day as «شنبه ۳ آذر». */
-const weekdayAndDay = (iso: string): string =>
-  new Intl.DateTimeFormat('fa-IR', {
-    timeZone: CONSOLE_SYNC_TIME_ZONE,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(new Date(`${iso}T12:00:00Z`));
-
 export function triageView(finding: ConsoleFinding, context: TriageContext): TriageView {
   const days = snoozeDays(finding.severity, context.now);
-  const [first, last] = [isoToDay(days.min) ?? 0, isoToDay(days.max) ?? 0];
   const pending = finding.pending ?? null;
   return {
     id: finding.id,
@@ -73,10 +62,9 @@ export function triageView(finding: ConsoleFinding, context: TriageContext): Tri
         until: choice.until,
         label: `${choice.label} · ${when(choice.until, false)}`,
       })),
-      days: Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => {
-        const until = dayToIso(first + index);
-        return { until, label: weekdayAndDay(until) };
-      }),
+      // The days between are worded in the browser when the form opens, not sent with every row.
+      min: days.min,
+      max: days.max,
       limit: `حداکثر ${fa(days.limit)} روز برای این شدت: تا ${when(days.max, false)}.`,
     },
   };
@@ -118,18 +106,20 @@ export function TriageRow({
     <li className="flex flex-col gap-2 border-b border-default py-4 last:border-b-0">
       <FindingMeta finding={finding} />
       <h3 id={titleId} className="text-sm font-bold text-fg">
-        <Link href={findingHref(finding.id)} className="hover:underline">
+        <Link href={findingHref(finding.id)} className="flex min-h-9 items-center hover:underline">
           <FindingTitle finding={finding} />
         </Link>
       </h3>
       {titleWithheld(finding) ? (
         <p className="text-xs text-caption">
-          عنوان و جزئیات این یافته‌ی امنیتی فقط روی رایانه‌ی نگهدارنده است؛ تصمیم با شناسه ثبت
-          می‌شود.
+          عنوان و جزئیات این یافته‌ی امنیتی در کنسول نمایش داده نمی‌شود؛ تصمیم با شناسه ثبت می‌شود.
         </p>
       ) : (
         <p className="text-xs">
-          <Link href={findingHref(finding.id)} className="text-brand hover:underline">
+          <Link
+            href={findingHref(finding.id)}
+            className="inline-flex min-h-9 items-center font-semibold text-accent underline underline-offset-4"
+          >
             شواهد، علت و پیشنهاد
           </Link>
         </p>

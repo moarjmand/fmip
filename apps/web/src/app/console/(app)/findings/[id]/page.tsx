@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { ConsoleLink as Link } from '@/app/console/console-link';
 import { consoleHeartbeat, consoleMe, consoleSnapshot } from '@/lib/console-api';
-import { FindingTriage } from '../../../finding-triage';
+import { FindingTriage, TriageBar } from '../../../finding-triage';
 import { FindingMeta, findingHref, triageView } from '../../../findings';
 import { GROUP_WORDS, findingParts, similarFindings, titleWithheld } from '../../../triage';
 import { Badge, Card, FindingTitle, STATUS_WORDS, SeverityBadge, when } from '../../../ui';
@@ -55,7 +55,7 @@ export default async function ConsoleFindingPage({ params }: { params: Promise<{
   const back = (
     <Link
       href="/findings"
-      className="inline-flex min-h-9 items-center text-sm text-brand hover:underline"
+      className="inline-flex min-h-9 items-center text-sm font-semibold text-accent underline underline-offset-4"
     >
       بازگشت به یافته‌ها
     </Link>
@@ -84,7 +84,7 @@ export default async function ConsoleFindingPage({ params }: { params: Promise<{
   const fixed = view.pending !== null || view.group === 'needs' || view.group === 'snoozed';
 
   return (
-    <div className={`flex flex-col gap-5 ${fixed ? 'pb-72 md:pb-0' : ''}`}>
+    <div className={`flex flex-col gap-5 ${fixed ? 'pb-[var(--triage-bar,18rem)] md:pb-0' : ''}`}>
       <nav aria-label="مسیر">{back}</nav>
       <Card>
         <FindingMeta finding={finding} />
@@ -99,8 +99,8 @@ export default async function ConsoleFindingPage({ params }: { params: Promise<{
           <Card>
             {finding.detail === null ? (
               <p className="text-sm text-muted">
-                عنوان، شواهد و پیشنهاد این یافته‌ی امنیتی فقط روی رایانه‌ی نگهدارنده است (D-340) و
-                به کنسول نمی‌آید. تصمیم با شناسه‌ی یافته ثبت می‌شود.
+                عنوان، شواهد و پیشنهاد این یافته‌ی امنیتی در کنسول نمایش داده نمی‌شود. تصمیم با
+                شناسه‌ی یافته ثبت می‌شود.
               </p>
             ) : (
               <div className="flex flex-col gap-4">
@@ -154,15 +154,7 @@ export default async function ConsoleFindingPage({ params }: { params: Promise<{
         </div>
 
         <div className="flex flex-col gap-5">
-          <section
-            aria-labelledby="triage-title"
-            className={
-              fixed
-                ? 'fixed start-0 end-0 bottom-0 z-20 max-h-[70dvh] overflow-y-auto border-t border-strong bg-surface p-3 md:static md:z-auto md:max-h-none md:overflow-visible md:rounded-card md:border md:border-default md:p-5'
-                : 'rounded-card border border-default bg-surface p-4 md:p-5'
-            }
-            data-triage-card={fixed ? 'fixed' : 'static'}
-          >
+          <TriageBar fixed={fixed} labelledBy="triage-title">
             <h2 id="triage-title" className="mb-2 text-base font-bold text-fg">
               تصمیم
             </h2>
@@ -174,13 +166,13 @@ export default async function ConsoleFindingPage({ params }: { params: Promise<{
             ) : (
               <FindingTriage view={view} labelledBy="triage-title" />
             )}
-          </section>
+          </TriageBar>
 
           <Card title="شبیه‌ها">
             {similar.length === 0 ? (
               <p className="text-sm text-muted">
                 {withheld
-                  ? 'عنوان این یافته به کنسول نمی‌آید، پس شبیه‌هایش را فقط از روی پیوندها می‌شود گفت؛ پیوندی نیست.'
+                  ? 'عنوان این یافته در کنسول نمایش داده نمی‌شود، پس شبیه‌هایش را فقط از روی پیوندها می‌شود گفت؛ پیوندی نیست.'
                   : 'یافته‌ی دیگری درباره‌ی همین موضوع در آخرین هم‌گام‌سازی نیست.'}
               </p>
             ) : (

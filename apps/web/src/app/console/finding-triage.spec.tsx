@@ -62,7 +62,7 @@ vi.mock('@/lib/console-api', () => {
 });
 
 const { TriageCounts, TriageRow, OWNER_ONLY_WORDS, triageView } = await import('./findings');
-const { FindingTriage } = await import('./finding-triage');
+const { FindingTriage, snoozeDayOptions } = await import('./finding-triage');
 const {
   TRIAGE_GROUPS,
   WITHHELD_TITLE,
@@ -228,7 +228,16 @@ describe('a finding that needs triage', () => {
     expect(night.choices.map((c) => c.until)).toEqual(['2026-11-24', '2026-11-26', '2026-11-30']);
     expect(night.max).toBe('2026-12-06');
     const view = triageView(byId(NEEDS), context());
-    expect(view.snooze.days).toHaveLength(14);
+    // The view carries the two ends only; the list is built in the browser when the form opens.
+    expect([view.snooze.min, view.snooze.max]).toEqual(['2026-11-23', '2026-12-06']);
+    expect(JSON.stringify(view).length).toBeLessThan(1200);
+    const days = snoozeDayOptions(view.snooze.min, view.snooze.max);
+    expect(days).toHaveLength(14);
+    expect(days[0]).toEqual({ until: '2026-11-23', label: 'دوشنبه ۲ آذر' });
+    expect(days.at(-1)?.until).toBe('2026-12-06');
+    // Never more than the longest snooze, whatever the two ends say.
+    expect(snoozeDayOptions('2026-11-23', '2028-01-01')).toHaveLength(90);
+    expect(snoozeDayOptions('nope', '2026-12-06')).toEqual([]);
     expect(view.snooze.choices[0]?.label).toBe('فردا · ۲ آذر');
     expect(view.snooze.limit).toContain('۱۴ روز');
   });
@@ -344,7 +353,7 @@ describe('a finding someone has decided', () => {
     const html = row(SNOOZED);
     expect(html).toContain('به تعویق افتاده</span>');
     expect(html).toContain('تا ۸ آذر');
-    expect(buttons(html)).toEqual(['الان برگردد و تصمیم بگیرم']);
+    expect(buttons(html)).toEqual(['همین حالا تصمیم بگیرم']);
   });
 
   it('reads the parts of the detail the computer wrote', () => {
@@ -589,7 +598,8 @@ describe("a finding's own page", () => {
     expect(html).toMatch(
       /<section aria-labelledby="triage-title" class="fixed start-0 end-0 bottom-0 [^"]*md:static[^"]*" data-triage-card="fixed"/,
     );
-    expect(html).toContain('pb-72 md:pb-0');
+    // The page leaves the bar's real height under its content (the bar reports it), 18rem until it has.
+    expect(html).toContain('pb-[var(--triage-bar,18rem)] md:pb-0');
     // The same subject: the one that names it in `related` first, then the one with the like title.
     const similar = html.slice(html.indexOf('شبیه‌ها'));
     expect([...similar.matchAll(/href="\/findings\/([^"]+)"/g)].map((m) => m[1])).toEqual([

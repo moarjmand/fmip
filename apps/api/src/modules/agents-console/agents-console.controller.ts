@@ -320,19 +320,23 @@ export class AgentsConsoleController {
    * Takes back a finding's triage command that the computer has not taken yet
    * (T-1908): the «انصراف» of the findings page. 404 for anything that is not
    * such a command still open, 409 once the computer has taken it, 403 for a
-   * security finding's from an account that is not the owner. Audited.
+   * security finding's from an account that is not the owner, and for one of
+   * a finding that has left the snapshot. Audited. (`POST commands` refuses a
+   * finding the snapshot does not hold outright: `No such finding.`)
    */
   @Delete('commands/:id')
   @HttpCode(204)
   async withdraw(@Param('id') id: string, @Req() request: FastifyRequest): Promise<void> {
     const actor = await this.person(request);
     const latest = await this.store.latestSnapshot();
-    const agentOf = (target: string): string =>
-      latest?.snapshot.findings.find((f) => f.id === target)?.agent ?? '';
+    // A finding the loaded snapshot no longer holds cannot be shown not to be the security
+    // agent's (the command keeps its target, not the agent), so its command is the owner's alone.
+    const ownerOnly = (target: string): boolean => {
+      const finding = latest?.snapshot.findings.find((f) => f.id === target);
+      return finding === undefined || isSecurityFinding(finding);
+    };
     const outcome = /^[0-9a-f-]{36}$/.test(id)
-      ? await this.store.withdrawTriage(id, actor, (target) =>
-          isSecurityFinding({ id: target, agent: agentOf(target) }),
-        )
+      ? await this.store.withdrawTriage(id, actor, ownerOnly)
       : 'missing';
     if (outcome === 'missing')
       throw new NotFoundException({ error: 'not_found', message: 'No such command.' });

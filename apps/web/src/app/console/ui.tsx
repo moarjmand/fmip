@@ -589,9 +589,21 @@ export function FindingDetail({ detail }: { detail: string }) {
   const block = 'mt-1 whitespace-pre-wrap break-words text-sm text-muted';
   return (
     <>
-      {parts.evidence !== '' && <p className={block}>{parts.evidence}</p>}
-      {parts.cause !== '' && <p className={block}>علت احتمالی: {parts.cause}</p>}
-      {parts.proposal !== '' && <p className={block}>پیشنهاد: {parts.proposal}</p>}
+      {parts.evidence !== '' && (
+        <p dir="auto" className={block}>
+          {parts.evidence}
+        </p>
+      )}
+      {parts.cause !== '' && (
+        <p className={block}>
+          علت احتمالی: <bdi dir="auto">{parts.cause}</bdi>
+        </p>
+      )}
+      {parts.proposal !== '' && (
+        <p className={block}>
+          پیشنهاد: <bdi dir="auto">{parts.proposal}</bdi>
+        </p>
+      )}
       {parts.triage !== '' && (
         <p dir="ltr" className="mt-1 break-words text-start text-xs text-caption">
           {parts.triage}
@@ -619,7 +631,7 @@ export function FindingRow({ finding }: { finding: ConsoleFinding }) {
       </p>
       {finding.detail === null ? (
         <p className="mt-1 text-xs text-caption">
-          جزئیات یافته‌ی امنیتی باز فقط روی رایانه‌ی شماست (D-340).
+          جزئیات این یافته‌ی امنیتی در کنسول نمایش داده نمی‌شود.
         </p>
       ) : (
         finding.detail !== '' && (

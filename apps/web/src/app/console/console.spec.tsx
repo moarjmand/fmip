@@ -137,10 +137,12 @@ describe('the console pieces', () => {
     const html = renderToStaticMarkup(<FindingRow finding={finding({})} />);
     // T-1908 (D-456 point 3, pending the maintainer's word): the title is hidden as well as the detail.
     expect(html).not.toContain('A header is missing');
-    expect(html).toContain('عنوان و جزئیات فقط روی رایانه است');
+    expect(html).toContain('عنوان و جزئیاتش در کنسول نمایش داده نمی‌شود');
     expect(html).toContain('<span class="text-xs text-caption" dir="ltr">sec-1</span>');
     expect(html).toContain('مهم');
-    expect(html).toContain('فقط روی رایانه‌ی شماست');
+    expect(html).toContain('جزئیات این یافته‌ی امنیتی در کنسول نمایش داده نمی‌شود.');
+    // No decision id in what a person reads.
+    expect(html).not.toMatch(/D-\d+/);
     expect(html).not.toContain('<details');
     const other = renderToStaticMarkup(
       <FindingRow finding={finding({ agent: 'data-auditor', detail: 'the evidence' })} />,
