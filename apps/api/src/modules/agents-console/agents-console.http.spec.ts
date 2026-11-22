@@ -912,6 +912,93 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('agents conso
         requested_by_owner: true,
       });
     });
+
+    it('says who the owner is, and lets a queued triage command be withdrawn until the computer takes it (T-1908)', async () => {
+      // The page reads this to say why, instead of offering a button the server refuses.
+      expect((await get('me')).json()).toMatchObject({ username: name, owner: true });
+      expect((await get('me', mate)).json()).toMatchObject({ owner: false });
+      // Nothing of the earlier tests is left waiting.
+      await pool.query(
+        `UPDATE console_command SET status = 'done', finished_at = now(), outcome = 'ended by the spec'
+          WHERE kind LIKE 'finding.%' AND status IN ('queued', 'taken') AND target = ANY($1)`,
+        [[OPEN, SECURITY]],
+      );
+
+      const asked = await send(
+        'POST',
+        'commands',
+        { kind: 'finding.reject', target: OPEN, reason: 'a mistake to withdraw' },
+        mate,
+      );
+      expect(asked.statusCode).toBe(201);
+      const id = asked.json<ConsoleCommand>().id;
+      expect((await finding(OPEN))?.pending).toMatchObject({ command_id: id, taken: false });
+
+      expect((await send('DELETE', `commands/${id}`, undefined, null)).statusCode).toBe(401);
+      for (const unknown of ['nope', '00000000-0000-4000-8000-000000000000']) {
+        const missing = await send('DELETE', `commands/${unknown}`);
+        expect(missing.statusCode).toBe(404);
+        expect(missing.json<ApiError>()).toEqual({
+          error: 'not_found',
+          message: 'No such command.',
+        });
+      }
+      // Either account withdraws it, not only the one that asked.
+      expect((await send('DELETE', `commands/${id}`)).statusCode).toBe(204);
+      expect((await finding(OPEN))?.pending).toBeNull();
+      const { rows } = await pool.query<{ status: string }>(
+        `SELECT status FROM console_command WHERE id = $1`,
+        [id],
+      );
+      expect(rows[0]?.status).toBe('cancelled');
+      const audit = await auditOf('command.finding_withdraw', OPEN);
+      expect(audit).toMatchObject({ actor_name: name, target_type: 'finding' });
+      expect(audit?.previous).toEqual({
+        command: id,
+        kind: 'finding.reject',
+        reason: 'a mistake to withdraw',
+      });
+      // The computer never gets it, a second withdrawal finds nothing, and the finding takes a command again.
+      expect((await store.takeCommands(true)).some((c) => c.id === id)).toBe(false);
+      expect((await send('DELETE', `commands/${id}`)).statusCode).toBe(404);
+
+      // A command that is not a finding's triage is not withdrawn here.
+      const run = await send('POST', 'commands', {
+        kind: 'agent.pause',
+        target: 'data-auditor',
+        reason: 'not a triage',
+      });
+      expect(run.statusCode).toBe(201);
+      expect((await send('DELETE', `commands/${run.json<ConsoleCommand>().id}`)).statusCode).toBe(
+        404,
+      );
+
+      // A security finding's is the owner's alone to withdraw, and nobody's once the computer has it.
+      const secret = await send('POST', 'commands', {
+        kind: 'finding.snooze',
+        target: SECURITY,
+        payload: { until: inDays(2) },
+        reason: 'after the release',
+      });
+      expect(secret.statusCode).toBe(201);
+      const secretId = secret.json<ConsoleCommand>().id;
+      const refused = await send('DELETE', `commands/${secretId}`, undefined, mate);
+      expect(refused.statusCode).toBe(403);
+      expect(refused.json<ApiError>().message).toBe(
+        "Only the console's owner may triage a security finding.",
+      );
+      await store.takeCommands(true);
+      expect((await finding(SECURITY))?.pending).toMatchObject({
+        command_id: secretId,
+        taken: true,
+      });
+      const late = await send('DELETE', `commands/${secretId}`);
+      expect(late.statusCode).toBe(409);
+      expect(late.json<ApiError>()).toEqual({
+        error: 'conflict',
+        message: 'The computer has already taken this command.',
+      });
+    });
   });
 
   describe('chat with an agent (T-1722, D-350)', () => {

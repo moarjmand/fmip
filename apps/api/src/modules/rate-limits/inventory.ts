@@ -440,6 +440,8 @@ export const EXEMPT: Readonly<Record<string, string>> = {
   'DELETE /console/session': "Ends the caller's own console session; nothing is created.",
   'POST /console/invitations/accept':
     'Opens a console account from a one-time invitation made on the server: the token is 256 random bits and is spent by the first use.',
+  // T-1908: withdrawing a finding's triage command still in the queue; it creates nothing.
+  'DELETE /console/commands/:id': CONSOLE_PERSON,
   'POST /console/board': CONSOLE_PERSON,
   'PATCH /console/board/:id': CONSOLE_PERSON,
   'DELETE /console/board/:id': CONSOLE_PERSON,

@@ -349,6 +349,7 @@ export function withPendingTriage(
       requested_by: command.requested_by,
       requested_at: command.requested_at,
       until: command.kind === 'finding.snooze' ? (command.payload.until ?? null) : null,
+      taken: command.status === 'taken',
     });
   }
   return {

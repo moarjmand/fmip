@@ -542,7 +542,7 @@ export class PostgresConsoleStore {
         WHERE s.token_hash = $1 AND s.user_id = u.id AND s.revoked_at IS NULL
           AND s.expires_at > now() AND s.created_at + make_interval(hours => $3) > now()
           AND u.disabled_at IS NULL
-        RETURNING u.id, u.username, u.display_name`,
+        RETURNING u.id, u.username, u.display_name, u.owner`,
       // In hours, so a day is 24 of them whatever the database's time zone does.
       [tokenHash, SESSION_IDLE_HOURS, SESSION_MAX_DAYS * 24],
     );
@@ -779,6 +779,62 @@ export class PostgresConsoleStore {
       [withTriage],
     );
     return rows.map(command).sort((a, b) => a.requested_at.localeCompare(b.requested_at));
+  }
+
+  /**
+   * A person takes back a finding's triage command the computer has not taken
+   * yet (T-1908): the row becomes `cancelled` and the finding takes another
+   * command at once. `taken` once the computer has it (the line is being, or
+   * has been, written: nothing is undone from here), `missing` for an id that
+   * is not a triage command or is already finished or withdrawn. A security
+   * finding's is the owner's alone to withdraw, as it was to ask (`security`
+   * is told the command's target and answers whether it is one). Audited with
+   * what was withdrawn.
+   */
+  async withdrawTriage(
+    id: string,
+    actor: ConsoleMe,
+    security: (target: string) => boolean,
+  ): Promise<'ok' | 'missing' | 'taken' | 'owner_only'> {
+    return this.transaction(async (client) => {
+      const { rows } = await client.query<{
+        kind: string;
+        target: string;
+        payload: Record<string, string>;
+        status: string;
+      }>(
+        `SELECT kind, target, payload, status FROM console_command
+          WHERE id = $1 AND kind LIKE 'finding.%' FOR UPDATE`,
+        [id],
+      );
+      const row = rows[0];
+      if (row === undefined) return 'missing';
+      if (row.status === 'taken') return 'taken';
+      if (row.status !== 'queued') return 'missing';
+      if (security(row.target)) {
+        const account = await client.query<{ owner: boolean }>(
+          `SELECT owner FROM console_user WHERE id = $1`,
+          [actor.id],
+        );
+        if (account.rows[0]?.owner !== true) return 'owner_only';
+      }
+      await client.query(
+        `UPDATE console_command
+            SET status = 'cancelled', finished_at = now(), outcome = 'Withdrawn on the console.'
+          WHERE id = $1`,
+        [id],
+      );
+      await this.audit(client, {
+        actorId: actor.id,
+        actorName: actor.username,
+        action: 'command.finding_withdraw',
+        targetType: 'finding',
+        targetId: row.target,
+        reason: 'withdrawn on the console',
+        previous: { command: id, kind: row.kind, ...row.payload },
+      });
+      return 'ok';
+    });
   }
 
   async finishCommand(id: string, status: 'done' | 'failed', outcome: string): Promise<boolean> {
