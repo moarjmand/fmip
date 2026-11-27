@@ -52,6 +52,11 @@ export interface IdentityOptions {
   webBaseUrl: string;
   /** Session cookie only over HTTPS. True in production. */
   cookieSecure: boolean;
+  /**
+   * The close-sign-ups switch (T-1970, D-459): no new account while it is on.
+   * Signing in, resets, verification and everything else are unaffected.
+   */
+  signupsClosed: boolean;
 }
 
 export const IDENTITY_OPTIONS = Symbol('IDENTITY_OPTIONS');
@@ -63,7 +68,12 @@ export const DEFAULT_IDENTITY_OPTIONS: Omit<
   sessionTtlSeconds: 14 * 24 * 60 * 60,
   verifyEmailTtlSeconds: 24 * 60 * 60,
   resetPasswordTtlSeconds: 60 * 60,
+  signupsClosed: false,
 };
+
+/** What a sign-up hears while sign-ups are closed (T-1970). The web says it in the reader's language. */
+export const SIGNUPS_CLOSED_MESSAGE =
+  'Sign-ups are closed for now. If you already have an account, you can still sign in.';
 
 /** A request refused by a rate limit (T-810): when to try again, and nothing else. */
 export interface Limited {
@@ -73,6 +83,8 @@ export interface Limited {
 
 export type RegisterOutcome =
   | { kind: 'created'; user: AuthUser; sessionToken: string }
+  /** The close-sign-ups switch is on (T-1970): nothing was counted or written. */
+  | { kind: 'closed' }
   | Limited
   | { kind: 'conflict'; fields: Record<string, string> }
   | { kind: 'invalid'; fields: Record<string, string> };
@@ -145,6 +157,8 @@ export type UserRole = 'admin' | 'founder' | 'moderator' | 'editor';
  *     link are rate limited per network address and per identifier typed
  *     (T-810, D-093), and the refusal is checked before the password is: it
  *     says when to try again and is the same whether or not an account exists.
+ *   - While the close-sign-ups switch is on (`SIGNUPS_CLOSED=on`, T-1970) no
+ *     account is created, and nothing else changes.
  */
 @Injectable()
 export class IdentityService {
@@ -159,13 +173,26 @@ export class IdentityService {
     @Inject(IDENTITY_OPTIONS) private readonly options: IdentityOptions,
     private readonly limits: AuthRateLimiter,
     private readonly rules: PostgresPlatformRulesStore,
-  ) {}
+  ) {
+    // Said once at start-up, so the log answers "is the switch on?" (T-1970).
+    if (options.signupsClosed) {
+      this.log.warn('sign-ups are closed: SIGNUPS_CLOSED=on', { event: 'identity.signups_closed' });
+    }
+  }
+
+  /** False while the close-sign-ups switch is on (T-1970): `POST /auth/register` refuses. */
+  signupsOpen(): boolean {
+    return !this.options.signupsClosed;
+  }
 
   async register(
     input: RegisterRequest,
     userAgent: string | null,
     clientIp: string | null = null,
   ): Promise<RegisterOutcome> {
+    // Before the ceilings: a closed door counts no attempt against anyone.
+    if (!this.signupsOpen()) return { kind: 'closed' };
+
     const taken = await this.limits.take(
       this.checks(clientIp, 'register_ip', input.email, 'register_account'),
     );
