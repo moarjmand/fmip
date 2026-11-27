@@ -14,6 +14,7 @@ import { BOX_SCORE_QUEUE } from '../../viewing/box-score-feed.service';
 import { HIGHLIGHT_FEED_QUEUE } from '../../viewing/highlight-feed.service';
 import { HighlightlyQuota } from '../../viewing/highlightly-quota.service';
 import { WeeklyRangesCheck } from './cloudflare-ranges';
+import { DELIVERY_RECENT_KEPT } from './conditions';
 import type { Observations, Unreadable } from './readings';
 import { WatchdogStore } from './watchdog-store';
 
@@ -95,7 +96,11 @@ export class LiveProbes implements WatchdogProbes, OnApplicationShutdown {
         this.model(now),
         orUnreadable(async () => {
           const channels = this.delivery.describe();
-          const outcomes = await this.store.deliveryOutcomes(hourAgo);
+          const outcomes = await this.store.deliveryOutcomes(
+            hourAgo,
+            new Date(now.getTime() - 24 * HOUR_MS),
+            DELIVERY_RECENT_KEPT,
+          );
           return {
             email:
               channels.email.state === 'configured'
