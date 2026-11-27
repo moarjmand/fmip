@@ -3,6 +3,7 @@ import {
   Body,
   ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpException,
@@ -24,6 +25,7 @@ import {
   IdentityService,
   type Limited,
   SESSION_COOKIE,
+  SIGNUPS_CLOSED_MESSAGE,
   clientIpOf,
   parseCookies,
   refusalMessage,
@@ -84,6 +86,12 @@ export function nextCopyMessage(retryAfterSeconds: number): string {
   return `A copy of your data was made less than a day ago. The next one is possible in ${hours} ${hours === 1 ? 'hour' : 'hours'}.`;
 }
 
+/** The close-sign-ups switch is on (T-1970): a 403 naming no field and no account. */
+function signupsClosed(): never {
+  const body: ApiError = { error: 'registration_closed', message: SIGNUPS_CLOSED_MESSAGE };
+  throw new ForbiddenException(body);
+}
+
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
 const INVALID_TOKEN: ApiError = {
   error: 'invalid_token',
@@ -106,6 +114,8 @@ export class IdentityController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponse> {
+    // Before the body is read: a closed door says so, not that a field is wrong.
+    if (!this.identity.signupsOpen()) signupsClosed();
     const input = unwrap(validateRegister(body));
     const outcome = await this.identity.register(
       input,
@@ -113,6 +123,7 @@ export class IdentityController {
       clientIpOf(request.headers),
     );
 
+    if (outcome.kind === 'closed') signupsClosed();
     if (outcome.kind === 'limited') refuse(reply, outcome);
     if (outcome.kind === 'invalid') {
       const error: ApiError = {
