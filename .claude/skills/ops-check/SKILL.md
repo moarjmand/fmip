@@ -30,6 +30,7 @@ The method of the `ops-release` agent. Read `.claude/skills/team-charter/SKILL.m
 | build cache | reclaimable above 15 GB (`rollout.sh` prunes only what is older than 72 h) | disk red because of it |
 | site probes | any above 2.5 s, or `/en` above 1.5 s | any non-200 |
 | watchdog | any condition `degraded`; `data_quality` failing (unreviewed findings of the platform's own checks: a triage task for the data auditor, not an outage) | any other condition `failing` |
+| site e-mail | `notification` `FAILING` or `NOT SENT` (T-1967); `refused for the recipient only` (a mailbox the provider calls unknown: one member's address, not the channel; logged as `delivery.email_recipient_refused`) growing | `sign-up/verify` or `reset` `FAILING` or `NOT SENT (absent: no channel)`: a new member cannot verify or reset, and `delivery:email` stays failing while a failure lasts; the cause is the api log's `delivery.email_failed` line (code, reply code, command, reply) |
 | request budget | above 80% before 18:00 UTC | above 95% |
 | backups | last ok `backup` older than 30 h | older than 54 h, or the last run not ok |
 | restore drill | older than 35 days | the last drill not ok |
@@ -90,3 +91,4 @@ tmux session, ending with `ROLLOUT_EXIT=<code>`.
 | 2026-10-28 | line-ups late because our job asked too late | ingest runs (`lineups`), and the data auditor |
 | 2026-10-31 | 25.6 GB of build cache, 23.9 GB reclaimable, on a 75 GB disk at 71% | build cache, disk |
 | 2026-10-31 | 3 failed `post_match` runs in 24 h | ingest runs |
+| 2026-10-29..11-27 (T-1967) | site e-mail refused on every send (Google SMTP 534-5.7.9), 216 `failed`; `delivery:email` raised and recovered 19 times in a week | site e-mail `FAILING`, `delivery:email` held failing |

@@ -1,5 +1,10 @@
 import { createTransport } from 'nodemailer';
-import type { EmailChannel, OutboundEmail } from '../delivery.port';
+import {
+  type EmailChannel,
+  type OutboundEmail,
+  SendFailed,
+  type SendFailureDetail,
+} from '../delivery.port';
 
 /**
  * The e-mail channel (T-330, D-073): SMTP, which every transactional e-mail
@@ -47,16 +52,187 @@ export class SmtpEmailChannel implements EmailChannel {
     private readonly from: string,
   ) {}
 
+  /**
+   * The connection's limits in seconds, not nodemailer's minutes (two to
+   * connect, ten idle): a sign-up or a reset waits for its mail, and a dead
+   * SMTP server must not hold a member's request (T-1967). `SMTP_URL`'s own
+   * query parameters still win.
+   */
+  static readonly TIMEOUTS = {
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
+  } as const;
+
   static fromSettings(settings: SmtpSettings): SmtpEmailChannel {
-    return new SmtpEmailChannel(createTransport(settings.url), settings.from);
+    return new SmtpEmailChannel(
+      createTransport({ url: settings.url, ...SmtpEmailChannel.TIMEOUTS }),
+      settings.from,
+    );
   }
 
+  /**
+   * Sends one message. A refusal is thrown as `SendFailed`, its cause stated
+   * without an address or a token (T-1967); one that concerns only this
+   * recipient (no such mailbox) says so, so it is not read as the channel's.
+   */
   async send(mail: OutboundEmail): Promise<void> {
-    await this.transport.sendMail({
-      from: this.from,
-      to: mail.to,
-      subject: mail.subject,
-      text: mail.text,
-    });
+    try {
+      await this.transport.sendMail({
+        from: this.from,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+      });
+    } catch (error) {
+      throw new SendFailed(describeSmtpError(error));
+    }
   }
+}
+
+/**
+ * The most of a reply that is read at all. Nodemailer accepts a reply of up
+ * to 1 MB; nothing below ever runs over more than this.
+ */
+const READ_MAX = 500;
+/** The longest reply a log line carries; a provider's reply is a sentence or two. */
+const REASON_MAX = 300;
+
+/** A URL's host: whatever follows its last `@` (a password may hold `/`), up to the first character no host has. */
+function hostOf(rest: string): string {
+  const afterUser = rest.slice(rest.lastIndexOf('@') + 1);
+  return /^[A-Za-z0-9.-]*/.exec(afterUser)?.[0] ?? '';
+}
+
+/** A whitespace-free run that holds an address (`@`, or `%40` encoded) keeps its opening brackets and its domain only. */
+function maskAddressRun(run: string): string {
+  const at = run.lastIndexOf('@');
+  const encoded = run.toLowerCase().lastIndexOf('%40');
+  if (at < 0 && encoded < 0) return run;
+  const domain = at > encoded ? run.slice(at + 1) : run.slice(encoded + 3);
+  const opening = /^[<(["']*/.exec(run)?.[0] ?? '';
+  return `${opening}***@${domain}`;
+}
+
+/**
+ * Text from the SMTP service or nodemailer, as a log may show it (T-1967):
+ * - read only up to `READ_MAX` characters, a run cut there dropped, before
+ *   any pattern runs;
+ * - every URL cut to its scheme and host (its user, password, path, query
+ *   and fragment can carry a credential or a reset or verification link's
+ *   token);
+ * - every address cut to its domain, quoted, encoded or not (a reply to
+ *   `RCPT TO` names the recipient, an `Invalid sender` the sender);
+ * - every run of 24 or more token characters (a link's token, an encoded
+ *   credential) replaced by `***`;
+ * - the lines of a multi-line reply joined, and the whole kept short.
+ */
+export function redactSmtpText(text: string): string {
+  let head = text;
+  if (head.length > READ_MAX) {
+    head = head.slice(0, READ_MAX);
+    const lastSpace = Math.max(
+      head.lastIndexOf(' '),
+      head.lastIndexOf('\n'),
+      head.lastIndexOf('\t'),
+    );
+    head = lastSpace > 0 ? `${head.slice(0, lastSpace)} ...` : '...';
+  }
+  const flat = head
+    .replace(
+      /\b([A-Za-z][A-Za-z0-9+.-]{0,15}):\/\/(\S*)/g,
+      (_url, scheme: string, rest: string) => `${scheme}://${hostOf(rest)}`,
+    )
+    .replace(/"[^"\r\n]{0,64}"@/g, '***@')
+    .split(/(\s+)/)
+    .map(maskAddressRun)
+    .join('')
+    .replace(/[A-Za-z0-9_+/=-]{24,}/g, '***')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return flat.length > REASON_MAX ? `${flat.slice(0, REASON_MAX - 3)}...` : flat;
+}
+
+/**
+ * The command a reply answered, cut to its verb (`AUTH PLAIN`, `RCPT TO`), so
+ * no argument after it -- an address, an encoded credential -- can follow.
+ */
+function commandVerb(command: unknown): string | null {
+  if (typeof command !== 'string') return null;
+  const verb = /^[A-Z][A-Z0-9-]{0,15}(?: (?:TO|FROM|PLAIN|LOGIN|XOAUTH2|CRAM-MD5))?/.exec(
+    command.slice(0, 40),
+  );
+  return verb === null ? null : verb[0];
+}
+
+/**
+ * The enhanced status codes (RFC 3463) that concern the recipient alone: a
+ * bad or unknown destination mailbox, address or system (`X.1.1` to `X.1.6`,
+ * `X.1.10`) and the mailbox's own state (`X.2.x`: full, disabled, too
+ * large). `X.1.0`, `X.1.7` and `X.1.8` are about the sender; with `X.7.x`
+ * (policy) and everything else, they are the channel's.
+ */
+const RECIPIENT_STATUS = /^\d{3}[ -][45]\.(?:1\.(?:[1-6]|10)|2\.\d{1,3})(?![\d.])/;
+
+/**
+ * Whether nodemailer's error refuses only this recipient (T-1967): the
+ * service answered `RCPT TO` with one of the statuses above, read only where
+ * a status stands (after the reply's three-digit code, so an address or a
+ * number in the text never counts), or nodemailer found the address
+ * malformed. A reply with no enhanced status (`550 relay not permitted`), a
+ * refused sender or login, or a connection that failed is the channel's:
+ * an outage must never be read as one member's mailbox.
+ */
+export function refusesRecipientOnly(error: unknown): boolean {
+  const raw = (typeof error === 'object' && error !== null ? error : {}) as {
+    code?: unknown;
+    command?: unknown;
+    response?: unknown;
+    responseCode?: unknown;
+    message?: unknown;
+  };
+  if (raw.code !== 'EENVELOPE') return false;
+  const verb = commandVerb(raw.command);
+  if (verb === 'API') {
+    return typeof raw.message === 'string' && raw.message.startsWith('Invalid recipient');
+  }
+  if (verb !== 'RCPT TO') return false;
+  const reply = typeof raw.response === 'string' ? raw.response.slice(0, 40).trimStart() : '';
+  return RECIPIENT_STATUS.test(reply);
+}
+
+/**
+ * Nodemailer's error, reduced to what states the cause (T-1967): its `code`,
+ * the reply code, the command the service answered cut to its verb (so no
+ * argument after it -- an address, an encoded credential -- can follow), and
+ * the reply, or the message when the service sent none (a refused connection,
+ * a timeout), redacted.
+ */
+export function describeSmtpError(error: unknown): SendFailureDetail {
+  const raw = (typeof error === 'object' && error !== null ? error : {}) as {
+    code?: unknown;
+    responseCode?: unknown;
+    command?: unknown;
+    response?: unknown;
+    message?: unknown;
+  };
+  const code =
+    typeof raw.code === 'string' && /^[A-Z][A-Z0-9_]{0,31}$/.test(raw.code) ? raw.code : null;
+  const responseCode =
+    typeof raw.responseCode === 'number' && Number.isInteger(raw.responseCode)
+      ? raw.responseCode
+      : null;
+  const text =
+    typeof raw.response === 'string' && raw.response.trim() !== ''
+      ? raw.response
+      : typeof raw.message === 'string'
+        ? raw.message
+        : String(error);
+  return {
+    scope: refusesRecipientOnly(error) ? 'recipient' : 'channel',
+    code,
+    responseCode,
+    command: commandVerb(raw.command),
+    reason: redactSmtpText(text),
+  };
 }

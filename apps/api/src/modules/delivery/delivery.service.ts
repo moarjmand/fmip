@@ -7,12 +7,17 @@ import {
   type OutboundDelivery,
   type OutboundEmail,
   type OutboundPush,
+  SendFailed,
   describeDelivery,
 } from './delivery.port';
 import { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 import { type PushPayload, WebPushChannel } from './internal/webpush';
 
-/** What happened on one channel: absent, sent, failed, or skipped because this member has nowhere to receive on it. */
+/**
+ * What happened on one channel: absent, sent, failed, or skipped because this
+ * member has nowhere to receive on it (no device; an address the provider
+ * refuses as unknown, T-1967).
+ */
 export type ChannelOutcome = 'absent' | 'sent' | 'failed' | 'skipped';
 
 /** What happened to one notification on each channel. Absence is an outcome, not silence. */
@@ -134,6 +139,28 @@ export class DeliveryService implements OnModuleInit {
       // The channel is there; this member has no device on it. Not a fault.
       if (error instanceof NoRecipient) return 'skipped';
       // The event that caused this already happened; a footnote must not undo it.
+      if (error instanceof SendFailed) {
+        // The provider's refusal, stated so the next failure names its cause
+        // (T-1967): code, reply code, command, reply -- no address, no secret.
+        // One that refuses only this recipient (no such mailbox) is this
+        // member's, like a missing device: `skipped`, logged as a warning,
+        // never counted against the channel.
+        const { scope, code, responseCode, command, reason } = error.detail;
+        const recipient = scope === 'recipient';
+        const event = `delivery.${name}_${recipient ? 'recipient_refused' : 'failed'}`;
+        const context = {
+          event,
+          provider: channel.provider,
+          code,
+          response_code: responseCode,
+          command,
+          reason,
+        };
+        const line = `${event} provider=${channel.provider} ${error.message}`;
+        if (recipient) this.log.warn(line, context);
+        else this.log.error(line, context);
+        return recipient ? 'skipped' : 'failed';
+      }
       this.log.error(
         `delivery.${name}_failed provider=${channel.provider}`,
         error instanceof Error ? error.stack : String(error),

@@ -7,9 +7,46 @@ import { WebPushChannel, vapidSettingsFromEnv } from './internal/webpush';
  * Thrown by a channel that exists when this member has nowhere to receive
  * on it -- no device registered for push. The port records it as `skipped`:
  * neither the channel's absence nor its failure, and saying either would be
- * a lie about what happened (rule 3).
+ * a lie about what happened (rule 3). An e-mail address the provider refuses
+ * as unknown (`SendFailed` with scope `recipient`) is the same outcome.
  */
 export class NoRecipient extends Error {}
+
+/**
+ * What the log may show of a send the provider refused (T-1967): whether the
+ * refusal concerns the channel or only this recipient (no such mailbox), the
+ * provider's error code (`EAUTH`, `ECONNECTION`, `EENVELOPE`), the reply code
+ * and the command it answered (`AUTH PLAIN`, `RCPT TO`), and its reply or
+ * message with every URL cut to its host, every address to its domain and
+ * every token-like run masked. Never a credential, a token or a recipient in
+ * full.
+ */
+export interface SendFailureDetail {
+  scope: 'channel' | 'recipient';
+  code: string | null;
+  responseCode: number | null;
+  command: string | null;
+  reason: string;
+}
+
+/**
+ * Thrown by a channel whose provider refused a send, carrying only the
+ * detail above. The provider's own error is not kept, not even as a `cause`:
+ * its message can name the recipient.
+ */
+export class SendFailed extends Error {
+  constructor(readonly detail: SendFailureDetail) {
+    super(
+      [
+        `code=${detail.code ?? 'none'}`,
+        `response_code=${detail.responseCode === null ? 'none' : String(detail.responseCode)}`,
+        `command=${JSON.stringify(detail.command ?? 'none')}`,
+        `reason=${JSON.stringify(detail.reason)}`,
+      ].join(' '),
+    );
+    this.name = 'SendFailed';
+  }
+}
 
 /**
  * Delivery behind one port (T-330, blueprint 12.2): e-mail and push, with a
