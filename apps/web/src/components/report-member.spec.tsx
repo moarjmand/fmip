@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { MAX_REPORT_DETAIL, REPORT_REASONS } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
-import { reportNoteLimit } from '@/lib/report';
 
 vi.mock('@/lib/report-actions', () => ({
   reportMemberAction: async () => null,
@@ -22,15 +21,20 @@ const { FriendControls } = await import('./friend-controls');
 const { ReportMember } = await import('./report-member');
 
 /**
- * «گزارش» / "Report" (T-1973): beside Block on a member's profile, and on
- * somebody else's message in a conversation; never for a guest, never on the
- * member's own profile.
+ * «گزارش» / "Report" (T-1973): beside Block on a member's profile and on each
+ * row of /friends, and on somebody else's message in a conversation; never for
+ * a guest, never on the member's own profile.
  */
 
-const MESSAGE = {
-  conversationId: '00000000-0000-4000-8000-000000001973',
-  messageId: '00000000-0000-4000-8000-000000009731',
-};
+/** Every `id` in the markup, and every id a label or a description points at. */
+function ids(html: string): { defined: string[]; referenced: string[] } {
+  const defined = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1] ?? '');
+  const referenced = [
+    ...[...html.matchAll(/\sfor="([^"]+)"/g)].map((m) => m[1] ?? ''),
+    ...[...html.matchAll(/\saria-describedby="([^"]+)"/g)].flatMap((m) => (m[1] ?? '').split(' ')),
+  ];
+  return { defined, referenced };
+}
 
 describe('the report on a profile', () => {
   it('is not drawn for a signed-out visitor, nor on the member’s own profile', () => {
@@ -81,6 +85,30 @@ describe('the report on a profile', () => {
     expect(html).toContain('A person reads every report and records a decision');
   });
 
+  it('gives every row of /friends its own ids, so each label and hint names its own field', () => {
+    // /friends draws FriendControls once per member (T-1973 review, D-041).
+    const html = renderToStaticMarkup(
+      <ul>
+        <li>
+          <FriendControls locale="en" username="ali" status="friends" />
+        </li>
+        <li>
+          <FriendControls locale="en" username="sara" status="request_received" />
+        </li>
+        <li>
+          <ReportMember locale="en" username="reza" fromMessage />
+        </li>
+      </ul>,
+    );
+    const { defined, referenced } = ids(html);
+
+    expect(html.match(/<select[^>]*name="reason"/g)).toHaveLength(3);
+    expect(defined.length).toBeGreaterThanOrEqual(9);
+    expect(new Set(defined).size).toBe(defined.length);
+    for (const target of referenced) expect(defined, target).toContain(target);
+    expect(html).not.toMatch(/\sid="report-/);
+  });
+
   it('is written in Persian for a Persian reader', () => {
     const html = renderToStaticMarkup(<ReportMember locale="fa" username="ali" />);
     expect(html).toContain('گزارش');
@@ -91,27 +119,24 @@ describe('the report on a profile', () => {
 });
 
 describe('the report on a message', () => {
-  it('reports the author, names the message, and keeps the note inside the API’s limit', () => {
-    const html = renderToStaticMarkup(
-      <ReportMember locale="en" username="ali" message={MESSAGE} />,
-    );
+  it('reports the author, says the message is not attached, and is the small control', () => {
+    const html = renderToStaticMarkup(<ReportMember locale="en" username="ali" fromMessage />);
     expect(html).toContain('data-testid="report-message"');
-    expect(html).toContain(`id="report-${MESSAGE.messageId}-reason"`);
-    expect(html).toContain('This reports @ali, who wrote this message');
-
-    const limit = reportNoteLimit(MESSAGE);
-    expect(limit).toBeLessThan(MAX_REPORT_DETAIL);
-    expect(html).toMatch(new RegExp(`<textarea[^>]*maxlength="${limit}"`, 'i'));
+    expect(html).toContain('data-testid="report-message-open"');
+    expect(html).toContain('This reports @ali, who wrote this message.');
+    expect(html).toContain('The message itself is not attached');
+    expect(html).toMatch(new RegExp(`<textarea[^>]*maxlength="${MAX_REPORT_DETAIL}"`, 'i'));
   });
 
-  it('is offered on somebody else’s message only, and never on a deleted member’s', () => {
+  it('is offered on somebody else’s message only, never on a deleted member’s, and sends no message id', () => {
     const page = readFileSync(
       join(__dirname, '..', 'app', '[locale]', 'messages', '[id]', 'page.tsx'),
       'utf8',
     );
     expect(page).toMatch(
-      /message\.author !== me\.username && !isDeletedMember\(message\.author\) && \(\s*<ReportMember/,
+      /message\.author !== me\.username && !isDeletedMember\(message\.author\) && \(\s*<ReportMember locale=\{locale\} username=\{message\.author\} fromMessage \/>/,
     );
-    expect(page).toMatch(/message=\{\{ conversationId: id, messageId: message\.id \}\}/);
+    const actions = readFileSync(join(__dirname, '..', 'lib', 'report-actions.ts'), 'utf8');
+    expect(actions).not.toMatch(/messageId|conversationId/);
   });
 });

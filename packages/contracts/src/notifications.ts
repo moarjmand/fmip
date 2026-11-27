@@ -570,6 +570,9 @@ export function notificationPath(
         notification.kind === 'contributor_below_threshold'
       )
         return `/${locale}/admin/contributors`;
+      // A decision about the member's own account opens where it is kept:
+      // Settings, with the restriction, its reason and the appeal (T-1973).
+      if (notification.kind === 'moderation_decision') return `/${locale}/settings#restrictions`;
       if (label === null) return null;
       // An achievement opens the member's own list of them (T-946).
       return `/${locale}/u/${encodeURIComponent(label)}${

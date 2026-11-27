@@ -279,14 +279,10 @@ export default async function ConversationPage({
                   {mayModerate(message.author) && (
                     <ModerateMessage locale={locale} conversationId={id} messageId={message.id} />
                   )}
-                  {/* Somebody else's words (T-1973): their author is reported, and the
-                      report names this message. A deleted member has nobody to report. */}
+                  {/* Somebody else's words (T-1973): their author is reported. A
+                      deleted member has nobody to report. */}
                   {message.author !== me.username && !isDeletedMember(message.author) && (
-                    <ReportMember
-                      locale={locale}
-                      username={message.author}
-                      message={{ conversationId: id, messageId: message.id }}
-                    />
+                    <ReportMember locale={locale} username={message.author} fromMessage />
                   )}
                 </div>
               )}

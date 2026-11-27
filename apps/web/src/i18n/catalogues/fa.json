@@ -2610,6 +2610,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
+  "restrictions.scope.groups": {
+    "source": "Making or joining groups",
+    "text": "ساختن گروه یا پیوستن به گروه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.scope.post": {
+    "source": "Posting on match panels",
+    "text": "نوشتن در میزگرد مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.scope.other": {
+    "source": "Another part of your account",
+    "text": "بخش دیگری از حساب شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
   "restrictions.why": {
     "source": "Why",
     "text": "دلیل",
@@ -6327,8 +6345,8 @@
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "report.leadMessage": {
-    "source": "This reports @{username}, who wrote this message, and the report names the message. A person reads every report and records a decision.",
-    "text": "با این گزارش، @{username} که این پیام را نوشته گزارش می‌شود و همین پیام هم در گزارش مشخص می‌شود. هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند.",
+    "source": "This reports @{username}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
+    "text": "با این گزارش، @{username} که این پیام را نوشته گزارش می‌شود. خود پیام پیوست نمی‌شود؛ پس در توضیحات بنویسید پیام چه بود یا چه مشکلی داشت. هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
@@ -6407,6 +6425,12 @@
   "report.unknown": {
     "source": "This account could not be found.",
     "text": "این حساب پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.alreadyOpen": {
+    "source": "You have already reported @{username}, and a person will read that report. What you wrote now was not added to it.",
+    "text": "شما قبلاً @{username} را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },

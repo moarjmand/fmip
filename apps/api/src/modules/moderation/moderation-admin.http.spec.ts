@@ -125,7 +125,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
             reporter,
           )
         ).statusCode,
-      ).toBe(204);
+      ).toBe(200);
     }
   });
 
@@ -292,7 +292,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
       ).statusCode,
     ).toBe(204);
 
-    expect((await get('/me/standing', offender)).json().sanctions[0]).toMatchObject({
+    // The member is told it was lifted and why -- never who lifted it (T-1973).
+    const own = (await get('/me/standing', offender)).json().sanctions[0];
+    expect(own).toMatchObject({
+      active: false,
+      lift_reason: 'appeal upheld: the messages were replies',
+    });
+    expect(own).not.toHaveProperty('lifted_by');
+    expect(JSON.stringify(own)).not.toContain(moderator);
+    // Moderators still read who lifted it, in the member's history.
+    const history = (await get(`/admin/moderation/members/${offender}`, moderator)).json();
+    expect(history.sanctions.find((s: { id: string }) => s.id === sanctionId)).toMatchObject({
       active: false,
       lifted_by: moderator,
     });

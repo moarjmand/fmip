@@ -75,6 +75,19 @@ export interface SubmitReportRequest {
   detail?: string | null;
 }
 
+/**
+ * `POST /reports`'s answer (T-1973).
+ *
+ * `filed: false` is not a refusal: the member already has an open report
+ * about this subject, which a person will read, and one reporter's second
+ * identical complaint is not a second complaint (T-210). It is said rather
+ * than answered like a new report, because what they wrote this time was not
+ * kept, and telling them it was would be untrue.
+ */
+export interface SubmitReportResponse {
+  filed: boolean;
+}
+
 export interface Report {
   id: string;
   subject_type: ReportSubject;
@@ -138,8 +151,13 @@ export interface AppealNote {
  * The platform rules (`platform-rules@1.0.0`) promise the member is told
  * "which and why", and that every decision "can be appealed once, in
  * writing": `reason` is the why, `appealed_at` is the once.
+ *
+ * **Never who.** `lifted_by`, a moderator's username, is left out: the member
+ * is told which decision and why, not who made it (policy section 2), and a
+ * name would hand them a person to blame. Moderators read it in a member's
+ * history (`MemberModerationHistory.sanctions`).
  */
-export interface OwnSanction extends Sanction {
+export interface OwnSanction extends Omit<Sanction, 'lifted_by'> {
   /** The decision's written reason: no decision exists without one. */
   reason: string;
   /** ISO 8601: when this member appealed it, or null while they have not. */

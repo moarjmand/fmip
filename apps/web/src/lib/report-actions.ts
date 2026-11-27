@@ -1,7 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { SubmitReportRequest } from '@fmip/contracts';
+import {
+  MAX_REPORT_DETAIL,
+  type SubmitReportRequest,
+  type SubmitReportResponse,
+} from '@fmip/contracts';
 import { apiRequest } from '@/lib/api';
 import type { ActionState } from '@/lib/auth-actions';
 import { sessionCookieHeader } from '@/lib/session';
@@ -9,7 +13,7 @@ import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
-import { type ReportedMessage, isReportReason, reportDetail, reportNoteLimit } from './report';
+import { isReportReason } from './report';
 
 /**
  * A member's report of another member, and their appeal of a restriction on
@@ -28,17 +32,17 @@ function lang(locale: string): Locale {
 }
 
 /**
- * Report `username`, from their profile or from one of their messages.
+ * Report `username`, from their profile or from one of their messages (the
+ * same report: see `lib/report.ts` for why no message id is sent).
  *
  * Reporting is never gated by a clock (T-213): the API holds it to one open
- * report per reporter and subject, and a second while one is open is still
- * answered as sent, because the member has reported them, which is what they
- * wanted.
+ * report per reporter and subject. A second while one is open is not stored,
+ * and the API says so (`filed: false`); the member is told that rather than
+ * "sent", because what they wrote this time was not kept.
  */
 export async function reportMemberAction(
   locale: string,
   username: string,
-  message: ReportedMessage | null,
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
@@ -47,24 +51,22 @@ export async function reportMemberAction(
   if (!isReportReason(reason)) return { ok: false, message: t(l, 'report.chooseReason') };
 
   const note = String(formData.get('detail') ?? '').trim();
-  const limit = reportNoteLimit(message);
-  if (note.length > limit) {
+  if (note.length > MAX_REPORT_DETAIL) {
     return {
       ok: false,
-      message: interpolate(t(l, 'report.tooLong'), { max: formatNumber(l, limit) }),
+      message: interpolate(t(l, 'report.tooLong'), { max: formatNumber(l, MAX_REPORT_DETAIL) }),
     };
   }
-  // The API refuses "other" with nothing said; a message's reference alone is
-  // not saying what happened, so the note is asked for here as well.
+  // The API refuses "other" with nothing said; asked here first, in words.
   if (reason === 'other' && note === '') return { ok: false, message: t(l, 'report.needsDetail') };
 
   const body: SubmitReportRequest = {
     subject_type: 'member',
     subject: username,
     reason,
-    detail: reportDetail(note, message),
+    detail: note === '' ? null : note,
   };
-  const result = await apiRequest<null>('/reports', {
+  const result = await apiRequest<SubmitReportResponse>('/reports', {
     method: 'POST',
     cookie: await sessionCookieHeader(),
     body,
@@ -72,6 +74,9 @@ export async function reportMemberAction(
   if (!result.ok) {
     if (result.status === 404) return { ok: false, message: t(l, 'report.unknown') };
     return failureState(result, locale);
+  }
+  if (result.data?.filed === false) {
+    return { ok: true, message: interpolate(t(l, 'report.alreadyOpen'), { username }) };
   }
   return { ok: true, message: t(l, 'report.sent') };
 }

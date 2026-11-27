@@ -43,6 +43,14 @@ describe('the moderation queue page', () => {
     expect(QUEUE).toContain('Record<(typeof SANCTION_SCOPES)[number], string>');
   });
 
+  it('asks for a reason, says the member reads it, and warns against naming the reporter (T-1973)', () => {
+    expect(QUEUE).toContain('label="Why (the member reads this)"');
+    expect(QUEUE).toContain('Do not name or hint at who reported them.');
+    const history = readFileSync(join(HERE, 'member-moderation-history.tsx'), 'utf8');
+    expect(history).toContain('label="Why it is being lifted (the member reads this)"');
+    expect(history).toContain('Do not name or hint at who reported them.');
+  });
+
   it('asks for a reason, and leaves the rules to the API', () => {
     expect(QUEUE).toContain('name="reason"');
     expect(ACTIONS).toContain("request.reason === ''");

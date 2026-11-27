@@ -6,7 +6,7 @@ import { Card, Notice, TextArea } from '@/components/ui';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
-import { SANCTION_SCOPE_LABELS } from '@/lib/report';
+import { sanctionScopeLabel } from '@/lib/report';
 import { appealSanctionAction } from '@/lib/report-actions';
 
 /**
@@ -20,9 +20,10 @@ import { appealSanctionAction } from '@/lib/report-actions';
  * takes one appeal per sanction.
  *
  * With no sanction the section says so in one line rather than vanishing:
- * the rules page sends members here, and a heading with nothing under it
- * would look like a list that failed to load. A standing the API did not
- * answer is said as that, not as "nothing is restricted" (rule 3).
+ * a moderation decision's notification opens `#restrictions` (whatever the
+ * decision was), and a heading with nothing under it would look like a list
+ * that failed to load. A standing the API did not answer is said as that,
+ * not as "nothing is restricted" (rule 3).
  */
 export function AccountRestrictions({
   locale,
@@ -83,7 +84,7 @@ function Restriction({
     <Card as="li" data-testid="restriction">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h3 className="font-semibold">
-          <Translated locale={locale} message={SANCTION_SCOPE_LABELS[sanction.scope]} />
+          <Translated locale={locale} message={sanctionScopeLabel(sanction.scope)} />
         </h3>
         <span className="text-sm text-muted" data-testid="restriction-state">
           {stateLine(lang, sanction, when)}
@@ -165,7 +166,6 @@ function Appeal({
     );
   }
   if (sanction.lifted_at !== null) return null;
-  const id = `appeal-${sanction.id}`;
   return (
     <CommunityAction
       action={appealSanctionAction.bind(null, locale, sanction.id)}
@@ -183,7 +183,6 @@ function Appeal({
         hint={interpolate(t(lang, 'restrictions.appeal.hint'), {
           max: formatNumber(lang, MAX_APPEAL),
         })}
-        id={id}
         name="body"
         rows={4}
         maxLength={MAX_APPEAL}

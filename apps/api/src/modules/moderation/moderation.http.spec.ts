@@ -177,15 +177,22 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
   });
 
   it('files a report, and a second identical one is still one report', async () => {
-    expect(
-      (await post('/reports', { subject_type: 'member', subject, reason: 'spam' }, reporter))
-        .statusCode,
-    ).toBe(204);
+    const first = await post(
+      '/reports',
+      { subject_type: 'member', subject, reason: 'spam' },
+      reporter,
+    );
+    expect(first.statusCode).toBe(200);
+    expect(first.json()).toEqual({ filed: true });
     // Not an error: the member has reported them, which is what they wanted.
-    expect(
-      (await post('/reports', { subject_type: 'member', subject, reason: 'abuse' }, reporter))
-        .statusCode,
-    ).toBe(204);
+    // But it is said (T-1973): what they wrote this time was not kept.
+    const again = await post(
+      '/reports',
+      { subject_type: 'member', subject, reason: 'abuse' },
+      reporter,
+    );
+    expect(again.statusCode).toBe(200);
+    expect(again.json()).toEqual({ filed: false });
 
     const mine = (await get('/me/reports', reporter)).json().reports;
     expect(mine).toHaveLength(1);
@@ -266,6 +273,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
         appealed_at: null,
       });
       expect(standing[0].ends_at).toBeTruthy();
+      // Never who (T-1973): no moderator's name reaches the member.
+      expect(standing[0]).not.toHaveProperty('lifted_by');
     });
 
     it('never stops them reporting somebody', async () => {
@@ -275,7 +284,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
       expect(
         (await post('/reports', { subject_type: 'member', subject, reason: 'abuse' }, restricted))
           .statusCode,
-      ).toBe(204);
+      ).toBe(200);
     });
 
     it('can be appealed by the member it is on, and by nobody else', async () => {

@@ -1,4 +1,4 @@
-import { REPORT_REASONS } from '@fmip/contracts';
+import { MAX_REPORT_DETAIL, REPORT_REASONS } from '@fmip/contracts';
 import { CommunityAction } from '@/components/community-action';
 import { Said } from '@/components/community-text';
 import { Translated } from '@/components/translated';
@@ -7,7 +7,7 @@ import { cx } from '@/components/ui/cx';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
-import { REPORT_REASON_LABELS, type ReportedMessage, reportNoteLimit } from '@/lib/report';
+import { REPORT_REASON_LABELS } from '@/lib/report';
 import { reportMemberAction } from '@/lib/report-actions';
 
 /**
@@ -19,9 +19,13 @@ import { reportMemberAction } from '@/lib/report-actions';
  * is the API's report: a reason from its own list, a note within its length,
  * and a plain sentence afterwards that a person will read it.
  *
- * From a message (`message`), the report is of the message's author -- the
- * API has no message subject -- and names the message in its detail; the
- * control is then the small one the other message controls are.
+ * From a message (`fromMessage`), the report is of the message's author --
+ * the API has no message subject, and no message id is sent (`lib/report.ts`)
+ * -- and the control is the small one the other message controls are.
+ *
+ * **No fixed ids.** `/friends` draws one of these per row, so the fields take
+ * the ids `Select` and `TextArea` make themselves (`useId`), and each label
+ * and hint is tied to its own control.
  *
  * Who sees it is the caller's: never a guest, never the member themselves.
  * A server component (T-1308): the words are resolved here and the form is
@@ -30,21 +34,16 @@ import { reportMemberAction } from '@/lib/report-actions';
 export function ReportMember({
   locale,
   username,
-  message = null,
+  fromMessage = false,
 }: {
   locale: string;
   username: string;
-  message?: ReportedMessage | null;
+  fromMessage?: boolean;
 }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const fromMessage = message !== null;
-  const limit = reportNoteLimit(message);
-  const id = fromMessage ? `report-${message.messageId}` : 'report-member';
+  const testId = fromMessage ? 'report-message' : 'report-member';
   return (
-    <details
-      className="min-w-0 max-w-full open:basis-full"
-      data-testid={fromMessage ? 'report-message' : 'report-member'}
-    >
+    <details className="min-w-0 max-w-full open:basis-full" data-testid={testId}>
       <summary
         className={buttonClasses({
           variant: fromMessage ? 'ghost' : 'secondary',
@@ -54,7 +53,7 @@ export function ReportMember({
             fromMessage && 'text-muted',
           ),
         })}
-        data-testid={`${id}-open`}
+        data-testid={`${testId}-open`}
       >
         <Translated locale={locale} message="report.open" />
       </summary>
@@ -67,19 +66,18 @@ export function ReportMember({
           )}
         </p>
         <CommunityAction
-          action={reportMemberAction.bind(null, locale, username, message)}
+          action={reportMemberAction.bind(null, locale, username)}
           submit={<Translated locale={locale} message="report.submit" />}
           working={<Translated locale={locale} message="auth.form.working" />}
           done={<Translated locale={locale} message="report.sent" />}
           variant="secondary"
           formClassName="flex flex-col gap-3"
-          formTestId={`${id}-form`}
-          testId={`${id}-submit`}
-          resultTestId={`${id}-result`}
+          formTestId={`${testId}-form`}
+          testId={`${testId}-submit`}
+          resultTestId={`${testId}-result`}
         >
           <Select
             label={<Translated locale={locale} message="report.reason" />}
-            id={`${id}-reason`}
             name="reason"
             required
             defaultValue=""
@@ -95,11 +93,12 @@ export function ReportMember({
           </Select>
           <TextArea
             label={<Translated locale={locale} message="report.detail" />}
-            hint={interpolate(t(lang, 'report.detailHint'), { max: formatNumber(lang, limit) })}
-            id={`${id}-detail`}
+            hint={interpolate(t(lang, 'report.detailHint'), {
+              max: formatNumber(lang, MAX_REPORT_DETAIL),
+            })}
             name="detail"
             rows={3}
-            maxLength={limit}
+            maxLength={MAX_REPORT_DETAIL}
           />
         </CommunityAction>
       </div>

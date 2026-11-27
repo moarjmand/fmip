@@ -2174,6 +2174,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "restrictions.scope.groups": {
+    "source": "Making or joining groups",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.scope.post": {
+    "source": "Posting on match panels",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.scope.other": {
+    "source": "Another part of your account",
+    "text": "",
+    "status": "untranslated"
+  },
   "restrictions.why": {
     "source": "Why",
     "text": "",
@@ -5228,7 +5243,7 @@
     "status": "untranslated"
   },
   "report.leadMessage": {
-    "source": "This reports @{username}, who wrote this message, and the report names the message. A person reads every report and records a decision.",
+    "source": "This reports @{username}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
     "text": "",
     "status": "untranslated"
   },
@@ -5294,6 +5309,11 @@
   },
   "report.unknown": {
     "source": "This account could not be found.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.alreadyOpen": {
+    "source": "You have already reported @{username}, and a person will read that report. What you wrote now was not added to it.",
     "text": "",
     "status": "untranslated"
   },

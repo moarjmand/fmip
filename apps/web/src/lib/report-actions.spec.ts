@@ -1,11 +1,11 @@
 import { MAX_REPORT_DETAIL } from '@fmip/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { reportDetail, reportNoteLimit } from './report';
 
 /**
  * The report and the appeal as the web sends them (T-1973). The API spec
- * proves the rules -- the reasons, the lengths, one appeal per sanction --
- * and these prove what the forms send and what each answer says.
+ * proves the rules -- the reasons, the lengths, one open report per subject,
+ * one appeal per sanction -- and these prove what the forms send and what
+ * each answer says.
  */
 const apiRequest = vi.fn();
 const revalidatePath = vi.fn();
@@ -15,10 +15,6 @@ vi.mock('next/cache', () => ({ revalidatePath: (...args: unknown[]) => revalidat
 
 const { appealSanctionAction, reportMemberAction } = await import('./report-actions');
 
-const MESSAGE = {
-  conversationId: '00000000-0000-4000-8000-000000001973',
-  messageId: '00000000-0000-4000-8000-000000009731',
-};
 const SANCTION = '00000000-0000-4000-8000-00000000a1a1';
 
 function form(fields: Record<string, string>): FormData {
@@ -27,7 +23,8 @@ function form(fields: Record<string, string>): FormData {
   return data;
 }
 
-const ok = { ok: true, status: 204, data: null, setCookie: null };
+const filed = (yes: boolean) => ({ ok: true, status: 200, data: { filed: yes }, setCookie: null });
+const appealed = { ok: true, status: 204, data: null, setCookie: null };
 const failed = (status: number, message = 'Refused.') => ({
   ok: false,
   status,
@@ -42,11 +39,10 @@ beforeEach(() => {
 
 describe('a report', () => {
   it('sends the member, the reason and the note, and says a person will read it', async () => {
-    apiRequest.mockResolvedValue(ok);
+    apiRequest.mockResolvedValue(filed(true));
     const state = await reportMemberAction(
       'en',
       'ali',
-      null,
       null,
       form({ reason: 'abuse', detail: '  He keeps sending threats.  ' }),
     );
@@ -67,27 +63,37 @@ describe('a report', () => {
     });
   });
 
-  it('from a message, reports its author and names the message in the detail', async () => {
-    apiRequest.mockResolvedValue(ok);
-    await reportMemberAction('en', 'ali', MESSAGE, null, form({ reason: 'spam', detail: '' }));
+  it('sends no detail when nothing was written', async () => {
+    apiRequest.mockResolvedValue(filed(true));
+    await reportMemberAction('en', 'ali', null, form({ reason: 'spam', detail: '  ' }));
+    expect(apiRequest.mock.calls[0]?.[1]?.body).toMatchObject({ reason: 'spam', detail: null });
+  });
 
-    const body = apiRequest.mock.calls[0]?.[1]?.body;
-    expect(body).toMatchObject({ subject_type: 'member', subject: 'ali', reason: 'spam' });
-    expect(body.detail).toContain(MESSAGE.messageId);
-    expect(body.detail).toContain(MESSAGE.conversationId);
-    expect(reportDetail('', MESSAGE)?.length).toBeLessThanOrEqual(MAX_REPORT_DETAIL);
-    expect(reportDetail('x'.repeat(reportNoteLimit(MESSAGE)), MESSAGE)).toHaveLength(
-      MAX_REPORT_DETAIL,
-    );
+  it('says plainly when a report about them is already open, rather than "sent"', async () => {
+    apiRequest.mockResolvedValue(filed(false));
+    expect(
+      await reportMemberAction('en', 'ali', null, form({ reason: 'abuse', detail: 'again' })),
+    ).toEqual({
+      ok: true,
+      message:
+        'You have already reported @ali, and a person will read that report. What you wrote now was not added to it.',
+    });
+    expect(
+      await reportMemberAction('fa', 'ali', null, form({ reason: 'abuse', detail: 'again' })),
+    ).toEqual({
+      ok: true,
+      message:
+        'شما قبلاً @ali را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.',
+    });
   });
 
   it('asks for a reason and, for "Something else", a few words, before troubling the API', async () => {
-    expect(await reportMemberAction('en', 'ali', null, null, form({ detail: 'x' }))).toEqual({
+    expect(await reportMemberAction('en', 'ali', null, form({ detail: 'x' }))).toEqual({
       ok: false,
       message: 'Choose a reason',
     });
     expect(
-      await reportMemberAction('fa', 'ali', MESSAGE, null, form({ reason: 'other', detail: ' ' })),
+      await reportMemberAction('fa', 'ali', null, form({ reason: 'other', detail: ' ' })),
     ).toEqual({
       ok: false,
       message: 'بنویسید چه اتفاقی افتاده است: «مورد دیگر» بدون چند کلمه توضیح قابل بررسی نیست.',
@@ -97,7 +103,6 @@ describe('a report', () => {
         'en',
         'ali',
         null,
-        null,
         form({ reason: 'spam', detail: 'x'.repeat(MAX_REPORT_DETAIL + 1) }),
       ),
     ).toEqual({ ok: false, message: 'The details can be at most 2,000 characters.' });
@@ -106,7 +111,7 @@ describe('a report', () => {
 
   it('says plainly when the member is gone, and passes any other refusal through', async () => {
     apiRequest.mockResolvedValueOnce(failed(404));
-    expect(await reportMemberAction('en', 'ali', null, null, form({ reason: 'spam' }))).toEqual({
+    expect(await reportMemberAction('en', 'ali', null, form({ reason: 'spam' }))).toEqual({
       ok: false,
       message: 'This account could not be found.',
     });
@@ -117,7 +122,7 @@ describe('a report', () => {
       error: { error: 'rate_limited', message: 'Too many reports; try again in a minute.' },
       setCookie: null,
     });
-    expect(await reportMemberAction('en', 'ali', null, null, form({ reason: 'spam' }))).toEqual({
+    expect(await reportMemberAction('en', 'ali', null, form({ reason: 'spam' }))).toEqual({
       ok: false,
       message: 'Too many reports; try again in a minute.',
     });
@@ -126,7 +131,7 @@ describe('a report', () => {
 
 describe('an appeal', () => {
   it('sends the text, refreshes Settings, and says a person will read it', async () => {
-    apiRequest.mockResolvedValue(ok);
+    apiRequest.mockResolvedValue(appealed);
     const state = await appealSanctionAction(
       'en',
       SANCTION,

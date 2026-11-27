@@ -30,7 +30,7 @@ export interface SanctionRow {
   decision_id: string;
 }
 
-export interface OwnSanctionRow extends SanctionRow {
+export interface OwnSanctionRow extends Omit<SanctionRow, 'lifted_by'> {
   reason: string;
   appealed_at: Date | null;
 }
@@ -128,7 +128,8 @@ export class ModerationStore {
    * decision's written reason and when they appealed it.
    *
    * `appealed_at` is the member's own first note on it; the moderator's notes
-   * that may sit beside it are not the member's appeal.
+   * that may sit beside it are not the member's appeal. Who lifted it is not
+   * read at all: the member is told which and why, never who.
    */
   async ownSanctions(userId: string): Promise<OwnSanctionRow[]> {
     const { rows } = await this.pool.query<OwnSanctionRow>(
@@ -143,7 +144,6 @@ export class ModerationStore {
                  AND s.starts_at <= now()
                  AND (s.ends_at IS NULL OR s.ends_at > now())) AS active,
               s.lifted_at,
-              lifter.username AS lifted_by,
               s.lift_reason,
               s.decision_id,
               d.reason,
@@ -153,7 +153,6 @@ export class ModerationStore {
          FROM sanction s
          JOIN user_account u ON u.id = s.user_id
          JOIN moderation_decision d ON d.id = s.decision_id
-         LEFT JOIN user_account lifter ON lifter.id = s.lifted_by
         WHERE s.user_id = $1
         ORDER BY s.starts_at DESC`,
       [userId],

@@ -99,10 +99,26 @@ function shape(row: SanctionRow): Sanction {
 
 /**
  * A sanction as the member it is on reads it (T-1973): with the decision's
- * reason, since they are told "which and why", and when they appealed it.
+ * reason, since they are told "which and why", and when they appealed it --
+ * and never who lifted it. Written out field by field, not spread from
+ * `shape`, so a moderator's name cannot arrive here by a column added later.
  */
 function ownShape(row: OwnSanctionRow): OwnSanction {
-  return { ...shape(row), reason: row.reason, appealed_at: row.appealed_at?.toISOString() ?? null };
+  return {
+    id: row.id,
+    username: row.username,
+    scope: row.scope as SanctionScope,
+    scope_id: row.scope_id,
+    starts_at: row.starts_at.toISOString(),
+    ends_at: row.ends_at?.toISOString() ?? null,
+    permanent: row.permanent,
+    active: row.active,
+    lifted_at: row.lifted_at?.toISOString() ?? null,
+    lift_reason: row.lift_reason,
+    decision_id: row.decision_id,
+    reason: row.reason,
+    appealed_at: row.appealed_at?.toISOString() ?? null,
+  };
 }
 
 /**

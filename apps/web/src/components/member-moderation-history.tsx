@@ -29,13 +29,15 @@ function Lift({
   );
   return (
     <form action={formAction} className="flex flex-col gap-1">
+      {/* T-1973: the member reads this on their account, beside the restriction. */}
       <TextArea
-        label="Why it is being lifted"
+        label="Why it is being lifted (the member reads this)"
         hideLabel
         name="reason"
         rows={2}
         required
         placeholder="Say why it is being lifted. This is recorded."
+        hint="Shown to the member on their account; your name is not. Do not name or hint at who reported them."
       />
       <Button
         type="submit"

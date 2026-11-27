@@ -801,6 +801,7 @@ export type {
   QueueSubject,
   QueuedReport,
   Sanction,
+  SubmitReportResponse,
   SanctionRequest,
   SanctionScope,
   SubmitReportRequest,

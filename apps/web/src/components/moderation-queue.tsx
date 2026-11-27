@@ -173,12 +173,15 @@ function Decide({ locale, subject }: { locale: string; subject: QueueSubject }) 
         </fieldset>
       )}
 
+      {/* T-1973: the member reads this reason on their account (Settings →
+          Restrictions on your account). Said here, where it is written. */}
       <TextArea
-        label="Why"
+        label="Why (the member reads this)"
         name="reason"
         rows={2}
         required
         placeholder="Say why. This is recorded with your name."
+        hint="Shown to the member on their account; your name is not. Do not name or hint at who reported them."
       />
       <Button
         type="submit"

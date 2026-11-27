@@ -18,6 +18,7 @@ import type {
   OwnStandingResponse,
   Report,
   SubmitReportRequest,
+  SubmitReportResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
@@ -50,13 +51,20 @@ export class ModerationController {
   /**
    * File a report. A session is the only requirement — see the service for why
    * an unverified or a sanctioned member may still report somebody.
+   *
+   * 200 with `filed` (T-1973): `false` when this reporter already has an open
+   * report about this subject, so the member can be told that what they wrote
+   * now was not added, rather than "sent".
    */
   @Post('reports')
-  @HttpCode(204)
-  async file(@Body() body: SubmitReportRequest, @Req() request: FastifyRequest): Promise<void> {
+  @HttpCode(200)
+  async file(
+    @Body() body: SubmitReportRequest,
+    @Req() request: FastifyRequest,
+  ): Promise<SubmitReportResponse> {
     const viewer = await this.requireViewer(request);
     const result = await this.moderation.report(viewer.id, body ?? ({} as SubmitReportRequest));
-    if (result.ok) return;
+    if (result.ok) return { filed: result.filed };
 
     switch (result.reason) {
       case 'invalid':

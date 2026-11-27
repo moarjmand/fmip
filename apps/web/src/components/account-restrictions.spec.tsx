@@ -26,7 +26,6 @@ const SANCTION: OwnSanction = {
   permanent: false,
   active: true,
   lifted_at: null,
-  lifted_by: null,
   lift_reason: null,
   decision_id: '00000000-0000-4000-8000-00000000d1d1',
   reason: 'Repeated advertising links in three conversations.',
@@ -78,16 +77,28 @@ describe('the section', () => {
         ...SANCTION,
         active: false,
         lifted_at: '2026-11-26T09:30:00.000Z',
-        lifted_by: 'moderator',
         lift_reason: 'Appeal upheld: the links were match streams the group asked for.',
       },
     ]);
     expect(lifted).toContain('Lifted on 26 Nov 2026, 09:30');
     expect(lifted).toContain('Appeal upheld');
-    // Who lifted it is the platform's, not a person to blame (policy section 2).
-    expect(lifted).not.toContain('moderator<');
     // Undone already: nothing to appeal.
     expect(lifted).not.toContain('restriction-appeal-form');
+  });
+
+  it('names the schema’s other scopes, and never shows a raw key or breaks on an unknown one', () => {
+    const html = render(
+      (['groups', 'post', 'something_new'] as const).map((scope, i) => ({
+        ...SANCTION,
+        id: `00000000-0000-4000-8000-00000000c${i}c${i}`,
+        scope: scope as OwnSanction['scope'],
+      })),
+    );
+    expect(html).toContain('Making or joining groups');
+    expect(html).toContain('Posting on match panels');
+    expect(html).toContain('Another part of your account');
+    expect(html).not.toContain('restrictions.scope');
+    expect(html).not.toContain('something_new');
   });
 });
 
@@ -118,6 +129,19 @@ describe('the appeal', () => {
     expect(html.match(/data-testid="restriction"/g)).toHaveLength(2);
     expect(html.match(/data-testid="restriction-appeal-form"/g)).toHaveLength(1);
     expect(html.match(/data-testid="restriction-appealed"/g)).toHaveLength(1);
+  });
+
+  it('gives each appeal field its own id, so each label names its own field', () => {
+    const html = render([
+      SANCTION,
+      { ...SANCTION, id: '00000000-0000-4000-8000-00000000b2b2', scope: 'contact' },
+    ]);
+    const defined = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    const labelled = [...html.matchAll(/\sfor="([^"]+)"/g)].map((m) => m[1]);
+    expect(html.match(/<textarea/g)).toHaveLength(2);
+    expect(new Set(defined).size).toBe(defined.length);
+    expect(labelled).toHaveLength(2);
+    for (const target of labelled) expect(defined).toContain(target);
   });
 
   it('is written in Persian for a Persian reader', () => {
