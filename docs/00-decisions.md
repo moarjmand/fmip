@@ -16356,3 +16356,19 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *Appeals only for sanctions*: the rules say every decision. *An "answered" state with a moderator's reply*: a new admin write, its audit and its notification, more than the invitation needs; a lift or a new decision already answers. *Showing `no_action`*: it would tell a member they were reported without anything to appeal.
 
 **Consequences.** `OwnStandingResponse` carries `decisions` (`OwnDecision`), `ModerationQueueResponse` and `MemberModerationHistory` carry `appeals` (`QueuedAppeal`), and `OwnSanction` drops `lifted_by`. The rate-limit inventory lists the new route as deliberately unlimited, like the sanction's appeal (T-213). A moderator's reply to an appeal, or a removal that records its item, needs its own decision.
+
+## D-466 — A new account leaves the first run on the day's matches still to pick, with one "Make a prediction" action until the first pick
+
+**Date.** 2026-11-27. **Status.** Accepted (the engineering session, within the brief of T-1964, D-459; visible, shown to the maintainer on screenshots before any deploy). **Task:** T-1964. **Amends:** T-522's and T-1737's landing for a member nobody invited. **Follows:** D-358, D-361, D-390, rule 6.
+
+**Context.** A new account left `/welcome` on its own profile: "Your first steps", an empty rating, empty sections, and a link named "Matches" to the picks. The walk of 2026-11-27 counted 2 taps (desktop) and 3 (phone) from there to a saved pick, but the one action a new member came for was a row of a card under a word that did not say it.
+
+**Decision.**
+1. **Where.** A sign-up with no page it was on its way to and no inviter leaves the first run (or skips it) on `/{locale}/scores?unpicked=1`, the day's matches still to pick, in the order the matches page ranks them (favourites first). An invited member still lands on the inviter's profile (T-522); a guest's own destination still wins (D-358). Sign-in is unchanged.
+2. **One action.** There, until the member's first prediction, one card above the list says what to do and offers «پیش‌بینی کن» / "Make a prediction", which opens the first open match's pick (on a phone the sheet, on a desktop the side column it is already in). It is not shown to a guest, after a prediction exists, beside a pick waiting for the e-mail confirmation, on a match that kicked off, or when the member's history could not be read; nothing is stored to remember it.
+3. **Never a dead end.** "Not picked yet" on a day with no match still open points at the next day with a match, as the All view's empty day does (T-1331).
+4. **What stays.** An unconfirmed e-mail does not block: the tap saves a pending pick, said in the pick itself and counted once the address is confirmed before kick-off (D-361). The model's forecast stays in its own labelled box beside the pick, and the community's split stays closed until the member picks (D-206, rule 6).
+
+**Rejected.** *A new onboarding page*: the brief says no new page. *Preselecting a match in the address from the first run*: the first run does not read fixtures, and the matches page already chooses the first open one. *Keeping the profile landing and renaming its link*: the member still meets an empty profile first.
+
+**Consequences.** The journeys' `registerAndVerify` expects the new landing. The profile's "Your first steps" stays where it was, reached from "You".
