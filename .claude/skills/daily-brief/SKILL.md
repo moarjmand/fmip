@@ -42,8 +42,9 @@ The maintainer and the teammate both decide (2026-10-31) in the agents console: 
 the open decisions under «منتظر تصمیم شما» and its «تصمیم‌ها» page takes the answers. The desk is
 files, no longer a claude.ai page (D-458): `E:/FMIP/ops/desk/decisions/*.json` (each question) and
 the answers, which are the `answers` in `E:/FMIP/ops/console/state.json` (written by the console
-sync) plus the earlier `E:/FMIP/ops/desk/answers/<person id>.json` (keyed by decision id: `choice`,
-`note`, `at`). Read them first:
+sync; keyed by decision id: `answer`, `note`, `by`, `at`) plus the earlier
+`E:/FMIP/ops/desk/answers/<person id>.json` (keyed by decision id: `choice`, `note`, `at`). Read them
+first:
 - an answer closes a decision in the ledger (who answered, the choice, the date); two different
   answers make it a decision to settle, put back on the desk with both named;
 - a new decision you raise is written to `E:/FMIP/ops/desk-new.json`, a JSON array of objects

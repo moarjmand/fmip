@@ -65,7 +65,9 @@
 //     URL; the browser's javascript_tool is not read either;
 //   - a query file given to run.sh is not read (run.sh's read-only session is that lock);
 //   - links, junctions and 8.3 short names are resolved for the file tools only, not for paths
-//     in a shell command (creating a link is refused instead);
+//     in a shell command; the fixed junctions E:/FMIP/ops and .claude/agent-memory (2026-11-21)
+//     are known by both spellings, but a `..` after one of them in a shell path, and a change of
+//     the junctions themselves, are not judged yet (T-1951);
 //   - an agent started as general-purpose (the console chat, until T-1891) is not a team agent
 //     to this hook.
 // Its cases are team-guard.cases.json, run by test-guard.mjs.
