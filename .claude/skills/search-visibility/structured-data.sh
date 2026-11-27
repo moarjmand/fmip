@@ -5,7 +5,17 @@
 # time, <html lang> and dir, the robots meta, the number of <h1>, and each JSON-LD block's @type with
 # the fields a rich result needs that are missing. A team, a competition, a match and a player are
 # picked from the sitemap and the pages themselves, in English and Persian. Changes nothing.
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays <dir>/structured-data.txt (the output as a run printed it, after the
+# parsing below) between two "FIXTURE REPLAY" lines, opens no connection, and exits with the code in
+# <dir>/structured-data.exit (0 when there is none); without FMIP_FIXTURE_OK=1 it exits 2. Make one
+# with `bash structured-data.sh > <dir>/structured-data.txt; echo $? > <dir>/structured-data.exit`.
 set -uo pipefail
+if [ -n "${FMIP_FIXTURE:-}" ]; then
+  . "$(dirname "$0")/../team-charter/bin/fixture-replay.sh"
+  fixture_replay structured-data SEO
+  exit "$FX_STATUS"
+fi
 raw="$(ssh -o ConnectTimeout=20 fmip-prod 'bash -s' <<'REMOTE'
 S=https://traveltohormuz.ir
 sm="$(curl -s -m 30 "$S/sitemap.xml")"

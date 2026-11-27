@@ -5,8 +5,22 @@
 # prints, per page: status, time, title, description (full, with its length), canonical, the
 # alternate-language links, og:image and twitter:card. A team, a competition, a match and a news
 # story are picked from the sitemap and the pages themselves. The sitemap's count is appended to
-# E:/FMIP/ops/sitemap-count.log, so a month's drop can be judged.
+# E:/FMIP/ops/sitemap-count.log ($OPS_ROOT/sitemap-count.log when OPS_ROOT is set), so a month's
+# drop can be judged.
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays <dir>/seo-check.txt between two "FIXTURE REPLAY" lines, opens no
+# connection, appends its count as a real run does (only under OPS_ROOT, never to the real log), and
+# exits with the code in <dir>/seo-check.exit (0 when there is none); without FMIP_FIXTURE_OK=1 it
+# exits 2. Make one with `bash seo-check.sh > <dir>/seo-check.txt; echo $? > <dir>/seo-check.exit`.
 set -uo pipefail
+ops="${OPS_ROOT:-/e/FMIP/ops}"
+if [ -n "${FMIP_FIXTURE:-}" ]; then
+  . "$(dirname "$0")/../team-charter/bin/fixture-replay.sh"
+  fixture_replay seo-check SEO
+  count="$(sed -n 's/^urls: //p' "$FX_FILE" | tr -d '\r')"
+  [ -n "$count" ] && [ -n "${OPS_ROOT:-}" ] && mkdir -p "$ops" && echo "$(date -u +%F) $count" >> "$ops/sitemap-count.log"
+  exit "$FX_STATUS"
+fi
 out="$(ssh -o ConnectTimeout=20 fmip-prod 'bash -s' <<'REMOTE'
 S=https://traveltohormuz.ir
 echo "== robots.txt"; curl -s -m 20 "$S/robots.txt" | head -14
@@ -34,4 +48,4 @@ REMOTE
 )"
 printf '%s\n' "$out"
 count="$(printf '%s\n' "$out" | sed -n 's/^urls: //p')"
-[ -n "$count" ] && mkdir -p /e/FMIP/ops && echo "$(date -u +%F) $count" >> /e/FMIP/ops/sitemap-count.log
+[ -n "$count" ] && mkdir -p "$ops" && echo "$(date -u +%F) $count" >> "$ops/sitemap-count.log"

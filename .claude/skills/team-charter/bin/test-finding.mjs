@@ -1100,6 +1100,49 @@ const BROKEN = [
   rmSync(root, { recursive: true, force: true });
 }
 
+// ---------- 8b. who chose the check, who wrote the line, and security's own resolved (D-463) ----------
+{
+  const root = ops({
+    '2026-11-10.jsonl': [
+      stored({ status: 'fixed-unverified' }),
+      stored({ id: 'sec-2026-11-10-01', agent: 'security', title: 'a weak header', status: 'fixed-unverified' }),
+    ],
+  });
+  const noAs = run(root, ['seen', 'qa-2026-11-10-01', '--status', 'fixed-unverified', '--verify', 'S2', '--evidence', 'x']);
+  check('seen --verify without --as is refused', noAs.code === 1 && /--as/.test(noAs.err), noAs.err);
+  const badAs = run(root, ['seen', 'qa-2026-11-10-01', '--as', 'someone', '--evidence', 'x']);
+  check('an --as that is no agent and not engineering-session is refused', badAs.code === 1 && /unknown as/.test(badAs.err), badAs.err);
+  const set = run(root, ['seen', 'qa-2026-11-10-01', '--status', 'fixed-unverified', '--verify', 'S2', '--as', 'qa-engineer', '--evidence', 'check added']);
+  const line = parsed(root).at(-1);
+  check('seen --verify --as keeps whose check it is and who wrote the line', set.code === 0 && line.verify === 'S2' && line.verify_by === 'qa-engineer' && line.written_by === 'qa-engineer', JSON.stringify(line));
+  run(root, ['seen', 'qa-2026-11-10-01', '--status', 'fixed-unverified', '--evidence', 'still waiting']);
+  const carried = parsed(root).at(-1);
+  check('a later line carries verify and verify_by, not written_by', carried.verify_by === 'qa-engineer' && !('written_by' in carried), JSON.stringify(carried));
+  const added = run(root, [...['add'], ...args({ title: 'a new overflow on the fa table page', verify: 'S1' })]);
+  check('add --verify gives the check to the filing agent', added.code === 0 && parsed(root).at(-1).verify_by === 'qa-engineer', added.err);
+
+  const secBare = run(root, ['seen', 'sec-2026-11-10-01', '--status', 'resolved', '--evidence', 'header present']);
+  check('resolved on a security finding without --as is refused', secBare.code === 1 && /only the security agent resolves it/.test(secBare.err), secBare.err);
+  const secOther = run(root, ['seen', 'sec-2026-11-10-01', '--status', 'resolved', '--as', 'engineering-session', '--evidence', 'header present']);
+  check('resolved on a security finding as anyone else is refused', secOther.code === 1, secOther.err);
+  const secOpen = run(root, ['seen', 'sec-2026-11-10-01', '--status', 'open', '--as', 'engineering-session', '--evidence', 'seen again']);
+  check('another status on a security finding is written as before', secOpen.code === 0, secOpen.err);
+  const secOwn = run(root, ['seen', 'sec-2026-11-10-01', '--status', 'resolved', '--as', 'security', '--evidence', 're-checked: header present']);
+  check('the security agent resolves its own finding, and the line says so', secOwn.code === 0 && parsed(root).at(-1).written_by === 'security', secOwn.err);
+  rmSync(root, { recursive: true, force: true });
+
+  const lintRoot = ops({
+    '2026-11-10.jsonl': [
+      stored({ verify_by: 'qa-engineer' }),
+      stored({ id: 'qa-2026-11-10-02', verify: 'S2', verify_by: 'a-friend' }),
+      stored({ id: 'qa-2026-11-10-03', written_by: 'maintainer' }),
+    ],
+  });
+  const lint = JSON.parse(run(lintRoot, ['validate', '2026-11-10', '--json']).out);
+  check('validate: verify_by without verify, and an unknown verify_by or written_by, are errors', lint.errors.filter((e) => e.code === 'bad-value').map((e) => e.line).join() === '1,2,3', JSON.stringify(lint.errors));
+  rmSync(lintRoot, { recursive: true, force: true });
+}
+
 // ---------- 9. the charter no longer shows a heredoc ----------
 {
   const charter = readFileSync(join(here, '..', 'SKILL.md'), 'utf8');
