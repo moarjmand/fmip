@@ -140,7 +140,9 @@ export function AnalysisQueue({
             <span className="ms-2 text-muted">confidence {submission.confidence}/5</span>
           </p>
 
-          <p className="whitespace-pre-wrap text-sm">{submission.reasoning}</p>
+          <p className="whitespace-pre-wrap text-sm" dir="auto">
+            {submission.reasoning}
+          </p>
           {(
             [
               ['lineup_impact', 'Lineup impact'],

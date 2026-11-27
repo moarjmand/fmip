@@ -180,7 +180,7 @@ export default async function GroupPage({
           )}
         </p>
         {group.description !== null && (
-          <p data-testid="group-description" lang={lang}>
+          <p data-testid="group-description" lang={lang} dir="auto">
             {group.description}
           </p>
         )}
@@ -271,6 +271,7 @@ export default async function GroupPage({
           <p
             className="whitespace-pre-line text-sm"
             lang={lang}
+            dir="auto"
             data-testid="group-rules-body-text"
           >
             {group.rules.body}
@@ -473,7 +474,11 @@ export default async function GroupPage({
                     <MemberName locale={locale} member={request} link className="underline" />{' '}
                     <MemberHandle username={request.username} className="text-muted" />
                   </p>
-                  {request.note !== null && <p className="text-sm">{request.note}</p>}
+                  {request.note !== null && (
+                    <p className="whitespace-pre-line text-sm" dir="auto">
+                      {request.note}
+                    </p>
+                  )}
                   <JoinRequestControls
                     locale={locale}
                     slug={group.slug}

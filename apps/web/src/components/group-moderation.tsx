@@ -160,7 +160,7 @@ export function AppealNotes({
           <span className="text-muted">
             <time dateTime={note.created_at}>{times?.[note.id] ?? note.created_at}</time>
           </span>{' '}
-          <span className="whitespace-pre-line">{note.body}</span>
+          <bdi className="whitespace-pre-line">{note.body}</bdi>
         </li>
       ))}
     </ol>

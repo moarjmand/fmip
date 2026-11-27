@@ -128,7 +128,9 @@ export default async function ComparePage({
             : say('profile.compare.myRatingUnreachable')}
         </p>
         <p className="text-sm">
-          <span className="text-muted">@{name} · </span>
+          <span className="text-muted">
+            <bdi dir="ltr">@{name}</bdi> ·{' '}
+          </span>
           {theirRating.ok
             ? ratingLine(lang, theirRating.data.rating)
             : say('profile.compare.theirRatingUnreachable')}

@@ -243,7 +243,11 @@ function Item({
           <Translated locale={locale} message="feed.analysisCall" /> {item.predicted_outcome}
         </p>
       )}
-      {item.kind === 'panel_post' && <p className="text-sm">{item.excerpt}</p>}
+      {item.kind === 'panel_post' && (
+        <p className="text-sm" dir="auto">
+          {item.excerpt}
+        </p>
+      )}
       <ul className="flex flex-wrap gap-2 text-xs" data-testid="feed-because">
         {item.because.map((signal, index) => (
           <li

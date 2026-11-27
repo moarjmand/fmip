@@ -82,7 +82,11 @@ export default async function GroupInvitePage({
       >
         {group.name}
       </h1>
-      {group.description !== null && <p lang={group.language ?? undefined}>{group.description}</p>}
+      {group.description !== null && (
+        <p lang={group.language ?? undefined} dir="auto">
+          {group.description}
+        </p>
+      )}
 
       {member ? (
         <p className="text-sm" data-testid="invite-link-member">
@@ -109,7 +113,11 @@ export default async function GroupInvitePage({
               <h2 className="text-lg font-semibold">
                 <Translated locale={locale} message="groupsPage.rulesTitle" />
               </h2>
-              <p className="whitespace-pre-line text-sm" lang={group.language ?? undefined}>
+              <p
+                className="whitespace-pre-line text-sm"
+                lang={group.language ?? undefined}
+                dir="auto"
+              >
                 {rules.body}
               </p>
               <p className="text-sm text-muted">

@@ -100,7 +100,11 @@ function ReportItem({
           {report.created_at}
         </time>
       </p>
-      {report.detail !== null && <p className="whitespace-pre-wrap text-muted">{report.detail}</p>}
+      {report.detail !== null && (
+        <p className="whitespace-pre-wrap text-muted" dir="auto">
+          {report.detail}
+        </p>
+      )}
       {report.suggestion !== null ? (
         <p className="text-xs" data-testid="moderation-suggestion">
           <span className="font-medium">
@@ -266,7 +270,9 @@ export function ModerationQueue({
                 >
                   {subject.display_name}
                 </Link>
-                <span className="ms-2 text-sm text-muted">@{subject.username}</span>
+                <span className="ms-2 text-sm text-muted">
+                  <bdi dir="ltr">@{subject.username}</bdi>
+                </span>
                 <Link
                   href={`/${locale}/admin/moderation/${encodeURIComponent(subject.username)}`}
                   className="ms-2 text-sm underline"

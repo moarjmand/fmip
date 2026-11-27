@@ -217,7 +217,9 @@ export default async function FounderAnalysisPage({
                   <time dateTime={version.published_at}>{utcMoment(l, version.published_at)}</time>{' '}
                   · {confidenceText(l, version.confidence)}
                 </p>
-                <p className="mt-1">{version.reasoning}</p>
+                <p className="mt-1" dir="auto">
+                  {version.reasoning}
+                </p>
               </li>
             ))}
           </ol>

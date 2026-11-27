@@ -98,7 +98,9 @@ function Analysis({ locale, analysis }: { locale: Locale; analysis: CommunityAna
         <span className="ms-2 text-muted">{confidenceText(locale, current.confidence)}</span>
       </p>
 
-      <p className="whitespace-pre-wrap text-sm">{current.reasoning}</p>
+      <p className="whitespace-pre-wrap text-sm" dir="auto">
+        {current.reasoning}
+      </p>
 
       {FIELDS.map(([field, label]) =>
         current[field] === null ? null : (

@@ -452,7 +452,11 @@ export function StoredDetail({
           )}
         </p>
       )}
-      {v.explanation !== null && <p className="text-fg">{v.explanation}</p>}
+      {v.explanation !== null && (
+        <p className="text-fg" dir="auto">
+          {v.explanation}
+        </p>
+      )}
       <p data-testid="prediction-versions">
         {locked ? (
           <FilledMessage

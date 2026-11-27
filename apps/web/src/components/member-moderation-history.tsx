@@ -133,7 +133,9 @@ export function MemberModerationHistoryView({
                   {report.decision_id === null ? ', open' : ', answered'}
                 </span>
                 {report.detail !== null && (
-                  <p className="whitespace-pre-wrap text-muted">{report.detail}</p>
+                  <p className="whitespace-pre-wrap text-muted" dir="auto">
+                    {report.detail}
+                  </p>
                 )}
               </li>
             ))}

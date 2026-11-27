@@ -210,6 +210,7 @@ export function FounderAnalysisPanel({
           script has one (Newsreader; Persian has no italic to fake). */}
         <p
           className="font-article text-article whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
+          dir="auto"
           data-testid="founder-voice"
         >
           {current.reasoning}
@@ -252,7 +253,9 @@ export function FounderAnalysisPanel({
                   </time>{' '}
                   · {outcomeLabel(l, version.predicted_outcome, home, away)} ·{' '}
                   {confidenceText(l, version.confidence)}
-                  <p className="mt-1 whitespace-pre-line">{version.reasoning}</p>
+                  <p className="mt-1 whitespace-pre-line" dir="auto">
+                    {version.reasoning}
+                  </p>
                 </li>
               ))}
             </ol>
@@ -336,6 +339,7 @@ export function FounderAnalysisBrief({
         </p>
         <p
           className="line-clamp-4 font-article text-base whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
+          dir="auto"
           data-testid="founder-voice"
         >
           {current.reasoning}

@@ -2,7 +2,7 @@ import Link from '@/components/ui/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
-import { Score } from '@/components/score';
+import { Score, nameIsolate } from '@/components/score';
 import { memberName } from '@/lib/member-name';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import type { MessageKey } from '@/i18n/messages';
@@ -201,15 +201,18 @@ export function MessageRow({
               <Said
                 locale={locale}
                 message="messagesPage.removedWhy"
-                params={{ reason: message.removed.reason }}
+                params={{ reason: nameIsolate(message.removed.reason) }}
               />
             </span>
           )}
         </p>
       ) : (
         <>
+          {/* The member's own words take their direction from their first
+              letter (T-1975): a Persian message on an English page, or an
+              English one on a Persian page, aligns and punctuates as written. */}
           {message.body !== null && (
-            <p className="whitespace-pre-line text-sm" lang={lang}>
+            <p className="whitespace-pre-line text-sm" lang={lang} dir="auto">
               {message.body}
             </p>
           )}
@@ -231,7 +234,7 @@ export function MessageRow({
             message="messagesPage.mentioned"
             params={{
               names: message.mentions
-                .map((username) => memberName(locale, { username }))
+                .map((username) => nameIsolate(memberName(locale, { username })))
                 .join(', '),
             }}
           />

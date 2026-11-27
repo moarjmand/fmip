@@ -12,7 +12,7 @@ import { MemberName } from '@/components/member-name';
 import { ProductRow } from '@/components/product-row';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { MessageText } from '@/components/message-text';
-import { ScorePair } from '@/components/score';
+import { ScorePair, nameIsolate } from '@/components/score';
 import { Translated } from '@/components/translated';
 import { formatNumber, intlLocale } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
@@ -211,8 +211,13 @@ export function GroupDiscussionsSection({
                         : last.removed !== null
                           ? message(lang, 'home.groups.removed')
                           : filled(lang, 'home.groups.last', {
-                              name: memberName(locale, { username: last.author }),
-                              text: excerpt(last.body ?? message(lang, 'home.groups.card').text),
+                              // The name and the excerpt are members' words, each
+                              // isolated inside the line (T-1975).
+                              name: nameIsolate(memberName(locale, { username: last.author })),
+                              text:
+                                last.body === null
+                                  ? excerpt(message(lang, 'home.groups.card').text)
+                                  : nameIsolate(excerpt(last.body)),
                             })
                     }
                   />
@@ -326,7 +331,7 @@ export function PanelsSection({
                           />
                         </>
                       )}
-                      : {excerpt(post.body ?? '')}
+                      : <bdi>{excerpt(post.body ?? '')}</bdi>
                     </li>
                   ))}
                 </ul>

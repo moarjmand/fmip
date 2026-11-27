@@ -102,7 +102,9 @@ function PollItem({
   const ended = poll.closed_at ?? poll.closes_at;
   return (
     <>
-      <p className="font-semibold">{poll.question}</p>
+      <p className="font-semibold" dir="auto">
+        {poll.question}
+      </p>
       <p className="text-xs text-muted">
         {poll.created_by !== null && (
           <>
@@ -122,7 +124,10 @@ function PollItem({
           <ul className="flex flex-col gap-1 text-sm">
             {poll.options.map((option) => (
               <li key={option.id} className="flex flex-wrap items-baseline gap-x-2">
-                <span className={option.id === poll.my_vote ? 'font-semibold' : undefined}>
+                <span
+                  className={option.id === poll.my_vote ? 'font-semibold' : undefined}
+                  dir="auto"
+                >
                   {option.label}
                 </span>
                 <span className="tabular-nums text-muted">
@@ -163,11 +168,13 @@ function PollItem({
           testId="group-poll-vote"
         >
           <fieldset className="flex flex-col gap-1 text-sm">
-            <legend className="sr-only">{poll.question}</legend>
+            <legend className="sr-only" dir="auto">
+              {poll.question}
+            </legend>
             {poll.options.map((option) => (
               <Radio
                 key={option.id}
-                label={option.label}
+                label={<bdi>{option.label}</bdi>}
                 name="option_id"
                 value={option.id}
                 defaultChecked={option.id === poll.my_vote}

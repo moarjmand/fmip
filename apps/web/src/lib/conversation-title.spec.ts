@@ -54,7 +54,8 @@ describe('what a conversation is called', () => {
       'me',
       'en',
     );
-    expect(title).toBe('Ada Lovelace');
+    // Each name is its own isolate inside the title (T-1975).
+    expect(title).toBe('\u2068Ada Lovelace\u2069');
   });
 
   it('names a deleted member from the catalogue, never by the stored name (T-908)', () => {
@@ -69,7 +70,7 @@ describe('what a conversation is called', () => {
       'me',
       'en',
     );
-    expect(title).toBe('A deleted member');
+    expect(title).toBe('\u2068A deleted member\u2069');
   });
 
   it('names a group room by its group', () => {
@@ -99,7 +100,8 @@ describe('what a conversation is called', () => {
       'me',
       'en',
     );
-    expect(title).toBe('Liverpool v Esteghlal · The Open Terrace');
+    // The group's name is its members' words, isolated in the sentence (T-1975).
+    expect(title).toBe('Liverpool v Esteghlal · \u2068The Open Terrace\u2069');
   });
 
   it('says a match is missing rather than naming one it cannot see', () => {
@@ -112,7 +114,7 @@ describe('what a conversation is called', () => {
       'me',
       'en',
     );
-    expect(title).toBe('The Open Terrace · a match');
+    expect(title).toBe('\u2068The Open Terrace\u2069 · a match');
   });
 
   it('shows the standing a match has now, and only for a thread', () => {

@@ -63,7 +63,7 @@ function GroupRow({ group, locale }: { group: GroupSummary; locale: string }) {
         {group.favourite !== null && <> · {group.favourite.name}</>}
       </p>
       {group.description !== null && (
-        <p className="text-sm" lang={lang}>
+        <p className="text-sm" lang={lang} dir="auto">
           {group.description}
         </p>
       )}
