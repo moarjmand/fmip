@@ -198,6 +198,23 @@ describe('a site page', () => {
     expect(response.headers.has('Cache-Control')).toBe(false);
   });
 
+  it.each(['/en/privacy', '/fa/privacy', '/x-rtl/privacy'])(
+    '%s is never indexed while the trial is private (T-1969, D-465)',
+    async (path) => {
+      const response = await ask(SITE, path);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+    },
+  );
+
+  it.each(['/en/rules', '/fa/scores', '/en/privacy-policy'])(
+    '%s carries no X-Robots-Tag',
+    async (path) => {
+      const response = await ask(SITE, path);
+      expect(response.headers.has('X-Robots-Tag')).toBe(false);
+    },
+  );
+
   it('is redirected to its language without them either', async () => {
     const response = await ask(SITE, '/scores');
     expect(response.status).toBe(307);

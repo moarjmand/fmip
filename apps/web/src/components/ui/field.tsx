@@ -142,10 +142,14 @@ export function TextField({
 }: TextFieldProps) {
   const { id, hintId, errorId, control } = useDescription(givenId, hint, error, describedBy);
   const trailing = present(after);
+  // Beside a control, the input grows from nothing (`w-0 grow`): left at its
+  // own width (20 characters, about 210 px), it set the row's narrowest
+  // width, and with the show/hide button the register form scrolled sideways
+  // by a pixel at 375 px in CI's fonts (T-1969).
   const input = (
     <input
       type={type}
-      className={controlClasses(size, cx(trailing && 'min-w-0 grow', controlClassName))}
+      className={controlClasses(size, cx(trailing && 'w-0 min-w-0 grow', controlClassName))}
       {...control}
       {...rest}
     />
@@ -219,8 +223,11 @@ export function Select({
       <Label htmlFor={id} hidden={hideLabel}>
         {label}
       </Label>
+      {/* `w-full`, not only `max-w-full`: a percentage width lets the list be
+          narrower than its longest option, which otherwise sets the form's
+          narrowest width ("Saint Vincent and the Grenadines", T-1969). */}
       <select
-        className={controlClasses(size, cx('max-w-full', controlClassName))}
+        className={controlClasses(size, cx('w-full max-w-full', controlClassName))}
         {...control}
         {...rest}
       >

@@ -26,6 +26,8 @@ const PAGES = [
   '/en/login',
   '/en/register',
   '/en/rules',
+  // The privacy notice as this server has it: no controller, "being prepared" (T-1969).
+  '/en/privacy',
   // The About page's diagram and section map (T-1615, D-286).
   '/en/about',
   '/en/match/00000000-0000-4000-8000-000000000901',

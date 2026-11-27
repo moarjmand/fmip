@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as NextServer from 'next/server';
 import type * as LanguageHold from '@/lib/language-hold';
 import { SiteFooter } from './site-footer';
 
@@ -17,6 +18,12 @@ let pathname = '/en/scores';
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useSearchParams: () => new URLSearchParams(),
+}));
+
+// `connection()` needs a request; the spec renders without one.
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof NextServer>()),
+  connection: async () => undefined,
 }));
 
 // The holds the API reports: none, so Persian is offered beside English.
@@ -41,7 +48,11 @@ const tag = (html: string, testId: string): string =>
 beforeEach(() => {
   pathname = '/en/scores';
   holds = new Map();
+  // No privacy notice configured unless a test says so (T-1969, D-465).
+  vi.stubEnv('PRIVACY_CONTROLLER_NAME', '');
+  vi.stubEnv('SITE_CONTACT_EMAIL', '');
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('the site footer', () => {
   it('is the page’s contentinfo: the name leading home, the line, the columns, the year', async () => {
@@ -109,7 +120,8 @@ describe('the site footer', () => {
     expect(tag(html, 'footer-data')).toContain('href="/en/about#data"');
     expect(html).toContain('>Platform rules<');
     expect(html).toContain('>Data sources<');
-    // No Privacy or Contact link until those pages exist (rule 3).
+    // No Privacy link while the server names no controller (D-465), and no
+    // Contact link until that page exists (rule 3).
     expect(html).not.toMatch(/privacy|contact/i);
     const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
     expect(strip).toContain('footer-rules');
@@ -126,6 +138,30 @@ describe('the site footer', () => {
       const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
       expect(tag(strip, 'footer-rules'), locale).toContain(`href="/${locale}/rules"`);
       expect(strip.slice(0, strip.indexOf('</ul>')), locale).toContain(words);
+    }
+  });
+
+  it('links the privacy notice after the rules only when the server names its controller and mailbox (T-1969, D-465)', async () => {
+    vi.stubEnv('PRIVACY_CONTROLLER_NAME', 'Test Controller');
+    expect(await draw('en')).not.toContain('footer-privacy');
+    vi.stubEnv('PRIVACY_CONTROLLER_NAME', '');
+    vi.stubEnv('SITE_CONTACT_EMAIL', 'privacy@example.test');
+    expect(await draw('en')).not.toContain('footer-privacy');
+    vi.stubEnv('PRIVACY_CONTROLLER_NAME', 'Test Controller');
+    for (const [locale, words] of [
+      ['en', '>Privacy<'],
+      ['fa', '>حریم خصوصی<'],
+    ] as const) {
+      pathname = `/${locale}/scores`;
+      const html = await draw(locale);
+      const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
+      expect(ids(strip, 'footer'), locale).toEqual(['legal', 'rules', 'privacy', 'data']);
+      expect(tag(strip, 'footer-privacy'), locale).toContain(`href="/${locale}/privacy"`);
+      expect(tag(strip, 'footer-privacy'), locale).toContain('class="footer-link underline"');
+      expect(strip.slice(0, strip.indexOf('</ul>')), locale).toContain(words);
+      // The footer names nobody: who the notice names is the page's to say.
+      expect(html, locale).not.toContain('Test Controller');
+      expect(html, locale).not.toContain('privacy@example.test');
     }
   });
 

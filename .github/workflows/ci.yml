@@ -303,6 +303,11 @@ jobs:
       # ports and nothing in front, the page has to be told. Without this the
       # socket is unreachable and the real-time criterion cannot be checked.
       NEXT_PUBLIC_CHAT_SOCKET_URL: ws://127.0.0.1:3001/me/conversations/socket
+      # A test controller for the privacy notice (T-1969, D-465), so its
+      # journey meets the notice rather than "being prepared". Invented
+      # values: the real ones live only in the server's .env.
+      PRIVACY_CONTROLLER_NAME: Test Controller
+      SITE_CONTACT_EMAIL: privacy@example.test
 
     steps:
       - name: Check out

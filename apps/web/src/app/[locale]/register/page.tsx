@@ -8,6 +8,7 @@ import { PasswordReveal, ZoneLine } from '@/components/register-controls';
 import { fetchCountries, fetchMe } from '@/lib/api';
 import { readGuestChoices } from '@/lib/first-run-cookie';
 import { readInviter } from '@/lib/invite';
+import { PRIVACY_PATH, privacyController } from '@/lib/privacy-notice';
 import { registerAction } from '@/lib/auth-actions';
 import { RETURN_PARAM, loginHref, safeReturnPath } from '@/lib/return-to';
 import { siteUrl } from '@/lib/seo';
@@ -109,6 +110,11 @@ export default async function RegisterPage({
 
   const [zoneBefore, zoneAfter] = around(t(lang, 'auth.register.timezoneLine'), 'zone');
   const [rulesBefore, rulesAfter] = around(t(lang, 'auth.register.acceptRules'), 'rules');
+  // The privacy notice beside what the address is for (T-1969, D-465), only
+  // when the server names its controller: it is read, never accepted, so it
+  // is not in the checkbox's label. `force-dynamic` reads it per request.
+  const privacy = privacyController() !== null;
+  const [privacyBefore, privacyAfter] = around(t(lang, 'auth.register.privacy'), 'privacy');
 
   // The form asks for what only the reader knows (T-1737, D-358). The display
   // name is the username until they change it in Settings and the language is
@@ -286,9 +292,24 @@ export default async function RegisterPage({
           }}
           wideSubmit
           footnote={
-            <p className="text-sm text-muted" data-testid="register-email-use">
-              <Translated locale={locale} message="auth.register.emailUse" />
-            </p>
+            <>
+              <p className="text-sm text-muted" data-testid="register-email-use">
+                <Translated locale={locale} message="auth.register.emailUse" />
+              </p>
+              {privacy && (
+                <p className="mt-1 text-sm text-muted" data-testid="register-privacy">
+                  {privacyBefore}
+                  <Link
+                    href={`/${locale}${PRIVACY_PATH}`}
+                    className="underline"
+                    data-testid="register-privacy-link"
+                  >
+                    {t(lang, 'auth.register.privacyLink')}
+                  </Link>
+                  {privacyAfter}
+                </p>
+              )}
+            </>
           }
         />
         {/* A zone the guest confirmed stands; otherwise this device's own replaces UTC. */}

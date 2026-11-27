@@ -214,6 +214,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "shell.footer.privacy": {
+    "source": "Privacy",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "",
@@ -1851,6 +1856,16 @@
   },
   "auth.register.emailUse": {
     "source": "We use your email only for sign-in, password reset and the notifications you choose.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.privacy": {
+    "source": "What we keep about you, and why, is in the {privacy}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "auth.register.privacyLink": {
+    "source": "privacy notice",
     "text": "",
     "status": "untranslated"
   },
@@ -16167,6 +16182,1126 @@
   },
   "compare.higher": {
     "source": "higher",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.title": {
+    "source": "Privacy notice",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.meta.description": {
+    "source": "What personal data Stadiomind collects, why, who it is shared with, how long it is kept, and the rights you have.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.preparing": {
+    "source": "The privacy notice is being prepared. It is not published yet.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.draft": {
+    "source": "This is a draft (version {version}) under legal review: any part of it may still change, and none of it is in force until it has an effective date. Where a value is not decided yet, it reads {pending}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.pending": {
+    "source": "not yet confirmed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.inEffect": {
+    "source": "Version {version}, in effect from {date}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.intro": {
+    "source": "This notice explains what personal data Stadiomind collects when you use {site} (the “site”), why we use it, who we share it with, how long we keep it, and the rights you have. It applies to visitors, to registered members, and to people we write about (such as football players and coaches).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.title": {
+    "source": "Who we are",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.body": {
+    "source": "Stadiomind is run by {controller}, an individual who lives in the United Kingdom, during a private test with invited members (“we”, “us”). {controller} is the **controller** of the personal data described in this notice. A developer runs the site’s server and code for him, only on his instructions and under a written agreement (Sections 5 and 7). We intend to move Stadiomind to a company. Before that company becomes the controller, we will tell members by a notification on the site, at least 30 days ahead, and you will be able to download your data or delete your account before the change.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.contact": {
+    "source": "Contact for anything about your data: {email}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.postal": {
+    "source": "Postal address: {address}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.ico": {
+    "source": "ICO registration number: {ico}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.who.dpo": {
+    "source": "We have not appointed a Data Protection Officer, because we do not believe the law requires one for our activities.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.short.title": {
+    "source": "The short version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.short.visitors": {
+    "source": "You can read the whole site without an account. As a visitor we keep **no profile of you on our servers**; a few cookies on your own device remember your choices (Section 6).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.short.members": {
+    "source": "If you create an account, we hold your e-mail address, username, display name, a scrambled (hashed) form of your password, your country, language and time zone, and what you do on the site: predictions, follows, messages, group activity and settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.short.noTracking": {
+    "source": "We use **no advertising and no analytics or tracking tools**, and we do not sell your data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.short.control": {
+    "source": "You can **download a copy** of your data and **delete your account** yourself, from Settings.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.collect.title": {
+    "source": "What we collect and why",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.why": {
+    "source": "Why",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.basis": {
+    "source": "Lawful basis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.basis.contract": {
+    "source": "Contract",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.basis.legitimate": {
+    "source": "Legitimate interests",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.title": {
+    "source": "Visitors (no account)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.requests.what": {
+    "source": "Your IP address and browser details, as part of every request, handled by our content-delivery provider (Cloudflare) and recorded in our web server’s access log",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.requests.why": {
+    "source": "To deliver the site, keep it secure and investigate faults",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.requests.basis": {
+    "source": "Legitimate interests (running a secure website)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ipCode.what": {
+    "source": "A keyed, irreversible code derived from your IP address, counted per hour (never the address itself)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ipCode.why": {
+    "source": "To limit repeated sign-up, sign-in, password-reset and question-search attempts from one address",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ipCode.basis": {
+    "source": "Legitimate interests (preventing abuse)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.choices.what": {
+    "source": "Choices you make on the site (theme, text size, contrast, motion, “lite” mode, your first-visit choices of language, region, time zone and up to 10 favourite teams)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.choices.why": {
+    "source": "To show the site the way you asked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.choices.basis": {
+    "source": "Kept only in cookies on your device; see Section 6",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ask.what": {
+    "source": "A question you type into the “ask” search, when our language-model feature is switched on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ask.why": {
+    "source": "To understand the question and find the teams, competitions or people it mentions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.visitors.ask.basis": {
+    "source": "Legitimate interests (providing the search you asked for)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.title": {
+    "source": "Members (with an account)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.account.what": {
+    "source": "**Account details:** username, display name, e-mail address, whether you verified it, country, preferred language, time zone, the date you accepted our platform rules and which version",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.account.why": {
+    "source": "To create and run your account and show your content under your chosen name",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.account.basis": {
+    "source": "Contract (providing the service you signed up for)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.password.what": {
+    "source": "**Password:** stored only as a salted scrypt hash; we never see or keep the password itself",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.password.why": {
+    "source": "To let you sign in securely",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sessions.what": {
+    "source": "**Sessions:** a random sign-in token (we keep only a keyed hash of it), when it was created, last used and expires, and your browser’s “user agent” description",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sessions.why": {
+    "source": "To keep you signed in and protect your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sessions.basis": {
+    "source": "Contract; legitimate interests (security)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.emailLinks.what": {
+    "source": "**One-time e-mail links** (verification, password reset), stored as keyed hashes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.emailLinks.why": {
+    "source": "To verify your address and reset your password",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.profile.what": {
+    "source": "**Profile:** optional biography and an optional avatar image address that you supply",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.profile.why": {
+    "source": "To show your public profile",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.visibility.what": {
+    "source": "**Privacy settings:** who can see your profile and prediction history (everyone, friends, or only you)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.visibility.why": {
+    "source": "To apply your choice",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.predictions.what": {
+    "source": "**Predictions:** your predicted result and score for a match, confidence, reason tags and an optional short explanation, every version you submit, and how each was settled",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.predictions.why": {
+    "source": "To run the prediction game",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.pendingPick.what": {
+    "source": "**A pick saved before you confirm your e-mail address:** the result you chose for a match (home win, draw or away win) and what became of it. It becomes a prediction only if you confirm your address before kick-off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.pendingPick.why": {
+    "source": "To keep the pick you made while signing up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sharedCards.what": {
+    "source": "**Shared prediction cards:** when you press Share on a prediction, a public link to that one prediction’s card, until you revoke it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sharedCards.why": {
+    "source": "To let you publish the card you chose to share",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.sharedCards.basis": {
+    "source": "Contract (at your request)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.signupSource.what": {
+    "source": "**Where your sign-up started:** when you create an account we add one to a monthly count of sign-ups, by the kind of page where you clicked “Create account” (home, match, team, competition, news or other) and the main domain of another site that linked straight to the registration page (for example `example.com`, never the full address). No cookie is used, and no account id or exact time is kept with the count; with few sign-ups a month a count may still relate to one person",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.signupSource.why": {
+    "source": "To learn which pages and sites bring new members",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.ratings.what": {
+    "source": "**Ratings, points and achievements** calculated from your settled predictions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.ratings.why": {
+    "source": "To run the reputation system and leaderboards",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.follows.what": {
+    "source": "**Follows and favourites:** teams, competitions and people you follow; members you follow",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.follows.why": {
+    "source": "To personalise your pages, feed and alerts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.social.what": {
+    "source": "**Social features:** friends and friend requests, blocks, group membership, group polls and votes, messages and reactions in conversations, posts and reactions on match panels, community analyses and drafts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.social.why": {
+    "source": "To provide these features to you and the people you interact with",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.savedNews.what": {
+    "source": "**Saved news stories**",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.savedNews.why": {
+    "source": "To keep your reading list",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.display.what": {
+    "source": "**Display and region preferences:** theme, text size, contrast, motion, viewing region (for the “where to watch” guide)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.display.why": {
+    "source": "To show the site as you asked",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.notifications.what": {
+    "source": "**Notifications:** the notifications we create for you, whether they were read, your settings per type, quiet hours and mutes, and the outcome of each delivery attempt (sent / failed)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.notifications.why": {
+    "source": "To tell you about things you asked to hear about",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.push.what": {
+    "source": "**Push subscriptions:** the address and keys your browser gives us when you turn on push alerts on a device, and that browser’s user-agent description",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.push.why": {
+    "source": "To send push alerts to that device",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.push.basis": {
+    "source": "Consent (you turn push on in your browser, and can turn it off at any time)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.campaigns.what": {
+    "source": "**Messages from the platform (“campaigns”)** to groups of members, chosen by what they follow, country, language, verification status or join date",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.campaigns.why": {
+    "source": "To tell members about the platform",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.campaigns.basis": {
+    "source": "{pending}: consent or the “soft opt-in” (Section 3.4)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.briefings.what": {
+    "source": "**Briefings** you ask for: a summary of your feed, written by a language model when the feature is on",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.briefings.why": {
+    "source": "To give you the summary you requested",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.exports.what": {
+    "source": "**Copies of your data you download:** a record of when you downloaded (not what the file contained)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.exports.why": {
+    "source": "To limit downloads to one a day and keep a record of the request",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.exports.basis": {
+    "source": "Legitimate interests; legal obligation (record of a data-access request)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.moderation.what": {
+    "source": "**Reports, moderation and appeals:** reports you make about another member (reason and details), decisions and restrictions applied to your account, appeal notes",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.moderation.why": {
+    "source": "To enforce our platform rules and keep the community safe",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.moderation.basis": {
+    "source": "Legitimate interests; legal obligation where the law requires us to act on content",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.rateLimits.what": {
+    "source": "**Rate-limit counters** per account per hour, and keyed codes of identifiers typed into sign-in or reset forms",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.members.rateLimits.why": {
+    "source": "To prevent abuse",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.staff.title": {
+    "source": "Staff and administrators",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.staff.body": {
+    "source": "Members who hold an administrator, moderator or founder role have that role recorded with who granted it and why. High-impact administrative actions are recorded in an audit log with the person who acted, the time, the reason and the previous value. Our internal agents console has its own separate staff accounts (username, display name, password hash, sign-in attempts and audit records) and holds staff messages and requests, which may include images. Staff are given a separate notice.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.emails.title": {
+    "source": "E-mails and alerts we send",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.emails.account": {
+    "source": "**Account e-mails** (address verification, password reset) are part of running your account.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.emails.notifications": {
+    "source": "**Notification e-mails and pushes:** when a notification type is switched on in your settings, we may send it to you **by e-mail and, if you turned push on for a device, by push**. Match alerts (kick-off, goals, result and similar) are sent by push and shown on the site, never by e-mail. You can turn each type off in Settings → Notifications, set quiet hours, or mute a team, competition or category.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.emails.campaigns": {
+    "source": "**Messages from the platform (“campaigns”)** are switched on by default and can be turned off in Settings → Notifications.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.title": {
+    "source": "Language-model features",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.lead": {
+    "source": "Some optional features use a third-party language model, provided by Mistral AI (Section 5), when we have switched them on:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.sent": {
+    "source": "What is sent to the model provider",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.ask": {
+    "source": "“Ask” search",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.ask.sent": {
+    "source": "The question you typed. Not your name, account or IP address.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.briefings": {
+    "source": "Briefings (members, on request)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.briefings.sent": {
+    "source": "A digest of your feed: matches, teams, competitions and headlines you follow, and the display names and usernames of members whose public posts appear in it. Not your e-mail address.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.summaries": {
+    "source": "Match summaries",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.summaries.sent": {
+    "source": "Match facts only (teams, players, events). No member data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.moderation": {
+    "source": "Moderation assistance (staff)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.models.moderation.sent": {
+    "source": "The reason and the free-text details of a report about a member. Not the names of the reporter or the reported member. A human moderator always makes the decision.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.people.title": {
+    "source": "People we write about (players, coaches and others in the news)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.people.body": {
+    "source": "The site publishes football information about players, coaches and officials: names, dates of birth, nationality, height, photographs, clubs, career and transfer history, match statistics, line-ups, and reported availability such as injuries and suspensions. We obtain this from licensed football-data providers and from news publishers, and we show links to news stories from other publishers. We use it for our legitimate interest in providing football information and journalism-style coverage. Some of it (such as injury reports) may be health information, which we only publish where it has already been made public. If you are one of these people and want to ask about your data, contact {email}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.not.title": {
+    "source": "What we do not do",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.not.ads": {
+    "source": "No advertising, no advertising cookies, no analytics or tracking scripts.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.not.selling": {
+    "source": "No selling or renting of personal data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.not.automated": {
+    "source": "No decisions with legal or similarly significant effects made solely by automated means. Ratings, points and leaderboards are calculated automatically from your predictions under published rules; moderation decisions are made by people.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.not.providers": {
+    "source": "The football-data, highlights and news providers we buy data from receive no personal data about you: our servers fetch their data; your browser does not contact them. Team crests, player photos and news photos are copied to our own server, and highlights open on the publisher’s own site.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.public.title": {
+    "source": "What is public",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.public.body": {
+    "source": "Unless you change your privacy settings, **your profile and your prediction history are visible to everyone**. Your username and display name appear next to anything you post, on leaderboards, and on your profile page. Your e-mail address is never shown to other members. If you add an avatar image address, it points to a server you chose, and other people’s browsers load the image from there.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.title": {
+    "source": "Who we share it with",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.lead": {
+    "source": "We share personal data only with service providers who process it for us (“processors”), and only as far as they need to:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.does": {
+    "source": "What they do",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.where": {
+    "source": "Where",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.developer": {
+    "source": "Our developer, an individual working for the controller under a written agreement (Section 1)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.developer.does": {
+    "source": "Runs and maintains our server, database and code; can access all the personal data we hold, only on the controller’s instructions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.developer.where": {
+    "source": "Iran (Section 7)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.hetzner": {
+    "source": "Hetzner Online GmbH",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.hetzner.does": {
+    "source": "Hosts our server and database",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.hetzner.where": {
+    "source": "Germany (Nuremberg)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.cloudflare": {
+    "source": "Cloudflare, Inc.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.cloudflare.does": {
+    "source": "Content delivery, DNS and security proxy in front of the site; sees every request, including your IP address",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.cloudflare.where": {
+    "source": "Global network; United States company",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.backblaze": {
+    "source": "Backblaze, Inc. (B2)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.backblaze.does": {
+    "source": "Stores our encrypted backups. Backups are encrypted on our server before upload, so Backblaze cannot read them",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.backblaze.where": {
+    "source": "Region: {pending}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.email": {
+    "source": "Our e-mail service: {pending}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.email.does": {
+    "source": "Sends our e-mails: receives your e-mail address and the message content",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.email.where": {
+    "source": "{pending}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.mistral": {
+    "source": "Mistral AI",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.mistral.does": {
+    "source": "Language-model features in Section 3.5",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.mistral.where": {
+    "source": "France (EU) company",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.push": {
+    "source": "The push service of your browser’s maker: Google (Chrome), Mozilla (Firefox), Apple (Safari) or Microsoft (Edge)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.push.does": {
+    "source": "Carries push alerts to your device, if you turned push on; we accept no other push service",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.push.where": {
+    "source": "Mostly United States",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.law": {
+    "source": "We may also disclose data if the law requires it, to protect people’s safety, or to a buyer if the business is sold (you would be told).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.sharing.members": {
+    "source": "Other members see what you choose to make public or send to them (Section 4).",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.title": {
+    "source": "Cookies and similar technologies",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.lead": {
+    "source": "We use only cookies that are needed for the site to work or that remember a choice you made. We use **no advertising or analytics cookies** and no analytics script, Cloudflare’s included, so we do not ask for cookie consent. We do not use a cookie to learn where sign-ups come from (Section 3.2). Cloudflare may set its own strictly necessary security cookie (`__cf_bm`) when it checks whether a visit is automated.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.purpose": {
+    "source": "Purpose",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.set": {
+    "source": "Set when",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.lasts": {
+    "source": "Lasts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.year": {
+    "source": "1 year",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.session.purpose": {
+    "source": "Keeps you signed in. Not readable by scripts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.session.set": {
+    "source": "You sign in or register",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.session.lasts": {
+    "source": "14 days, or until you sign out",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.firstRun.purpose": {
+    "source": "Remembers a visitor’s first-visit choices (language, region, time zone, favourite teams) until sign-up",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.firstRun.set": {
+    "source": "You make those choices without an account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.firstRun.lasts": {
+    "source": "1 year, or until applied to your new account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.theme.purpose": {
+    "source": "Light/dark theme",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.theme.set": {
+    "source": "You choose a theme (or sign in with one saved)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.display.purpose": {
+    "source": "Accessibility display choices",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.display.set": {
+    "source": "You choose them (or sign in with them saved)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.lite.purpose": {
+    "source": "Your choice to switch “lite” mode on or off",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.lite.set": {
+    "source": "You choose",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.slow.purpose": {
+    "source": "Notes that your connection looked slow, so the next page loads in lite mode",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.slow.set": {
+    "source": "Detected automatically",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.slow.lasts": {
+    "source": "7 days",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.heldNotice.purpose": {
+    "source": "Remembers that you have seen a notice about a language version, so it is not shown again",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.heldNotice.set": {
+    "source": "The notice is shown",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.console.purpose": {
+    "source": "Staff sign-in to the internal console (staff only)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.console.set": {
+    "source": "A staff member signs in",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.console.lasts": {
+    "source": "Up to 12 hours idle",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.storage": {
+    "source": "**Local storage on your device:** `fmip.pushOffer.dismissedAt` remembers that you said “not now” to the offer of push alerts (for 60 days), and `fmip.pushOffer.intent` holds, for at most two minutes, which item you just followed so the offer can appear. Our service worker stores only the offline page, the app icons and the site’s static files, so the site can show an “offline” page; it never stores your pages or data.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.video": {
+    "source": "**No embedded video players.** Highlights open on the publisher’s own site. We do not embed players from other sites, so no other site sets cookies through our pages.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.cookies.delete": {
+    "source": "You can delete cookies and site data in your browser at any time. Removing `fmip_session` signs you out.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.transfers.title": {
+    "source": "International transfers",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.transfers.body": {
+    "source": "Our main server is in Germany. Some of our providers (Section 5) are based in, or may process data in, the United States or elsewhere outside the UK. Where personal data leaves the UK we rely on UK adequacy regulations (for example for the European Economic Area), the UK Extension to the EU-US Data Privacy Framework where the recipient is certified, or the UK International Data Transfer Agreement or Addendum. Our developer (Section 5) works from Iran, which is not covered by UK adequacy regulations, and accesses personal data on our server in Germany from there. That access is covered by the UK International Data Transfer Agreement between him and the controller. You can ask us for a copy of the safeguards we use.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.title": {
+    "source": "How long we keep it",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.lead": {
+    "source": "A daily clean-up deletes records whose time is up. Our rules page states the same periods.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.column.howLong": {
+    "source": "How long",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.account": {
+    "source": "Account details, profile, preferences, follows, social connections, saved stories",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.account.howLong": {
+    "source": "Until you delete your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.sessions": {
+    "source": "Sign-in sessions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.sessions.howLong": {
+    "source": "Valid for 14 days; deleted 30 days after they expire, whether or not you signed out earlier",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.emailLinks": {
+    "source": "One-time e-mail links",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.emailLinks.howLong": {
+    "source": "Valid for 24 hours (verification) or 1 hour (password reset); deleted 7 days after they expire",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.pendingPick": {
+    "source": "A pick saved before you confirmed your e-mail address",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.pendingPick.howLong": {
+    "source": "Deleted 30 days after the match kicks off; if it became a prediction, deleted at the next daily clean-up (the prediction is kept)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.sharedCards": {
+    "source": "Links to prediction cards you shared",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.sharedCards.howLong": {
+    "source": "Until you revoke them or delete your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.predictions": {
+    "source": "Predictions, settlements, rating history and points",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.predictions.howLong": {
+    "source": "Kept after account deletion **without your name**, because other members’ ratings were calculated against them and must remain reproducible",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.messages": {
+    "source": "Messages and match-panel posts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.messages.howLong": {
+    "source": "Until you remove them; after account deletion they stay, shown as written by “a deleted member”",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.analysis": {
+    "source": "Published community analysis",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.analysis.howLong": {
+    "source": "Taken down when you delete your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.moderation": {
+    "source": "Reports you made, moderation decisions about you, appeals",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.moderation.howLong": {
+    "source": "Kept for the moderation record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.audit": {
+    "source": "Audit log of administrative actions",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.audit.howLong": {
+    "source": "Kept",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.inbox": {
+    "source": "Notifications in your inbox",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.inbox.howLong": {
+    "source": "Kept; after account deletion they stay attached to the anonymous account record",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.delivery": {
+    "source": "The record of whether each notification reached you by e-mail or push",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.delivery.howLong": {
+    "source": "90 days; after that only anonymous daily counts remain",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.rateLimits": {
+    "source": "Rate-limit counters (keyed codes, per hour)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.rateLimits.howLong": {
+    "source": "Kept in hourly windows; the per-account counters are deleted with your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.signupCounts": {
+    "source": "Monthly sign-up counts by entry page and referring site",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.signupCounts.howLong": {
+    "source": "Kept as counts",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.accessLogs": {
+    "source": "Web server access logs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.accessLogs.howLong": {
+    "source": "{pending}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.backups": {
+    "source": "Backups (encrypted)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.retention.backups.howLong": {
+    "source": "On the server about 7 days; off-site up to about 90 days, within a storage limit, always at least the 3 newest copies. Data you deleted can remain in backups until they expire; it is not restored to the live site except to recover from a failure",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.title": {
+    "source": "Your rights",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.lead": {
+    "source": "Under UK data protection law you have the right to:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.access": {
+    "source": "**Access** your data. From Settings you can download one file (JSON) of what we hold about you — account and preferences, follows, friendships, groups, predictions with every version and how they settled, picks saved before you confirmed your address, rating history and achievements, saved stories, the messages and panel posts you wrote, your community analysis, the reports you filed and the notifications sent to you — once a day, after confirming your password. For anything not in that file, write to {email}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.rectify": {
+    "source": "**Rectify** inaccurate data. You can change your display name, biography, avatar, language, time zone, region, display and privacy settings in Settings. To change your e-mail address or username, contact {email}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.erase": {
+    "source": "**Erase** your data. From Settings you can delete your account at once with your password and your username typed again. Your e-mail address, password, display name, biography, preferences, sessions, push subscriptions, follows, friendships, friend requests, blocks, group memberships and invitations, analysis drafts, saved stories, picks saved before you confirmed your address and links to prediction cards you shared are removed. Your username is retired so nobody can use it after you. What is kept, and why, is described in Section 8.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.restrict": {
+    "source": "**Restrict** or **object** to processing based on our legitimate interests.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.portability": {
+    "source": "**Data portability:** the download above is in a machine-readable format.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.withdraw": {
+    "source": "**Withdraw consent** at any time, for example by turning push alerts off in Settings or in your browser.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.rights.answer": {
+    "source": "We will answer within one month. We may need to confirm your identity first. There is normally no fee.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.complain.title": {
+    "source": "How to complain",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.complain.body": {
+    "source": "Please contact us first at {email}. You also have the right to complain to the Information Commissioner’s Office (ICO), the UK supervisory authority: {icoLink} or {icoPhone}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.children.title": {
+    "source": "Children",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.children.body": {
+    "source": "Stadiomind is not designed for children. The minimum age to create an account: {pending}. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.security.title": {
+    "source": "Security",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.security.body": {
+    "source": "Passwords are stored as salted scrypt hashes. Sign-in tokens and one-time links are stored only as keyed hashes. The session cookie cannot be read by scripts and is sent only over HTTPS. Addresses used for rate limiting are stored only as keyed codes. Backups are encrypted before they leave our server. All traffic is encrypted in transit (HTTPS). No system is perfectly secure; if a breach affects you in a way that is likely to cause a high risk, we will tell you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.changes.title": {
+    "source": "Changes to this notice",
+    "text": "",
+    "status": "untranslated"
+  },
+  "privacy.changes.body": {
+    "source": "We will post any change on this page with a new effective date. If a change materially affects how we use your data, we will tell members by a notification on the site before it applies.",
     "text": "",
     "status": "untranslated"
   }

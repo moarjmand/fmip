@@ -252,12 +252,19 @@ describe('no provider or feed in what a reader is shown (T-1395)', () => {
   const OWN_FEED = /\b(?:your|the) feed below\b|\byour feed\b|\bfeeds your\b/gi;
   const FORBIDDEN = /\bprovider|\bdata feed\b|\bthe feed\b|\bfeeds?['’]|\bfeeds\b/i;
 
+  // The privacy notice must say who processes a reader's data, "service
+  // providers" among them, in the words a lawyer approves (T-1969, D-465):
+  // a legal text, not the product's copy, and it names no football source.
+  const LEGAL = (key: string) => key.startsWith('privacy.');
+
   it('in any English sentence of the catalogue', () => {
-    const offenders = Object.entries(en).filter(([, value]) =>
-      (typeof value === 'string' ? [value] : Object.values(value)).some(
-        (sentence) =>
-          typeof sentence === 'string' && FORBIDDEN.test(sentence.replace(OWN_FEED, '')),
-      ),
+    const offenders = Object.entries(en).filter(
+      ([key, value]) =>
+        !LEGAL(key) &&
+        (typeof value === 'string' ? [value] : Object.values(value)).some(
+          (sentence) =>
+            typeof sentence === 'string' && FORBIDDEN.test(sentence.replace(OWN_FEED, '')),
+        ),
     );
     expect(offenders.map(([key]) => key)).toEqual([]);
   });
