@@ -32,6 +32,41 @@ SELECT key, level, to_char(since, 'MM-DD HH24:MI'), coalesce(observed::text, '')
   FROM watchdog_condition WHERE level <> 'ok' ORDER BY level DESC, key;
 \echo == watchdog: request budget and live feed
 SELECT key, level, note FROM watchdog_condition WHERE key IN ('request_budget', 'live_feed', 'model_service');
+\echo == site e-mail, last 7 days (mail | sent | failed | refused for the recipient only | absent | last sent | last failed | state; FAILING = failed and nothing sent after it)
+SELECT m.what, coalesce(o.sent, 0), coalesce(o.failed, 0), coalesce(o.refused, 0), coalesce(o.absent, 0),
+       coalesce(to_char(o.last_sent, 'MM-DD HH24:MI'), '-'), coalesce(to_char(o.last_failed, 'MM-DD HH24:MI'), '-'),
+       CASE WHEN coalesce(o.sent + o.failed + o.refused + o.absent, 0) = 0 THEN 'no attempt'
+            WHEN o.last_failed IS NOT NULL AND (o.last_sent IS NULL OR o.last_sent < o.last_failed) THEN 'FAILING'
+            -- An e-mail nothing carried is never ok (rule 3). For a notification, absent is also a kind that is
+            -- not e-mailed; for an account mail it is only a deployment with no channel.
+            WHEN o.sent = 0 AND o.failed = 0 AND o.absent > 0 AND m.what = 'notification'
+              THEN 'NOT SENT (absent: no channel, or a kind not e-mailed)'
+            WHEN m.what <> 'notification' AND o.last_absent IS NOT NULL AND (o.last_sent IS NULL OR o.last_sent < o.last_absent)
+              THEN 'NOT SENT (absent: no channel)'
+            WHEN o.sent = 0 THEN 'recipient refused only'
+            ELSE 'ok' END
+  FROM (VALUES ('notification'), ('sign-up/verify'), ('reset')) m (what)
+  LEFT JOIN (
+    SELECT 'notification' AS what, count(*) FILTER (WHERE email = 'sent') AS sent,
+           count(*) FILTER (WHERE email = 'failed') AS failed, count(*) FILTER (WHERE email = 'skipped') AS refused,
+           count(*) FILTER (WHERE email = 'absent') AS absent,
+           max(carried_at) FILTER (WHERE email = 'sent') AS last_sent, max(carried_at) FILTER (WHERE email = 'failed') AS last_failed,
+           max(carried_at) FILTER (WHERE email = 'absent') AS last_absent
+      FROM notification_delivery WHERE carried_at > now() - interval '7 days'
+    UNION ALL
+    -- Read through to_jsonb so the line works before migration 1765901896700 too (it reads as no attempt).
+    SELECT CASE kind WHEN 'verify_email' THEN 'sign-up/verify' ELSE 'reset' END,
+           count(*) FILTER (WHERE outcome = 'sent'), count(*) FILTER (WHERE outcome = 'failed'),
+           count(*) FILTER (WHERE outcome = 'skipped'), count(*) FILTER (WHERE outcome = 'absent'),
+           max(mailed_at) FILTER (WHERE outcome = 'sent'), max(mailed_at) FILTER (WHERE outcome = 'failed'),
+           max(mailed_at) FILTER (WHERE outcome = 'absent')
+      FROM (SELECT kind, to_jsonb(t) ->> 'mail_outcome' AS outcome, (to_jsonb(t) ->> 'mailed_at')::timestamptz AS mailed_at
+              FROM email_token t WHERE created_at > now() - interval '8 days') e
+     WHERE mailed_at > now() - interval '7 days' GROUP BY kind
+  ) o ON o.what = m.what
+ ORDER BY 1;
+\echo == watchdog: delivery (key | level | since | note)
+SELECT key, level, to_char(since, 'MM-DD HH24:MI'), note FROM watchdog_condition WHERE key LIKE 'delivery:%' ORDER BY key;
 \echo == backups (kind | last ok | last run ok? | last detail)
 SELECT kind, to_char(max(finished_at) FILTER (WHERE ok), 'MM-DD HH24:MI'),
        (array_agg(ok ORDER BY started_at DESC))[1],

@@ -12,8 +12,17 @@ export interface OutboundMail {
   text: string;
 }
 
+/**
+ * What became of one message (T-1967): `sent` by the e-mail channel,
+ * `failed` there, `absent` when no channel carried it (printed in
+ * development), `skipped` when the provider refused only this address (no such mailbox). Identity
+ * records it on the message's token, so a sign-up, verification or reset
+ * mail that keeps failing is counted, not only logged.
+ */
+export type MailOutcome = 'sent' | 'failed' | 'absent' | 'skipped';
+
 export interface Mailer {
-  send(mail: OutboundMail): Promise<void>;
+  send(mail: OutboundMail): Promise<MailOutcome>;
 }
 
 export const MAILER = Symbol('MAILER');
@@ -23,8 +32,9 @@ export class LogMailer implements Mailer {
     private readonly write: (line: string) => void = (line) => process.stdout.write(line),
   ) {}
 
-  async send(mail: OutboundMail): Promise<void> {
+  async send(mail: OutboundMail): Promise<MailOutcome> {
     this.write(`[mail] to=${mail.to} subject=${JSON.stringify(mail.subject)}\n${mail.text}\n\n`);
+    return 'absent';
   }
 }
 
@@ -32,7 +42,8 @@ export class LogMailer implements Mailer {
 export class CaptureMailer implements Mailer {
   readonly sent: OutboundMail[] = [];
 
-  async send(mail: OutboundMail): Promise<void> {
+  async send(mail: OutboundMail): Promise<MailOutcome> {
     this.sent.push(mail);
+    return 'sent';
   }
 }

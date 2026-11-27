@@ -9,9 +9,16 @@
 // engineering session), `input` is the whole tool_input. In any string, ${REPO}, ${REPO_BASH},
 // ${REPO_WIN}, ${TMP}, ${TMP_BASH}, ${TMP_WIN} and ${SCRATCH} are replaced with this machine's
 // paths (the main checkout, also when this file runs from a worktree), so the cases hold anywhere.
+// ${HOME_DIR} (also _BASH, _WIN) is the home folder, for the maintainer's files as the file tools name them.
+// ${OPS_REAL} and ${MEMORY_REAL} (each also _BASH and _WIN) are where E:/FMIP/ops and the
+// checkout's .claude/agent-memory really land: the private ops repository on a computer with the
+// 2026-11-21 junctions, the folders themselves without them (T-1951). ${LINKS} (also _BASH, _WIN)
+// is a folder under <temp>/claude/ this file makes for the run, holding three junctions:
+// to-controls (the checkout's .claude), to-hooks (its .claude/hooks) and to-plain (a plain folder
+// beside them); a case that names it is skipped where no link can be made.
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
-import { availableParallelism, tmpdir } from 'node:os';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
+import { availableParallelism, homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -20,6 +27,14 @@ const slash = (p) => p.replace(/\\/g, '/').replace(/\/+$/, '');
 const gitBash = (p) => p.replace(/^([a-zA-Z]):/, (_, d) => `/${d.toLowerCase()}`);
 const repo = slash(here).replace(/\/\.claude\/hooks$/, '').replace(/\/\.claude\/worktrees\/[^/]+$/, '');
 const tmp = slash(tmpdir());
+/** Where a folder really lands, or the path itself where it does not exist. */
+const realOr = (p) => {
+  try {
+    return slash(realpathSync.native(p));
+  } catch {
+    return p;
+  }
+};
 const PLACES = {
   REPO: repo,
   REPO_BASH: gitBash(repo),
@@ -29,6 +44,27 @@ const PLACES = {
   TMP_WIN: tmp.replace(/\//g, '\\'),
   SCRATCH: 'D:/claude-scratch/session-1/scratchpad', // a string only; nothing is written there
 };
+const spell = (name, path) => Object.assign(PLACES, { [name]: path, [`${name}_BASH`]: gitBash(path), [`${name}_WIN`]: path.replace(/\//g, '\\') });
+spell('OPS_REAL', realOr('E:/FMIP/ops'));
+spell('MEMORY_REAL', realOr(`${repo}/.claude/agent-memory`));
+spell('HOME_DIR', slash(homedir())); // not ${HOME}: a shell's own $HOME is for the guard to expand
+
+// Real junctions, made here under <temp>/claude/ (a folder a team agent may write in) and taken
+// away again one by one, never by a recursive delete, which would follow them.
+const links = [];
+let linkRoot = null;
+try {
+  mkdirSync(join(tmpdir(), 'claude'), { recursive: true });
+  linkRoot = mkdtempSync(join(tmpdir(), 'claude', 'team-guard-links-'));
+  mkdirSync(join(linkRoot, 'plain'));
+  for (const [name, target] of [['to-controls', join(repo, '.claude')], ['to-hooks', join(repo, '.claude', 'hooks')], ['to-plain', join(linkRoot, 'plain')]]) {
+    symlinkSync(target, join(linkRoot, name), 'junction');
+    links.push(join(linkRoot, name));
+  }
+  spell('LINKS', slash(linkRoot));
+} catch (error) {
+  console.log(`SKIPPED  the junction cases: no link could be made here (${error.message})`);
+}
 
 function place(value) {
   if (typeof value === 'string') return value.replace(/\$\{([A-Z_]+)\}/g, (all, name) => PLACES[name] ?? all);
@@ -67,7 +103,12 @@ for (const [expected, tool, value] of JSON.parse(readFileSync(join(here, 'guard.
 expect('pass', 'guard.mjs', 'not json', 'malformed input must pass');
 
 // team-guard.mjs: only the sixteen team agents.
+let skipped = 0;
 for (const c of place(JSON.parse(readFileSync(join(here, 'team-guard.cases.json'), 'utf8')))) {
+  if (linkRoot === null && JSON.stringify(c).includes('${LINKS')) {
+    skipped++;
+    continue;
+  }
   const input = { session_id: 'test', hook_event_name: 'PreToolUse', tool_name: c.tool, tool_input: c.input };
   if (c.cwd !== null) input.cwd = c.cwd ?? PLACES.REPO;
   if (c.scratchpad !== null) input.scratchpad_dir = c.scratchpad ?? PLACES.SCRATCH;
@@ -82,27 +123,14 @@ expect('block', 'team-guard.mjs', '{"agent_type": "qa-engineer", "tool_name": "B
 expect('pass', 'team-guard.mjs', { agent_type: 'qa-engineer', tool_name: 'Bash', tool_input: null }, 'a team agent call with no input has nothing to refuse');
 expect('pass', 'team-guard.mjs', { agent_type: 'qa-engineer', tool_name: 'Read', tool_input: { file_path: `${PLACES.REPO}/CLAUDE.md` } }, 'reading is never judged');
 
-// A link on the way: a Write is judged where it lands. This needs real junctions, made here under
-// <temp>/claude/ (a folder a team agent may write in) and taken away again one by one, never by a
-// recursive delete, which would follow them.
-const links = [];
-let linkRoot = null;
-try {
-  mkdirSync(join(tmpdir(), 'claude'), { recursive: true });
-  linkRoot = mkdtempSync(join(tmpdir(), 'claude', 'team-guard-links-'));
-  mkdirSync(join(linkRoot, 'plain'));
-  for (const [name, target] of [['to-controls', join(repo, '.claude')], ['to-plain', join(linkRoot, 'plain')]]) {
-    symlinkSync(target, join(linkRoot, name), 'junction');
-    links.push(join(linkRoot, name));
-  }
+// A link on the way: a Write is judged where it lands.
+if (linkRoot !== null) {
   const write = (agent, path) => ({ agent_type: agent, tool_name: 'Write', cwd: PLACES.REPO, tool_input: { file_path: slash(join(linkRoot, path)), content: 'x' } });
   expect('block', 'team-guard.mjs', write('qa-engineer', 'to-controls/settings.json'), 'a Write through a junction that lands on .claude/settings.json');
   expect('block', 'team-guard.mjs', write('qa-engineer', 'to-controls/agent-memory/security/x.md'), "a Write through a junction that lands in another agent's memory");
   expect('pass', 'team-guard.mjs', write('qa-engineer', 'to-controls/agent-memory/qa-engineer/x.md'), "a Write through a junction that lands in the agent's own memory");
   expect('pass', 'team-guard.mjs', write('qa-engineer', 'to-plain/x.md'), 'a Write through a junction that stays in the temp folder');
   expect('pass', 'team-guard.mjs', write('qa-engineer', 'plain/x.md'), 'a Write in the temp folder with no link on the way');
-} catch (error) {
-  console.log(`SKIPPED  the junction cases: no link could be made here (${error.message})`);
 }
 
 const wrong = [];
@@ -137,6 +165,6 @@ if (linkRoot !== null) {
 const failures = wrong.filter(Boolean);
 for (const line of failures) console.log(line);
 const count = (guard) => checks.filter((c) => c.guard === guard).length;
-console.log(`guard.mjs: ${count('guard.mjs')} cases; team-guard.mjs: ${count('team-guard.mjs')} cases`);
+console.log(`guard.mjs: ${count('guard.mjs')} cases; team-guard.mjs: ${count('team-guard.mjs')} cases${skipped > 0 ? ` (${skipped} skipped: no links)` : ''}`);
 console.log(`${checks.length - failures.length} of ${checks.length} right`);
 process.exit(failures.length === 0 ? 0 : 1);

@@ -5,7 +5,9 @@ import {
   CANDIDATE_SHADOW_THRESHOLD,
   DATA_QUALITY_STALE_SECONDS,
   DATA_QUALITY_THRESHOLD,
+  DELIVERY_RECENT_KEPT,
   DELIVERY_THRESHOLD,
+  type DeliverySeen,
   ELO_SOURCE_THRESHOLD,
   BREAK_ALLOWANCE_SECONDS,
   INGEST_THRESHOLDS,
@@ -517,6 +519,210 @@ describe('delivery:<channel>', () => {
     });
     expect(deliveryChannel('push', { configured: true, sent: 1, failed: 3 }).level).toBe('failing');
     expect(DELIVERY_THRESHOLD.unit).toBe('percent');
+  });
+});
+
+describe('delivery:<channel> with hysteresis (T-1967)', () => {
+  type Attempt = { at: Date; outcome: 'sent' | 'failed'; account?: boolean };
+  const T0 = new Date('2026-11-20T00:00:00Z');
+  const at = (minutes: number): Date => new Date(T0.getTime() + minutes * 60_000);
+  const failing = (incidentId: number | null = 7) => ({
+    level: 'failing' as const,
+    observed: 100,
+    incidentId,
+  });
+
+  /** What the probe reads at `now` from these attempts: the store's query, in memory. */
+  function seenAt(
+    attempts: readonly Attempt[],
+    now: Date,
+  ): Extract<DeliverySeen, { configured: true }> {
+    const age = (a: Attempt) => now.getTime() - a.at.getTime();
+    const past = attempts.filter((a) => age(a) >= 0);
+    const hour = past.filter((a) => age(a) <= 3600_000);
+    const day = past
+      .filter((a) => age(a) <= 24 * 3600_000)
+      .sort((a, b) => b.at.getTime() - a.at.getTime());
+    return {
+      configured: true,
+      sent: hour.filter((a) => a.outcome === 'sent').length,
+      failed: hour.filter((a) => a.outcome === 'failed').length,
+      recent: day.slice(0, DELIVERY_RECENT_KEPT).map((a) => a.outcome),
+      accountMailFailing: day.find((a) => a.account === true)?.outcome === 'failed',
+    };
+  }
+
+  /**
+   * A tick a minute through the transition rule, as the service runs it, and
+   * the alerts it sends. `legacy` reads the way the condition did before:
+   * the hour alone, no stored state.
+   */
+  function alertsOver(
+    attempts: readonly Attempt[],
+    minutes: number,
+    legacy = false,
+  ): { kind: string; minute: number }[] {
+    let stored: StoredCondition | null = null;
+    let incidents = 0;
+    const alerts: { kind: string; minute: number }[] = [];
+    for (let minute = 0; minute <= minutes; minute += 1) {
+      const now = at(minute);
+      const seen = seenAt(attempts, now);
+      const reading: Reading = legacy
+        ? deliveryChannel('email', { ...seen, recent: [], accountMailFailing: false })
+        : deliveryChannel('email', seen, stored);
+      const next = step(stored, reading, now);
+      if (next.event !== null && isAlert(next.event.kind)) {
+        alerts.push({ kind: next.event.kind, minute });
+      }
+      stored = {
+        key: reading.key,
+        level: next.level,
+        since: next.since,
+        observed: reading.observed,
+        incidentId: next.incident === 'new' ? (incidents += 1) : next.incident,
+      };
+    }
+    return alerts;
+  }
+
+  it('a seeded run of three failures in a row and a week of them raises one alert and one recovery', () => {
+    // The week of ops-2026-11-27-01: every evening three failures in half an
+    // hour, two stragglers a day, the provider never fixed; then three sends.
+    const attempts: Attempt[] = [];
+    const DAY = 24 * 60;
+    for (let day = 0; day < 7; day += 1) {
+      for (const minute of [18 * 60 + 10, 18 * 60 + 20, 18 * 60 + 30, 2 * 60, 10 * 60]) {
+        attempts.push({ at: at(day * DAY + minute), outcome: 'failed' });
+      }
+    }
+    const fixed = 7 * DAY + 9 * 60;
+    for (const minute of [0, 40, 80]) attempts.push({ at: at(fixed + minute), outcome: 'sent' });
+
+    const alerts = alertsOver(attempts, fixed + 120);
+    // Raised at the third failure in a row (the first evening's first one),
+    // held through the week, recovered at the third send in a row.
+    expect(alerts).toEqual([
+      { kind: 'raised', minute: 18 * 60 + 10 },
+      { kind: 'recovered', minute: fixed + 80 },
+    ]);
+    // Read the old way, the same week is a raise and a recovery every evening.
+    const legacy = alertsOver(attempts, fixed + 120, true);
+    expect(legacy.filter((a) => a.kind === 'raised')).toHaveLength(7);
+    expect(legacy.filter((a) => a.kind === 'recovered')).toHaveLength(7);
+  });
+
+  it('three failures in a row raise failing however spread over the day', () => {
+    expect(
+      deliveryChannel('email', {
+        configured: true,
+        sent: 0,
+        failed: 1,
+        recent: ['failed', 'failed', 'failed', 'sent'],
+      }),
+    ).toMatchObject({
+      level: 'failing',
+      observed: 100,
+      note: 'the newest 3 deliveries failed in a row (1 in the last hour)',
+    });
+  });
+
+  it('too few to judge is not a recovery after a failing state', () => {
+    const held = deliveryChannel(
+      'email',
+      { configured: true, sent: 0, failed: 2, recent: ['failed', 'failed', 'sent'] },
+      failing(),
+    );
+    expect(held).toMatchObject({ level: 'failing', observed: 100 });
+    expect(held.note).toBe(
+      '2 deliveries in the last hour, too few to judge; held until 3 in a row are sent',
+    );
+    expect(
+      step({ key: 'delivery:email', since: at(0), ...failing() }, held, at(60)).event,
+    ).toBeNull();
+    // Two sends in a row are not yet three.
+    expect(
+      deliveryChannel(
+        'email',
+        { configured: true, sent: 2, failed: 0, recent: ['sent', 'sent', 'failed'] },
+        failing(),
+      ).level,
+    ).toBe('failing');
+  });
+
+  it('recovers on three sends in a row, or on an hour with three or more and few failed', () => {
+    expect(
+      deliveryChannel(
+        'email',
+        { configured: true, sent: 1, failed: 0, recent: ['sent', 'sent', 'sent', 'failed'] },
+        failing(),
+      ),
+    ).toMatchObject({
+      level: 'ok',
+      observed: 0,
+      note: 'the newest 3 deliveries were sent in a row',
+    });
+    expect(
+      deliveryChannel(
+        'email',
+        { configured: true, sent: 9, failed: 1, recent: ['sent', 'failed'] },
+        failing(),
+      ).level,
+    ).toBe('ok');
+  });
+
+  it('a failing sign-up, verification or reset mail keeps an open incident from recovering', () => {
+    const account = {
+      configured: true as const,
+      sent: 5,
+      failed: 0,
+      recent: ['sent', 'sent', 'sent', 'sent', 'sent'] as const,
+      accountMailFailing: true,
+    };
+    const held = deliveryChannel('email', account, failing());
+    expect(held.level).toBe('failing');
+    expect(held.note).toBe(
+      '0 of 5 deliveries failed in the last hour; held until 3 in a row are sent; the newest sign-up, verification or reset mail failed',
+    );
+    expect(
+      deliveryChannel('email', { ...account, sent: 1, recent: ['sent', 'sent', 'sent'] }, failing())
+        .level,
+    ).toBe('failing');
+    // With nothing open it is stated, not raised on one member's mail.
+    const quiet = deliveryChannel('email', { ...account, sent: 1, recent: ['sent'] });
+    expect(quiet).toMatchObject({ level: 'ok' });
+    expect(quiet.note).toContain('the newest sign-up, verification or reset mail failed');
+  });
+
+  it('a condition that could not be read keeps its incident open as unknown', () => {
+    expect(
+      deliveryChannel(
+        'push',
+        { configured: true, sent: 0, failed: 0, recent: [] },
+        { level: 'unknown', observed: null, incidentId: 4 },
+      ),
+    ).toMatchObject({ level: 'unknown', observed: null });
+  });
+
+  it('readingsOf hands the stored condition on: a quiet hour after failures reads no recovery', () => {
+    const stored: StoredCondition = {
+      key: 'delivery:email',
+      since: at(0),
+      ...failing(),
+    };
+    const reading = readingsOf(
+      {
+        ...observationsForBudget(),
+        delivery: {
+          email: { configured: true, sent: 0, failed: 2, recent: ['failed', 'failed'] },
+          push: { configured: false },
+        },
+      },
+      new Map([['delivery:email', stored]]),
+      at(60),
+      [],
+    ).find((r) => r.key === 'delivery:email');
+    expect(reading?.level).toBe('failing');
   });
 });
 

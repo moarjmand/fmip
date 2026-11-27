@@ -676,10 +676,66 @@ export const DELIVERY_THRESHOLD: WatchdogThreshold = {
   failing: 75,
 };
 export const DELIVERY_MIN_ATTEMPTS = 3;
+/** How many of the newest outcomes the probe hands on, newest first (T-1967). */
+export const DELIVERY_RECENT_KEPT = 10;
 
+/**
+ * One channel as the probe saw it: the outcomes of the last hour, the newest
+ * outcomes of the last day newest first (`recent`), and for e-mail whether
+ * the newest sign-up, verification or reset mail of the last day failed
+ * (`accountMailFailing`). E-mail counts those account mails beside the
+ * notifications: one channel carries both (D-073).
+ */
+export type DeliverySeen =
+  | { configured: false }
+  | {
+      configured: true;
+      sent: number;
+      failed: number;
+      /** Optional so a probe written before T-1967 still type-checks; absent reads as none. */
+      recent?: readonly ('sent' | 'failed')[];
+      accountMailFailing?: boolean;
+    };
+
+/** The newest run of one outcome: `['failed', 'failed', 'sent']` is two failures in a row. */
+function newestRun(recent: readonly ('sent' | 'failed')[]): {
+  outcome: 'sent' | 'failed' | null;
+  length: number;
+} {
+  const outcome = recent[0] ?? null;
+  let length = 0;
+  while (length < recent.length && recent[length] === outcome) length += 1;
+  return { outcome, length };
+}
+
+/**
+ * With hysteresis (T-1967): a run of failures raises one incident, and it
+ * recovers once, on evidence that the channel carries again, never because
+ * the hour went quiet. Before, three failures raised `failing` and an hour
+ * later "2 deliveries, too few to judge" read as `ok`: nineteen raises and
+ * nineteen recoveries in a week for one fault that never went away.
+ *
+ * 1. Three or more deliveries in the last hour: judged by the failed share.
+ * 2. Otherwise, the newest three or more failed in a row (however spread over
+ *    the day): `failing`.
+ * 3. Otherwise, with an incident open: `ok` only when the newest three were
+ *    sent in a row; until then the level is held (too few to judge is not a
+ *    recovery). A condition that could not be read stays `unknown`.
+ * 4. Otherwise: `ok`, too few to judge.
+ *
+ * For e-mail, while the newest sign-up, verification or reset mail failed the
+ * condition does not recover (rules 1 and 3): a member who cannot verify or
+ * reset is the failure that matters most, and the channel is not well while
+ * it lasts.
+ */
 export function deliveryChannel(
   channel: 'email' | 'push',
-  seen: { configured: false } | { configured: true; sent: number; failed: number },
+  seen: DeliverySeen,
+  previous: {
+    level: WatchdogLevel;
+    observed: number | null;
+    incidentId: number | null;
+  } | null = null,
 ): Reading {
   const key = `delivery:${channel}`;
   const threshold = DELIVERY_THRESHOLD;
@@ -692,23 +748,54 @@ export function deliveryChannel(
       note: `no ${channel} provider is configured; notifications stay in the product`,
     };
   }
+  const bad = (level: WatchdogLevel): boolean => level === 'degraded' || level === 'failing';
+  const open = previous !== null && (previous.incidentId !== null || bad(previous.level));
+  const account = seen.accountMailFailing === true;
+  const accountNote = account ? '; the newest sign-up, verification or reset mail failed' : '';
+  const run = newestRun(seen.recent ?? []);
   const attempts = seen.sent + seen.failed;
-  if (attempts < DELIVERY_MIN_ATTEMPTS) {
+  const hold = (why: string): Reading => ({
+    key,
+    level: previous !== null && bad(previous.level) ? previous.level : 'unknown',
+    observed: previous?.observed ?? null,
+    threshold,
+    note: `${why}; held until ${DELIVERY_MIN_ATTEMPTS} in a row are sent${accountNote}`,
+  });
+
+  if (attempts >= DELIVERY_MIN_ATTEMPTS) {
+    const observed = Math.round((1000 * seen.failed) / attempts) / 10;
+    const level = levelOf(observed, threshold);
+    const note = `${seen.failed} of ${attempts} deliveries failed in the last hour`;
+    if (level === 'ok' && open && account) return hold(note);
+    return { key, level, observed, threshold, note: note + accountNote };
+  }
+  if (run.outcome === 'failed' && run.length >= DELIVERY_MIN_ATTEMPTS) {
     return {
       key,
-      level: 'ok',
-      observed: null,
+      level: 'failing',
+      observed: 100,
       threshold,
-      note: `${attempts} deliveries in the last hour, too few to judge`,
+      note: `the newest ${run.length} deliveries failed in a row (${attempts} in the last hour)${accountNote}`,
     };
   }
-  const observed = Math.round((1000 * seen.failed) / attempts) / 10;
+  if (open) {
+    if (run.outcome === 'sent' && run.length >= DELIVERY_MIN_ATTEMPTS && !account) {
+      return {
+        key,
+        level: 'ok',
+        observed: 0,
+        threshold,
+        note: `the newest ${run.length} deliveries were sent in a row`,
+      };
+    }
+    return hold(`${attempts} deliveries in the last hour, too few to judge`);
+  }
   return {
     key,
-    level: levelOf(observed, threshold),
-    observed,
+    level: 'ok',
+    observed: null,
     threshold,
-    note: `${seen.failed} of ${attempts} deliveries failed in the last hour`,
+    note: `${attempts} deliveries in the last hour, too few to judge${accountNote}`,
   };
 }
 
