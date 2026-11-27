@@ -1,4 +1,4 @@
-import type { PendingPick, PredictionHistoryResponse } from '@fmip/contracts';
+import type { PendingPick, PredictionHistoryResponse, ScoreCard } from '@fmip/contracts';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -15,9 +15,10 @@ import { FirstPick, showsFirstPick } from './first-pick';
  */
 
 const NOW = Date.parse('2026-11-27T18:00:00Z');
-const OPEN = { status: 'scheduled', kickoff_at: '2026-11-27T20:00:00Z' };
-const STARTED = { status: 'scheduled', kickoff_at: '2026-11-27T17:00:00Z' };
-const FINISHED = { status: 'finished', kickoff_at: '2026-11-27T12:00:00Z' };
+type Card = Pick<ScoreCard, 'status' | 'kickoff_at'>;
+const OPEN: Card = { status: 'scheduled', kickoff_at: '2026-11-27T20:00:00Z' };
+const STARTED: Card = { status: 'scheduled', kickoff_at: '2026-11-27T17:00:00Z' };
+const FINISHED: Card = { status: 'finished', kickoff_at: '2026-11-27T12:00:00Z' };
 
 const history = (total: number): { ok: true; data: PredictionHistoryResponse } => ({
   ok: true,
