@@ -52,6 +52,14 @@ all "The marketing wing", and the newest marketing report's priorities
    falling two weeks running, no prediction for 7 days while matches were on, a step that
    cannot be measured and matters to the marketing plan (with the first-party proposal).
 
+**During the launch phase (D-459), every Monday:** `bash .claude/skills/growth-funnel/launch-measure.sh
+<invitation date> <internal ids file>` (T-1968), with the date and the file the maintainer gives (the
+internal accounts' ids, kept outside every git tree, e.g. `E:/FMIP/data-audit/launch-internal-ids.txt`;
+the command refuses a file git would take; never print or copy it). It prints the weekly table and
+the 7-day return and writes `E:/FMIP/ops/reports/growth-analyst/<date>-launch-measure.md`; state its
+numbers in the Monday report as they are, with its known limits, beside the invitations the
+maintainer counts.
+
 Report: `E:/FMIP/ops/reports/growth-analyst/<YYYY-MM-DD>.md`, Persian: the funnel as a table
 (step, count, share of the step before), the cohorts table, the predictions line, what is not
 measured, and at most three findings. Whole-site totals may be given as they are; every
