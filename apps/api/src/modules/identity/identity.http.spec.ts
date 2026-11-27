@@ -9,6 +9,7 @@ import {
   IDENTITY_OPTIONS,
   type IdentityOptions,
 } from './identity.service';
+import { PostgresIdentityStore } from './internal/identity-store';
 import { CaptureMailer, MAILER } from './internal/mailer';
 
 // Security tests for T-040. They need the real schema: uniqueness, single-use
@@ -358,6 +359,46 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
       mail_outcome: 'failed',
       mailed: true,
     });
+  });
+
+  it('a sign-up whose mail was refused, or whose record cannot be written, still succeeds (T-1967)', async () => {
+    const tokenOf = async (email: string) =>
+      (
+        await pool.query<{ mail_outcome: string | null }>(
+          `SELECT t.mail_outcome FROM email_token t JOIN user_account u ON u.id = t.user_id
+            WHERE u.email = $1 AND t.kind = 'verify_email'`,
+          [email],
+        )
+      ).rows;
+    const signUp = (suffix: string) =>
+      post('/auth/register', {
+        ...registration,
+        username: `it_${RUN}${suffix}`,
+        email: `it_${RUN}${suffix}@example.test`,
+      });
+
+    const refused = vi.spyOn(mailer, 'send').mockResolvedValueOnce('failed');
+    const first = await signUp('r');
+    refused.mockRestore();
+    expect(first.statusCode).toBe(201);
+    expect(await tokenOf(`it_${RUN}r@example.test`)).toEqual([{ mail_outcome: 'failed' }]);
+
+    // Sent without landing in `mailer.sent`: the next test reads its newest message.
+    const sent = vi.spyOn(mailer, 'send').mockResolvedValue('sent');
+    const store = app.get(PostgresIdentityStore);
+    const broken = vi
+      .spyOn(store, 'recordMailOutcome')
+      .mockRejectedValue(new Error('connection terminated'));
+    try {
+      const second = await signUp('w');
+      expect(second.statusCode).toBe(201);
+      expect(await tokenOf(`it_${RUN}w@example.test`)).toEqual([{ mail_outcome: null }]);
+      const reset = await post('/auth/password/forgot', { email: `it_${RUN}w@example.test` });
+      expect(reset.statusCode).toBe(202);
+    } finally {
+      broken.mockRestore();
+      sent.mockRestore();
+    }
   });
 
   it('resets the password, revokes every session, and spends the token', async () => {

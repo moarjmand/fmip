@@ -15,7 +15,7 @@ export interface OutboundMail {
 /**
  * What became of one message (T-1967): `sent` by the e-mail channel,
  * `failed` there, `absent` when no channel carried it (printed in
- * development), `skipped` when the channel had nowhere to send it. Identity
+ * development), `skipped` when the provider refused only this address (no such mailbox). Identity
  * records it on the message's token, so a sign-up, verification or reset
  * mail that keeps failing is counted, not only logged.
  */

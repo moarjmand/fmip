@@ -5,6 +5,7 @@ import {
   SmtpEmailChannel,
   describeSmtpError,
   redactSmtpText,
+  refusesRecipientOnly,
   smtpSettingsFromEnv,
 } from './smtp-email';
 
@@ -95,11 +96,12 @@ describe('SmtpEmailChannel: a refused send', () => {
     expect(thrown).toBeInstanceOf(SendFailed);
     const failed = thrown as SendFailed;
     expect(failed.detail).toEqual({
+      scope: 'channel',
       code: 'EAUTH',
       responseCode: 534,
       command: 'AUTH PLAIN',
       reason:
-        '534-5.7.9 Please log in with your web browser and then try again. For more 534-5.7.9 information, go to 534 5.7.9 https://support.google.com/mail/?p=WebLoginRequired x1-gsmtp',
+        '534-5.7.9 Please log in with your web browser and then try again. For more 534-5.7.9 information, go to 534 5.7.9 https://support.google.com x1-gsmtp',
     });
     expect(failed.message).toMatch(
       /^code=EAUTH response_code=534 command="AUTH PLAIN" reason="534-5\.7\.9 /,
@@ -118,6 +120,7 @@ describe('SmtpEmailChannel: a refused send', () => {
       }),
     );
     expect(detail).toEqual({
+      scope: 'recipient',
       code: 'EENVELOPE',
       responseCode: 550,
       command: 'RCPT TO',
@@ -135,6 +138,7 @@ describe('SmtpEmailChannel: a refused send', () => {
         }),
       ),
     ).toEqual({
+      scope: 'channel',
       code: 'ESOCKET',
       responseCode: null,
       command: 'CONN',
@@ -143,7 +147,7 @@ describe('SmtpEmailChannel: a refused send', () => {
     const leaked = describeSmtpError(
       new Error('failed to reach smtps://sender%40example.test:s3cr3t-pass@mail.example:465'),
     );
-    expect(leaked.reason).toBe('failed to reach smtps://***@mail.example:465');
+    expect(leaked.reason).toBe('failed to reach smtps://mail.example');
     expect(leaked).toMatchObject({ code: null, responseCode: null, command: null });
     // An argument after a command's verb never reaches the log.
     expect(
@@ -153,7 +157,107 @@ describe('SmtpEmailChannel: a refused send', () => {
     expect(describeSmtpError('a plain string').reason).toBe('a plain string');
   });
 
-  it('keeps a long reply short', () => {
-    expect(redactSmtpText(`421 ${'x'.repeat(1000)}`)).toHaveLength(300);
+  // A reset or verification link's token: 43 characters of base64url, a live credential until it expires.
+  const TOKEN = 'Zq3xR8vT1mWbN4kLp0sYcH7dEaJ2fG9uQiO5nB6tUwV';
+
+  it('cuts a reset link in a DATA refusal to its host, so the token never reaches the log', async () => {
+    const refusal = Object.assign(new Error('Message failed'), {
+      code: 'EMESSAGE',
+      responseCode: 554,
+      command: 'DATA',
+      response: `554 5.7.1 Message rejected: URL https://web.example.test/en/reset-password?token=${TOKEN} is blocklisted`,
+    });
+    const failed = await new SmtpEmailChannel(refusing(refusal), 'no-reply@example.test')
+      .send(mail)
+      .then(
+        () => null,
+        (error: unknown) => error as SendFailed,
+      );
+    expect(failed?.detail).toEqual({
+      scope: 'channel',
+      code: 'EMESSAGE',
+      responseCode: 554,
+      command: 'DATA',
+      reason: '554 5.7.1 Message rejected: URL https://web.example.test is blocklisted',
+    });
+    expect(failed?.message).not.toContain(TOKEN);
+  });
+
+  it('masks a token in the message fallback and a long token with no URL around it', () => {
+    const fallback = describeSmtpError(
+      Object.assign(new Error(`Message failed: 554 reset-password?token=${TOKEN}`), {
+        code: 'EMESSAGE',
+        command: 'DATA',
+      }),
+    );
+    expect(fallback.reason).toBe('Message failed: 554 reset-password?***');
+    expect(redactSmtpText(`535 5.7.8 credentials rejected for ${TOKEN}.`)).toBe(
+      '535 5.7.8 credentials rejected for ***.',
+    );
+    // From 24 characters a run is a token; 23 is still a word.
+    expect(redactSmtpText(`reply ${'A'.repeat(24)}`)).toBe('reply ***');
+    expect(redactSmtpText(`reply ${'A'.repeat(23)}`)).toBe(`reply ${'A'.repeat(23)}`);
+  });
+
+  it('cuts every spelling of an address to its domain', () => {
+    expect(redactSmtpText('550 5.1.1 <ada@übung.example> unknown')).toBe(
+      '550 5.1.1 <***@übung.example> unknown',
+    );
+    expect(redactSmtpText('550 5.1.1 "ada lovelace"@example.test unknown')).toBe(
+      '550 5.1.1 ***@example.test unknown',
+    );
+    expect(redactSmtpText('550 ada%40example.test unknown')).toBe('550 ***@example.test unknown');
+    expect(redactSmtpText('550 ada/lovelace@example.test unknown')).toBe(
+      '550 ***@example.test unknown',
+    );
+    expect(redactSmtpText('Invalid sender "Stadiomind <no-reply@example.test>"')).toBe(
+      'Invalid sender "Stadiomind <***@example.test>"',
+    );
+    expect(redactSmtpText('failed smtps://user:pa/ss@mail.example:465 now')).toBe(
+      'failed smtps://mail.example now',
+    );
+  });
+
+  it('reads a huge reply in bounded time and keeps it short', () => {
+    for (const huge of [
+      'x'.repeat(20_000),
+      `${'a@'.repeat(10_000)}`,
+      `421 ${'word '.repeat(4_000)}`,
+      'h'.repeat(1_000_000),
+    ]) {
+      const started = performance.now();
+      const reason = redactSmtpText(huge);
+      expect(performance.now() - started).toBeLessThan(250);
+      expect(reason.length).toBeLessThanOrEqual(300);
+    }
+    expect(redactSmtpText(`421 ${'word '.repeat(200)}`)).toHaveLength(300);
+  });
+
+  it('tells a refusal of one recipient from a refusal of the channel', () => {
+    const envelope = (command: string, responseCode: number, response: string, message = 'x') =>
+      Object.assign(new Error(message), { code: 'EENVELOPE', command, responseCode, response });
+    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 5.1.1 unknown mailbox'))).toBe(true);
+    expect(refusesRecipientOnly(envelope('RCPT TO', 552, '552 5.2.2 mailbox full'))).toBe(true);
+    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 No such user here'))).toBe(true);
+    // A policy refusal at RCPT (relaying denied, an unauthenticated sender) is the channel's.
+    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 5.7.1 Relaying denied'))).toBe(false);
+    expect(refusesRecipientOnly(envelope('MAIL FROM', 550, '550 5.1.0 sender rejected'))).toBe(
+      false,
+    );
+    expect(refusesRecipientOnly(envelope('API', 0, '', 'Invalid recipient "ada@"'))).toBe(true);
+    expect(refusesRecipientOnly(envelope('API', 0, '', 'No recipients defined'))).toBe(false);
+    expect(
+      refusesRecipientOnly(
+        Object.assign(new Error('Invalid login'), { code: 'EAUTH', command: 'AUTH PLAIN' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('gives the connection limits in seconds, not minutes', () => {
+    expect(SmtpEmailChannel.TIMEOUTS).toEqual({
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
+    });
   });
 });

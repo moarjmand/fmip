@@ -15,7 +15,7 @@ ALTER TABLE email_token
     CHECK ((mail_outcome IS NULL) = (mailed_at IS NULL));
 
 COMMENT ON COLUMN email_token.mail_outcome IS
-  'What became of this token''s mail (T-1967): sent, failed (the provider refused), absent (no e-mail channel), skipped. NULL before it was sent or before T-1967.';
+  'What became of this token''s mail (T-1967): sent, failed (the provider refused), absent (no e-mail channel), skipped (the provider refused only this address). NULL before it was sent or before T-1967.';
 
 -- Down Migration
 

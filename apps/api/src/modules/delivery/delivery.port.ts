@@ -7,18 +7,22 @@ import { WebPushChannel, vapidSettingsFromEnv } from './internal/webpush';
  * Thrown by a channel that exists when this member has nowhere to receive
  * on it -- no device registered for push. The port records it as `skipped`:
  * neither the channel's absence nor its failure, and saying either would be
- * a lie about what happened (rule 3).
+ * a lie about what happened (rule 3). An e-mail address the provider refuses
+ * as unknown (`SendFailed` with scope `recipient`) is the same outcome.
  */
 export class NoRecipient extends Error {}
 
 /**
- * What the log may show of a send the provider refused (T-1967): the
+ * What the log may show of a send the provider refused (T-1967): whether the
+ * refusal concerns the channel or only this recipient (no such mailbox), the
  * provider's error code (`EAUTH`, `ECONNECTION`, `EENVELOPE`), the reply code
  * and the command it answered (`AUTH PLAIN`, `RCPT TO`), and its reply or
- * message with every address cut to its domain. Never a credential, never a
- * recipient in full.
+ * message with every URL cut to its host, every address to its domain and
+ * every token-like run masked. Never a credential, a token or a recipient in
+ * full.
  */
 export interface SendFailureDetail {
+  scope: 'channel' | 'recipient';
   code: string | null;
   responseCode: number | null;
   command: string | null;

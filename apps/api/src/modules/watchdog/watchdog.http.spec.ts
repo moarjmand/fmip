@@ -232,34 +232,40 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the watchdog
     // A window of its own, a year ahead, so no other suite's delivery is counted.
     const base = Date.now() + 365 * 24 * 3600_000;
     const minute = (n: number) => new Date(base + n * 60_000);
-    const outcomes = ['failed', 'failed', 'sent', 'failed', 'absent'] as const;
-    for (const [i, outcome] of outcomes.entries()) {
-      await pool.query(
-        `INSERT INTO email_token (user_id, kind, token_hash, expires_at, mail_outcome, mailed_at)
-         VALUES ($1, $2, $3, now() + interval '1 day', $4, $5)`,
-        [
-          memberId,
-          i % 2 === 0 ? 'verify_email' : 'reset_password',
-          `wd-${RUN}-${String(i)}`,
-          outcome,
-          minute(i),
-        ],
-      );
+    const outcomes = ['failed', 'failed', 'sent', 'failed', 'skipped', 'absent'] as const;
+    try {
+      for (const [i, outcome] of outcomes.entries()) {
+        await pool.query(
+          `INSERT INTO email_token (user_id, kind, token_hash, expires_at, mail_outcome, mailed_at)
+           VALUES ($1, $2, $3, now() + interval '1 day', $4, $5)`,
+          [
+            memberId,
+            i % 2 === 0 ? 'verify_email' : 'reset_password',
+            `wd-${RUN}-${String(i)}`,
+            outcome,
+            minute(i),
+          ],
+        );
+      }
+      const seen = await app
+        .get(WatchdogStore)
+        .deliveryOutcomes(minute(-30), minute(-24 * 60), DELIVERY_RECENT_KEPT);
+      // Newest first; a mail no channel carried is not an attempt, and one the
+      // provider refused for its recipient alone is not the channel's failure.
+      expect(seen.email).toEqual({
+        sent: 1,
+        failed: 3,
+        recent: ['failed', 'sent', 'failed', 'failed'],
+        accountMailFailing: true,
+      });
+      expect(seen.push).toEqual({ sent: 0, failed: 0, recent: [] });
+      expect(
+        (await app.get(WatchdogStore).deliveryOutcomes(minute(30), minute(-24 * 60), 2)).email,
+      ).toEqual({ sent: 0, failed: 0, recent: ['failed', 'sent'], accountMailFailing: true });
+    } finally {
+      // Dated a year ahead they would be the newest for any suite reading the real probe.
+      await pool.query(`DELETE FROM email_token WHERE token_hash LIKE $1`, [`wd-${RUN}-%`]);
     }
-    const seen = await app
-      .get(WatchdogStore)
-      .deliveryOutcomes(minute(-30), minute(-24 * 60), DELIVERY_RECENT_KEPT);
-    // Newest first; a mail no channel carried is not an attempt.
-    expect(seen.email).toEqual({
-      sent: 1,
-      failed: 3,
-      recent: ['failed', 'sent', 'failed', 'failed'],
-      accountMailFailing: true,
-    });
-    expect(seen.push).toEqual({ sent: 0, failed: 0, recent: [] });
-    expect(
-      (await app.get(WatchdogStore).deliveryOutcomes(minute(30), minute(-24 * 60), 2)).email,
-    ).toEqual({ sent: 0, failed: 0, recent: ['failed', 'sent'], accountMailFailing: true });
   });
 
   it('a raised event cannot be rewritten', async () => {

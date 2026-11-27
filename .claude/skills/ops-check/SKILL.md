@@ -30,7 +30,7 @@ The method of the `ops-release` agent. Read `.claude/skills/team-charter/SKILL.m
 | build cache | reclaimable above 15 GB (`rollout.sh` prunes only what is older than 72 h) | disk red because of it |
 | site probes | any above 2.5 s, or `/en` above 1.5 s | any non-200 |
 | watchdog | any condition `degraded`; `data_quality` failing (unreviewed findings of the platform's own checks: a triage task for the data auditor, not an outage) | any other condition `failing` |
-| site e-mail | `notification` `FAILING` (T-1967) | `sign-up/verify` or `reset` `FAILING`: a new member cannot verify or reset, and `delivery:email` stays failing while it lasts; the cause is the api log's `delivery.email_failed` line (code, reply code, command, reply) |
+| site e-mail | `notification` `FAILING` or `NOT SENT` (T-1967); `refused for the recipient only` (a mailbox the provider calls unknown: one member's address, not the channel; logged as `delivery.email_recipient_refused`) growing | `sign-up/verify` or `reset` `FAILING` or `NOT SENT (absent: no channel)`: a new member cannot verify or reset, and `delivery:email` stays failing while a failure lasts; the cause is the api log's `delivery.email_failed` line (code, reply code, command, reply) |
 | request budget | above 80% before 18:00 UTC | above 95% |
 | backups | last ok `backup` older than 30 h | older than 54 h, or the last run not ok |
 | restore drill | older than 35 days | the last drill not ok |
