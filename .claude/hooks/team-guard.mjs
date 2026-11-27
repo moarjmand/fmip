@@ -31,11 +31,19 @@
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
 //     outside the scratchpad and temp folders, no shell write to the .claude controls (settings,
-//     hooks, agents, skills, another agent's memory), no shell write, copy, move or unpacking
-//     into the repository (its own memory apart: a relative redirect after `cd` into the checkout
-//     is refused like an Edit; T-1951) nor into the private ops repository outside the roots, no
+//     hooks, agents, skills, another agent's memory), no shell write, copy, move, removal or
+//     unpacking into the repository (its own memory apart: a relative redirect after `cd` into
+//     the checkout is refused like an Edit; T-1951; of removals only a build file, *.tsbuildinfo
+//     or .eslintcache, one by one) nor into the private ops repository outside the roots, no
 //     link or junction that touches the repository or the findings folder or whose target holds
-//     a root.
+//     a root. A remover fed by xargs, a PowerShell pipeline or `find -exec` is judged by the
+//     paths written elsewhere on its line, as `rm -r` of each.
+//   - The maintainer's own files, by name and in every spelling (~, $HOME, %USERPROFILE%,
+//     C:\Users\..., where they really land): everything under ~/.claude/ (CLAUDE.md,
+//     settings*.json, projects/<key>/memory/, commands, transcripts), ~/.claude.json, any
+//     CLAUDE.md or CLAUDE.local.md outside the temp folder (E:/FMIP/CLAUDE.md, the ops
+//     repository's) and the ops repository's memory/ are never written, from the shell or the
+//     file tools; inline code naming that memory or ~/.claude.json is refused like the findings.
 //   - The roots themselves (E:/FMIP/ops, E:/FMIP/data-audit, the checkout's .claude/agent-memory),
 //     their known targets in the private ops repository (E:/FMIP/fmip-ops/ops and
 //     E:/FMIP/fmip-ops/agent-memory) and every folder that holds one are never removed, moved,
@@ -52,8 +60,8 @@
 //     `git clone --local|--no-hardlinks <this repository> <path>` and `git archive <ref>` (piped
 //     to `tar -x -C <path>`, or `-o <file>`), each only with <path> in the scratchpad or the temp
 //     folder; `git worktree remove <that path>` and `git worktree prune` to tidy up.
-//   - A wrapper is entered where its command can be read (env, command, timeout, cmd /c,
-//     bash -c, powershell -Command, find -exec ...); where it cannot (xargs or Start-Process
+//   - A wrapper is entered where its command can be read (env, command, timeout, cmd /c and
+//     Git Bash's `cmd //c`, bash -c, powershell -Command, find -exec ...); where it cannot (xargs or Start-Process
 //     running git, gh, ssh or psql: the arguments come from elsewhere) the call is refused.
 //   - The server: only through the five read-only scripts (data-audit/run.sh,
 //     ops-check/ops-check.sh, fmip-security/server-hardening.sh, product-strategy/seo-check.sh,
@@ -69,17 +77,20 @@
 //
 // It reads the text of a call: a seatbelt, not a sandbox. Residuals, known and accepted:
 //   - a script file an agent writes to its scratchpad and then runs is not read;
-//   - a shell write outside the repository and the team's folders (`> C:/x`) is not judged; a
-//     write target that starts with a variable the guard does not expand (`> "$OUT"`, `$(pwd)/x`)
-//     cannot be placed and is judged by its text only; a program the guard does not know that
-//     writes through its own options (`curl -o apps/x`) is judged for the findings and another
-//     agent's memory only; one file may be removed from the repository (qa-engineer clears
-//     `apps/web/tsconfig.tsbuildinfo`), a folder tree may not;
+//   - a shell write outside the repository, the team's folders and the maintainer's own files
+//     (`> C:/x`, another checkout such as E:/FMIP/fmip-1682) is not judged; a redirect, tee or
+//     Set-Content target that starts with a variable the guard does not expand (`> "$OUT"`,
+//     `$(pwd)/x`) cannot be placed and is judged by its text only (a copy, move or install with
+//     one is placed in the current folder, as before T-1951); a program the guard does not know
+//     that writes through its own options (`curl -o apps/x`) is judged for the findings, another
+//     agent's memory and the maintainer's files only; a list of files read from a file
+//     (`cat list | xargs rm`) is judged by that file's folder only;
 //   - a command built from variables or aliases (`g=git; $g push`, `$g = 'git'; & $g push`), from
 //     an encoding (base64 piped to a shell), by dot-sourcing, by Invoke-Expression on a variable,
 //     or through an interpreter's own API (`spawn('git', ['push'])`, a string put together in
 //     `node -e`) is not recognised; PowerShell's .NET file calls (`[IO.File]::WriteAllText(...)`,
-//     `(Get-Item x).Delete()`) are judged by the paths written on their line only;
+//     `(Get-Item x).Delete()`) are judged by the paths written on their line only, each as if it
+//     were written (so `[IO.File]::Copy('<checkout file>', <temp>)` is refused: Copy-Item reads it);
 //   - WebFetch and WebSearch are not limited by host, so data an agent may read can leave in a
 //     URL; the browser's javascript_tool is not read either;
 //   - a query file given to run.sh is not read (run.sh's read-only session is that lock);
@@ -246,6 +257,12 @@ const NULL_DEVICE = /^(\$null|\$\{null\}|nul:?|con:?)$/i;
 const NET_CHANGE =
   /\]::\s*(write|append)all\w*\s*\(|\]::\s*(create\w*|copy|move|delete\w*|replace|setattributes|openwrite)\s*\(|\.\s*(delete|moveto|copyto|createasymboliclink|createsubdirectory|appendtext|createtext|openwrite)\s*\(/i;
 const CD_NAMES = new Set(['cd', 'pushd', 'chdir', 'set-location', 'sl']);
+/** Build files a test run leaves in the checkout: the only files a team agent may remove there, one by one (T-1885). */
+const BUILD_FILES = /(^|\/)([^/]+\.tsbuildinfo|\.eslintcache)$/;
+/** A CLAUDE.md or CLAUDE.local.md: instructions the maintainer's sessions load. */
+const INSTRUCTIONS = /(^|\/)claude(\.local)?\.md$/;
+/** A cmd or Windows switch, `/s` or (Git Bash, which would turn `/s` into a drive) `//s`. */
+const SWITCH = /^\/{1,2}[a-zA-Z]$/;
 const REMOVERS = new Set(['rm', 'del', 'erase', 'rd', 'rmdir', 'ri', 'remove-item', 'unlink']);
 const SHELLS = new Set(['bash', 'sh', 'zsh', 'dash', 'ash', 'ksh', 'fish']);
 const INTERPRETERS = new Set(['node', 'nodejs', 'deno', 'bun', 'tsx', 'ts-node', 'python', 'python3', 'py', 'perl', 'ruby', 'php', 'lua']);
@@ -267,7 +284,7 @@ const deny = (why) => {
  * and the memory folder, never removed, moved or linked over.
  */
 const S = {
-  agent: '', tmp: '', home: '', repo: '', memory: '', memoryAny: '', scratch: false, temps: [], shellTemps: [], pool: [],
+  agent: '', tmp: '', home: '', homes: [], repo: '', memory: '', memoryAny: '', scratch: false, temps: [], shellTemps: [], pool: [],
   writeRoots: WRITE_ROOTS, findings: [FINDINGS], anchors: [],
 };
 
@@ -410,6 +427,7 @@ function checkFilePath(value, cwd) {
   }
   const p = realPath(written);
   const lands = p === written.toLowerCase() ? shown : `${shown}, which lands in ${p}`;
+  if (maintainerFile(written.toLowerCase()) || maintainerFile(p)) deny(MAINTAINER_WHY(lands));
   if (inFindings(p)) deny('writes a findings file directly (finding.mjs validates and appends; it is the only door)');
   // The repository first: a checkout that itself lives under the temp folder is still the repository.
   const allowed = within(S.repo, p) || within(S.memory, p) ? memoryOwner(p) === S.agent : S.writeRoots.some((root) => inside(root, p)) || inTemp(p);
@@ -421,6 +439,22 @@ const MEMORY_TEXT = /(^|\/)\.claude\/agent-memory(\/([^/]+))?(\/|$)/;
 
 /** A copy of the repository in the scratchpad (a pull request's tree) is nobody's control or memory. */
 const scratchCopyAt = (p) => !within(S.repo, p) && inTemp(p, S.shellTemps);
+
+/**
+ * The maintainer's own instructions, settings and memory, named outright rather than reached
+ * through whatever junction a folder happens to be (T-1951): everything under <home>/.claude/
+ * (CLAUDE.md, settings*.json, projects/<key>/memory/, commands, agents, transcripts),
+ * <home>/.claude.json, any CLAUDE.md or CLAUDE.local.md outside the temp folder (E:/FMIP/CLAUDE.md
+ * is loaded by every session under it), and the private ops repository's memory/ folder.
+ */
+function maintainerFile(p, read = false) {
+  if (S.homes.some((h) => within(`${h}/.claude`, p) || p === `${h}/.claude.json` || p.startsWith(`${h}/.claude.json.`))) return true;
+  if (within(`${OPS_REPO}/memory`, p)) return true;
+  // `read`: a program handed the path may only read it; the checkout's own CLAUDE.md is read by many.
+  return INSTRUCTIONS.test(p) && !scratchCopyAt(p) && !(read && within(S.repo, p));
+}
+const MAINTAINER_WHY = (what) =>
+  `writes the maintainer's own instructions, settings or memory (${what}: ~/.claude/, ~/.claude.json, a CLAUDE.md, the ops repository's memory/), which a team agent never changes`;
 
 /** A placed path in another agent's memory (or the memory folder itself), by its text or where it lands. */
 function otherMemory(p) {
@@ -434,10 +468,14 @@ function otherMemory(p) {
  * sed -i, tar -x). Closed: the .claude controls, another agent's memory, the findings files
  * (appending too: finding.mjs is the only door), the whole repository, the agent's own memory
  * apart (T-1951: a shell write is judged like a file tool's), and the private ops repository the
- * roots land in, outside them (its .git/hooks, the maintainer's memory). Each place the path may
- * land is judged (shellPlaces). `mode`: 'write' (all of the above), 'remove' (one file may be
- * removed from the repository, a build file such as tsconfig.tsbuildinfo; a tree may not, see
- * checkRemove), 'maybe' (a word that is only perhaps a path, sed's script: neither repository).
+ * roots land in, outside them (its .git/hooks), and the maintainer's own files (maintainerFile).
+ * Each place the path may land is judged (shellPlaces). `mode`:
+ *   'write'  a redirect, tee, Set-Content, sed -i: all of the above; a target that starts with a
+ *            variable the guard does not expand (`> "$OUT"`) is judged by its text and the old rules;
+ *   'copy'   cp's and mv's paths, install, rsync's destination, tar -x: as 'write', and a variable
+ *            path is placed in the current folder (`mv "$f" /tmp/` in the checkout), as before T-1951;
+ *   'remove' as 'write', but a build file (tsconfig.tsbuildinfo) may be removed from the checkout;
+ *   'maybe'  a word that is only perhaps a path (sed's script, Set-Content's value): the old rules.
  */
 function checkShellTarget(value, ctx, mode = 'write') {
   const raw = String(value ?? '');
@@ -451,14 +489,17 @@ function checkShellTarget(value, ctx, mode = 'write') {
     if (/(^|\/)ops\/+findings(\/|$)/.test(text)) {
       deny('writes, moves or removes a findings file from the shell (the only door is `node .claude/skills/team-charter/bin/finding.mjs`)');
     }
+    if (mode !== 'maybe' && (/(^|\/)\.claude\/projects\/[^/]+\/memory(\/|$)|(^|\/)\.claude\.json$/.test(text) || INSTRUCTIONS.test(text))) deny(MAINTAINER_WHY(raw));
     return;
   }
   // `> "$OUT"`: a variable the guard does not expand may well hold an absolute path.
   const t = raw.trim();
-  const unplaced = mode === 'maybe' || (/^[$%]/.test(t) && !/^\$\{?PWD\}?([\\/]|$)/i.test(t) && normPath(raw, null, true) === null);
-  const closeRepo = !unplaced && mode === 'write';
+  const variable = /^[$%]/.test(t) && !/^\$\{?PWD\}?([\\/]|$)/i.test(t) && normPath(raw, null, true) === null;
+  const unplaced = mode === 'maybe' || (variable && mode !== 'copy');
+  const closeRepo = !unplaced;
   for (const p of places) {
     const lands = p === places[0] ? '' : `, which lands in ${p}`;
+    if (!unplaced && maintainerFile(p)) deny(MAINTAINER_WHY(`${raw}${lands}`));
     if (!unplaced && within(OPS_REPO, p) && !S.writeRoots.some((root) => within(root, p)) && !within(S.memoryAny, p)) {
       deny(`writes, copies, moves, removes or unpacks into the private ops repository outside the team's folders from the shell (${raw}${lands})`);
     }
@@ -467,8 +508,8 @@ function checkShellTarget(value, ctx, mode = 'write') {
     if (inFindings(p)) {
       deny(`writes, moves or removes a findings file from the shell (${raw}${lands}; the only door is \`node .claude/skills/team-charter/bin/finding.mjs\`)`);
     }
-    if (closeRepo && within(S.repo, p) && memoryOwner(`${p}/x`) !== S.agent) {
-      deny(`writes, copies, moves, removes or unpacks into the repository from the shell (${raw}${lands}); a team agent never changes it, only its own memory there`);
+    if (closeRepo && within(S.repo, p) && memoryOwner(`${p}/x`) !== S.agent && !(mode === 'remove' && BUILD_FILES.test(p))) {
+      deny(`writes, copies, moves, removes or unpacks into the repository from the shell (${raw}${lands}); a team agent never changes it, only its own memory there (and a build file such as tsconfig.tsbuildinfo may be removed)`);
     }
   }
 }
@@ -892,9 +933,39 @@ function checkText(text, ps, ctx) {
       inner.cwd = null;
       inner.pcwd = null;
     }
+    cmd.line = cmds; // a remover fed by xargs or a pipe is judged by the paths elsewhere on its line
     if (net) checkNetWords(cmd.words, inner);
     checkSimple(cmd.words, cmd, inner);
   }
+}
+
+/** A word that names a path: a separator, a drive, `~`, a home or temp variable, `.` or `..`. */
+const PATH_WORD = /^(?!-)(?!.*:\/\/)(.*[\\/]|[a-zA-Z]:|~|\$(env:|home\b|pwd\b)|%\w+%|\.\.?$)/i;
+
+/**
+ * A remover whose paths come from elsewhere: `ls E:/FMIP/ops/findings/*.jsonl | xargs rm`,
+ * `Get-Item E:\FMIP\ops | Remove-Item -Recurse`, `echo E:/FMIP/ops | xargs rmdir`. Every path
+ * written elsewhere on the line is a tree it may empty (the current folder when none is), judged
+ * like `rm -r` (T-1951). A list read from a file (`cat list | xargs rm`) is judged by the file's folder only.
+ */
+function checkFedRemove(c, ctx) {
+  const words = (c.line ?? [])
+    .filter((o) => o !== c)
+    .flatMap((o) => (o.words.length === 1 ? o.words : o.words.slice(1)))
+    .map((x) => x.replace(/[,;]+$/, ''))
+    .filter((x) => PATH_WORD.test(x));
+  checkRemove('rm', ['-r', ...(words.length > 0 ? words : ['.'])], ctx);
+}
+
+/** awk's program, without its file arguments (reading another agent's memory with awk is free). */
+function awkProgram(args) {
+  for (let i = 0; i < args.length; i++) {
+    if (/^(-f|--file)$/.test(args[i])) return '';
+    if (/^(-[vF]|--assign|--field-separator)$/.test(args[i])) i++;
+    else if (args[i] === '--') return args[i + 1] ?? '';
+    else if (!args[i].startsWith('-')) return args[i];
+  }
+  return '';
 }
 
 /** The words of a PowerShell line that calls .NET to change files: each path a target, each word a possible root. */
@@ -908,11 +979,16 @@ function checkNetWords(words, ctx) {
   }
 }
 
-function rawScan(text, what) {
+/** Text naming the maintainer's memory or Claude Code's own settings file. */
+const MAINTAINER_TEXT = /\.claude[\\/]+projects[\\/]+[^\\/\s'"`]+[\\/]+memory\b|\.claude\.json\b/i;
+
+/** `own`: the part that is the program's own code (awk's program, not the files it reads). */
+function rawScan(text, what, own = text) {
   for (const [re, why] of OPAQUE) if (re.test(String(text))) deny(`${what} whose text ${why}; the guard cannot read further into it`);
-  if (namesOtherMemory(String(text))) {
+  if (namesOtherMemory(String(own))) {
     deny(`${what} whose text names another agent's memory or the memory folder itself (its own, .claude/agent-memory/${S.agent}/, it may name); the guard cannot read further into it`);
   }
+  if (MAINTAINER_TEXT.test(String(own))) deny(`${what} whose text names the maintainer's memory or ~/.claude.json; the guard cannot read further into it`);
 }
 
 /** Text that names `agent-memory` followed by anything but this agent's own folder, or with a `..` after it. */
@@ -933,6 +1009,7 @@ function checkScriptFile(file) {
 function checkSimple(allWords, cmd, ctx) {
   for (const r of cmd?.redirects ?? []) if (r.op === '>' || r.op === '>>') checkShellTarget(r.target, ctx);
   let w = allWords.slice();
+  let viaXargs = false;
   for (let turns = 0; ; turns++) {
     if (w.length === 0) return;
     if (turns > 24) deny('wraps a command deeper than the guard reads');
@@ -941,8 +1018,10 @@ function checkSimple(allWords, cmd, ctx) {
       w = w.slice(1);
     } else if (ctx.ps && /^\$[\w:{}.]+$/.test(w[0]) && /^[+-]?=$/.test(w[1] ?? '')) w = w.slice(2); // $x = <a command or a value>
     else if (KEYWORDS.has(w[0])) w = w.slice(1);
-    else if (Object.hasOwn(WRAPPERS, baseName(w[0]))) w = WRAPPERS[baseName(w[0])](w.slice(1), ctx);
-    else break;
+    else if (Object.hasOwn(WRAPPERS, baseName(w[0]))) {
+      viaXargs ||= baseName(w[0]) === 'xargs';
+      w = WRAPPERS[baseName(w[0])](w.slice(1), ctx);
+    } else break;
   }
   const name = baseName(w[0]);
   const args = w.slice(1);
@@ -969,10 +1048,17 @@ function checkSimple(allWords, cmd, ctx) {
   if (name === 'ssh') return checkSsh(args);
   if (REMOTE_TOOLS.has(name)) deny(`reaches another machine with ${name} (the server is read only through the five read-only scripts)`);
   if (name === 'rsync' && args.some((a) => a === '-e' || /^[\w.-]+@|^[\w.-]{2,}:/.test(a))) deny('copies to or from another machine with rsync');
-  if (name === 'rsync' && args.some((a) => /^--(delete|remove-source-files)/.test(a))) {
-    // It removes what the source lacks (or the sources themselves): a removal of a tree.
+  if (name === 'rsync') {
+    // Its destination is copied into like cp's; --delete removes what the source lacks (or, with
+    // --remove-source-files, the sources themselves): a removal of a tree.
     const plain = args.filter((a) => !a.startsWith('-'));
-    for (const t of args.some((a) => a.startsWith('--remove-source-files')) ? plain : plain.slice(-1)) checkRemove('rm', ['-r', t], ctx);
+    if (plain.length > 1) {
+      checkAnchor(plain.at(-1), ctx, true);
+      checkShellTarget(plain.at(-1), ctx, 'copy');
+    }
+    if (args.some((a) => /^--(delete|remove-source-files)/.test(a))) {
+      for (const t of args.some((a) => a.startsWith('--remove-source-files')) ? plain : plain.slice(-1)) checkRemove('rm', ['-r', t], ctx);
+    }
   }
   if (name === 'psql') return checkPsql(args, c, ctx);
   if (DB_WRITERS.has(name)) deny(`changes a database (${name})`);
@@ -985,8 +1071,9 @@ function checkSimple(allWords, cmd, ctx) {
   if (name === 'source' || name === '.') return checkScriptFile(args[0]);
   if (name === 'powershell' || name === 'pwsh') return checkPowerShell(args, c, ctx);
   if (name === 'cmd') {
-    // cmd keeps backslashes, as PowerShell does: its line is read by those rules.
-    const at = args.findIndex((a) => /^\/[ck]$/i.test(a));
+    // cmd keeps backslashes, as PowerShell does: its line is read by those rules. In Git Bash the
+    // switch that runs is `//c` (MSYS would turn `/c` into the drive C:/), so both are read.
+    const at = args.findIndex((a) => /^\/{1,2}[ck]$/i.test(a));
     if (at >= 0) checkText(args.slice(at + 1).join(' '), true, ctx);
     return;
   }
@@ -998,8 +1085,13 @@ function checkSimple(allWords, cmd, ctx) {
     return checkGeneric(w, c, ctx);
   }
   if (name === 'find') return checkFind(args, ctx);
-  if (REMOVERS.has(name)) return checkRemove(name, args, ctx);
-  if (AWKS.has(name)) return rawScan(args.join(' '), 'runs an awk program');
+  if (REMOVERS.has(name)) {
+    // Fed by xargs, or in PowerShell by the pipeline when it names no path of its own (`Get-Item x | Remove-Item`).
+    const own = args.filter((a) => !a.startsWith('-') && !SWITCH.test(a) && a !== '{}');
+    if (viaXargs || (ctx.ps && c.pipedIn && own.length === 0)) checkFedRemove(c, ctx);
+    return checkRemove(name, args, ctx);
+  }
+  if (AWKS.has(name)) return rawScan(args.join(' '), 'runs an awk program', awkProgram(args));
   if (name === 'sed' || name === 'perl') {
     if (args.some((a) => /^-[a-zA-Z]*i/.test(a) || a.startsWith('--in-place'))) {
       // The script (`s/a/b/`) is no file in the repository; the files after it are changed in place.
@@ -1019,7 +1111,7 @@ function checkSimple(allWords, cmd, ctx) {
     return;
   }
   if (name === 'ln' || name === 'mklink' || name === 'junction' || name === 'junction64') {
-    return checkLink(args.filter((a) => !a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a)), ctx);
+    return checkLink(args.filter((a) => !a.startsWith('-') && !SWITCH.test(a)), ctx);
   }
   if (name === 'fsutil' && /^(hardlink|reparsepoint)$/i.test(args[0] ?? '')) return checkLink(args.slice(2), ctx);
   if (name === 'tar' || name === 'bsdtar') return checkTar(args, ctx);
@@ -1030,8 +1122,9 @@ function checkSimple(allWords, cmd, ctx) {
 }
 
 /**
- * `sed -i` / `perl -pi`: the script (the first operand, or the values of -e / -f) and the files.
- * A short option cluster ends at `i` (its suffix follows) or at an option that takes a value.
+ * `sed -i` / `perl -pi`: the script (the first operand, or the values of -e) and the files. A
+ * script file (`sed -f x.sed`) is only read, so it is neither. A short option cluster ends at `i`
+ * (its suffix follows) or at an option that takes a value.
  */
 function inPlaceOperands(name, args) {
   const operands = [];
@@ -1039,25 +1132,24 @@ function inPlaceOperands(name, args) {
   let scripted = false;
   const scriptOption = name === 'sed' ? 'ef' : 'eE';
   const valueOption = name === 'sed' ? 'l' : 'MmIxdDC0l';
+  const keep = (option, value) => {
+    scripted = true;
+    if (option !== 'f' && option !== '--file') script.push(value);
+  };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--') {
       operands.push(...args.slice(i + 1));
       break;
     }
-    if (/^--(expression|file)=/.test(a)) {
-      scripted = true;
-      script.push(a.slice(a.indexOf('=') + 1));
-    } else if (/^--(expression|file)$/.test(a)) {
-      scripted = true;
-      script.push(args[++i] ?? '');
-    } else if (a === '--line-length') i++;
+    if (/^--(expression|file)=/.test(a)) keep(a.slice(0, a.indexOf('=')), a.slice(a.indexOf('=') + 1));
+    else if (/^--(expression|file)$/.test(a)) keep(a, args[++i] ?? '');
+    else if (a === '--line-length') i++;
     else if (/^-[^-]/.test(a)) {
       for (let k = 1; k < a.length; k++) {
         if (a[k] === 'i') break;
         if (scriptOption.includes(a[k])) {
-          scripted = true;
-          script.push(k === a.length - 1 ? (args[++i] ?? '') : a.slice(k + 1));
+          keep(name === 'sed' ? a[k] : 'e', k === a.length - 1 ? (args[++i] ?? '') : a.slice(k + 1));
           break;
         }
         if (valueOption.includes(a[k])) {
@@ -1094,9 +1186,11 @@ function writeOperands(name, args, paths) {
       else if (PS_COMMON_VALUES.test(args[i])) common.push(args[++i] ?? '');
       else if (!args[i].startsWith('-')) positional.push(args[i]);
     }
+    // `-Path C:\x.txt,E:\FMIP\fmip\apps\x.ts`: a comma list names several files.
+    const list = (words) => words.flatMap((w) => w.split(',')).filter((w) => w !== '');
     return named.length > 0
-      ? { files: named, others: [...positional, ...common] }
-      : { files: positional.slice(0, 1), others: [...positional.slice(1), ...common] };
+      ? { files: list(named), others: [...positional, ...common] }
+      : { files: list(positional.slice(0, 1)), others: [...positional.slice(1), ...common] };
   }
   if (name === 'chmod' || name === 'chown') {
     return args.some((a) => a.startsWith('--reference')) ? { files: paths, others: [] } : { files: paths.slice(1), others: paths.slice(0, 1) };
@@ -1121,7 +1215,7 @@ function pathArguments(args) {
     if (PS_VALUE_PARAMETERS.test(a)) i++;
     else if (/^(-t|--target-directory|-dest\w*)$/i.test(a)) destination = args[++i] ?? null;
     else if (/^--target-directory=/.test(a)) destination = a.slice(a.indexOf('=') + 1);
-    else if (!a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a)) paths.push(a);
+    else if (!a.startsWith('-') && !SWITCH.test(a)) paths.push(a);
   }
   return { paths, destination };
 }
@@ -1141,7 +1235,7 @@ function checkWriter(name, args, ctx) {
   if (kind === 'move') {
     for (const t of [...paths, ...(destination === null ? [] : [destination])]) {
       checkAnchor(t, ctx);
-      checkShellTarget(t, ctx);
+      checkShellTarget(t, ctx, 'copy');
     }
   }
   if (kind === 'copy') {
@@ -1153,7 +1247,7 @@ function checkWriter(name, args, ctx) {
     if (robocopy && to !== null && args.some((a) => /^\/(mir|purge)$/i.test(a))) checkRemove('rmdir', ['/s', to], ctx);
     if (to !== null) {
       checkAnchor(to, ctx, true);
-      checkShellTarget(to, ctx);
+      checkShellTarget(to, ctx, 'copy');
     }
   }
 }
@@ -1190,7 +1284,7 @@ function checkTar(args, ctx) {
   const p = normPath(into, ctx.cwd, true);
   if (p === null || /[$`*?]/.test(p)) deny(`unpacks an archive at a path the guard cannot place (${into})`);
   checkAnchor(into, ctx); // an entry named like a root could replace its junction
-  checkShellTarget(into, ctx);
+  checkShellTarget(into, ctx, 'copy');
 }
 
 /** A program this file has no rule for: look for what it could be carrying. */
@@ -1208,6 +1302,7 @@ function checkGeneric(w, c, ctx) {
     if (places.length > 0 ? places.some(otherMemory) : Boolean(text && text[3] !== S.agent)) {
       deny(`hands ${baseName(w[0])} another agent's memory (${value}); cat, grep and jq read it`);
     }
+    if (places.some((p) => maintainerFile(p, true))) deny(`hands ${baseName(w[0])} one of the maintainer's own files (${value}); cat, grep and jq read them`);
   }
   const at = w.findIndex((x) => /(^|[\\/])publish\.ts$/i.test(x));
   if (at >= 0 && !PUBLISHER_READ.has(w[at + 1] ?? '')) {
@@ -1413,29 +1508,32 @@ function checkInterpreter(name, w, c, ctx) {
 }
 
 function checkFind(args, ctx) {
+  const starts = [];
+  for (const a of args) {
+    if (/^[-(!]/.test(a)) break;
+    starts.push(a);
+  }
+  if (starts.length === 0) starts.push('.');
   for (let i = 0; i < args.length; i++) {
     if (/^-(exec|execdir|ok|okdir)$/.test(args[i])) {
       let j = i + 1;
       while (j < args.length && args[j] !== ';' && args[j] !== '+') j++;
-      checkSimple(args.slice(i + 1, j), null, ctx);
+      const run = args.slice(i + 1, j);
+      // A remover run on what find finds empties the trees it starts from, as -delete does (T-1951).
+      if (REMOVERS.has(baseName(run[0] ?? ''))) checkRemove('rm', ['-r', ...starts], ctx);
+      // `{}` is a file found under a start: `-exec sed -i ... {} +` under apps/ changes the checkout.
+      for (const s of starts) checkSimple(run.map((x) => x.replaceAll('{}', `${s.replace(/[\\/]+$/, '')}/{}`)), null, ctx);
       i = j;
-    } else if (args[i] === '-delete') {
-      const starts = [];
-      for (const a of args) {
-        if (/^[-(!]/.test(a)) break;
-        starts.push(a);
-      }
-      checkRemove('rm', ['-r', ...(starts.length > 0 ? starts : ['.'])], ctx);
-    }
+    } else if (args[i] === '-delete') checkRemove('rm', ['-r', ...starts], ctx);
   }
 }
 
 function checkRemove(name, args, ctx) {
   const windows = ctx.ps || name !== 'rm';
   const recursive = windows
-    ? args.some((a) => /^-r(e(c(u(r(s(e)?)?)?)?)?)?$/i.test(a) || /^\/s$/i.test(a))
+    ? args.some((a) => /^-r(e(c(u(r(s(e)?)?)?)?)?)?$/i.test(a) || /^\/{1,2}s$/i.test(a))
     : args.some((a) => /^-[a-zA-Z]*[rR][a-zA-Z]*$/.test(a) || a === '--recursive');
-  const targets = args.filter((a) => !a.startsWith('-') && !/^\/[a-zA-Z]$/.test(a));
+  const targets = args.filter((a) => !a.startsWith('-') && !SWITCH.test(a));
   for (const t of targets) {
     checkAnchor(t, ctx); // `rmdir E:/FMIP/ops` takes the junction away; the next `mklink /J` re-points it
     checkShellTarget(t, ctx, 'remove');
@@ -1536,6 +1634,7 @@ process.stdin.on('end', () => {
     // This file is <repository>/.claude/hooks/team-guard.mjs; a worktree's copy answers for the main checkout.
     // Folders are known by their real path (what the file tools are judged by) and as written.
     const real = (p) => realPath(canonPath(p, null) ?? String(p));
+    S.homes = [...new Set([normPath(S.home, null), real(S.home)].filter(Boolean))];
     S.repo = real(slash(fileURLToPath(import.meta.url)).replace(/\/\.claude\/hooks\/[^/]+$/, '')).replace(/\/\.claude\/worktrees\/[^/]+$/, '');
     // Since 2026-11-21 E:/FMIP/ops and the main checkout's .claude/agent-memory are junctions into the
     // private ops repository: a path is judged by where it lands, so the roots are known there too (T-1949).

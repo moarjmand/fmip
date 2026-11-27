@@ -9,6 +9,7 @@
 // engineering session), `input` is the whole tool_input. In any string, ${REPO}, ${REPO_BASH},
 // ${REPO_WIN}, ${TMP}, ${TMP_BASH}, ${TMP_WIN} and ${SCRATCH} are replaced with this machine's
 // paths (the main checkout, also when this file runs from a worktree), so the cases hold anywhere.
+// ${HOME_DIR} (also _BASH, _WIN) is the home folder, for the maintainer's files as the file tools name them.
 // ${OPS_REAL} and ${MEMORY_REAL} (each also _BASH and _WIN) are where E:/FMIP/ops and the
 // checkout's .claude/agent-memory really land: the private ops repository on a computer with the
 // 2026-11-21 junctions, the folders themselves without them (T-1951). ${LINKS} (also _BASH, _WIN)
@@ -17,7 +18,7 @@
 // beside them); a case that names it is skipped where no link can be made.
 import { spawn } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmdirSync, symlinkSync, unlinkSync } from 'node:fs';
-import { availableParallelism, tmpdir } from 'node:os';
+import { availableParallelism, homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -46,6 +47,7 @@ const PLACES = {
 const spell = (name, path) => Object.assign(PLACES, { [name]: path, [`${name}_BASH`]: gitBash(path), [`${name}_WIN`]: path.replace(/\//g, '\\') });
 spell('OPS_REAL', realOr('E:/FMIP/ops'));
 spell('MEMORY_REAL', realOr(`${repo}/.claude/agent-memory`));
+spell('HOME_DIR', slash(homedir())); // not ${HOME}: a shell's own $HOME is for the guard to expand
 
 // Real junctions, made here under <temp>/claude/ (a folder a team agent may write in) and taken
 // away again one by one, never by a recursive delete, which would follow them.

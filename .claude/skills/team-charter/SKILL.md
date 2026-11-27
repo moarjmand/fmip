@@ -38,8 +38,9 @@ files have one door, `node .claude/skills/team-charter/bin/finding.mjs`: every o
 `E:/FMIP/ops/findings/` is refused (`>>`, a heredoc, `tee -a`, `Add-Content`, a one-line script);
 reading them is free. The shell is judged like the file tools: a redirect, `tee` or `Set-Content`
 that lands in the repository is refused (your own memory apart), so write to an absolute path in
-your folders, never relative after `cd` into the checkout; and never remove, move or re-link
-`E:/FMIP/ops`, `E:/FMIP/data-audit` or `.claude/agent-memory` (T-1951). To run a pull request's
+your folders, never relative after `cd` into the checkout; never remove, move or re-link
+`E:/FMIP/ops`, `E:/FMIP/data-audit` or `.claude/agent-memory`; and never write the maintainer's
+own files (`~/.claude/`, `~/.claude.json`, any `CLAUDE.md`) (T-1951). To run a pull request's
 code, put it in your scratchpad
 (`git worktree add --detach <scratchpad>/pr <ref>`, or `git archive <ref> | tar -x -C
 <scratchpad>/pr`), never in the repository. When the guard refuses a call, never work around it
