@@ -17,6 +17,20 @@ import { DeliveryMailer } from './internal/delivery-mailer';
 import { MAILER } from './internal/mailer';
 import { sessionSecretFromEnv } from './internal/tokens';
 
+/**
+ * The close-sign-ups switch (T-1970, D-459): `on` closes sign-ups, `off` or
+ * unset leaves them open. Anything else refuses to start, so a mistyped value
+ * on a bad day fails the rollout loudly instead of leaving the door open.
+ */
+export function signupsClosedFromEnv(env: NodeJS.ProcessEnv = process.env): boolean {
+  const value = (env.SIGNUPS_CLOSED ?? '').trim().toLowerCase();
+  if (value === 'on') return true;
+  if (value === '' || value === 'off') return false;
+  throw new Error(
+    `SIGNUPS_CLOSED must be "on" or "off" (or unset); it is "${env.SIGNUPS_CLOSED}".`,
+  );
+}
+
 /** Options from the environment. Refuses a missing or weak SESSION_SECRET. */
 export function identityOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): IdentityOptions {
   return {
@@ -24,6 +38,7 @@ export function identityOptionsFromEnv(env: NodeJS.ProcessEnv = process.env): Id
     sessionSecret: sessionSecretFromEnv(env),
     webBaseUrl: (env.WEB_BASE_URL ?? 'http://localhost:3000').replace(/\/+$/, ''),
     cookieSecure: env.NODE_ENV === 'production',
+    signupsClosed: signupsClosedFromEnv(env),
   };
 }
 
