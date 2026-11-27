@@ -16357,7 +16357,7 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** `OwnStandingResponse` carries `decisions` (`OwnDecision`), `ModerationQueueResponse` and `MemberModerationHistory` carry `appeals` (`QueuedAppeal`), and `OwnSanction` drops `lifted_by`. The rate-limit inventory lists the new route as deliberately unlimited, like the sanction's appeal (T-213). A moderator's reply to an appeal, or a removal that records its item, needs its own decision.
 
-## D-466 — A new account leaves the first run on the day's matches still to pick, with one "Make a prediction" action until the first pick
+## D-467 — A new account leaves the first run on the day's matches still to pick, with one "Make a prediction" action until the first pick
 
 **Date.** 2026-11-27. **Status.** Accepted (the engineering session, within the brief of T-1964, D-459; visible, shown to the maintainer on screenshots before any deploy). **Task:** T-1964. **Amends:** T-522's and T-1737's landing for a member nobody invited. **Follows:** D-358, D-361, D-390, rule 6.
 
