@@ -970,6 +970,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
      * accounts above), and any 403 that comes back must be `forbidden`, or
      * `email_unverified` for an account not yet verified. The refusals a
      * probe cannot reach are held to the same rule in `forbidden-code.spec.ts`.
+     * `registration_closed` (D-462) is deliberately not admitted here: only
+     * `POST /auth/register` may answer it, and that is a public write, not
+     * probed; any other route answering it is wrong.
      */
     describe('every 403 the router answers is forbidden', () => {
       it('as a member with no role, on every route', async () => {
