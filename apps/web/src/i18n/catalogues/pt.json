@@ -7327,7 +7327,7 @@
     "status": "untranslated"
   },
   "scores.firstPick.lead": {
-    "source": "Choose the result you expect in one of these matches. The model’s forecast is shown beside your pick, never mixed into it.",
+    "source": "Choose the result you expect in one of these matches. The model’s forecast, when it has one, is shown beside your pick, never mixed into it.",
     "text": "",
     "status": "untranslated"
   },

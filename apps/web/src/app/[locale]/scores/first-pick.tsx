@@ -1,29 +1,35 @@
 import type { PendingPick, PredictionHistoryResponse, ScoreCard } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
-import { ButtonLink } from '@/components/ui';
+import { ButtonLink, buttonClasses } from '@/components/ui';
+import type { ScoresView } from '@/lib/scores';
 import { isOpenForPick } from '@/lib/scores-filters';
 
 /**
- * A member's first prediction (T-1964): the one clear action a new account
- * meets where `/welcome` leaves it, the day's matches still to pick
- * (`afterRegistration`). «پیش‌بینی کن» / "Make a prediction" opens the
- * preview of the match the page already offers first -- on a phone the
- * sheet, on a desktop the side column it is already in -- whose outcomes
- * save the pick in one more tap.
+ * A member's first prediction (T-1964, D-467): the one clear action a new
+ * account meets where `/welcome` leaves it, "Not picked yet"
+ * (`afterRegistration`). «پیش‌بینی کن» / "Make a prediction" leads to the
+ * pick of the match the page already offers first, whose outcomes save the
+ * pick in one more tap:
+ * - under 1024px it opens that match's sheet (`?pick=<id>`), as a row's Pick does;
+ * - from 1024px, where that pick is already open in the side column, it is a
+ *   plain fragment link to it (`#pick`): the browser brings it into view and
+ *   the column is outlined while it is the page's target (`match-preview.tsx`).
  *
- * Only for a member who has no prediction at all (one page of their own
- * history says so) and no pick waiting on that match for their address to
- * be confirmed (D-361); only while that match is open. Anyone else sees the
- * page as before: the card goes with the first pick, nothing is stored to
- * remember it.
+ * Only on "Not picked yet", only for a member who has no prediction at all
+ * (their own history says so, `total` 0) and no pick waiting on that match for
+ * their address to be confirmed (D-361), and only while that match is open.
+ * Anyone else sees the page as before: the card goes with the first pick,
+ * nothing is stored to remember it.
  */
 export function showsFirstPick({
+  view,
   signedIn,
   history,
   pending,
   card,
   now,
 }: {
+  view: ScoresView;
   signedIn: boolean;
   /** The member's own history as the page read it, or null when it did not. */
   history: { ok: true; data: PredictionHistoryResponse } | { ok: false } | null;
@@ -33,13 +39,15 @@ export function showsFirstPick({
   card: Pick<ScoreCard, 'status' | 'kickoff_at'> | null;
   now: number;
 }): boolean {
-  if (!signedIn || card === null || pending !== null || !isOpenForPick(card, now)) return false;
+  if (view !== 'unpicked' || !signedIn) return false;
+  if (card === null || pending !== null || !isOpenForPick(card, now)) return false;
   // Unread or unreadable is not "none": nothing is claimed about a history the page has not seen.
   if (history === null || !history.ok || history.data.kind !== 'visible') return false;
   return history.data.total === 0 && history.data.items.length === 0;
 }
 
 export function FirstPick({ locale, href }: { locale: string; href: string }) {
+  const action = <Translated locale={locale} message="scores.firstPick.action" />;
   return (
     <section
       aria-labelledby="first-pick-title"
@@ -59,10 +67,19 @@ export function FirstPick({ locale, href }: { locale: string; href: string }) {
         scroll={false}
         variant="primary"
         size="md"
+        className="lg:hidden"
         data-testid="first-pick-action"
       >
-        <Translated locale={locale} message="scores.firstPick.action" />
+        {action}
       </ButtonLink>
+      {/* A fragment of this page, so a plain link: the browser sets `:target`. */}
+      <a
+        href="#pick"
+        className={buttonClasses({ variant: 'primary', size: 'md', className: 'max-lg:hidden' })}
+        data-testid="first-pick-beside"
+      >
+        {action}
+      </a>
     </section>
   );
 }
