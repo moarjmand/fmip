@@ -14,8 +14,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
  * back: its rows never commit, and accounts other suites create meanwhile are outside the
  * snapshot. Every account the snapshot holds besides the fixture's goes into the internal list,
  * so the counts are the fixture's alone. The invitation date is 20 days before today (UTC), so
- * the run falls in week 3, the week still running. The session's own time zone is set far from
- * UTC first: the file must pin UTC itself.
+ * the run falls in week 3, the week still running (13 days for the two-week fixtures). The
+ * session's own time zone is set far from UTC first: the file must pin UTC itself.
+ *
+ * Besides the exact lines, every output is checked for what a reader could work out: no total
+ * may be exact while a cell of its column is hidden, and the 7-day return's denominator must be
+ * a sum of shown sign-up cells (review rounds 1 and 2 of PR #966).
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const ROOT = join(__dirname, '..', '..', '..');
@@ -25,11 +29,14 @@ const SQL = readFileSync(
 );
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
 const FEW = 'کمتر از ۵';
-const HID = 'پنهان';
+const OVER = ' (روی هفته‌های نشان‌داده)';
 const H = 60; // minutes in an hour: every offset below is in minutes from the invitation
+const WEEK = 7 * 24 * H;
 
 type Account = { tag: string; at: number; verified: boolean; status?: string; staff?: boolean };
 type Fixture = {
+  /** The invitation, this many days before today (UTC): 20 gives three weeks, 13 two. */
+  days: number;
   accounts: Account[];
   /** When each member saved a prediction, one fixture each. */
   picks: Record<string, number[]>;
@@ -39,11 +46,39 @@ type Fixture = {
 const hours = (...h: number[]): number[] => h.map((x) => x * H);
 
 /**
- * Two hidden weeks whose sum is under 5, the running week hidden, and the people left out.
- * Weekly (signed up, verified, active, predictions): week 1 (6, 5, 6, 13), week 2 (3, 1, 3, 6),
- * week 3 (1, 1, 3, 4); totals (10, 7, 10 people, 23) over 12 member-weeks.
+ * Weekly sign-ups `s`, the first `v` of each verified, and per week `active` members who save one
+ * prediction that week (members from before the invitation, a fresh set each week, so the people
+ * add up: they are not sign-ups).
  */
-const ONE: Fixture = {
+function weekly(s: number[], v: number[], active: number[] = [], days = 20): Fixture {
+  const accounts: Account[] = [];
+  const picks: Record<string, number[]> = {};
+  s.forEach((n, w) => {
+    for (let i = 0; i < n; i++) {
+      accounts.push({
+        tag: `w${String(w + 1)}n${String(i)}`,
+        at: w * WEEK + 34 * H,
+        verified: i < v[w]!,
+      });
+    }
+  });
+  active.forEach((n, w) => {
+    for (let i = 0; i < n; i++) {
+      const tag = `q${String(w + 1)}n${String(i)}`;
+      accounts.push({ tag, at: -134 * H, verified: true });
+      picks[tag] = [w * WEEK + 36 * H];
+    }
+  });
+  return { days, accounts, picks, sessions: [] };
+}
+
+/**
+ * The rich fixture: the people left out, a session a minute short of day 7 and one on it.
+ * Weekly (signed up, verified, active, predictions): week 1 (6, 5, 6, 13), week 2 (3, 1, 3, 6),
+ * week 3 (1, 1, 3, 4).
+ */
+const RICH: Fixture = {
+  days: 20,
   accounts: [
     ...['a1', 'a2', 'a3', 'a4', 'a5'].map((tag) => ({ tag, at: 34 * H, verified: true })),
     { tag: 'a6', at: 34 * H, verified: false },
@@ -91,50 +126,88 @@ const ONE: Fixture = {
   ],
 };
 
-/**
- * Exactly one hidden week (the running one). Weekly (signed up, verified, active, predictions):
- * week 1 (6, 5, 5, 5), week 2 (5, 5, 6, 6), week 3 (2, 0, 2, 2); totals (13, 10, 6 people, 13)
- * over 13 member-weeks. Signed up leaves 2 behind the shown cells and verified 0; predictions
- * and member-weeks leave 2.
- */
-const TWO: Fixture = {
-  accounts: [
-    ...['a1', 'a2', 'a3', 'a4', 'a5'].map((tag) => ({ tag, at: 34 * H, verified: true })),
-    { tag: 'a6', at: 34 * H, verified: false },
-    ...['b1', 'b2', 'b3', 'b4', 'b5'].map((tag) => ({ tag, at: 202 * H, verified: true })),
-    { tag: 'c1', at: 370 * H, verified: false },
-    { tag: 'c2', at: 370 * H, verified: false },
-  ],
-  picks: {
-    a1: hours(60, 228, 396),
-    a2: hours(60, 228, 396),
-    a3: hours(60, 228),
-    a4: hours(60, 228),
-    a5: hours(60, 228),
-    a6: hours(228),
-  },
-  sessions: [],
-};
-
-/** Production's case on 2026-11-27: one member, nothing else. */
-const THREE: Fixture = {
-  accounts: [{ tag: 't1', at: 34 * H, verified: false }],
-  picks: {},
-  sessions: [],
+/** The reviewer's scenarios (round 2), each a way an exact total used to give a hidden cell back. */
+const SCENARIOS: Record<string, Fixture> = {
+  rich: RICH,
+  a: weekly([10, 4, 4], [10, 4, 4]), // two hidden cells summing to 8: both were 4
+  b: weekly([12, 5, 1], [12, 5, 1]), // a shown 5 beside a hidden 1
+  c: weekly([5, 6], [5, 1], [], 13), // verified hidden beside a shown sign-up cell
+  d: weekly([6, 6, 1], [6, 6, 1], [6, 5, 1]), // the per-active figure gave away member-weeks
+  e: weekly([9, 9, 4], [9, 9, 4]), // ties
+  f: weekly([5, 1], [5, 1], [], 13), // the second Monday's likely shape
+  one: weekly([1, 0, 0], [0, 0, 0]), // production on 2026-11-27: one member
 };
 
 const persian = (text: string): string => text.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]!);
+const latin = (text: string): string =>
+  text.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace('٫', '.');
+const HEAD = [
+  '| هفته | از | ثبت‌نام | ایمیل تأییدشده | عضو فعال | پیش‌بینی | پیش‌بینی هر عضو فعال |',
+  '|---|---|---|---|---|---|---|',
+];
+
+/**
+ * What a reader could work out of a printed table, checked: no cell says «پنهان»; a column with a
+ * hidden weekly cell gives no exact total, only «دست‌کم» the sum of its shown cells (for active
+ * members at most that sum, people being counted once); the per-active figure is the shown weeks'
+ * own; the 7-day return's denominator is a sum of shown sign-up cells.
+ */
+function noExactRecovery(lines: string[]): void {
+  expect(lines.join('\n')).not.toContain('پنهان');
+  const rows = lines.filter((l) => /^\| [۰-۹]/.test(l)).map((l) => l.split(' | ').slice(2, 7));
+  const total = lines
+    .find((l) => l.startsWith('| همه |'))!
+    .replace(/^\| همه \| \| /, '')
+    .replace(/ \|$/, '')
+    .split(' | ');
+  for (const col of [0, 1, 2, 3]) {
+    const cells = rows.map((r) => r[col]!.replace(/ \|$/, ''));
+    const shown = cells.filter((c) => c !== FEW).map((c) => Number(latin(c)));
+    const sum = shown.reduce((x, y) => x + y, 0);
+    if (cells.includes(FEW)) {
+      expect(total[col]).toMatch(/^دست‌کم /);
+      const n = Number(latin(total[col]!.replace('دست‌کم ', '')));
+      if (col === 2) expect(n).toBeLessThanOrEqual(sum);
+      else expect(n).toBe(sum);
+    } else {
+      expect(total[col]).not.toMatch(/^دست‌کم /);
+    }
+  }
+  const shownBlocks = rows.filter((r) => r[2] !== FEW);
+  const ratio = total[4]!;
+  if (shownBlocks.length === 0) expect(ratio).toBe(FEW);
+  else {
+    const p = shownBlocks.reduce((x, r) => x + Number(latin(r[3]!)), 0);
+    const a = shownBlocks.reduce((x, r) => x + Number(latin(r[2]!)), 0);
+    expect(Number(latin(ratio.replace(OVER, '')))).toBeCloseTo(p / a, 2);
+    if (shownBlocks.length < rows.length) expect(ratio.endsWith(OVER)).toBe(true);
+  }
+  const back = lines.find((l) => l.startsWith('بازگشت'))!;
+  const of = /[؛:] [۰-۹]+ از ([۰-۹]+) /.exec(back);
+  if (of !== null) {
+    const shownSignUps = rows
+      .map((r) => r[0]!)
+      .filter((c) => c !== FEW)
+      .map((c) => Number(latin(c)));
+    const sums = shownSignUps.reduce((acc, x) => [...acc, ...acc.map((y) => y + x)], [0]);
+    expect(sums).toContain(Number(latin(of[1]!)));
+  }
+}
 
 describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the launch measure', () => {
   let client: Client;
-  let launch = '';
-  const out: Record<string, string[]> = {};
+  const out: Record<string, { launch: string; lines: string[] }> = {};
   const ids: string[] = [];
 
   /** Seeds the fixture, measures it and rolls it back; the lines the file printed. */
-  async function measure(fixture: Fixture): Promise<string[]> {
+  async function measure(fixture: Fixture): Promise<{ launch: string; lines: string[] }> {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
     try {
+      const { rows: day } = await client.query<{ launch: string }>(
+        `SELECT to_char((now() AT TIME ZONE 'UTC')::date - $1::int, 'YYYY-MM-DD') AS launch`,
+        [fixture.days],
+      );
+      const launch = day[0]!.launch;
       const at = `$1::date::timestamp AT TIME ZONE 'UTC' + make_interval(mins => $2::int)`;
       const most = Math.max(1, ...Object.values(fixture.picks).map((p) => p.length));
       const { rows: fixtures } = await client.query<{ id: string }>(
@@ -197,88 +270,105 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the launch m
         `'${internal}'`,
       );
       const results = (await client.query(text)) as unknown as { rows: { line: string }[] }[];
-      return results.flatMap((result) => result.rows.map((row) => row.line));
+      return { launch, lines: results.flatMap((result) => result.rows.map((row) => row.line)) };
     } finally {
       await client.query('ROLLBACK');
     }
   }
 
-  const start = (week: number): string => {
-    const day = new Date(`${launch}T00:00:00Z`);
+  /** The first day of a week, in Persian digits, for the scenario's invitation. */
+  const start = (name: string, week: number): string => {
+    const day = new Date(`${out[name]!.launch}T00:00:00Z`);
     day.setUTCDate(day.getUTCDate() + 7 * (week - 1));
     return persian(day.toISOString().slice(0, 10));
   };
-  const HEAD = [
-    '| هفته | از | ثبت‌نام | ایمیل تأییدشده | عضو فعال | پیش‌بینی | پیش‌بینی هر عضو فعال |',
-    '|---|---|---|---|---|---|---|',
-  ];
+  const hidden = (label: string, from: string): string =>
+    `| ${label} | ${from} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`;
 
   beforeAll(async () => {
     client = new Client({ connectionString: DATABASE_URL });
     await client.connect();
     // A launch at midnight UTC is the afternoon before in Los Angeles.
     await client.query(`SET TIME ZONE 'America/Los_Angeles'`);
-    const { rows } = await client.query<{ launch: string }>(
-      `SELECT to_char((now() AT TIME ZONE 'UTC')::date - 20, 'YYYY-MM-DD') AS launch`,
-    );
-    launch = rows[0]!.launch;
-    out.one = await measure(ONE);
-    out.two = await measure(TWO);
-    out.three = await measure(THREE);
-  });
+    for (const [name, fixture] of Object.entries(SCENARIOS)) out[name] = await measure(fixture);
+  }, 60_000); // eight fixtures, row by row: past the 10 s default on a busy machine
 
   afterAll(async () => {
     await client.end();
   });
 
-  it('hides what a subtraction would give back: two hidden weeks under 5 together, the running week', () => {
-    expect(out.one!.slice(0, 6)).toEqual([
+  it("gives the hand count per invitation week, a hidden cell «کمتر از ۵», its column's total «دست‌کم»", () => {
+    expect(out.rich!.lines).toEqual([
       ...HEAD,
-      // Signed up 10 - 6 = 4 and verified 7 - 5 = 2 behind the shown cells, and 10 people - 6
-      // shown = 4: week 1's cells go too, as «پنهان» (they are 5 or more).
-      `| ۱ | ${start(1)} | ${HID} | ${HID} | ${HID} | ${HID} | ${HID} |`,
-      `| ۲ | ${start(2)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      `| ۳ (در جریان) | ${start(3)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      // 10 signed up, 7 verified, 10 different people active, 23 predictions over 12 member-weeks
-      '| همه | | ۱۰ | ۷ | ۱۰ | ۲۳ | ۱٫۹۲ |',
+      // 6 signed up, 5 verified; 6 active (p1 among them), 13 predictions, 13 / 6
+      `| ۱ | ${start('rich', 1)} | ۶ | ۵ | ۶ | ۱۳ | ۲٫۱۷ |`,
+      hidden('۲', start('rich', 2)),
+      hidden('۳ (در جریان)', start('rich', 3)),
+      // the totals (10, 7, 10 people, 23) are not printed: they would give weeks 2 and 3 back
+      `| همه | | دست‌کم ۶ | دست‌کم ۵ | دست‌کم ۶ | دست‌کم ۱۳ | ۲٫۱۷${OVER} |`,
+      // Week 1 (6 members, the only whole week 7 days past): seen on or after day 7 a1, a2, a4,
+      // a5, a6 (a3 a minute short); predicted then a1, a2, a6. Week 2 has 3: not counted.
+      'بازگشت ۷ روزه، اعضای هفتهٔ ۱: ۵ از ۶ در روز هفتم یا پس از آن دوباره دیده شدند؛ ۳ از همان ۶ در روز هفتم یا پس از آن پیش‌بینی هم کردند.',
     ]);
   });
 
-  it('with one hidden week, hides the smallest shown cell of a column whose remainder is 1 to 4, and keeps the totals', () => {
-    expect(out.two).toEqual([
+  it("gives no hidden cell back in any of the reviewer's scenarios", () => {
+    for (const [name, { lines }] of Object.entries(out)) {
+      expect(lines.length, name).toBeGreaterThan(4);
+      noExactRecovery(lines);
+    }
+    const totals = Object.fromEntries(
+      Object.entries(out).map(([name, { lines }]) => [
+        name,
+        lines.find((l) => l.startsWith('| همه |')),
+      ]),
+    );
+    expect(totals).toEqual({
+      rich: `| همه | | دست‌کم ۶ | دست‌کم ۵ | دست‌کم ۶ | دست‌کم ۱۳ | ۲٫۱۷${OVER} |`,
+      a: `| همه | | دست‌کم ۱۰ | دست‌کم ۱۰ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      b: `| همه | | دست‌کم ۱۷ | دست‌کم ۱۷ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      c: `| همه | | ۱۱ | دست‌کم ۵ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      d: `| همه | | دست‌کم ۱۲ | دست‌کم ۱۲ | دست‌کم ۱۱ | دست‌کم ۱۱ | ۱٫۰۰${OVER} |`,
+      e: `| همه | | دست‌کم ۱۸ | دست‌کم ۱۸ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      f: `| همه | | دست‌کم ۵ | دست‌کم ۵ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      one: `| همه | | دست‌کم ۰ | دست‌کم ۰ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+    });
+  });
+
+  it('shows a sign-up cell beside a hidden verified cell, with no exact verified total (scenario c)', () => {
+    expect(out.c!.lines).toEqual([
       ...HEAD,
-      // Signed up: 13 - (6 + 5) = 2, so week 2's 5 goes; verified: 10 - (5 + 5) = 0, nothing more.
-      // Predictions 13 - (5 + 6) = 2 and member-weeks 13 - 11 = 2: the smaller block, week 1's, goes.
-      `| ۱ | ${start(1)} | ۶ | ۵ | ${HID} | ${HID} | ${HID} |`,
-      `| ۲ | ${start(2)} | ${HID} | ۵ | ۶ | ۶ | ۱٫۰۰ |`,
-      `| ۳ (در جریان) | ${start(3)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      '| همه | | ۱۳ | ۱۰ | ۶ | ۱۳ | ۱٫۰۰ |',
-      // Eligible a1-a6 and b1-b5; no sessions in this fixture; a1-a6 predicted in week 2.
-      'بازگشت ۷ روزه: ۰ از ۱۱ عضوی که دست‌کم ۷ روز پیش ثبت‌نام کرده‌اند، در روز هفتم یا پس از آن دوباره دیده شدند؛ ۶ از همان ۱۱ در روز هفتم یا پس از آن پیش‌بینی هم کردند.',
+      `| ۱ | ${start('c', 1)} | ۵ | ۵ | ${FEW} | ${FEW} | ${FEW} |`,
+      `| ۲ (در جریان) | ${start('c', 2)} | ۶ | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
+      `| همه | | ۱۱ | دست‌کم ۵ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      'بازگشت ۷ روزه: هنوز هفته‌ای نیست که دست‌کم ۷ روز پیش تمام شده و ثبت‌نامش نشان داده شده باشد.',
     ]);
   });
 
-  it('prints a total under 5 as «کمتر از ۵», hides the ratio, and waits for 5 eligible members', () => {
-    expect(out.three).toEqual([
-      ...HEAD,
-      `| ۱ | ${start(1)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      `| ۲ | ${start(2)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      `| ۳ (در جریان) | ${start(3)} | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${FEW} |`,
-      `| همه | | ${FEW} | ${FEW} | ${FEW} | ${FEW} | ${HID} |`,
-      'بازگشت ۷ روزه: کمتر از ۵ عضو دست‌کم ۷ روز پیش ثبت‌نام کرده‌اند؛ تا ۵ نشوند نشان داده نمی‌شود.',
+  it('computes the per-active figure over the shown weeks only (scenario d)', () => {
+    expect(out.d!.lines.slice(2, 6)).toEqual([
+      `| ۱ | ${start('d', 1)} | ۶ | ۶ | ۶ | ۶ | ۱٫۰۰ |`,
+      `| ۲ | ${start('d', 2)} | ۶ | ۶ | ۵ | ۵ | ۱٫۰۰ |`,
+      hidden('۳ (در جریان)', start('d', 3)),
+      `| همه | | دست‌کم ۱۲ | دست‌کم ۱۲ | دست‌کم ۱۱ | دست‌کم ۱۱ | ۱٫۰۰${OVER} |`,
     ]);
   });
 
-  it('gives the 7-day return as counts: seen again on or after day 7, and predicted then', () => {
-    // Eligible: a1-a6 and b1-b3 (c1 joined under 7 days ago). Seen: a1, a2, a4, a5, a6, b2.
-    // Predicted on or after their day 7: a1, a2, a6.
-    expect(out.one!.slice(6)).toEqual([
-      'بازگشت ۷ روزه: ۶ از ۹ عضوی که دست‌کم ۷ روز پیش ثبت‌نام کرده‌اند، در روز هفتم یا پس از آن دوباره دیده شدند؛ ۳ از همان ۹ در روز هفتم یا پس از آن پیش‌بینی هم کردند.',
+  it('prints only «کمتر از ۵» and «دست‌کم ۰» for one member, and no return yet', () => {
+    expect(out.one!.lines).toEqual([
+      ...HEAD,
+      hidden('۱', start('one', 1)),
+      hidden('۲', start('one', 2)),
+      hidden('۳ (در جریان)', start('one', 3)),
+      `| همه | | دست‌کم ۰ | دست‌کم ۰ | دست‌کم ۰ | دست‌کم ۰ | ${FEW} |`,
+      'بازگشت ۷ روزه: هنوز هفته‌ای نیست که دست‌کم ۷ روز پیش تمام شده و ثبت‌نامش نشان داده شده باشد.',
     ]);
   });
 
   it('prints no id, username or e-mail, selects no personal column, and pins UTC', () => {
-    const output = Object.values(out).flat().join('\n');
+    const output = Object.values(out)
+      .flatMap((o) => o.lines)
+      .join('\n');
     expect(output).not.toMatch(/@|lm_/);
     for (const id of ids) expect(output).not.toContain(id);
     const code = SQL.replace(/--.*$/gm, '');
