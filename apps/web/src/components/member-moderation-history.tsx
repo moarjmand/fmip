@@ -1,8 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
-import type { MemberModerationHistory, QueuedAppeal, Sanction } from '@fmip/contracts';
-import Link from '@/components/ui/link';
+import type { MemberModerationHistory, Sanction } from '@fmip/contracts';
 import { liftSanctionAction } from '@/lib/moderation-actions';
 import { Button, FormStatus, TextArea } from '@/components/ui';
 
@@ -51,69 +50,6 @@ function Lift({
       </Button>
       {state !== null && <FormStatus ok={state.ok}>{state.message}</FormStatus>}
     </form>
-  );
-}
-
-/**
- * Members' appeals of sanctions and decisions (T-1973), newest first: in the
- * queue for every member, and on one member's history page for theirs. What
- * was appealed, the decision's reason, the appeal's words and when. A
- * moderator answers a sanction's appeal by lifting it, or a decision's by a
- * new decision; the appeal itself stays as written.
- */
-export function MemberAppeals({
-  locale,
-  appeals,
-  showMember = false,
-}: {
-  locale: string;
-  appeals: QueuedAppeal[];
-  /** In the queue, each appeal names its member and links to their history. */
-  showMember?: boolean;
-}) {
-  if (appeals.length === 0) {
-    return (
-      <p className="text-sm text-muted" data-testid="moderation-appeals-empty">
-        No appeal has been written.
-      </p>
-    );
-  }
-  return (
-    <ul className="flex flex-col gap-3" data-testid="moderation-appeals">
-      {appeals.map((appeal) => (
-        <li
-          key={appeal.id}
-          className="flex flex-col gap-1 rounded border border-default p-3 text-sm"
-          data-testid="moderation-appeal"
-        >
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            {showMember && (
-              <Link
-                href={`/${locale}/admin/moderation/${encodeURIComponent(appeal.username)}`}
-                className="font-medium underline"
-              >
-                @{appeal.username}
-              </Link>
-            )}
-            <span className="font-medium">
-              {appeal.sanction_id === null
-                ? appeal.outcome
-                : `${appeal.scope ?? 'restriction'} (${appeal.active === true ? 'in force' : 'not in force'})`}
-            </span>
-            <span className="text-muted">
-              appealed <time dateTime={appeal.created_at}>{appeal.created_at}</time>
-            </span>
-          </p>
-          <p className="text-muted">
-            Decision&apos;s reason:{' '}
-            <span className="whitespace-pre-wrap">{appeal.decision_reason}</span>
-          </p>
-          <p className="whitespace-pre-wrap" data-testid="moderation-appeal-body">
-            {appeal.body}
-          </p>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -180,11 +116,6 @@ export function MemberModerationHistoryView({
             ))}
           </ul>
         )}
-      </section>
-
-      <section className="flex flex-col gap-2" data-testid="moderation-history-appeals">
-        <h2 className="text-lg font-semibold">Their appeals</h2>
-        <MemberAppeals locale={locale} appeals={history.appeals} />
       </section>
 
       <section className="flex flex-col gap-2" data-testid="moderation-history-reports">

@@ -54,9 +54,15 @@ describe('the moderation queue page', () => {
   it('shows members’ appeals beside the reports and on the member’s history (T-1973)', () => {
     expect(PAGE).toContain('data-testid="moderation-appeals-section"');
     expect(PAGE).toContain('appeals={result.data.appeals}');
-    const history = readFileSync(join(HERE, 'member-moderation-history.tsx'), 'utf8');
-    expect(history).toContain('appeals={history.appeals}');
-    expect(history).toContain('data-testid="moderation-appeal-body"');
+    const historyPage = readFileSync(
+      join(HERE, '..', 'app', '[locale]', 'admin', 'moderation', '[username]', 'page.tsx'),
+      'utf8',
+    );
+    expect(historyPage).toContain('appeals={result.data.appeals}');
+    // Named by the rule: a deleted member is never a handle (member-names.spec.ts).
+    const list = readFileSync(join(HERE, 'member-appeals.tsx'), 'utf8');
+    expect(list).toContain('<MemberHandle username={appeal.username} />');
+    expect(list).not.toContain('@{');
   });
 
   it('asks for a reason, and leaves the rules to the API', () => {

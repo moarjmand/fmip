@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { GroupModerationQueue } from '@/components/group-moderation';
-import { MemberAppeals } from '@/components/member-moderation-history';
+import { MemberAppeals } from '@/components/member-appeals';
 import { ModerationQueue } from '@/components/moderation-queue';
 import { fetchMe, fetchModerationQueue } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
