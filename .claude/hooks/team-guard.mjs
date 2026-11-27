@@ -27,6 +27,9 @@
 //     Out-File -Append, cp, mv, sed -i, rm, an inline node or python program that names the
 //     folder, any program this file does not know that is handed a findings path. Reading them
 //     (cat, grep, jq, head, `finding.mjs list`) is free.
+//   - The post-deploy verifier, `node .claude/skills/team-charter/bin/verify.mjs` (T-1896), is the
+//     coordinator's: it reaches the server and appends verdicts, so it is refused for all sixteen,
+//     a dry run and a copy of it included; its tests (test-verify.mjs) use fixtures and pass.
 //   - Bash / PowerShell: read-only git (an allow-list of verbs), read-only gh (an allow-list), no
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
@@ -111,6 +114,8 @@ const SERVER = 'fmip-prod';
 const SERVER_SCRIPT =
   /(^|\/)\.claude\/skills\/(data-audit\/run\.sh|ops-check\/ops-check\.sh|fmip-security\/server-hardening\.sh|product-strategy\/seo-check\.sh|search-visibility\/structured-data\.sh)$/i;
 const FINDING_DOOR = /(^|\/)\.claude\/skills\/team-charter\/bin\/finding\.mjs$/i;
+/** The post-deploy verifier (T-1896): it reaches the server and closes findings, so the coordinator runs it. */
+const VERIFIER = /(^|\/)verify\.mjs$/i;
 const ROLLOUT = /(^|\/)deploy\/rollout\.sh$|^rollout\.sh$/i;
 
 /**
@@ -795,6 +800,9 @@ function checkSimple(allWords, cmd, ctx) {
     const file = args.find((a) => !a.startsWith('-')) ?? '';
     const placed = normPath(file, ctx.cwd, true);
     if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) return;
+    if (VERIFIER.test(placed ?? file.replace(/\\/g, '/'))) {
+      deny('runs the post-deploy verifier (verify.mjs, T-1896): the coordinator runs it after a deploy; read its output in the deploy record, and its tests are test-verify.mjs');
+    }
   }
   // For the two that never reach the server, its name on any command line is refused, a grep's
   // included; only a heredoc's body (a report's text) and the findings door may carry it.

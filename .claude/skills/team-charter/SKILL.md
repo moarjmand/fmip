@@ -139,11 +139,22 @@ maintainer and the teammate (never the security agent's, T-1879).
   its own id. `planned`, `rejected` and `snoozed` are a person's decisions: the line names whose
   (`--by <person>`, kept as `by`), and the script refuses an agent's name there; an agent proposes
   them in its report. The same holds for `--public`.
-- Optional in a line: `verify` (the check that proves the fix: a data-audit invariant's name, or an
-  address with one assertion, T-1896), `report` (the path of the report that explains it), `quoted`
+- Optional in a line: `verify` (the check that proves the fix, T-1896: a data-audit invariant's name,
+  `S2 scheduled_in_the_past`, which holds at 0 violations; or an address on our own site with one
+  assertion, `https://traveltohormuz.ir/en/news lacks "fragrance"`, where the assertion is `status
+  <code>`, `has <text>`, `lacks <text>`, `header <name>[: <text>]` or `no-header <name>`; GET only),
+  `report` (the path of the report that explains it), `quoted`
   (outside text, word for word, kept out of `title` and `proposal`), `task` (the task id it
   joined), `public` (a security finding's detail may show on the console: true only on the
   maintainer's word, D-455).
+- **The verifier** (`bin/verify.mjs`, T-1896) is run by the coordinator after each deploy, never by an
+  agent (the guard refuses it): it re-runs the `verify` of every `fixed-unverified` finding and appends
+  `resolved` or `open` with what it saw. Give a fix you can prove a `verify` when you file it (`add
+  --verify "..."`) or later (`seen <id> --status fixed-unverified --verify "..." --evidence-file ...`,
+  keeping the status); a finding without one waits for its owner to re-check it by hand.
+- **Fixture mode** (T-1895): with `FMIP_FIXTURE=<dir>` the five read-only scripts print
+  `<dir>/<script name>.txt` and exit with `<dir>/<script name>.exit` instead of reaching the server,
+  and `OPS_ROOT=<dir>` moves every folder they and `finding.mjs` write; the evals use both.
 - **Every agent writes its findings to the day's file**, not only to its report: the chief of
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
   `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),

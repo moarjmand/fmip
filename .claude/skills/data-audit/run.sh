@@ -9,18 +9,39 @@
 # The database credentials stay inside the container; nothing reads /opt/fmip/.env.
 # A failed statement stops the file (ON_ERROR_STOP) and the run ends with AUDIT-ERROR and
 # a non-zero exit; a file that prints nothing says AUDIT-EMPTY. Never a silent pass.
-# Each run of invariants.sql is saved to $AUDIT_OUT (default E:/FMIP/data-audit/runs),
-# outside the repository, as <UTC timestamp>.txt, so a later run can be compared with it.
+# Each run of invariants.sql is saved to $AUDIT_OUT (default $OPS_ROOT/data-audit/runs when
+# OPS_ROOT is set, else E:/FMIP/data-audit/runs), outside the repository, as <UTC timestamp>.txt,
+# so a later run can be compared with it.
+#
+# Fixture mode (T-1895): FMIP_FIXTURE=<dir> replays a saved run and opens no connection: it prints
+# <dir>/run.txt, whatever the query file, and exits with the code in <dir>/run.exit (0 when there is
+# none). Make one with `bash run.sh > <dir>/run.txt; echo $? > <dir>/run.exit`. A successful replay
+# of invariants.sql is saved like a real run, but only where OPS_ROOT or AUDIT_OUT points, never
+# among the real runs; a missing fixture is AUDIT-ERROR, never the server.
 
 set -uo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
 file="${1:-$here/invariants.sql}"
-out_dir="${AUDIT_OUT:-/e/FMIP/data-audit/runs}"
+out_dir="${AUDIT_OUT:-${OPS_ROOT:+$OPS_ROOT/data-audit/runs}}"
+out_dir="${out_dir:-/e/FMIP/data-audit/runs}"
 
 if [ ! -f "$file" ]; then
   echo "AUDIT-ERROR: $file not found" >&2
   exit 2
+fi
+
+if [ -n "${FMIP_FIXTURE:-}" ]; then
+  fx="$FMIP_FIXTURE/run"
+  [ -f "$fx.txt" ] || { echo "AUDIT-ERROR: FMIP_FIXTURE is set and $fx.txt is missing (no connection was opened)" >&2; exit 2; }
+  status=0; [ -f "$fx.exit" ] && status="$(tr -d ' \t\r\n' < "$fx.exit")"
+  case "$status" in ''|*[!0-9]*) echo "AUDIT-ERROR: $fx.exit holds no exit code" >&2; exit 2 ;; esac
+  cat "$fx.txt"
+  if [ "$status" -eq 0 ] && [ "$file" = "$here/invariants.sql" ] && [ -n "${AUDIT_OUT:-}${OPS_ROOT:-}" ]; then
+    mkdir -p "$out_dir"
+    cat "$fx.txt" > "$out_dir/$(date -u +%Y-%m-%dT%H%MZ).txt"
+  fi
+  exit "$status"
 fi
 
 remote="/tmp/data-audit-$$.sql"
