@@ -6,22 +6,26 @@
 # Runs launch-measure.sql for the invitation weeks since <launch> (a UTC day; week 1 is its first
 # seven days) through .claude/skills/data-audit/run.sh, whose session is read-only and is the
 # only way to production's database, prints one short table in Persian and writes it to
-# $MEASURE_OUT/<UTC date>-launch-measure.md (default E:/FMIP/ops/reports/growth-analyst).
+# E:/FMIP/ops/reports/growth-analyst/<UTC date>-launch-measure.md.
 #
 # The ids file lists the internal accounts (the maintainer's, the team's, test accounts): one id
-# per line, blank lines and `#` comments ignored. It stays outside every git tree, and a file git
-# would take is refused (E:/FMIP/ops is a git repository that a bridge commits). The ids travel
-# only inside the temporary query file, which run.sh deletes on the server and this script here;
-# the output carries counts only. Nothing is written to the database.
+# per line, blank lines and `#` comments ignored. It stays outside every git tree: a file git would
+# take is refused (E:/FMIP/ops is a git repository that a bridge commits), and so is any file when
+# git cannot answer, unless it is under E:/FMIP/data-audit/. The ids travel only inside the
+# temporary query file, which run.sh deletes on the server and this script here; the output
+# carries counts only. Nothing is written to the database.
 #
-# MEASURE_RUNNER replaces run.sh with another runner that takes one SQL file, for the fixture
-# test against a local database; it is not a way to production.
+# MEASURE_LOCAL_DB=<name> runs the same file on that database of the local Compose Postgres
+# (fmip-postgres-1) in a read-only session instead, prints the table and writes no report: the
+# engineering session's fixture check. No other setting changes where it reads or writes, and
+# team-guard refuses MEASURE_ variables to the team agents.
 # A failure says MEASURE-ERROR, exits non-zero and writes no report.
 
 set -uo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
-out_dir="${MEASURE_OUT:-/e/FMIP/ops/reports/growth-analyst}"
+out_dir=/e/FMIP/ops/reports/growth-analyst
+local_db="${MEASURE_LOCAL_DB:-}"
 
 fail() {
   echo "MEASURE-ERROR: $*" >&2
@@ -41,13 +45,39 @@ today="$(date -u +%F)"
 if [[ "$launch" > "$today" ]]; then
   fail "the launch date $launch is after today ($today, UTC)"
 fi
+if [ -n "$local_db" ] && [[ ! "$local_db" =~ ^[a-z0-9_]{1,63}$ ]]; then
+  fail "MEASURE_LOCAL_DB is not a database name"
+fi
 
+# The ids file: outside every git tree, judged by its real path; when git cannot answer, only
+# E:/FMIP/data-audit/ is trusted (it is not a git tree).
 [ -f "$ids_file" ] || fail "the internal ids file was not found: $ids_file"
-ids_dir="$(cd "$(dirname "$ids_file")" && pwd)"
+ids_dir="$(cd "$(dirname "$ids_file")" && pwd -P)" || fail "the internal ids file's folder cannot be read"
 ids_path="$ids_dir/$(basename "$ids_file")"
-if git -C "$ids_dir" rev-parse --is-inside-work-tree > /dev/null 2>&1 &&
-  ! git -C "$ids_dir" check-ignore -q "$ids_path" 2> /dev/null; then
-  fail "the internal ids file is inside a git tree ($(git -C "$ids_dir" rev-parse --show-toplevel)) that does not ignore it; keep it outside every git tree"
+lower="${ids_path,,}"
+case "$lower" in
+  /e/fmip/fmip/* | /e/fmip/fmip-ops/* | /e/fmip/ops/*)
+    fail "the internal ids file is inside the project's repositories; keep it outside every git tree (E:/FMIP/data-audit/ is the place)"
+    ;;
+esac
+trusted=""
+case "$lower" in /e/fmip/data-audit/*) trusted=1 ;; esac
+unset GIT_DIR GIT_WORK_TREE GIT_CEILING_DIRECTORIES GIT_DISCOVERY_ACROSS_FILESYSTEM GIT_COMMON_DIR
+if ! command -v git > /dev/null 2>&1; then
+  [ -n "$trusted" ] || fail "git is not on PATH, so the ids file cannot be shown to be outside a git tree; keep it under E:/FMIP/data-audit/"
+else
+  inside="$(LC_ALL=C git -C "$ids_dir" rev-parse --is-inside-work-tree 2>&1)"
+  status=$?
+  if [ "$status" -eq 0 ] && [ "$inside" = "true" ]; then
+    LC_ALL=C git -C "$ids_dir" check-ignore -q "$ids_path" 2> /dev/null
+    ignored=$?
+    top="$(git -C "$ids_dir" rev-parse --show-toplevel 2> /dev/null)"
+    [ "$ignored" -eq 0 ] || fail "the internal ids file is inside a git tree ($top) that does not ignore it; keep it outside every git tree"
+  elif [ "$status" -ne 0 ] && printf '%s' "$inside" | grep -q 'not a git repository'; then
+    : # outside every git tree
+  elif [ -z "$trusted" ]; then
+    fail "git could not say whether the ids file is outside a git tree (exit $status); keep it under E:/FMIP/data-audit/"
+  fi
 fi
 
 ids=()
@@ -80,9 +110,9 @@ trap 'rm -f "$query"' EXIT
   cat "$here/launch-measure.sql"
 } > "$query"
 
-if [ -n "${MEASURE_RUNNER:-}" ]; then
-  # shellcheck disable=SC2086 # the runner is a command line, e.g. "bash local-runner.sh"
-  result="$($MEASURE_RUNNER "$query")"
+if [ -n "$local_db" ]; then
+  result="$(docker exec -i -e PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=60000" \
+    fmip-postgres-1 psql -U fmip -d "$local_db" -q -X -v ON_ERROR_STOP=1 < "$query" 2>&1)"
 else
   result="$(bash "$here/../data-audit/run.sh" "$query")"
 fi
@@ -106,14 +136,19 @@ $table
 
 $back
 
-- خانهٔ هفتگی زیر ۵ «کمتر از ۵» است، و هفته‌ای با کمتر از ۵ عضو فعال هر سه ستون پیش‌بینی را پنهان می‌کند. ردیف «همه» و بازگشت ۷ روزه جمع‌اند و همان‌طور که هستند آمده‌اند.
+- عدد زیر ۵ «کمتر از ۵» است، در خانهٔ هفته و در ردیف «همه». هفته‌ای با کمتر از ۵ عضو فعال هر سه ستون پیش‌بینی را پنهان می‌کند. اگر جمع یک ستون منهای خانه‌های نشان‌داده ۱ تا ۴ بماند، کوچک‌ترین خانهٔ نشان‌دادهٔ آن ستون هم «پنهان» می‌شود (آن خانه ۵ یا بیشتر است)، تا هیچ خانهٔ پنهانی با تفریق پیدا نشود. بازگشت ۷ روزه فقط وقتی آمده که دست‌کم ۵ عضو ۷ روز از ثبت‌نامشان گذشته باشد.
 - عضو فعال یعنی دست‌کم یک پیش‌بینی در همان هفته. در ردیف «همه» هر عضو فعال یک بار شمرده شده و «پیش‌بینی هر عضو فعال» میانگین هفته‌هایی است که عضو فعال بوده است.
+- شمارش حساب‌های فعالِ امروز است: حسابی که بعداً حذف یا معلق شود از هفتهٔ ثبت‌نامش هم کم می‌شود، پس عدد یک هفته می‌تواند از یک دوشنبه تا دوشنبهٔ بعد پایین بیاید.
 - حد شناخته‌شده: «دوباره دیده شدند» از \`session.last_seen_at\` می‌آید که با استفاده جلو می‌رود (هر درخواستِ با حساب، دست‌بالا هر ۵ دقیقه یک بار) و پس نمی‌رود؛ یعنی «در روز هفتم یا پس از آن دیده شد»، نه «درست روز هفتم سر زد». زبانه‌ای که باز مانده (گفت‌وگوی زنده، جریان نتایج) هم آن را جلو می‌برد؛ «پیش‌بینی هم کردند» کف سخت‌گیرانه‌تر کنار آن است. سر زدن بی ورود به حساب دیده نمی‌شود.
 - بازدیدکننده‌ای که ثبت‌نام نکرده سنجیده نمی‌شود (\`not_supplied\`)، و شمار دعوت‌شده‌ها را سایت نمی‌داند: آن را نگه‌دارنده می‌گوید.
 EOF
 )"
 
 printf '%s\n' "$report"
+if [ -n "$local_db" ]; then
+  echo "local database $local_db: no report written"
+  exit 0
+fi
 mkdir -p "$out_dir" || fail "could not make $out_dir"
 target="$out_dir/$today-launch-measure.md"
 printf '%s\n' "$report" > "$target" || fail "could not write $target"

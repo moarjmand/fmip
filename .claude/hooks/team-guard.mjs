@@ -43,7 +43,8 @@
 //   - The server: only through the six read-only scripts (data-audit/run.sh,
 //     ops-check/ops-check.sh, fmip-security/server-hardening.sh, product-strategy/seo-check.sh,
 //     search-visibility/structured-data.sh, and growth-funnel/launch-measure.sh, which reaches
-//     the database only through run.sh; T-1968) and the raw `ssh fmip-prod '...'` read shapes in
+//     the database only through run.sh; T-1968: setting a MEASURE_ variable is refused, so it
+//     runs as it is) and the raw `ssh fmip-prod '...'` read shapes in
 //     RAW_SSH, which are exactly the ones the agents' files and skills name for ops-release,
 //     security and model-scientist. Raw psql on the server is refused
 //     whatever it says. A command that names the server and is not one of the above is refused
@@ -111,6 +112,13 @@ const SERVER = 'fmip-prod';
 
 const SERVER_SCRIPT =
   /(^|\/)\.claude\/skills\/(data-audit\/run\.sh|ops-check\/ops-check\.sh|fmip-security\/server-hardening\.sh|product-strategy\/seo-check\.sh|search-visibility\/structured-data\.sh|growth-funnel\/launch-measure\.sh)$/i;
+/**
+ * A MEASURE_ variable set on a command line: a `NAME=value` word (a prefix, `env`, `export`,
+ * `declare`) or PowerShell's environment drive. launch-measure.sh reads only MEASURE_LOCAL_DB (a
+ * local read-only run), and the team runs it as it is. A grep for `MEASURE_X=` is refused too.
+ */
+const MEASURE_SET = /^(?:\$?env:)?MEASURE_\w*\+?=/i;
+const MEASURE_PS = /^\$?env:MEASURE_/i;
 const FINDING_DOOR = /(^|\/)\.claude\/skills\/team-charter\/bin\/finding\.mjs$/i;
 const ROLLOUT = /(^|\/)deploy\/rollout\.sh$|^rollout\.sh$/i;
 
@@ -796,6 +804,13 @@ function checkSimple(allWords, cmd, ctx) {
     const file = args.find((a) => !a.startsWith('-')) ?? '';
     const placed = normPath(file, ctx.cwd, true);
     if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) return;
+  }
+  // The launch measure's settings (T-1968) are the engineering session's: a team agent sets none.
+  if (allWords.some((x, i) => MEASURE_SET.test(x) || (MEASURE_PS.test(x) && (ctx.ps || /^[+-]?=$/.test(allWords[i + 1] ?? ''))))) {
+    deny('sets a MEASURE_ variable, which only the engineering session uses (launch-measure.sh runs as it is)');
+  }
+  if (allWords.some((x) => /setenvironmentvariable/i.test(x)) && allWords.some((x) => /MEASURE_/i.test(x))) {
+    deny('sets a MEASURE_ variable, which only the engineering session uses (launch-measure.sh runs as it is)');
   }
   // For the two that never reach the server, its name on any command line is refused, a grep's
   // included; only a heredoc's body (a report's text) and the findings door may carry it.
