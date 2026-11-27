@@ -294,6 +294,10 @@ is still serving, so each release's migrations must work with the previous
 release: add columns and tables freely, remove or rename only in a later
 release after nothing reads the old name.
 
+**Rolling back a release that deployed cleanly and is wrong:** `19-launch-runbook.md`
+§6 (check out the previous deploy's commit from `git reflog`, roll out, then revert on
+`main`; the migrations stay).
+
 To prove a rollout dropped nothing — do this once after the first deploy and
 whenever the edge or the rollout script changes:
 
