@@ -22,7 +22,7 @@ import { applyGuestChoices } from './first-run-actions';
 import { afterRegistration, readInviter } from './invite';
 import { offeredNow } from './language-hold';
 import { pickFromReturnPath } from './pick';
-import { registrationDisplayName, registrationLanguage } from './register';
+import { registrationDisplayName, registrationLanguage, registrationRefusal } from './register';
 import { RETURN_PARAM, safeReturnPath } from './return-to';
 import { applyApiSetCookie, readerAddress, sessionCookieHeader } from './session';
 import { SESSION_COOKIE, parseSessionSetCookie } from './set-cookie';
@@ -139,7 +139,13 @@ export async function registerAction(
     body,
     clientIp: await readerAddress(),
   });
-  if (!result.ok) return failure(locale, result);
+  if (!result.ok) {
+    // Sign-ups closed by the switch (T-1970): said in the reader's language,
+    // above the form, with no field marked as wrong.
+    const refusal = registrationRefusal(result.error);
+    if (refusal !== null) return { ok: false, message: say(locale, refusal) };
+    return failure(locale, result);
+  }
 
   await applyApiSetCookie(result.setCookie);
   // A guest's first-run choices become the account's (T-620).

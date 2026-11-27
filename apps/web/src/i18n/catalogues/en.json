@@ -394,6 +394,7 @@
   "auth.register.point.follow": "Follow your teams",
   "auth.register.unreachable": "The service is unreachable right now, so registration is unavailable.",
   "auth.register.closed": "Registration is not open yet: no country has been set up to choose from.",
+  "auth.register.signupsClosed": "Sign-ups are closed for now. If you already have an account, you can still sign in.",
   "auth.register.usernameHint": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
   "auth.register.country": "Country or territory",
   "auth.register.countryChoose": "Choose your country or territory",

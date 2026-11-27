@@ -16293,3 +16293,18 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *A new `/community-rules` route*: two rules pages, a second link at the sign-up checkbox beside the one that is accepted, and a page that could outlive the version it explains. *Translating the legal text*: a translation would be a new text to approve (D-113), not an explanation.
 
 **Consequences.** The rules part of T-1969 deploys together with or after T-1973, because the page names its controls. The privacy part of T-1969 waits for the controller's name (T-1953).
+
+## D-462 — `registration_closed`: the close-sign-ups 403 keeps a code of its own, a second stated exception to D-108
+
+**Date.** 2026-11-27. **Status.** Accepted (the engineering session, on the code review of PR #967, under the standing delegation of 2026-09-26; revisable). **Tasks:** T-1970. **Amends:** D-108. **Follows:** D-459.
+
+**Context.** T-1970's switch (`SIGNUPS_CLOSED=on`) refuses `POST /auth/register` while members keep signing in. D-108 makes `forbidden` the code of every 403 ("the caller is known; they may not do this") with one stated exception, `email_unverified`, kept because its answer differs. `forbidden-code.spec.ts` holds the rule in CI and failed on the switch's 403. A sign-up refused by the switch is neither case D-108 describes: nobody is signed in, and nothing the visitor typed is wrong.
+
+**Decision.**
+1. While the switch is on, `POST /auth/register` answers **403 `registration_closed`**, with `error` and `message` only (no fields, no data), as every D-108 refusal does.
+2. It is the **second stated exception** beside `email_unverified`, for the same reason: the answer differs. The visitor cannot fix the form, and the useful next step is "sign in if you already have an account". The sign-up form reads the code, never the sentence, and says that in the reader's language (`registrationRefusal`, `auth.register.signupsClosed`). Under `forbidden` it would have to tell "closed" apart by the wording, which D-108 forbids. As a 400 `validation` it would read as a form to fix. As a 503 the operations checks would read it as an outage.
+3. Only that route may answer it. `forbidden-code.spec.ts` admits the code in `ALLOWED_CODES`. `console-security.http.spec.ts` deliberately does not, because register is a public write it does not probe: any other route answering it is a defect.
+
+**Rejected.** *`forbidden` with a field as the discriminator*: a refusal carries no fields (D-108). *409 `conflict`*: it means already taken. *503*: the ops snapshot and the watchdog read 5xx as the site failing. *A new status code*: no standard one fits better than 403, "understood and refused".
+
+**Consequences.** `ApiError.error` gains `registration_closed` in `packages/contracts`. A third exception needs its own decision, as this one did.

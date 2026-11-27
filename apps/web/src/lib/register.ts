@@ -1,4 +1,6 @@
+import type { ApiError } from '@fmip/contracts';
 import { DEFAULT_LOCALE, type Locale, isLocale, isPseudoLocale } from '@/i18n/locales';
+import type { MessageKey } from '@/i18n/messages';
 
 /**
  * What the register form no longer asks (T-1737, D-358) and registration
@@ -23,4 +25,14 @@ export function registrationDisplayName(given: string, username: string): string
  */
 export function registrationLanguage(locale: string, offered: (locale: Locale) => boolean): string {
   return isLocale(locale) && !isPseudoLocale(locale) && offered(locale) ? locale : DEFAULT_LOCALE;
+}
+
+/**
+ * The words a refused registration is told in when the refusal is ours to
+ * word, by the API's code and never its sentence: the close-sign-ups switch
+ * (T-1970, D-459) says so in the reader's language. Anything else is `null`,
+ * and the API's own sentence and field errors are shown as before.
+ */
+export function registrationRefusal(error: ApiError | null): MessageKey | null {
+  return error?.error === 'registration_closed' ? 'auth.register.signupsClosed' : null;
 }
