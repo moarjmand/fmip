@@ -1794,6 +1794,11 @@
     "text": "",
     "status": "untranslated"
   },
+  "auth.register.signupsClosed": {
+    "source": "Sign-ups are closed for now. If you already have an account, you can still sign in.",
+    "text": "",
+    "status": "untranslated"
+  },
   "auth.register.usernameHint": {
     "source": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
     "text": "",
