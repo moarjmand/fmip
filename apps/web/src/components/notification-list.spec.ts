@@ -38,6 +38,16 @@ const NOTIFICATION = (over: Partial<Notification> = {}): Notification => ({
   ...over,
 });
 
+describe('a moderation decision opens the restrictions on the account (T-1973)', () => {
+  it('goes to Settings, where the reason and the appeal are, not to the member’s own profile', () => {
+    const decision = NOTIFICATION({ kind: 'moderation_decision', source: null });
+    expect(notificationHref('en', decision)).toBe('/en/settings#restrictions');
+    expect(notificationHref('fa', { ...decision, subject_label: null })).toBe(
+      '/fa/settings#restrictions',
+    );
+  });
+});
+
 describe('a notification opens the thing that caused it', () => {
   it('routes a member by handle and a fixture by id', () => {
     // The two shapes the product actually has: a profile is reached at

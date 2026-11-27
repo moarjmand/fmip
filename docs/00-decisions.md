@@ -16307,7 +16307,6 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *`forbidden` with a field as the discriminator*: a refusal carries no fields (D-108). *409 `conflict`*: it means already taken. *503*: the ops snapshot and the watchdog read 5xx as the site failing. *A new status code*: no standard one fits better than 403, "understood and refused".
 
 **Consequences.** `ApiError.error` gains `registration_closed` in `packages/contracts`. A third exception needs its own decision, as this one did.
-
 ## D-463 — The verifier judges only a check the finding's own agent or the engineering session chose, never a security finding; only the security agent's own line resolves one; a fixture replay is never silent
 
 **Date.** 2026-11-27. **Status.** Accepted (the coordinator, from the code review of PR #970, `E:/FMIP/ops/reports/code-reviewer/2026-11-27-t-1895-fixture-mode-verifier.md`, blocking findings 1 to 3 and important 1 and 2). **Tasks.** T-1895, T-1896. **Amends.** D-457 points 2 and 6. **Follows.** D-340, D-455 (security detail stays on the computer), T-1879.
@@ -16324,3 +16323,20 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *Let the verifier resolve security findings and teach the console to tell its lines apart*: the console's rule reads the line's `agent`, and a second rule there is a second place to get wrong. *A sign-in for `--as`*: the agents run on one machine under one account; the guard holding each agent to its own name is the lock available, and its residuals are written in its header.
 
 **Consequences.** The security agent resolves with `--as security` (its file says so). `packages/console-publisher/src/redact.ts` may later also require `written_by: security` (follow-up, not done here). The four checks set on 2026-11-27 before this decision carry no `verify_by`; `qa-2026-11-16-01` is open again with the reason.
+
+## D-464 — Every decision against a member is shown to them and can be appealed once, in writing
+
+**Date.** 2026-11-27. **Status.** Accepted (the maintainer, interactively, on the coordinator's question during the review of PR #972). **Tasks:** T-1973. **Follows:** D-053, D-459; the platform rules (`platform-rules@1.0.0`, `docs/13-policy.md` section 4).
+
+**Context.** The platform rules promise that a decision tells the member "which and why" and that "every decision can be appealed once, in writing". Before T-1973 only a sanction reached the member (`GET /me/standing`), and only a sanction had an appeal route. A warning (`warned`) or a content removal (`content_removed`) was stored and notified, but the member could neither read it nor appeal it, and no moderator surface showed any member's appeal.
+
+**Decision.**
+1. **Shown.** Every decision against a member is shown to them in Settings → «تصمیم‌های نظارتی درباره‌ی حساب شما» / "Moderation decisions on your account": each sanction (what it restricts, the reason, until when) and each warning and content removal (the reason, the date). `no_action` decided nothing against them and is not shown. Who decided, or who lifted a sanction, is never shown (policy section 2).
+2. **The reason is written for the member.** The moderator's decision and lift forms say the member reads it, and not to name or hint at who reported them.
+3. **Appealed once.** One appeal per sanction (`POST /me/sanctions/:id/appeal`) and per warning or content removal (`POST /me/decisions/:id/appeal`), checked and written under a lock on the appealed row; a second answers 409. The first appeal is the one kept with the decision.
+4. **Answered by acting.** Moderators read the appeals in the queue and in the member's history. A moderator answers an appeal by lifting the sanction or by recording a new decision; there is no separate "answered" state, and the appeal itself is never edited.
+5. **A content removal names no item.** The decision does not record which item was removed, and the removed words are never repeated; the member's page says so.
+
+**Rejected.** *Appeals only for sanctions*: the rules say every decision. *An "answered" state with a moderator's reply*: a new admin write, its audit and its notification, more than the invitation needs; a lift or a new decision already answers. *Showing `no_action`*: it would tell a member they were reported without anything to appeal.
+
+**Consequences.** `OwnStandingResponse` carries `decisions` (`OwnDecision`), `ModerationQueueResponse` and `MemberModerationHistory` carry `appeals` (`QueuedAppeal`), and `OwnSanction` drops `lifted_by`. The rate-limit inventory lists the new route as deliberately unlimited, like the sanction's appeal (T-213). A moderator's reply to an appeal, or a removal that records its item, needs its own decision.

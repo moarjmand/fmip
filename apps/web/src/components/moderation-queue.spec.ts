@@ -43,6 +43,30 @@ describe('the moderation queue page', () => {
     expect(QUEUE).toContain('Record<(typeof SANCTION_SCOPES)[number], string>');
   });
 
+  it('asks for a reason, says the member reads it, and warns against naming the reporter (T-1973)', () => {
+    expect(QUEUE).toContain('label="Why (the member reads this)"');
+    expect(QUEUE).toContain('Do not name or hint at who reported them.');
+    const history = readFileSync(join(HERE, 'member-moderation-history.tsx'), 'utf8');
+    expect(history).toContain('label="Why it is being lifted (the member reads this)"');
+    expect(history).toContain('Do not name or hint at who reported them.');
+  });
+
+  it('shows members’ appeals beside the reports and on the member’s history (T-1973)', () => {
+    expect(PAGE).toContain('data-testid="moderation-appeals-section"');
+    expect(PAGE).toContain('appeals={result.data.appeals}');
+    const historyPage = readFileSync(
+      join(HERE, '..', 'app', '[locale]', 'admin', 'moderation', '[username]', 'page.tsx'),
+      'utf8',
+    );
+    expect(historyPage).toContain('appeals={result.data.appeals}');
+    // Named by the rule: a deleted member is never a handle (member-names.spec.ts).
+    const list = readFileSync(join(HERE, 'member-appeals.tsx'), 'utf8');
+    expect(list).toContain('<MemberHandle username={appeal.username} />');
+    expect(list).not.toContain('@{');
+    // The decision's reason and the appeal keep their own direction.
+    expect(list.match(/dir="auto"/g)).toHaveLength(2);
+  });
+
   it('asks for a reason, and leaves the rules to the API', () => {
     expect(QUEUE).toContain('name="reason"');
     expect(ACTIONS).toContain("request.reason === ''");

@@ -75,6 +75,19 @@ export interface SubmitReportRequest {
   detail?: string | null;
 }
 
+/**
+ * `POST /reports`'s answer (T-1973).
+ *
+ * `filed: false` is not a refusal: the member already has an open report
+ * about this subject, which a person will read, and one reporter's second
+ * identical complaint is not a second complaint (T-210). It is said rather
+ * than answered like a new report, because what they wrote this time was not
+ * kept, and telling them it was would be untrue.
+ */
+export interface SubmitReportResponse {
+  filed: boolean;
+}
+
 export interface Report {
   id: string;
   subject_type: ReportSubject;
@@ -131,14 +144,93 @@ export interface AppealNote {
 }
 
 /**
+ * One sanction as the member it is on reads it (T-1973): the sanction, the
+ * written reason of the decision it descends from, and whether they have
+ * appealed it.
+ *
+ * The platform rules (`platform-rules@1.0.0`) promise the member is told
+ * "which and why", and that every decision "can be appealed once, in
+ * writing": `reason` is the why, `appealed_at` is the once.
+ *
+ * **Never who.** `lifted_by`, a moderator's username, is left out: the member
+ * is told which decision and why, not who made it (policy section 2), and a
+ * name would hand them a person to blame. Moderators read it in a member's
+ * history (`MemberModerationHistory.sanctions`).
+ */
+export interface OwnSanction extends Omit<Sanction, 'lifted_by'> {
+  /** The decision's written reason: no decision exists without one. */
+  reason: string;
+  /** ISO 8601: when this member appealed it, or null while they have not. */
+  appealed_at: string | null;
+}
+
+/**
+ * The decisions about a member that carry no sanction and are shown to them
+ * (T-1973): a warning, and content removed. A `sanctioned` decision is shown
+ * as its sanction; `no_action` decided nothing against them, so there is
+ * nothing to appeal.
+ */
+export const APPEALABLE_DECISION_OUTCOMES = ['warned', 'content_removed'] as const;
+export type AppealableDecisionOutcome = (typeof APPEALABLE_DECISION_OUTCOMES)[number];
+
+/**
+ * One such decision as the member it is about reads it (T-1973): what was
+ * decided, why, when, and whether they have appealed it. Never who decided
+ * (policy section 2). A `content_removed` decision names no item: the
+ * decision does not record one, and the removed words are never repeated.
+ */
+export interface OwnDecision {
+  id: string;
+  outcome: AppealableDecisionOutcome;
+  /** The moderator's written reason, which their form says the member reads. */
+  reason: string;
+  /** ISO 8601. */
+  created_at: string;
+  /** ISO 8601: when this member appealed it, or null while they have not. */
+  appealed_at: string | null;
+}
+
+/**
  * What a member is told about their own standing.
  *
  * A sanctioned member is told, and told when it ends. A restriction the member
  * cannot see is one they cannot appeal, and blueprint 10.4 asks for appeals.
+ * Since T-1973 the other decisions against them are told too, so that every
+ * decision can be appealed once, as the platform rules promise.
  */
 export interface OwnStandingResponse {
-  sanctions: Sanction[];
+  sanctions: OwnSanction[];
+  decisions: OwnDecision[];
 }
+
+/**
+ * A member's appeal as a moderator reads it (T-1973): who appealed, what
+ * against -- a sanction (its scope and whether it is still in force) or a
+ * decision -- the decision's reason, and the appeal's words.
+ */
+export interface QueuedAppeal {
+  /** The appeal note's id. */
+  id: string;
+  /** The member who appealed. */
+  username: string;
+  /** The sanction appealed, or null when the appeal is against a decision with none. */
+  sanction_id: string | null;
+  scope: SanctionScope | null;
+  /** Whether that sanction is in force now; null for a decision. */
+  active: boolean | null;
+  decision_id: string;
+  outcome: ModerationOutcome;
+  decision_reason: string;
+  body: string;
+  /** ISO 8601. */
+  created_at: string;
+}
+
+/** An appeal's longest text (T-211): the same cap for a sanction and a group's closure. */
+export const MAX_APPEAL = 4_000;
+
+/** A report's longest detail (T-211). */
+export const MAX_REPORT_DETAIL = 2_000;
 
 // ---------------------------------------------------------------------------
 // The moderator's queue (blueprint 16, T-212)
@@ -203,6 +295,8 @@ export interface ModerationQueueResponse {
   assistant: LanguageModelState;
   /** Open reports in total, so a page showing one screen can say what it is not showing. */
   open_total: number;
+  /** Members' appeals of sanctions and decisions, newest first (T-1973). */
+  appeals: QueuedAppeal[];
 }
 
 /** What a moderator asks for when a decision carries a restriction. */
@@ -241,6 +335,8 @@ export interface MemberModerationHistory {
   reports_about_them: QueuedReport[];
   decisions: ModerationDecision[];
   sanctions: Sanction[];
+  /** Their appeals of those sanctions and decisions, newest first (T-1973). */
+  appeals: QueuedAppeal[];
 }
 
 // ---------------------------------------------------------------------------

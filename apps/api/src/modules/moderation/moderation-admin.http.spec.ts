@@ -125,7 +125,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
             reporter,
           )
         ).statusCode,
-      ).toBe(204);
+      ).toBe(200);
     }
   });
 
@@ -137,7 +137,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
       await client.query(`DELETE FROM audit_log WHERE actor_id = ANY($1::uuid[])`, [everyone]);
       await client.query(
         `DELETE FROM appeal_note WHERE sanction_id IN
-           (SELECT id FROM sanction WHERE user_id = ANY($1::uuid[]))`,
+           (SELECT id FROM sanction WHERE user_id = ANY($1::uuid[]))
+            OR author_id = ANY($1::uuid[])`,
         [everyone],
       );
       await client.query(`DELETE FROM sanction WHERE user_id = ANY($1::uuid[])`, [everyone]);
@@ -292,7 +293,17 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
       ).statusCode,
     ).toBe(204);
 
-    expect((await get('/me/standing', offender)).json().sanctions[0]).toMatchObject({
+    // The member is told it was lifted and why -- never who lifted it (T-1973).
+    const own = (await get('/me/standing', offender)).json().sanctions[0];
+    expect(own).toMatchObject({
+      active: false,
+      lift_reason: 'appeal upheld: the messages were replies',
+    });
+    expect(own).not.toHaveProperty('lifted_by');
+    expect(JSON.stringify(own)).not.toContain(moderator);
+    // Moderators still read who lifted it, in the member's history.
+    const history = (await get(`/admin/moderation/members/${offender}`, moderator)).json();
+    expect(history.sanctions.find((s: { id: string }) => s.id === sanctionId)).toMatchObject({
       active: false,
       lifted_by: moderator,
     });
@@ -308,5 +319,48 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('the moderati
       (await post(`/admin/moderation/sanctions/${sanctionId}/lift`, { reason: 'again' }, moderator))
         .statusCode,
     ).toBe(404);
+  });
+
+  it('puts a warning before the member, takes their appeal once, and shows it to moderators (T-1973)', async () => {
+    const decided = await post(
+      '/admin/moderation/decisions',
+      { subject: offender, outcome: 'warned', reason: 'Spam links, a second time.' },
+      moderator,
+    );
+    expect(decided.statusCode).toBe(201);
+    const decisionId = decided.json().decision_id as string;
+
+    // The member reads what and why, never who.
+    const standing = (await get('/me/standing', offender)).json();
+    expect(standing.decisions.find((d: { id: string }) => d.id === decisionId)).toMatchObject({
+      outcome: 'warned',
+      reason: 'Spam links, a second time.',
+      appealed_at: null,
+    });
+    expect(JSON.stringify(standing)).not.toContain(moderator);
+
+    const url = `/me/decisions/${decisionId}/appeal`;
+    expect((await post(url, { body: 'Those links were replies.' }, offender)).statusCode).toBe(204);
+    expect((await post(url, { body: 'and again' }, offender)).statusCode).toBe(409);
+
+    // A person reads it: in the queue, and in the member's history.
+    const queue = (await get('/admin/moderation/queue?limit=200', moderator)).json();
+    expect(
+      queue.appeals.find((a: { decision_id: string }) => a.decision_id === decisionId),
+    ).toMatchObject({
+      username: offender,
+      sanction_id: null,
+      scope: null,
+      active: null,
+      outcome: 'warned',
+      decision_reason: 'Spam links, a second time.',
+      body: 'Those links were replies.',
+    });
+    const history = (await get(`/admin/moderation/members/${offender}`, moderator)).json();
+    expect(history.appeals.map((a: { decision_id: string }) => a.decision_id)).toContain(
+      decisionId,
+    );
+    // A member's appeal is not for another member to read.
+    expect((await get('/admin/moderation/queue', first)).statusCode).toBe(403);
   });
 });

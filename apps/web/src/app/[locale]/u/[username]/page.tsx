@@ -262,7 +262,7 @@ export default async function ProfilePage({
           />
         </p>
       )}
-      <div className="flex flex-wrap items-start gap-4">
+      <div className="flex min-w-0 max-w-full flex-wrap items-start gap-4">
         <FriendControls locale={locale} username={profile.username} status={friendStatus} />
         {friendStatus === 'friends' && (
           <StartConversation locale={locale} username={profile.username} />

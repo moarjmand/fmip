@@ -101,6 +101,7 @@ import type {
   PushState,
   NotificationsResponse,
   OwnProfile,
+  OwnStandingResponse,
   PanelListResponse,
   PanelPermission,
   PlatformRules,
@@ -1089,6 +1090,16 @@ export function fetchGroupClosureAppeal(
     `/groups/${encodeURIComponent(slug)}/closure/appeal`,
     cookie === undefined ? {} : { cookie },
   );
+}
+
+/**
+ * `GET /me/standing` (T-211, T-1973): the sanctions on the signed-in member,
+ * each with its decision's reason and when they appealed it. Their own only.
+ */
+export function fetchOwnStanding(
+  cookie: string | undefined,
+): Promise<ApiResult<OwnStandingResponse>> {
+  return apiRequest<OwnStandingResponse>('/me/standing', cookie === undefined ? {} : { cookie });
 }
 
 /** `GET /admin/moderation/members/:username` (T-212): everything about one member before deciding. */

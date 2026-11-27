@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
+import { MemberAppeals } from '@/components/member-appeals';
 import { MemberModerationHistoryView } from '@/components/member-moderation-history';
 import { fetchMe, fetchMemberModerationHistory } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
@@ -56,7 +57,14 @@ export default async function MemberModerationPage({
       </h1>
 
       {result.ok ? (
-        <MemberModerationHistoryView locale={locale} history={result.data} />
+        <>
+          <MemberModerationHistoryView locale={locale} history={result.data} />
+          {/* T-1973 (D-464): their appeals, read by a person. */}
+          <section className="flex flex-col gap-2" data-testid="moderation-history-appeals">
+            <h2 className="text-lg font-semibold">Their appeals</h2>
+            <MemberAppeals locale={locale} appeals={result.data.appeals} />
+          </section>
+        </>
       ) : result.status === 403 ? (
         <Notice tone="warning" data-testid="moderation-history-forbidden">
           A member&apos;s moderation history needs the moderator or administrator role.

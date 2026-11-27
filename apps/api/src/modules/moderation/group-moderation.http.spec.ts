@@ -193,7 +193,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
         { subject_type: 'group', subject: slug, reason: 'abuse' },
         reporter,
       );
-      expect(filed.statusCode).toBe(204);
+      expect(filed.statusCode).toBe(200);
+      expect(filed.json()).toEqual({ filed: true });
       const queue = (
         await get('/admin/moderation/queue?limit=200', mod)
       ).json() as ModerationQueueResponse;
