@@ -48,10 +48,12 @@ bash .claude/skills/growth-funnel/launch-measure.sh <invitation date yyyy-mm-dd>
 
 ## 2. Close sign-ups, and reopen them
 
-The switch is `SIGNUPS_CLOSED` in the server's `.env` (T-1970). **To confirm when T-1970 merges
-and is deployed:** on 2026-11-27 it was still on the open branch `t-1970-close-signups`. Until a
-full `bash deploy/rollout.sh` of that release, the line does nothing and the only way to stop
-sign-ups is a deploy.
+The switch is `SIGNUPS_CLOSED` in the server's `.env` (T-1970, D-462). **Merged 2026-11-27
+(#967); it takes effect from the next full `bash deploy/rollout.sh` of that release** (not
+deployed yet; the coordinator deploys it). Before that deploy the line does nothing, and the
+only way to stop sign-ups is a deploy. Change it only with `rollout.sh api`, never with a bare
+`docker compose up -d` (`09-deploy.md` §7: a wrong value would then take the whole site down)
+and not with `docker compose restart api`, which does not read a changed `.env`.
 
 Close sign-ups (**writes**; about a minute, no build, no migration):
 

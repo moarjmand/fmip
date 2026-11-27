@@ -320,6 +320,14 @@ criterion of T-074.
 | Free disk after many builds | `docker image prune -f` |
 | Renewed origin certificate | paste, then `docker compose restart caddy` |
 | What is on and what is off | `bash deploy/check-setup.sh` |
+| Close or reopen sign-ups (T-1970, D-462) | `SIGNUPS_CLOSED=on` (or `off`) in `.env`, then `bash deploy/rollout.sh api` |
+
+**Change `SIGNUPS_CLOSED` only with `bash deploy/rollout.sh api`**, never with
+a bare `docker compose up -d`: any value other than `on` or `off` stops the API
+at boot, and `up -d` replaces the running api with that failing one, which takes
+the whole site down (web waits on a healthy api), not only sign-up. The rollout
+keeps the old container serving instead, and the log it prints names the value.
+`docker compose restart api` does not pick up a changed `.env` at all.
 
 Reboots are safe: every service has `restart: unless-stopped` and Docker is
 enabled at boot.
