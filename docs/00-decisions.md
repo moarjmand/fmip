@@ -16356,3 +16356,18 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *Appeals only for sanctions*: the rules say every decision. *An "answered" state with a moderator's reply*: a new admin write, its audit and its notification, more than the invitation needs; a lift or a new decision already answers. *Showing `no_action`*: it would tell a member they were reported without anything to appeal.
 
 **Consequences.** `OwnStandingResponse` carries `decisions` (`OwnDecision`), `ModerationQueueResponse` and `MemberModerationHistory` carry `appeals` (`QueuedAppeal`), and `OwnSanction` drops `lifted_by`. The rate-limit inventory lists the new route as deliberately unlimited, like the sanction's appeal (T-213). A moderator's reply to an appeal, or a removal that records its item, needs its own decision.
+
+## D-465 — Testers' feedback is an e-mail link to the site's contact mailbox, read from the server's environment; no form, nothing stored
+
+**Date.** 2026-11-27. **Status.** Accepted (the maintainer, interactively, on the desk question of T-1965: option (b)). **Task:** T-1965. **Follows:** D-459; rule 3.
+
+**Context.** The invitation weeks need a place where a tester says what was unclear or broken. T-1965's desk question offered (a) the teammate-request path, which is the team's, not the members'; (b) a link that opens an e-mail to the site's official address, no form and no storage; (c) a one-field form stored in the database and read by the moderator, which needs a table, a migration and a privacy line.
+
+**Decision.**
+1. **(b).** «ارسال بازخورد» / "Send feedback" is a `mailto:` link to the site's contact mailbox, the subject prefilled in the reader's language with the path of the page they are on (never its query, so nothing typed in a search rides along). The message leaves from the reader's own mail program; the site stores nothing.
+2. **Where.** On `/welcome` (under the steps, with the question "Something unclear, wrong or missing?"), at the end of the footer's legal strip, and on the member's own profile (never on another member's).
+3. **The address is configuration.** `SITE_CONTACT_EMAIL`, the same variable the privacy notice names, read by the web at request time; it is never written in this public repository. Empty, or not one plain address, there is no link and no question anywhere (rule 3: no link to nobody).
+
+**Rejected.** *(c) a stored form*: a new table, a migration, a moderator surface and a privacy line, for a few dozen testers. *(a)*: not a members' path. *The address in the catalogue or the code*: the repository is public.
+
+**Consequences.** The link appears once the server's `.env` sets `SITE_CONTACT_EMAIL`; whether a message reaches the mailbox is checked then (T-1965's second criterion). What happens to a message is said by the privacy notice (T-1969). If mail proves slow to arrive, (c) is the fallback and needs its own decision.

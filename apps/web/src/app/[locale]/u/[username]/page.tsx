@@ -8,6 +8,7 @@ import { isDeletedMember } from '@fmip/contracts';
 import { FirstStepsCard, ProfileStateRow } from '@/components/first-steps';
 import { HowRatingsWork, SettledProgressBar } from '@/components/settled-progress';
 import { Said } from '@/components/community-text';
+import { FeedbackLink, feedbackAddress } from '@/components/feedback-link';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { memberName } from '@/lib/member-name';
@@ -144,15 +145,19 @@ export default async function ProfilePage({
   const { profile } = view;
   const own = view.is_self;
   const page = readHistoryPage(query);
-  const [me, rating, history, ratingHistory, achievements, following] = await Promise.all([
-    fetchMe(cookie),
-    fetchRating(profile.username),
-    fetchPredictionHistory(profile.username, historyQuery(page), cookie),
-    fetchRatingHistory(profile.username, cookie),
-    fetchAchievements(profile.username, cookie),
-    // Only for "Your first steps" (T-1787): whether the member follows a team.
-    own ? fetchFollowing(cookie) : Promise.resolve(null),
-  ]);
+  const [me, rating, history, ratingHistory, achievements, following, feedback] = await Promise.all(
+    [
+      fetchMe(cookie),
+      fetchRating(profile.username),
+      fetchPredictionHistory(profile.username, historyQuery(page), cookie),
+      fetchRatingHistory(profile.username, cookie),
+      fetchAchievements(profile.username, cookie),
+      // Only for "Your first steps" (T-1787): whether the member follows a team.
+      own ? fetchFollowing(cookie) : Promise.resolve(null),
+      // The feedback link is on the member's own page only (T-1965).
+      own ? feedbackAddress() : Promise.resolve(null),
+    ],
+  );
   const { timeZone } = await pageTimeZone(locale, me);
   // English has always shown these instants as the API gives them; every
   // other language reads them in its own calendar and digits (T-1306).
@@ -262,6 +267,8 @@ export default async function ProfilePage({
           />
         </p>
       )}
+      {/* The member's own page only (T-1965, D-465); none without an address. */}
+      <FeedbackLink locale={locale} address={feedback} variant="line" testId="profile-feedback" />
       <div className="flex min-w-0 max-w-full flex-wrap items-start gap-4">
         <FriendControls locale={locale} username={profile.username} status={friendStatus} />
         {friendStatus === 'friends' && (

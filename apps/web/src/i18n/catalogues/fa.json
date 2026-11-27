@@ -257,6 +257,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
+  "feedback.link": {
+    "source": "Send feedback",
+    "text": "ارسال بازخورد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the link's words are the maintainer's (T-1965, 2026-11-27)."
+  },
+  "feedback.prompt": {
+    "source": "Something unclear, wrong or missing? Write to us by e-mail:",
+    "text": "چیزی نامفهوم، نادرست یا ناقص است؟ با ایمیل برای ما بنویسید:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the link's words are the maintainer's (T-1965, 2026-11-27)."
+  },
+  "feedback.subject": {
+    "source": "Feedback on Stadiomind, from {page}",
+    "text": "بازخورد درباره‌ی Stadiomind، از صفحه‌ی {page}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the link's words are the maintainer's (T-1965, 2026-11-27)."
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "لحظه‌های مهم",
