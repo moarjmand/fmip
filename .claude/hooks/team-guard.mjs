@@ -30,8 +30,10 @@
 //   - The post-deploy verifier, `node .claude/skills/team-charter/bin/verify.mjs` (T-1896), is the
 //     coordinator's: it reaches the server and appends verdicts, so it is refused for all sixteen,
 //     a dry run, a copy and a preload (`node -r`, `--import`) included; its tests (test-verify.mjs)
-//     stop before they run unless stand-ins stand for ssh, and pass. At the findings door, `--as`
-//     (who writes the line, D-463) must be the agent's own name.
+//     stop before they run unless stand-ins stand for ssh, and pass. At the findings door (D-463):
+//     `--as` and `add --agent` must be the agent's own name; `--by` and `--public` (a person's
+//     word) are refused; a word the shell would still change (`$`, `{`, a backtick, a command's
+//     output, a PowerShell splat) is refused, as is finding.mjs run through xargs.
 //   - Bash / PowerShell: read-only git (an allow-list of verbs), read-only gh (an allow-list), no
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
@@ -726,6 +728,7 @@ const WRAPPERS = {
     const rest = skipOptions(args, ['-n', '-I', '-P', '-d', '-L', '-s', '-a', '-E']);
     const program = baseName(rest[0] ?? '');
     if (SENSITIVE.has(program)) deny(`runs ${program} through xargs, which hands it arguments the guard cannot see`);
+    if (rest.some((a) => FINDING_DOOR.test(a.replace(/\\/g, '/')))) deny('runs finding.mjs through xargs, which hands it arguments the guard cannot see');
     if (REMOVERS.has(program) && rest.some((a) => /^-[a-zA-Z]*[rR]/.test(a) || /^-r/i.test(a) || a === '--recursive')) {
       deny('removes folder trees named by xargs, which the guard cannot place');
     }
@@ -806,11 +809,32 @@ function checkSimple(allWords, cmd, ctx) {
     const file = args.find((a) => !a.startsWith('-')) ?? '';
     const placed = normPath(file, ctx.cwd, true);
     if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) {
-      // `--as` names who writes the line (D-463): an agent writes as itself only, so a security
-      // line `--as security` and a check's `verify_by` can be trusted.
-      const at = args.findIndex((a) => a === '--as' || a.startsWith('--as='));
-      const as = at < 0 ? undefined : args[at].startsWith('--as=') ? args[at].slice(5) : args[at + 1];
-      if (as !== undefined && as.replace(/["']/g, '') !== S.agent) deny(`writes a finding line as ${as} (--as); an agent writes as itself only`);
+      // Who a line is by is read from the words as typed, so a word the shell would still change
+      // (a variable, a brace list, a command's output, a PowerShell splat) is refused here: text
+      // that needs one goes in a --*-file.
+      const door = args.slice(args.indexOf(file) + 1);
+      const shaped = door.find((a) => /[{$`]/.test(a) || (ctx.ps && a.startsWith('@')));
+      if (shaped !== undefined) {
+        deny(`hands finding.mjs a word the shell would still change (${shaped}): put such text in a --title-file, --evidence-file or the like`);
+      }
+      const value = (name) => {
+        const at = door.findIndex((a) => a === `--${name}` || a.startsWith(`--${name}=`));
+        if (at < 0) return undefined;
+        const v = door[at].startsWith(`--${name}=`) ? door[at].slice(name.length + 3) : door[at + 1];
+        if (v === undefined) deny(`gives finding.mjs --${name} with no value after it`);
+        return v.replace(/["']/g, '');
+      };
+      // `--by` and `--public` are a person's word (planned, rejected, snoozed, a security finding
+      // shown on the console): only the engineering session and the console's triage set them.
+      for (const name of ['by', 'public']) {
+        if (value(name) !== undefined) deny(`gives finding.mjs --${name}, which is a person's decision; propose it in your report`);
+      }
+      // `--as` names who writes the line and `add --agent` who files it (D-463): an agent writes
+      // as itself only, so a security line `--as security` and a check's `verify_by` can be trusted.
+      const as = value('as');
+      if (as !== undefined && as !== S.agent) deny(`writes a finding line as ${as} (--as); an agent writes as itself only`);
+      const agent = door[0] === 'add' ? value('agent') : undefined;
+      if (agent !== undefined && agent !== S.agent) deny(`files a finding as ${agent} (--agent); an agent files its own only`);
       return;
     }
   }

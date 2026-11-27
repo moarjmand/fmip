@@ -178,6 +178,7 @@ const HOME = http(200, { 'X-Frame-Options': 'DENY', 'X-Powered-By': 'Next.js-sec
   check('a passing invariant moves its finding to resolved', status(F.s2) === 'resolved', r.out);
   check('a failing invariant moves its finding to open, with what it saw', status(F.r1) === 'open' && /R1 extra_time_sum: 3 violation\(s\) \(Copa del Rey/.test(lineOf(c, F.r1.id)?.evidence ?? ''), lineOf(c, F.r1.id)?.evidence);
   check('a check set by the engineering session is judged', status(F.byName) === 'resolved', r.out);
+  check('every verdict line says whose check it was', /check by engineering-session  data-audit/.test(outLine(r, F.byName.id)) && /check by qa-engineer  GET/.test(outLine(r, F.has.id)), `${outLine(r, F.byName.id)}\n${outLine(r, F.has.id)}`);
   check('the resolved line names the check and its 0', /check: S2 scheduled_in_the_past\. Seen: data-audit\/run\.sh, S2 scheduled_in_the_past: 0 violation\(s\); the fix holds\.$/.test(lineOf(c, F.s2.id)?.evidence ?? ''), lineOf(c, F.s2.id)?.evidence);
   check('the verdict lines are written as the engineering session', appended(c).every((l) => l.written_by === 'engineering-session'), JSON.stringify(appended(c).map((l) => l.written_by)));
   check('an invariant the run does not print changes nothing', status(F.absent) === undefined && /no invariant "Z9 no_such_check"/.test(r.out), r.out);
@@ -243,8 +244,7 @@ const HOME = http(200, { 'X-Frame-Options': 'DENY', 'X-Powered-By': 'Next.js-sec
   const c = setup([a, b], { 'run.txt': RUN });
   const r = verify(c, { args: ['--dry-run'] });
   check('dry run: nothing appended', appended(c).length === 0);
-  check('dry run: the verdicts are printed', /would be resolved \(1\)\n  aud-\S+  data-audit/.test(r.out) && /would be open again \(1\)/.test(r.out), r.out);
-  check('dry run: exit 3 still says one would be open', r.code === 3);
+  check('dry run: the verdicts are printed, each with whose check it was', /would be resolved \(1\)\n  aud-\S+  check by data-auditor  data-audit/.test(r.out) && /would be open again \(1\)\n  aud-\S+  check by data-auditor  /.test(r.out), r.out);  check('dry run: exit 3 still says one would be open', r.code === 3);
   const bad = verify(c, { args: ['--now'] });
   check('an unknown argument is refused with exit 1', bad.code === 1 && /unknown argument/.test(bad.err), bad.err);
   const loose = verify(c, { more: { OPS_ROOT: '' } });

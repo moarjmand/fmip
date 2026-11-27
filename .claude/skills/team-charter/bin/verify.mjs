@@ -417,7 +417,8 @@ function main(argv) {
         continue;
       }
     }
-    groups[result.verdict].push(`${f.id}  ${result.saw}`);
+    // whose check it was stands beside every verdict, for whoever reads the deploy's record
+    groups[result.verdict].push(`${f.id}  check by ${f.verify_by}  ${result.saw}`);
   }
 
   const out = [

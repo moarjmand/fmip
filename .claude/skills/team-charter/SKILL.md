@@ -158,7 +158,9 @@ maintainer and the teammate (never the security agent's, T-1879).
   the item's own page or an invariant (the verifier refuses `lacks` on a path of fewer than three
   segments).
 - **Writing as yourself** (`--as`, D-463): `seen ... --as <your agent name>` puts `written_by` on the
-  line, and is needed with `--verify`. The guard refuses an agent an `--as` that is not its own name.
+  line, and is needed with `--verify`. The guard refuses an agent an `--as` or an `add --agent` that
+  is not its own name, `--by` and `--public` (a person's word: propose it in your report), a word
+  with `$`, `{` or a backtick (put such text in a `--*-file`), and finding.mjs run through xargs.
   **Only the security agent resolves a security finding**, with `seen <sec-id> --status resolved --as
   security`: that line is what lets its detail leave this computer, and the script refuses any other.
 - **Fixture mode** (T-1895): with `FMIP_FIXTURE=<dir>` and `FMIP_FIXTURE_OK=1` the five read-only
