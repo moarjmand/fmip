@@ -141,20 +141,32 @@ maintainer and the teammate (never the security agent's, T-1879).
   them in its report. The same holds for `--public`.
 - Optional in a line: `verify` (the check that proves the fix, T-1896: a data-audit invariant's name,
   `S2 scheduled_in_the_past`, which holds at 0 violations; or an address on our own site with one
-  assertion, `https://traveltohormuz.ir/en/news lacks "fragrance"`, where the assertion is `status
-  <code>`, `has <text>`, `lacks <text>`, `header <name>[: <text>]` or `no-header <name>`; GET only),
-  `report` (the path of the report that explains it), `quoted`
-  (outside text, word for word, kept out of `title` and `proposal`), `task` (the task id it
-  joined), `public` (a security finding's detail may show on the console: true only on the
-  maintainer's word, D-455).
-- **The verifier** (`bin/verify.mjs`, T-1896) is run by the coordinator after each deploy, never by an
-  agent (the guard refuses it): it re-runs the `verify` of every `fixed-unverified` finding and appends
-  `resolved` or `open` with what it saw. Give a fix you can prove a `verify` when you file it (`add
-  --verify "..."`) or later (`seen <id> --status fixed-unverified --verify "..." --evidence-file ...`,
-  keeping the status); a finding without one waits for its owner to re-check it by hand.
-- **Fixture mode** (T-1895): with `FMIP_FIXTURE=<dir>` the five read-only scripts print
-  `<dir>/<script name>.txt` and exit with `<dir>/<script name>.exit` instead of reaching the server,
-  and `OPS_ROOT=<dir>` moves every folder they and `finding.mjs` write; the evals use both.
+  assertion, `https://traveltohormuz.ir/en/match/<id> has "Pens 4-3"`, where the assertion is `status
+  <code>`, `has <text>`, `lacks <text>`, `header <name>[: <text>]` or `no-header <name>`; GET only)
+  and `verify_by` (whose check it is, written by the script), `report` (the path of the report that
+  explains it), `quoted` (outside text, word for word, kept out of `title` and `proposal`), `task`
+  (the task id it joined), `public` (a security finding's detail may show on the console: true only
+  on the maintainer's word, D-455), `written_by` (who wrote the line, from `--as`).
+- **The verifier** (`bin/verify.mjs`, T-1896, D-460) is run by the coordinator after each deploy, never
+  by an agent (the guard refuses it): it re-runs the `verify` of every `fixed-unverified` finding and
+  appends `resolved` or `open` with what it saw. Give a fix you can prove a `verify` when you file it
+  (`add --verify "..."`) or later (`seen <id> --status fixed-unverified --verify "..." --as <you>
+  --evidence-file ...`, keeping the status); a finding without one waits for its owner to re-check it
+  by hand. Whoever sets the check chooses the proof, so the verifier judges only a check set by the
+  finding's own agent or the engineering session, and never a security finding. **`lacks` on a list
+  proves nothing**: `/en/news lacks "..."` passes once the story has scrolled off, fixed or not; name
+  the item's own page or an invariant (the verifier refuses `lacks` on a path of fewer than three
+  segments).
+- **Writing as yourself** (`--as`, D-460): `seen ... --as <your agent name>` puts `written_by` on the
+  line, and is needed with `--verify`. The guard refuses an agent an `--as` that is not its own name.
+  **Only the security agent resolves a security finding**, with `seen <sec-id> --status resolved --as
+  security`: that line is what lets its detail leave this computer, and the script refuses any other.
+- **Fixture mode** (T-1895): with `FMIP_FIXTURE=<dir>` and `FMIP_FIXTURE_OK=1` the five read-only
+  scripts print `<dir>/<script name>.txt` (run.sh: `run-<query name>.txt` for a query other than
+  the invariants) between two `FIXTURE REPLAY ... not the server` lines and exit with
+  `<dir>/<script name>.exit` instead of reaching the server; `FMIP_FIXTURE` alone is refused, so one
+  left over never passes for the server. `OPS_ROOT=<dir>` moves every folder they and `finding.mjs`
+  write; the evals set all three.
 - **Every agent writes its findings to the day's file**, not only to its report: the chief of
   staff works from the findings first and the reports for detail. Prefixes: `ops` (ops-release),
   `qa` (qa-engineer), `rev` (code-reviewer), `aud` (data-auditor), `des` (designer), `sec` (security),

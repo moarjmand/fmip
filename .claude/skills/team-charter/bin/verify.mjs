@@ -5,10 +5,17 @@
 //   node .claude/skills/team-charter/bin/verify.mjs --dry-run   judge and print, write nothing
 //
 // It reads every finding whose latest line is `fixed-unverified` (through `finding.mjs list`),
-// re-runs the finding's `verify` check read-only, and appends through `finding.mjs seen` either
-// `resolved`, with what it saw as the evidence, or `open`, with what it saw instead. A finding
-// without `verify` is listed as "needs a person or its agent", with its owner. The coordinator runs
-// it after each deploy (T-1900) and by hand; the sixteen team agents may not (team-guard.mjs).
+// re-runs the finding's `verify` check read-only, and appends through `finding.mjs seen --as
+// engineering-session` either `resolved`, with what it saw as the evidence, or `open`, with what it
+// saw instead. The coordinator runs it after each deploy (T-1900) and by hand; the sixteen team
+// agents may not (team-guard.mjs). Three kinds are only listed, never judged (D-460):
+//   - a security finding (agent security, or an id `sec-...`): only the security agent re-checks and
+//     resolves one, with its own line, since that line lets its detail leave this computer (T-1879).
+//     It is listed by its id alone: its title, address and assertion can describe the weakness;
+//   - a finding without `verify`: "needs a person or its agent", with its owner;
+//   - a check set by anyone but the finding's own agent or the engineering session (`verify_by`, which
+//     finding.mjs records), or set before finding.mjs recorded who: whoever sets the check chooses
+//     the proof, so its agent confirms it first (`seen <id> --verify ... --as <agent>`).
 //
 // A `verify` is one of two things (the charter, "The finding format"):
 //   - a data-audit invariant: its whole name ("S2 scheduled_in_the_past"), its code ("S2") or its
@@ -18,30 +25,34 @@
 //     (a bare `/<path>` means the same site; a leading `GET` is allowed, no other method is):
 //         status <code>           the answer's status code is <code>
 //         has <text>              the page holds <text>
-//         lacks <text>            the page does not hold <text>
+//         lacks <text>            the page does not hold <text>; only on an item's own page, a path
+//                                 of three segments or more (/en/news/<story>), never on a list
+//                                 (/en/news, /en): an item that has scrolled off a list proves nothing
 //         header <name>           the answer carries the header
 //         header <name>: <text>   the header's value holds <text>
 //         no-header <name>        the answer does not carry the header
-//     Case is ignored, quotes around <text> are dropped, and a page's text is matched both as sent
-//     and with its common HTML entities decoded. Redirects are not followed. A text or header
-//     assertion is judged on a 2xx answer only.
+//     Case is ignored, quotes around <text> are dropped, and the page's whole HTML is matched (its
+//     data for the browser included), both as sent and with its common HTML entities decoded.
+//     Redirects are not followed. A text or header assertion is judged on a 2xx answer only, and
+//     `lacks` on a page of 4 KB or more only. A header's value is never written into a finding.
 //
-// How a page is read: `curl` on the server, through `ssh fmip-prod` (this PC's own link is unreliable,
-// as seo-check.sh says), a GET and nothing else (no -X, no data, https only, no redirect), and only
-// for an address whose host is exactly traveltohormuz.ir and whose path and query hold plain URL
-// characters only, so that no text in a finding can reach the server's shell.
+// How a page is read: `curl -q` on the server (no ~/.curlrc), through `ssh fmip-prod` (this PC's own
+// link is unreliable, as seo-check.sh says), a GET and nothing else (no -X, no data, https only, no
+// redirect), and only for an address whose host is exactly traveltohormuz.ir and whose path and query
+// hold plain URL characters only, so that no text in a finding can reach the server's shell.
 //
 // What changes nothing, and is listed with its reason: a server that cannot be reached (run.sh fails,
-// ssh or curl exits non-zero, a 5xx answer the assertion did not ask for), an invariant the run does
-// not print, a verify that is not understood, an address that is not our site's, a refusal by
-// finding.mjs. The finding stays `fixed-unverified` and is judged again on the next run.
+// ssh or curl exits non-zero, a 5xx, or a 403 or 429 the assertion did not ask for, which can be
+// Cloudflare's challenge), an invariant the run does not print, a verify that is not understood, an
+// address that is not our site's, a refusal by finding.mjs. The finding stays `fixed-unverified` and
+// is judged again on the next run.
 //
-// Fixture mode: with FMIP_FIXTURE=<dir> no connection is opened. run.sh replays <dir>/run.txt
-// (T-1895), and a page is <dir>/get<path>.txt, the answer as `curl -i` prints it, with curl's exit
-// code in <dir>/get<path>.exit when it is not 0; <path> is the path and query with every character
-// other than a letter or a digit written `_` (/en/news is get_en_news.txt). OPS_ROOT moves the
-// findings folder, as finding.mjs has it; FMIP_FIXTURE without OPS_ROOT is refused unless --dry-run,
-// so a verdict on fixture data never reaches the real findings.
+// Fixture mode: with FMIP_FIXTURE=<dir> and FMIP_FIXTURE_OK=1 no connection is opened. run.sh replays
+// <dir>/run.txt (T-1895), and a page is <dir>/get<path>.txt, the answer as `curl -i` prints it, with
+// curl's exit code in <dir>/get<path>.exit when it is not 0; <path> is the path and query with every
+// character other than a letter or a digit written `_` (/en/news is get_en_news.txt). OPS_ROOT moves
+// the findings folder, as finding.mjs has it. FMIP_FIXTURE without FMIP_FIXTURE_OK=1 is refused, and
+// without OPS_ROOT too unless --dry-run, so a verdict on fixture data never reaches the real findings.
 //
 // Exit: 0 every check judged and none came back open; 3 at least one came back open; 4 none came
 // back open but at least one could not be judged; 1 refused (the reason is printed).
@@ -64,6 +75,11 @@ const SERVER = 'fmip-prod';
 const EXIT_REFUSED = 1;
 const EXIT_OPEN = 3;
 const EXIT_NOT_JUDGED = 4;
+/** Below this a page is an error or an empty shell: its lacking a text proves nothing. */
+const LACKS_MIN_BYTES = 4096;
+/** Who may choose the proof of a finding's fix: its own agent, or the engineering session (D-460). */
+const TRUSTED_SETTER = 'engineering-session';
+const isSecurity = (f) => f.agent === 'security' || String(f.id).startsWith('sec-');
 
 /** A path and query that can stand between single quotes on the server's shell, and in a URL. */
 const SAFE_PATH = /^\/[A-Za-z0-9._~%/-]*(\?[A-Za-z0-9._~%=&+-]*)?$/;
@@ -132,6 +148,13 @@ function parseVerify(raw) {
       return {
         kind: 'bad',
         why: `one assertion after the address: status <code>, has <text>, lacks <text>, header <name>[: <text>] or no-header <name> (got ${JSON.stringify(rest ?? '')})`,
+      };
+    }
+    const segments = place.path.split('?')[0].split('/').filter(Boolean).length;
+    if (assertion.kind === 'lacks' && segments < 3) {
+      return {
+        kind: 'bad',
+        why: `lacks on ${place.path}, a page that lists items: an item that has scrolled off it proves nothing; name the item's own page (/en/news/<story>, three segments or more) or an invariant`,
       };
     }
     return { kind: 'address', ...place, assertion };
@@ -214,9 +237,10 @@ function get(place) {
     raw = readFileSync(`${base}.txt`, 'utf8');
     code = existsSync(`${base}.exit`) ? Number(readFileSync(`${base}.exit`, 'utf8').trim()) : 0;
   } else {
-    // GET only, by construction: no method, no data, https only, no redirect. The URL was checked
-    // against SAFE_PATH, so it holds no quote and stands between single quotes on the server.
-    const remote = `curl -s -i -m 25 --proto =https --max-redirs 0 '${place.url}'`;
+    // GET only, by construction: no method, no data, https only, no redirect, and -q first so the
+    // server's ~/.curlrc adds nothing. The URL was checked against SAFE_PATH, so it holds no quote
+    // and stands between single quotes on the server.
+    const remote = `curl -q -s -i -m 25 --proto =https --max-redirs 0 '${place.url}'`;
     const r = spawnSync(
       bash(),
       ['-c', `exec ssh -o ConnectTimeout=20 -o BatchMode=yes ${SERVER} "$1"`, 'verify.mjs', remote],
@@ -276,33 +300,38 @@ function judgeAddress(check, answer) {
   const status = answer.status;
   if (a.kind === 'status') {
     if (status === a.code) return { verdict: 'resolved', saw: `${what}: HTTP ${status}, as asked; the fix holds` };
-    if (status >= 500) return { verdict: 'not-judged', why: `the site answered HTTP ${status}, not ${a.code}; judged again on the next run` };
+    // a 5xx is the site down, and a 403 or 429 can be Cloudflare's challenge to the server's curl
+    if (status >= 500 || status === 403 || status === 429) {
+      return { verdict: 'not-judged', why: `the site answered HTTP ${status}, not ${a.code}; judged again on the next run` };
+    }
     return { verdict: 'open', saw: `${what}: HTTP ${status}, not ${a.code}; the fix does not hold` };
   }
   if (status < 200 || status > 299) {
     return { verdict: 'not-judged', why: `the site answered HTTP ${status}: a ${a.kind} assertion is judged on a 2xx answer only` };
   }
-  const size = `HTTP ${status}, ${Buffer.byteLength(answer.body)} bytes`;
+  const bytes = Buffer.byteLength(answer.body);
+  const size = `HTTP ${status}, ${bytes} bytes`;
+  if (a.kind === 'lacks' && bytes < LACKS_MIN_BYTES) {
+    return { verdict: 'not-judged', why: `the page is ${bytes} bytes: too little for its lacking a text to prove anything` };
+  }
   if (a.kind === 'has' || a.kind === 'lacks') {
     const found = holds(answer.body, a.text);
     const pass = a.kind === 'has' ? found : !found;
     const seen = `${what}: ${size}; the page ${found ? 'holds' : 'does not hold'} ${JSON.stringify(a.text)}`;
     return pass ? { verdict: 'resolved', saw: `${seen}; the fix holds` } : { verdict: 'open', saw: `${seen}; the fix does not hold` };
   }
+  // A header's value is never written: it can be a cookie or a token.
   const value = answer.headers.get(a.name);
   if (a.kind === 'no-header') {
     return value === undefined
       ? { verdict: 'resolved', saw: `${what}: ${size}; no ${a.name} header; the fix holds` }
-      : { verdict: 'open', saw: `${what}: ${size}; the ${a.name} header is there (${JSON.stringify(short(value, 120))}); the fix does not hold` };
+      : { verdict: 'open', saw: `${what}: ${size}; the ${a.name} header is there; the fix does not hold` };
   }
   if (value === undefined) return { verdict: 'open', saw: `${what}: ${size}; no ${a.name} header; the fix does not hold` };
-  if (a.text === undefined || value.toLowerCase().includes(a.text.toLowerCase())) {
-    return { verdict: 'resolved', saw: `${what}: ${size}; ${a.name}: ${JSON.stringify(short(value, 120))}; the fix holds` };
-  }
-  return {
-    verdict: 'open',
-    saw: `${what}: ${size}; ${a.name}: ${JSON.stringify(short(value, 120))}, without ${JSON.stringify(a.text)}; the fix does not hold`,
-  };
+  if (a.text === undefined) return { verdict: 'resolved', saw: `${what}: ${size}; the ${a.name} header is there; the fix holds` };
+  const held = value.toLowerCase().includes(a.text.toLowerCase());
+  const seen = `${what}: ${size}; the ${a.name} header ${held ? 'holds' : 'is there without'} ${JSON.stringify(a.text)}`;
+  return held ? { verdict: 'resolved', saw: `${seen}; the fix holds` } : { verdict: 'open', saw: `${seen}; the fix does not hold` };
 }
 
 // ---------- the findings ----------
@@ -325,16 +354,12 @@ function write(id, status, evidence) {
   try {
     const file = join(dir, 'evidence.txt');
     writeFileSync(file, evidence);
-    const r = node(['seen', id, '--status', status, '--evidence-file', file]);
+    const r = node(['seen', id, '--status', status, '--as', TRUSTED_SETTER, '--evidence-file', file]);
     return r.status === 0 ? null : lastLine(r.stderr) || `exit ${r.status}`;
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
-
-/** A security finding's title stays on this computer (the charter, T-1879): id, severity, owner only. */
-const label = (f) =>
-  f.agent === 'security' || String(f.id).startsWith('sec-') ? '(a security finding: its title is not shown here)' : JSON.stringify(f.title);
 
 // ---------- main ----------
 
@@ -348,22 +373,31 @@ function main(argv) {
   }
   const unknown = argv.filter((a) => a !== '--dry-run');
   if (unknown.length > 0) throw new Refusal(`unknown argument ${JSON.stringify(unknown[0])} (only --dry-run)`);
+  if (process.env.FMIP_FIXTURE && process.env.FMIP_FIXTURE_OK !== '1') {
+    throw new Refusal('FMIP_FIXTURE is set without FMIP_FIXTURE_OK=1 (left over?): nothing judged; unset FMIP_FIXTURE for a real run');
+  }
   if (process.env.FMIP_FIXTURE && !process.env.OPS_ROOT && !dry) {
     throw new Refusal('FMIP_FIXTURE without OPS_ROOT would write verdicts on fixture data into the real findings: set OPS_ROOT to a temp folder, or give --dry-run');
   }
 
   const findings = waiting();
-  const checks = findings.map((f) => ({ f, check: f.verify === undefined ? null : parseVerify(f.verify) }));
-  const run = checks.some((c) => c.check?.kind === 'invariant') ? runInvariants() : null;
+  const groups = { resolved: [], open: [], 'not-judged': [], security: [], person: [] };
+  const checks = [];
+  for (const f of findings) {
+    // Never judged here, and named by the id alone: its title, address and assertion can tell the weakness.
+    if (isSecurity(f)) groups.security.push(f.id);
+    else if (f.verify === undefined) groups.person.push(`${f.id}  owner ${f.owner}  ${f.severity}  ${JSON.stringify(f.title)}`);
+    else if (f.verify_by !== f.agent && f.verify_by !== TRUSTED_SETTER) {
+      groups.person.push(
+        `${f.id}  owner ${f.owner}  ${f.severity}  ${JSON.stringify(f.title)}  (its check was set by ${f.verify_by ?? 'an unrecorded writer'}, not by ${f.agent} or the engineering session: ${f.agent} confirms it with seen --verify ... --as ${f.agent})`,
+      );
+    } else checks.push({ f, check: parseVerify(f.verify) });
+  }
+  const run = checks.some((c) => c.check.kind === 'invariant') ? runInvariants() : null;
   const pages = new Map();
-  const groups = { resolved: [], open: [], 'not-judged': [], person: [] };
   const stamp = `${new Date().toISOString().slice(0, 16)}Z`;
 
   for (const { f, check } of checks) {
-    if (check === null) {
-      groups.person.push(`${f.id}  owner ${f.owner}  ${f.severity}  ${label(f)}`);
-      continue;
-    }
     let result;
     if (check.kind === 'bad') result = { verdict: 'not-judged', why: `verify ${JSON.stringify(f.verify)} is not understood: ${check.why}` };
     else if (check.kind === 'invariant') result = judgeInvariant(check, run);
@@ -387,7 +421,7 @@ function main(argv) {
   }
 
   const out = [
-    `verify.mjs (T-1896) ${stamp}: ${findings.length} finding(s) fixed-unverified, ${checks.filter((c) => c.check !== null).length} with a verify check${dry ? ' (dry run: nothing written)' : ''}`,
+    `verify.mjs (T-1896) ${stamp}: ${findings.length} finding(s) fixed-unverified, ${checks.length} with a check it may judge${process.env.FMIP_FIXTURE ? ` (FIXTURE REPLAY from ${process.env.FMIP_FIXTURE}: not the server)` : ''}${dry ? ' (dry run: nothing written)' : ''}`,
   ];
   const section = (title, lines) => {
     out.push(`${title} (${lines.length})`);
@@ -396,9 +430,10 @@ function main(argv) {
   section(dry ? 'would be resolved' : 'resolved', groups.resolved);
   section(dry ? 'would be open again' : 'open again', groups.open);
   section('not judged, nothing changed', groups['not-judged']);
-  section('needs a person or its agent (no verify)', groups.person);
+  section('needs the security agent (its own re-check and line; the id only)', groups.security);
+  section('needs a person or its agent', groups.person);
   out.push(
-    `VERIFY: ${groups.resolved.length} resolved, ${groups.open.length} open, ${groups['not-judged'].length} not judged, ${groups.person.length} need a person or its agent${dry ? ' (dry run)' : ''}`,
+    `VERIFY: ${groups.resolved.length} resolved, ${groups.open.length} open, ${groups['not-judged'].length} not judged, ${groups.security.length} need the security agent, ${groups.person.length} need a person or its agent${dry ? ' (dry run)' : ''}`,
   );
   process.stdout.write(`${out.join('\n')}\n`);
   if (groups.open.length > 0) return EXIT_OPEN;

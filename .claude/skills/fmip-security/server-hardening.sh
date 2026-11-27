@@ -6,18 +6,17 @@
 # Lists listening ports, the SSH daemon's effective settings, the firewall, automatic updates, the
 # site's response headers and the origin lock. Never prints a secret, never changes anything.
 #
-# Fixture mode (T-1895): FMIP_FIXTURE=<dir> replays a saved run and opens no connection: it prints
-# <dir>/server-hardening.txt and exits with the code in <dir>/server-hardening.exit (0 when there is
-# none). Make one with `bash server-hardening.sh > <dir>/server-hardening.txt; echo $? > <dir>/server-hardening.exit`.
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays <dir>/server-hardening.txt between two "FIXTURE REPLAY" lines, opens no
+# connection, and exits with the code in <dir>/server-hardening.exit (0 when there is none); without
+# FMIP_FIXTURE_OK=1 it exits 2. Make one with
+# `bash server-hardening.sh > <dir>/server-hardening.txt; echo $? > <dir>/server-hardening.exit`.
 
 set -uo pipefail
 if [ -n "${FMIP_FIXTURE:-}" ]; then
-  fx="$FMIP_FIXTURE/server-hardening"
-  [ -f "$fx.txt" ] || { echo "HARDENING-ERROR: FMIP_FIXTURE is set and $fx.txt is missing (no connection was opened)"; exit 2; }
-  status=0; [ -f "$fx.exit" ] && status="$(tr -d ' \t\r\n' < "$fx.exit")"
-  case "$status" in ''|*[!0-9]*) echo "HARDENING-ERROR: $fx.exit holds no exit code"; exit 2 ;; esac
-  cat "$fx.txt"
-  exit "$status"
+  . "$(dirname "$0")/../team-charter/bin/fixture-replay.sh"
+  fixture_replay server-hardening HARDENING
+  exit "$FX_STATUS"
 fi
 echo "== site headers (https://traveltohormuz.ir/en)"
 ssh -o ConnectTimeout=20 fmip-prod 'h="$(curl -sI -m 20 https://traveltohormuz.ir/en)"; printf "%s\n" "$h" | cut -d: -f1 | tr "A-Z" "a-z" | sort -u | tr "\n" " "; echo

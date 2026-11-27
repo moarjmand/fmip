@@ -13,11 +13,13 @@
 # OPS_ROOT is set, else E:/FMIP/data-audit/runs), outside the repository, as <UTC timestamp>.txt,
 # so a later run can be compared with it.
 #
-# Fixture mode (T-1895): FMIP_FIXTURE=<dir> replays a saved run and opens no connection: it prints
-# <dir>/run.txt, whatever the query file, and exits with the code in <dir>/run.exit (0 when there is
-# none). Make one with `bash run.sh > <dir>/run.txt; echo $? > <dir>/run.exit`. A successful replay
-# of invariants.sql is saved like a real run, but only where OPS_ROOT or AUDIT_OUT points, never
-# among the real runs; a missing fixture is AUDIT-ERROR, never the server.
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays a saved run between two "FIXTURE REPLAY" lines and opens no connection:
+# <dir>/run.txt for invariants.sql, <dir>/run-<name>.txt for another query file <name>.sql, and the
+# code in the matching .exit file (0 when there is none). Make one with
+# `bash run.sh > <dir>/run.txt; echo $? > <dir>/run.exit`. A successful replay of invariants.sql is
+# saved like a real run, but only where OPS_ROOT or AUDIT_OUT points, never among the real runs.
+# FMIP_FIXTURE without FMIP_FIXTURE_OK=1, or a missing fixture, is AUDIT-ERROR, never the server.
 
 set -uo pipefail
 
@@ -32,16 +34,13 @@ if [ ! -f "$file" ]; then
 fi
 
 if [ -n "${FMIP_FIXTURE:-}" ]; then
-  fx="$FMIP_FIXTURE/run"
-  [ -f "$fx.txt" ] || { echo "AUDIT-ERROR: FMIP_FIXTURE is set and $fx.txt is missing (no connection was opened)" >&2; exit 2; }
-  status=0; [ -f "$fx.exit" ] && status="$(tr -d ' \t\r\n' < "$fx.exit")"
-  case "$status" in ''|*[!0-9]*) echo "AUDIT-ERROR: $fx.exit holds no exit code" >&2; exit 2 ;; esac
-  cat "$fx.txt"
-  if [ "$status" -eq 0 ] && [ "$file" = "$here/invariants.sql" ] && [ -n "${AUDIT_OUT:-}${OPS_ROOT:-}" ]; then
+  . "$here/../team-charter/bin/fixture-replay.sh"
+  if [ "$file" = "$here/invariants.sql" ]; then fixture_replay run AUDIT; else fixture_replay "run-$(basename "$file" .sql)" AUDIT; fi
+  if [ "$FX_STATUS" -eq 0 ] && [ "$file" = "$here/invariants.sql" ] && [ -n "${AUDIT_OUT:-}${OPS_ROOT:-}" ]; then
     mkdir -p "$out_dir"
-    cat "$fx.txt" > "$out_dir/$(date -u +%Y-%m-%dT%H%MZ).txt"
+    cat "$FX_FILE" > "$out_dir/$(date -u +%Y-%m-%dT%H%MZ).txt"
   fi
-  exit "$status"
+  exit "$FX_STATUS"
 fi
 
 remote="/tmp/data-audit-$$.sql"

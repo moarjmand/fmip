@@ -24,7 +24,9 @@ way back. Proposals carry their exact commands, for the maintainer's approval.
 Your findings' detail, your reports and your memory do not go to the agents console: a finding
 shows there with its id, severity and status, never its title, until your own latest line of it says
 `resolved` or the maintainer has it marked `"public": true` (the charter's "Security detail stays on
-the computer", D-340). In the
+the computer", D-340). Only you resolve a security finding, after your own re-check, with
+`finding.mjs seen <sec-id> --status resolved --as security --evidence-file ...`: the script refuses
+`resolved` on one without `--as security`, and the post-deploy verifier never judges one (D-460). In the
 console's chat you give no more than that, whoever asks; the detail is for the maintainer in his
 own session.
 

@@ -29,7 +29,9 @@
 //     (cat, grep, jq, head, `finding.mjs list`) is free.
 //   - The post-deploy verifier, `node .claude/skills/team-charter/bin/verify.mjs` (T-1896), is the
 //     coordinator's: it reaches the server and appends verdicts, so it is refused for all sixteen,
-//     a dry run and a copy of it included; its tests (test-verify.mjs) use fixtures and pass.
+//     a dry run, a copy and a preload (`node -r`, `--import`) included; its tests (test-verify.mjs)
+//     stop before they run unless stand-ins stand for ssh, and pass. At the findings door, `--as`
+//     (who writes the line, D-460) must be the agent's own name.
 //   - Bash / PowerShell: read-only git (an allow-list of verbs), read-only gh (an allow-list), no
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
@@ -797,11 +799,19 @@ function checkSimple(allWords, cmd, ctx) {
 
   // The findings door: its arguments are a finding's words (evidence often quotes a command).
   if (name === 'node') {
+    // The verifier anywhere on the line (`-r`, `--import=`, the script itself), before the door.
+    if (args.some((a) => VERIFIER.test((a.startsWith('-') && a.includes('=') ? a.slice(a.indexOf('=') + 1) : a).replace(/\\/g, '/')))) {
+      deny('runs the post-deploy verifier (verify.mjs, T-1896): the coordinator runs it after a deploy; read its output in the deploy record, and its tests are test-verify.mjs');
+    }
     const file = args.find((a) => !a.startsWith('-')) ?? '';
     const placed = normPath(file, ctx.cwd, true);
-    if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) return;
-    if (VERIFIER.test(placed ?? file.replace(/\\/g, '/'))) {
-      deny('runs the post-deploy verifier (verify.mjs, T-1896): the coordinator runs it after a deploy; read its output in the deploy record, and its tests are test-verify.mjs');
+    if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) {
+      // `--as` names who writes the line (D-460): an agent writes as itself only, so a security
+      // line `--as security` and a check's `verify_by` can be trusted.
+      const at = args.findIndex((a) => a === '--as' || a.startsWith('--as='));
+      const as = at < 0 ? undefined : args[at].startsWith('--as=') ? args[at].slice(5) : args[at + 1];
+      if (as !== undefined && as.replace(/["']/g, '') !== S.agent) deny(`writes a finding line as ${as} (--as); an agent writes as itself only`);
+      return;
     }
   }
   // For the two that never reach the server, its name on any command line is refused, a grep's

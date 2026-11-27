@@ -8,10 +8,11 @@
 # E:/FMIP/ops/reports/ops-release/snapshots; <UTC timestamp>.txt) so the next run can be compared
 # with it. Nothing on the server is changed.
 #
-# Fixture mode (T-1895): FMIP_FIXTURE=<dir> replays a saved run and opens no connection: it prints
-# <dir>/ops-check.txt and exits with the code in <dir>/ops-check.exit (0 when there is none); the
-# replay is saved as a snapshot like a real run, but only where OPS_ROOT or OPS_OUT points, never
-# among the real snapshots. Make one with
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays <dir>/ops-check.txt between two "FIXTURE REPLAY" lines, opens no
+# connection, and exits with the code in <dir>/ops-check.exit (0 when there is none); the replay is
+# saved as a snapshot like a real run, but only where OPS_ROOT or OPS_OUT points, never among the real
+# snapshots. Without FMIP_FIXTURE_OK=1 it exits 2. Make one with
 # `bash ops-check.sh > <dir>/ops-check.txt; echo $? > <dir>/ops-check.exit`.
 
 set -uo pipefail
@@ -20,16 +21,13 @@ out_dir="${OPS_OUT:-${OPS_ROOT:+$OPS_ROOT/reports/ops-release/snapshots}}"
 out_dir="${out_dir:-/e/FMIP/ops/reports/ops-release/snapshots}"
 
 if [ -n "${FMIP_FIXTURE:-}" ]; then
-  fx="$FMIP_FIXTURE/ops-check"
-  [ -f "$fx.txt" ] || { echo "OPS-ERROR: FMIP_FIXTURE is set and $fx.txt is missing (no connection was opened)"; exit 2; }
-  status=0; [ -f "$fx.exit" ] && status="$(tr -d ' \t\r\n' < "$fx.exit")"
-  case "$status" in ''|*[!0-9]*) echo "OPS-ERROR: $fx.exit holds no exit code"; exit 2 ;; esac
-  cat "$fx.txt"
+  . "$here/../team-charter/bin/fixture-replay.sh"
+  fixture_replay ops-check OPS
   if [ -n "${OPS_OUT:-}${OPS_ROOT:-}" ]; then
     mkdir -p "$out_dir"
-    cat "$fx.txt" > "$out_dir/$(date -u +%Y-%m-%dT%H%MZ).txt"
+    cat "$FX_FILE" > "$out_dir/$(date -u +%Y-%m-%dT%H%MZ).txt"
   fi
-  exit "$status"
+  exit "$FX_STATUS"
 fi
 
 result="$(ssh -o ConnectTimeout=20 fmip-prod 'bash -s' < "$here/server-snapshot.sh" 2>&1)"
