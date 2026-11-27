@@ -16293,6 +16293,22 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** After the deploy `delivery:email` raises once and stays `failing` until mail leaves again (T-1952); the next refused send names its cause in the api log. The ops-check thresholds have a `site e-mail` row.
 
+## D-461 — The community rules in plain words are the top of `/rules`, catalogue text beside the version they explain, never a second page or a second thing to accept
+
+**Date.** 2026-11-27. **Status.** Accepted (the engineering session, within the brief of T-1969; the content is the maintainer's choice of 2026-11-27: exactly the three existing rules, no new rule, the legal text stays `platform-rules@1.0.0`). Shown to members only after his yes on the screenshots. **Task:** T-1969 (rules part). **Follows:** D-113, D-410, D-459.
+
+**Context.** The content-community draft of 2026-11-27 (`E:/FMIP/ops/reports/content-community/2026-11-27-community-rules-draft.md`) explains the platform rules in plain English and Persian, with a line of `docs/13-policy.md` behind every sentence. `/rules` already shows the legal text (English, as approved), the form that accepts it, and the retention notice; the sign-up form's checkbox and the footer's legal strip already link it. A member who reads Persian met only English there.
+
+**Decision.**
+1. **One place.** The plain words are a section at the top of `/rules`, above the legal text, not a new route: the existing sign-up and footer links lead to both, and there is no second "rules" page to keep in step.
+2. **Not part of a version.** They are catalogue text (`rules.plain.*`): English and Persian written, every other locale the English marked like any untranslated string. What a member accepts is unchanged: the version under them, by its own form.
+3. **Tied to the version they explain.** They are shown only beside a version listed in `PLAIN_WORDS_VERSIONS` (`apps/web/src/lib/platform-rules.ts`), today `platform-rules@1.0.0`, and not when the text cannot be read. Whoever publishes a new version checks the plain words against it and adds it there; until then the new text stands alone. This is why the draft's sentence "if this page and the rules differ, the rules win" is not needed and is left out.
+4. **Nothing beyond the policy.** Left out of the draft: the optional two-moderator line; "Everything else is fine", which would contradict *Joining* (one account per person, old enough); and "anyone" in "anyone can recompute it", since the policy says only that the rating can be recomputed and a member's history is not always public. Added: where to report and to appeal, by the labels T-1973's controls show («گزارش» / "Report" on a profile and on a message where offered, its reason «مورد دیگر» / "Something else"; «تصمیم‌های نظارتی درباره‌ی حساب شما» / "Moderation decisions on your account" in Settings, which lists restrictions, warnings and content removals, each with a «درخواست تجدیدنظر» / "Appeal" form). The Persian uses the site's own terms (امتیاز عملکرد، گذرواژه، نام نمایشی، میزگرد مسابقه، and «درخواست تجدیدنظر» for an appeal, as the groups already say, never «اعتراض») and writes Stadiomind in Latin letters (T-1503).
+
+**Rejected.** *A new `/community-rules` route*: two rules pages, a second link at the sign-up checkbox beside the one that is accepted, and a page that could outlive the version it explains. *Translating the legal text*: a translation would be a new text to approve (D-113), not an explanation.
+
+**Consequences.** The rules part of T-1969 deploys together with or after T-1973, because the page names its controls. The privacy part of T-1969 waits for the controller's name (T-1953).
+
 ## D-462 — `registration_closed`: the close-sign-ups 403 keeps a code of its own, a second stated exception to D-108
 
 **Date.** 2026-11-27. **Status.** Accepted (the engineering session, on the code review of PR #967, under the standing delegation of 2026-09-26; revisable). **Tasks:** T-1970. **Amends:** D-108. **Follows:** D-459.

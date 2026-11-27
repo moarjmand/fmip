@@ -116,6 +116,19 @@ describe('the site footer', () => {
     expect(strip).toContain('footer-data');
   });
 
+  it('leads to the rules, the community rules in plain words at their top, in both locales (T-1969)', async () => {
+    for (const [locale, words] of [
+      ['en', '>Platform rules<'],
+      ['fa', '>قوانین پلتفرم<'],
+    ] as const) {
+      pathname = `/${locale}/scores`;
+      const html = await draw(locale);
+      const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
+      expect(tag(strip, 'footer-rules'), locale).toContain(`href="/${locale}/rules"`);
+      expect(strip.slice(0, strip.indexOf('</ul>')), locale).toContain(words);
+    }
+  });
+
   it('offers this page in each language, with test ids of its own', async () => {
     const html = await draw('en');
     expect(tag(html, 'footer-language-fa')).toContain('href="/fa/scores"');

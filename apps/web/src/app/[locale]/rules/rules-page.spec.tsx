@@ -21,7 +21,7 @@ vi.mock('@/lib/reader-time-zone-server', () => ({
 }));
 vi.mock('@/lib/rules-actions', () => ({ acceptRulesAction: async () => undefined }));
 
-const { default: RulesPage } = await import('./page');
+const { default: RulesPage, generateMetadata } = await import('./page');
 
 const V1 = /\$rules\$([\s\S]*?)\$rules\$/.exec(
   readFileSync(
@@ -111,5 +111,109 @@ describe('the rules page (T-1789, D-410)', () => {
     expect(html).not.toContain('rules-section-');
     expect(html).not.toContain('rules-index');
     expect(html).toContain('<p>Joining. You need an e-mail address');
+  });
+});
+
+/** The plain words' own markup, up to the end of their section. */
+const plainOf = (html: string): string => {
+  const from = html.indexOf('data-testid="rules-plain"');
+  return from === -1 ? '' : html.slice(from, html.indexOf('</section>', from));
+};
+
+describe('the community rules in plain words (T-1969, D-459)', () => {
+  it('opens the page, above the text the member accepts, with exactly its three rules', async () => {
+    const html = await draw('en');
+    expect(html.indexOf('data-testid="rules-plain"')).toBeGreaterThan(
+      html.indexOf('data-testid="title"'),
+    );
+    expect(html.indexOf('data-testid="rules-plain"')).toBeLessThan(
+      html.indexOf('data-testid="rules-body"'),
+    );
+    expect(html.indexOf('data-testid="rules-plain"')).toBeLessThan(
+      html.indexOf('data-testid="rules-version"'),
+    );
+    const plain = plainOf(html);
+    expect(plain).toMatch(
+      /<h2 id="in-plain-words-heading"[^>]*>Community rules, in plain words<\/h2>/,
+    );
+    expect(plain).toContain('is the platform rules below.');
+    const list = plain.slice(plain.indexOf('data-testid="rules-plain-not-allowed"'));
+    expect(list.slice(0, list.indexOf('</ul>')).match(/<li>/g)).toHaveLength(3);
+    for (const rule of ['Spam and advertising.', 'Abuse and harassment.', 'Impersonation.']) {
+      expect(plain).toContain(`<strong class="font-semibold">${rule}</strong>`);
+    }
+    // Where to report and to appeal, by the labels the controls show (T-1973):
+    // `report.open`, `report.reason.other`, `restrictions.heading`,
+    // `restrictions.appeal.submit`.
+    expect(plain).toContain('use “Report” on their profile');
+    expect(plain).toContain('If you choose “Something else”');
+    expect(plain).toContain(
+      '“Moderation decisions on your account” lists each decision with its own “Appeal” form',
+    );
+    // Nothing the policy does not say: no ranking of this page over the text,
+    // no promise of who moderates, no "everything else is fine".
+    expect(plain).not.toMatch(/prevail|win\b|moderators|Everything else/);
+    expect(html).not.toMatch(PHYSICAL);
+    // The member still accepts the text under it, and only that.
+    expect(html).toContain('data-testid="rules-guest"');
+  });
+
+  it('is Persian on /fa, every string of it translated, the text below still English', async () => {
+    const html = await draw('fa');
+    const plain = plainOf(html);
+    expect(html).toMatch(/data-testid="title">قوانین پلتفرم<\/h1>/);
+    for (const words of [
+      'قوانین جامعه، به زبان ساده',
+      'سه چیز که مجاز نیست',
+      'اسپم و تبلیغ.',
+      'توهین و آزار.',
+      'جعل هویت.',
+      'امتیاز عملکرد',
+      'از «گزارش» در نمایه‌ی او',
+      'گزینه‌ی «مورد دیگر»',
+      'بخش «تصمیم‌های نظارتی درباره‌ی حساب شما»',
+      'فرم «درخواست تجدیدنظر»',
+      '«عضو حذف‌شده»',
+    ]) {
+      expect(plain).toContain(words);
+    }
+    // The site's word for an appeal, from the groups to the restrictions
+    // (T-1973), is «درخواست تجدیدنظر»; never a second one.
+    expect(plain).not.toContain('اعتراض');
+    expect(plain).not.toContain('data-translation="untranslated"');
+    expect(plain).not.toContain('lang="en"');
+    expect(html).toMatch(/<article lang="en" dir="ltr"[^>]*data-testid="rules-body"/);
+  });
+
+  it('is the English, marked, on a language with no translation of it', async () => {
+    const plain = plainOf(await draw('de'));
+    expect(plain).toContain('Community rules, in plain words');
+    expect(plain).toContain('lang="en"');
+  });
+
+  it('is not shown beside a version it was not written for, nor when the text cannot be read', async () => {
+    api.fetchPlatformRules.mockResolvedValue(rules('platform-rules@1.1.0'));
+    expect(await draw('en')).not.toContain('rules-plain');
+    api.fetchPlatformRules.mockResolvedValue({ ok: false });
+    const html = await draw('fa');
+    expect(html).not.toContain('rules-plain');
+    expect(html).toContain('data-testid="rules-unreachable"');
+  });
+
+  it('gives the page a title, a description, a canonical and hreflang in en and fa, indexable', async () => {
+    for (const [locale, title, description] of [
+      ['en', 'Platform rules · Stadiomind', 'in plain words and in full'],
+      ['fa', 'قوانین پلتفرم · Stadiomind', 'به زبان ساده و با متن کامل'],
+    ] as const) {
+      const meta = await generateMetadata({ params: Promise.resolve({ locale }) });
+      expect(meta.title).toBe(title);
+      expect(String(meta.description)).toContain(description);
+      expect(String(meta.alternates?.canonical)).toMatch(new RegExp(`/${locale}/rules$`));
+      const languages = meta.alternates?.languages as Record<string, string>;
+      expect(languages['en']).toMatch(/\/en\/rules$/);
+      expect(languages['fa']).toMatch(/\/fa\/rules$/);
+      expect(languages['x-default']).toMatch(/\/en\/rules$/);
+      expect(meta.robots).toEqual({ index: true, follow: true });
+    }
   });
 });

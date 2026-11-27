@@ -1693,8 +1693,8 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "rulesPage.meta.description": {
-    "source": "The rules every member accepts: what Stadiomind is for, what is not allowed, and how leaving works.",
-    "text": "قوانینی که هر عضو می‌پذیرد: Stadiomind برای چیست، چه کارهایی مجاز نیست و ترک آن چگونه است.",
+    "source": "The rules every member accepts, in plain words and in full: what Stadiomind is for, what is not allowed, how reports and appeals work, and how leaving works.",
+    "text": "قوانینی که هر عضو می‌پذیرد، به زبان ساده و با متن کامل: Stadiomind برای چیست، چه کارهایی مجاز نیست، و گزارش، درخواست تجدیدنظر و ترک آن چگونه است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -17167,6 +17167,168 @@
     "text": "نسخه‌های پشتیبان تا ۹۰ روز نگه داشته می‌شوند؛ پس چیزی که اینجا حذف شده ممکن است تا ۹۰ روز دیگر در یک نسخه‌ی پشتیبان بماند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "rules.plain.title": {
+    "source": "Community rules, in plain words",
+    "text": "قوانین جامعه، به زبان ساده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.intro": {
+    "source": "Stadiomind is a place for football: matches, predictions, analysis, and a good argument about all three. Here are the rules in plain words. The full text, the one you accept when you join, is the platform rules below.",
+    "text": "Stadiomind جایی است برای فوتبال: مسابقه‌ها، پیش‌بینی‌ها، تحلیل‌ها و بحثی خوب درباره‌ی هر سه. این بخش قوانین را ساده می‌گوید. متن کامل، همان قوانین پلتفرم است که هنگام ثبت‌نام می‌پذیرید و در ادامه آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.for.title": {
+    "source": "What this place is for",
+    "text": "این‌جا برای چیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.for.body": {
+    "source": "Football, and only football. A prediction here is a record of what you thought and when. It is not betting advice, nothing here is a wager, and no money changes hands.",
+    "text": "فقط فوتبال. پیش‌بینی در این‌جا ثبتِ این است که چه فکر می‌کردید و کی. توصیه‌ی شرط‌بندی نیست، چیزی در این‌جا شرط‌بندی حساب نمی‌شود و پولی دست‌به‌دست نمی‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.notAllowed.title": {
+    "source": "Three things that are not allowed",
+    "text": "سه چیز که مجاز نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.spam.name": {
+    "source": "Spam and advertising.",
+    "text": "اسپم و تبلیغ.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.spam.body": {
+    "source": "Repeated unwanted messages, adverts, or dropping links.",
+    "text": "پیام‌های ناخواسته‌ی تکراری، تبلیغ، یا پخش کردن لینک.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.spam.example": {
+    "source": "For example: posting the same link to a shop under every match panel.",
+    "text": "مثلاً: گذاشتن لینک یک فروشگاه در میزگرد همه‌ی مسابقه‌ها.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.abuse.name": {
+    "source": "Abuse and harassment.",
+    "text": "توهین و آزار.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.abuse.body": {
+    "source": "Harassment, threats, slurs, or going after somebody for who they are.",
+    "text": "آزار، تهدید، ناسزا، یا هدف گرفتن کسی به‌خاطر هویتش.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.abuse.example": {
+    "source": "For example: following a fan around the site to insult them, or abusing a player’s family.",
+    "text": "مثلاً: دنبال یک هوادار راه افتادن در سایت تا تحقیرش کنید، یا توهین به خانواده‌ی یک بازیکن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.impersonation.name": {
+    "source": "Impersonation.",
+    "text": "جعل هویت.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.impersonation.body": {
+    "source": "Presenting yourself as another person, a club, a journalist, or this platform.",
+    "text": "خود را به جای یک شخص دیگر، یک باشگاه، یک خبرنگار یا همین پلتفرم جا زدن.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.impersonation.example": {
+    "source": "For example: opening an account that pretends to be a club’s press office.",
+    "text": "مثلاً: ساختن حسابی که خود را دفتر رسانه‌ی یک باشگاه نشان می‌دهد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.arguing": {
+    "source": "Arguing hard about a match is welcome.",
+    "text": "بحث داغ سر یک مسابقه این‌جا به‌جاست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.rating.title": {
+    "source": "Your rating is earned",
+    "text": "امتیاز شما به‌دست‌آوردنی است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.rating.body": {
+    "source": "Your Performance Rating is worked out from your settled predictions, and it can be recomputed from them. Nobody can give you a score, and nobody can take your rating away as a punishment.",
+    "text": "امتیاز عملکرد شما از پیش‌بینی‌های تسویه‌شده‌تان محاسبه می‌شود و می‌شود از روی همان‌ها دوباره حسابش کرد. کسی نمی‌تواند امتیازی به شما ببخشد و کسی نمی‌تواند امتیاز شما را به عنوان تنبیه از شما بگیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.report.title": {
+    "source": "How to report",
+    "text": "چطور گزارش بدهیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.report.body": {
+    "source": "Anyone can report a member: use “Report” on their profile, or on the message itself where it is offered. If something breaks the three rules above, send a report and tell us what happened. If you choose “Something else”, please describe it, because a report with no description is one nobody can act on.",
+    "text": "هر کسی می‌تواند یک عضو را گزارش کند: از «گزارش» در نمایه‌ی او استفاده کنید، یا روی خود پیام، هر جا که این گزینه آمده است. اگر چیزی یکی از آن سه قانون را شکسته، گزارش بفرستید و بنویسید چه شده است. اگر گزینه‌ی «مورد دیگر» را انتخاب می‌کنید لطفاً توضیح بدهید، چون گزارشی بدون توضیح چیزی است که کسی نمی‌تواند رویش تصمیم بگیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.after.title": {
+    "source": "What happens after a report",
+    "text": "بعد از گزارش چه می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.after.body": {
+    "source": "A person reads every report, and records what they decided, even when the decision is that nothing was wrong. A decision can limit what you can do, for a stated time or for good. If it is about you, you are told what was decided and why.",
+    "text": "یک نفر هر گزارش را می‌خواند و تصمیمش را ثبت می‌کند، حتی اگر تصمیم این باشد که مشکلی نبوده است. تصمیم می‌تواند کارهایی را که می‌توانید بکنید محدود کند، برای مدتی مشخص یا همیشه. اگر تصمیم درباره‌ی شما باشد، به شما گفته می‌شود چه تصمیمی گرفته شده و چرا.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.appeal.title": {
+    "source": "How to appeal",
+    "text": "چطور درخواست تجدیدنظر بدهیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.appeal.body": {
+    "source": "You can appeal any decision about you, once, in writing. In Settings, “Moderation decisions on your account” lists each decision with its own “Appeal” form. Your appeal is kept with the decision.",
+    "text": "برای هر تصمیمی درباره‌ی شما می‌توانید یک بار و کتبی درخواست تجدیدنظر بدهید. در تنظیمات، بخش «تصمیم‌های نظارتی درباره‌ی حساب شما» هر تصمیم را با فرم «درخواست تجدیدنظر» خودش نشان می‌دهد. درخواست تجدیدنظر شما کنار همان تصمیم نگهداری می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.leave.title": {
+    "source": "How to leave",
+    "text": "چطور برویم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.leave.body": {
+    "source": "You can delete your account from Settings. You type your password and your username again. It happens at once and cannot be undone. Your email address, password, display name, biography and follows are removed, and the community analysis you published is taken down. Your predictions stay without your name, because other people’s ratings were worked out against them, and your messages stay, shown as written by “a deleted member”. Your username is retired, so nobody can take it after you.",
+    "text": "حسابتان را از تنظیمات می‌توانید پاک کنید. گذرواژه و نام کاربری‌تان را دوباره می‌نویسید. همان لحظه انجام می‌شود و برگشت ندارد. نشانی ایمیل، گذرواژه، نام نمایشی، زندگی‌نامه و دنبال‌کردن‌های شما پاک می‌شود و تحلیل جامعه‌ای که منتشر کرده بودید برداشته می‌شود. پیش‌بینی‌های شما بدون نامتان می‌ماند، چون امتیاز دیگران با آن‌ها حساب شده است، و پیام‌هایتان می‌ماند و به نام «عضو حذف‌شده» نمایش داده می‌شود. نام کاربری شما بازنشسته می‌شود و کسی بعد از شما نمی‌تواند آن را بگیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.changes.title": {
+    "source": "If the rules change",
+    "text": "اگر قوانین عوض شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
+  },
+  "rules.plain.changes.body": {
+    "source": "If a change affects what is allowed, we tell you before it applies and ask you to accept the new version.",
+    "text": "اگر تغییری بر آنچه مجاز است اثر بگذارد، پیش از اجرا به شما خبر می‌دهیم و از شما می‌خواهیم نسخه‌ی تازه را بپذیرید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
   "stage.name.regularSeason": {
     "source": "Regular Season",

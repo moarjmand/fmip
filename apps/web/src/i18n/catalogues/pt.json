@@ -1410,7 +1410,7 @@
     "status": "untranslated"
   },
   "rulesPage.meta.description": {
-    "source": "The rules every member accepts: what Stadiomind is for, what is not allowed, and how leaving works.",
+    "source": "The rules every member accepts, in plain words and in full: what Stadiomind is for, what is not allowed, how reports and appeals work, and how leaving works.",
     "text": "",
     "status": "untranslated"
   },
@@ -14109,6 +14109,141 @@
   },
   "rules.retention.backups": {
     "source": "Backups are kept for up to 90 days, so something deleted here can remain in a backup for up to 90 days longer.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.title": {
+    "source": "Community rules, in plain words",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.intro": {
+    "source": "Stadiomind is a place for football: matches, predictions, analysis, and a good argument about all three. Here are the rules in plain words. The full text, the one you accept when you join, is the platform rules below.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.for.title": {
+    "source": "What this place is for",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.for.body": {
+    "source": "Football, and only football. A prediction here is a record of what you thought and when. It is not betting advice, nothing here is a wager, and no money changes hands.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.notAllowed.title": {
+    "source": "Three things that are not allowed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.spam.name": {
+    "source": "Spam and advertising.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.spam.body": {
+    "source": "Repeated unwanted messages, adverts, or dropping links.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.spam.example": {
+    "source": "For example: posting the same link to a shop under every match panel.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.abuse.name": {
+    "source": "Abuse and harassment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.abuse.body": {
+    "source": "Harassment, threats, slurs, or going after somebody for who they are.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.abuse.example": {
+    "source": "For example: following a fan around the site to insult them, or abusing a player’s family.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.impersonation.name": {
+    "source": "Impersonation.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.impersonation.body": {
+    "source": "Presenting yourself as another person, a club, a journalist, or this platform.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.impersonation.example": {
+    "source": "For example: opening an account that pretends to be a club’s press office.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.arguing": {
+    "source": "Arguing hard about a match is welcome.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.rating.title": {
+    "source": "Your rating is earned",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.rating.body": {
+    "source": "Your Performance Rating is worked out from your settled predictions, and it can be recomputed from them. Nobody can give you a score, and nobody can take your rating away as a punishment.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.report.title": {
+    "source": "How to report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.report.body": {
+    "source": "Anyone can report a member: use “Report” on their profile, or on the message itself where it is offered. If something breaks the three rules above, send a report and tell us what happened. If you choose “Something else”, please describe it, because a report with no description is one nobody can act on.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.after.title": {
+    "source": "What happens after a report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.after.body": {
+    "source": "A person reads every report, and records what they decided, even when the decision is that nothing was wrong. A decision can limit what you can do, for a stated time or for good. If it is about you, you are told what was decided and why.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.appeal.title": {
+    "source": "How to appeal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.appeal.body": {
+    "source": "You can appeal any decision about you, once, in writing. In Settings, “Moderation decisions on your account” lists each decision with its own “Appeal” form. Your appeal is kept with the decision.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.leave.title": {
+    "source": "How to leave",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.leave.body": {
+    "source": "You can delete your account from Settings. You type your password and your username again. It happens at once and cannot be undone. Your email address, password, display name, biography and follows are removed, and the community analysis you published is taken down. Your predictions stay without your name, because other people’s ratings were worked out against them, and your messages stay, shown as written by “a deleted member”. Your username is retired, so nobody can take it after you.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.changes.title": {
+    "source": "If the rules change",
+    "text": "",
+    "status": "untranslated"
+  },
+  "rules.plain.changes.body": {
+    "source": "If a change affects what is allowed, we tell you before it applies and ask you to accept the new version.",
     "text": "",
     "status": "untranslated"
   },
