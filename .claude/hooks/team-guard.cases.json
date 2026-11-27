@@ -444,5 +444,12 @@
   { "expect": "block", "agent": "data-auditor", "tool": "mcp__Claude_Browser__navigate", "input": { "url": "https://traveltohormuz.ir/agents/requests" } },
   { "expect": "block", "agent": "designer", "tool": "mcp__Claude_Browser__navigate", "input": { "url": "http://localhost:3000/agents" } },
   { "expect": "block", "agent": "social-media", "tool": "mcp__Claude_Browser__navigate", "input": { "url": "https://x.com/home" } },
-  { "expect": "pass", "agent": "content-community", "tool": "mcp__Claude_Browser__navigate", "input": { "url": "https://traveltohormuz.ir/fa/news" } }
+  { "expect": "pass", "agent": "content-community", "tool": "mcp__Claude_Browser__navigate", "input": { "url": "https://traveltohormuz.ir/fa/news" } },
+  { "expect": "block", "agent": "architect", "tool": "Edit", "input": { "file_path": "E:/FMIP/fmip-ops/ops/findings/2026-11-27.jsonl", "old_string": "a", "new_string": "b" } },
+  { "expect": "pass", "agent": "qa-engineer", "tool": "Write", "input": { "file_path": "E:/FMIP/fmip-ops/ops/reports/qa-engineer/2026-11-27.md", "content": "x" } },
+  { "expect": "pass", "agent": "security", "tool": "Write", "input": { "file_path": "E:/FMIP/fmip-ops/agent-memory/security/baselines.md", "content": "x" } },
+  { "expect": "block", "agent": "code-reviewer", "tool": "Write", "input": { "file_path": "E:/FMIP/fmip-ops/agent-memory/security/MEMORY.md", "content": "x" } },
+  { "expect": "block", "agent": "code-reviewer", "tool": "Write", "input": { "file_path": "E:/FMIP/fmip-ops/agent-memory/MEMORY.md", "content": "x" } },
+  { "expect": "block", "agent": "data-auditor", "tool": "Bash", "input": { "command": "rm E:/FMIP/fmip-ops/ops/findings/2026-11-27.jsonl" } },
+  { "expect": "block", "agent": "security", "tool": "Bash", "input": { "command": "cp /tmp/x.md E:/FMIP/fmip-ops/agent-memory/qa-engineer/MEMORY.md" } }
 ]

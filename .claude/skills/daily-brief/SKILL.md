@@ -36,17 +36,20 @@ Read-only git is fine (`git log`, `git merge-base --is-ancestor` to tell a stale
 are all on main). Findings come first; a report without findings in the day's file is still read,
 and the brief says which agent wrote no findings.
 
-## The decision desk (D-331)
+## The decision desk (D-331, D-458)
 
-The maintainer and the teammate both decide (2026-10-31), on a private page, the decision desk
-(`https://claude.ai/artifact/VdSk3YP7SZntbVw3BGo7Sf`). The daily run exports it before you start:
-`E:/FMIP/ops/desk/decisions/*.json` (each open question) and `E:/FMIP/ops/desk/answers/<person id>.json`
-(each person's answers, keyed by decision id: `choice`, `note`, `at`). Read them first:
+The maintainer and the teammate both decide (2026-10-31) in the agents console: its home page lists
+the open decisions under «منتظر تصمیم شما» and its «تصمیم‌ها» page takes the answers. The desk is
+files, no longer a claude.ai page (D-458): `E:/FMIP/ops/desk/decisions/*.json` (each question) and
+the answers, which are the `answers` in `E:/FMIP/ops/console/state.json` (written by the console
+sync) plus the earlier `E:/FMIP/ops/desk/answers/<person id>.json` (keyed by decision id: `choice`,
+`note`, `at`). Read them first:
 - an answer closes a decision in the ledger (who answered, the choice, the date); two different
   answers make it a decision to settle, put back on the desk with both named;
 - a new decision you raise is written to `E:/FMIP/ops/desk-new.json`, a JSON array of objects
   `{"id": "d-<date>-<nn>", "q", "context", "options": [{"key", "label", "detail"}], "recommended",
-  "raised", "from", "status": "open"}`, in Persian; the daily run puts it on the desk after you.
+  "raised", "from", "status": "open"}`, in Persian; the daily run files each one in
+  `E:/FMIP/ops/desk/decisions/` after you, and the console shows it from the next publish.
   Keep the brief's decisions section as well (the brief is sent to the maintainer as a file).
 
 ## The decisions ledger: `E:/FMIP/ops/decisions.md`
