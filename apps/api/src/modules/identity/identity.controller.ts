@@ -86,7 +86,10 @@ export function nextCopyMessage(retryAfterSeconds: number): string {
   return `A copy of your data was made less than a day ago. The next one is possible in ${hours} ${hours === 1 ? 'hour' : 'hours'}.`;
 }
 
-/** The close-sign-ups switch is on (T-1970): a 403 naming no field and no account. */
+/**
+ * The close-sign-ups switch is on (T-1970): a 403 naming no field and no
+ * account, with the code D-462 admits beside `forbidden` for this route only.
+ */
 function signupsClosed(): never {
   const body: ApiError = { error: 'registration_closed', message: SIGNUPS_CLOSED_MESSAGE };
   throw new ForbiddenException(body);
@@ -114,7 +117,8 @@ export class IdentityController {
     @Req() request: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<SessionResponse> {
-    // Before the body is read: a closed door says so, not that a field is wrong.
+    // Before the body is validated: a closed door says so, not that a field is
+    // wrong. (Fastify has already parsed it, so malformed JSON is still a 400.)
     if (!this.identity.signupsOpen()) signupsClosed();
     const input = unwrap(validateRegister(body));
     const outcome = await this.identity.register(

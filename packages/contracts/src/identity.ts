@@ -430,9 +430,10 @@ export interface ApiError {
     // is "who are you" and stays the 401; `email_unverified` stays its own code
     // because its answer is different (verify, then try again).
     | 'forbidden'
-    // T-1970 (D-459): `POST /auth/register` while the close-sign-ups switch is
-    // on. A 403 of its own: nobody is signed in, and nothing in the form is
-    // wrong. Signing in and everything else still answer as usual.
+    // T-1970 (D-462): `POST /auth/register` while the close-sign-ups switch is
+    // on. A 403 with a code of its own, the second stated exception to D-108
+    // beside `email_unverified`: nobody is signed in, nothing in the form is
+    // wrong, and the answer differs (sign in instead). Only that route uses it.
     | 'registration_closed'
     | 'internal';
   message: string;

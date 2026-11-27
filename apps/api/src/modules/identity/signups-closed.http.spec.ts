@@ -90,9 +90,14 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       return rows[0]?.n ?? 0;
     };
 
+    // The existing member, made here so each test stands on its own (`-t`, any order).
+    const member = registration('member');
+
     beforeAll(async () => {
       [open, closed] = await Promise.all([appWith(false), appWith(true)]);
       pool = new Pool({ connectionString: DATABASE_URL });
+      const made = await post(open, '/auth/register', member);
+      if (made.statusCode !== 201) throw new Error(`member not registered: ${made.body}`);
     });
 
     afterAll(async () => {
@@ -103,7 +108,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
 
     it('with the switch off, sign-up works', async () => {
-      const body = registration('member');
+      const body = registration('opened');
       const response = await post(open, '/auth/register', body);
       expect(response.statusCode).toBe(201);
       expect(response.json().user.username).toBe(body.username);
@@ -122,7 +127,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect(response.headers['set-cookie']).toBeUndefined();
       expect(await accounts(body.username)).toBe(0);
 
-      // Said before the body is read: no field error to fix behind a closed door.
+      // Said before the body is validated: no field error to fix behind a closed door.
       const malformed = await post(closed, '/auth/register', { username: '' });
       expect(malformed.statusCode).toBe(403);
       expect(malformed.json().error).toBe('registration_closed');
@@ -130,7 +135,6 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
     });
 
     it('with the switch on, an existing member signs in and the rest keeps working', async () => {
-      const member = registration('member');
       const login = await post(closed, '/auth/login', {
         identifier: member.username,
         password: PASSWORD,
