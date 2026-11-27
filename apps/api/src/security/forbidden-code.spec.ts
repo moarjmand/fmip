@@ -9,13 +9,15 @@ import { describe, expect, it } from 'vitest';
  *
  * A `new ForbiddenException(...)` passes when its body is a `ROLE_REFUSALS`
  * entry, `forbidden(...)`, or an `ApiError` whose code is `forbidden` -- or
- * `email_unverified`, which D-108 keeps as its own code. A 403 made any
- * other way (`HttpStatus.FORBIDDEN`, an `HttpException` with 403) fails, so
- * a new refusal cannot ship with another code. `console-security.http.spec.ts`
- * probes the router for the same rule.
+ * one of the two stated exceptions with an answer of their own:
+ * `email_unverified` (D-108: verify, then try again) and
+ * `registration_closed` (D-462: sign-ups are closed, sign in instead). A 403
+ * made any other way (`HttpStatus.FORBIDDEN`, an `HttpException` with 403)
+ * fails, so a new refusal cannot ship with another code.
+ * `console-security.http.spec.ts` probes the router for the same rule.
  */
 const SRC = join(__dirname, '..');
-const ALLOWED_CODES = new Set(['forbidden', 'email_unverified']);
+const ALLOWED_CODES = new Set(['forbidden', 'email_unverified', 'registration_closed']);
 
 function sources(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

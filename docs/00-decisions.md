@@ -16278,6 +16278,21 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** `04-tasks-phase-15.md` gets a note at its top pointing here and a `[paused]` mark on the ids in point 2. The brief, the chief of staff's triage and the agents' skills (growth-analyst, product-strategist) read the measure of point 4 each Monday from the script of T-1968. Unregistered visitors stay unmeasured and the reports say so. The brand-domain and 8-language items stay on the public list of D-428. Whoever runs the measure sees only counts; ids never leave the database.
 
+## D-462 — `registration_closed`: the close-sign-ups 403 keeps a code of its own, a second stated exception to D-108
+
+**Date.** 2026-11-27. **Status.** Accepted (the engineering session, on the code review of PR #967, under the standing delegation of 2026-09-26; revisable). **Tasks:** T-1970. **Amends:** D-108. **Follows:** D-459.
+
+**Context.** T-1970's switch (`SIGNUPS_CLOSED=on`) refuses `POST /auth/register` while members keep signing in. D-108 makes `forbidden` the code of every 403 ("the caller is known; they may not do this") with one stated exception, `email_unverified`, kept because its answer differs. `forbidden-code.spec.ts` holds the rule in CI and failed on the switch's 403. A sign-up refused by the switch is neither case D-108 describes: nobody is signed in, and nothing the visitor typed is wrong.
+
+**Decision.**
+1. While the switch is on, `POST /auth/register` answers **403 `registration_closed`**, with `error` and `message` only (no fields, no data), as every D-108 refusal does.
+2. It is the **second stated exception** beside `email_unverified`, for the same reason: the answer differs. The visitor cannot fix the form, and the useful next step is "sign in if you already have an account". The sign-up form reads the code, never the sentence, and says that in the reader's language (`registrationRefusal`, `auth.register.signupsClosed`). Under `forbidden` it would have to tell "closed" apart by the wording, which D-108 forbids. As a 400 `validation` it would read as a form to fix. As a 503 the operations checks would read it as an outage.
+3. Only that route may answer it. `forbidden-code.spec.ts` admits the code in `ALLOWED_CODES`. `console-security.http.spec.ts` deliberately does not, because register is a public write it does not probe: any other route answering it is a defect.
+
+**Rejected.** *`forbidden` with a field as the discriminator*: a refusal carries no fields (D-108). *409 `conflict`*: it means already taken. *503*: the ops snapshot and the watchdog read 5xx as the site failing. *A new status code*: no standard one fits better than 403, "understood and refused".
+
+**Consequences.** `ApiError.error` gains `registration_closed` in `packages/contracts`. A third exception needs its own decision, as this one did.
+
 ## D-463 — The verifier judges only a check the finding's own agent or the engineering session chose, never a security finding; only the security agent's own line resolves one; a fixture replay is never silent
 
 **Date.** 2026-11-27. **Status.** Accepted (the coordinator, from the code review of PR #970, `E:/FMIP/ops/reports/code-reviewer/2026-11-27-t-1895-fixture-mode-verifier.md`, blocking findings 1 to 3 and important 1 and 2). **Tasks.** T-1895, T-1896. **Amends.** D-457 points 2 and 6. **Follows.** D-340, D-455 (security detail stays on the computer), T-1879.

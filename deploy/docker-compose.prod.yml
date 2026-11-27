@@ -185,6 +185,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
       SESSION_SECRET: ${SESSION_SECRET:?missing in .env — see .env.example}
+      # The close-sign-ups switch (T-1970): `on` refuses new accounts, members
+      # still sign in. Changed in .env, then `bash deploy/rollout.sh api`; no build.
+      SIGNUPS_CLOSED: ${SIGNUPS_CLOSED:-off}
       # Links in e-mails point at the public origin; derived from SITE_HOST so
       # there is one place to change the host name.
       WEB_BASE_URL: https://${SITE_HOST}
