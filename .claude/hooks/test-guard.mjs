@@ -42,7 +42,8 @@ function verdict(guard, input) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [join(here, guard)], { stdio: ['pipe', 'ignore', 'pipe'] });
     let said = '';
-    // The settings give each hook 10 s; a guard that takes longer than that here is a wrong verdict.
+    // The settings give each hook 60 s (T-1949: a cold start from the external drive took 7 s); a
+    // warm run takes about 1 s, so one that takes over 10 s here is still a wrong verdict.
     const late = setTimeout(() => child.kill(), 10000);
     child.stderr.setEncoding('utf8').on('data', (chunk) => (said += chunk));
     child.on('error', (error) => resolve({ got: `did not start (${error.message})`, said }));

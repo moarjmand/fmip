@@ -65,7 +65,9 @@
 //     URL; the browser's javascript_tool is not read either;
 //   - a query file given to run.sh is not read (run.sh's read-only session is that lock);
 //   - links, junctions and 8.3 short names are resolved for the file tools only, not for paths
-//     in a shell command (creating a link is refused instead);
+//     in a shell command; the fixed junctions E:/FMIP/ops and .claude/agent-memory (2026-11-21)
+//     are known by both spellings, but a `..` after one of them in a shell path, and a change of
+//     the junctions themselves, are not judged yet (T-1951);
 //   - an agent started as general-purpose (the console chat, until T-1891) is not a team agent
 //     to this hook.
 // Its cases are team-guard.cases.json, run by test-guard.mjs.
@@ -229,7 +231,7 @@ const deny = (why) => {
 };
 
 /** Filled once the caller is known to be a team agent. */
-const S = { agent: '', tmp: '', home: '', repo: '', scratch: false, temps: [], shellTemps: [], pool: [] };
+const S = { agent: '', tmp: '', home: '', repo: '', memory: '', scratch: false, temps: [], shellTemps: [], pool: [], writeRoots: WRITE_ROOTS, findings: [FINDINGS] };
 
 // ---------------------------------------------------------------------------------------------
 // Paths. String work only (never node:path), so a verdict is the same on every machine.
@@ -301,11 +303,14 @@ function realPath(canon) {
 
 const inside = (root, p) => Boolean(root) && p.startsWith(`${root}/`);
 const within = (root, p) => p === root || inside(root, p);
+/** The findings folder, as written or where it really lands (E:/FMIP/ops is a junction; T-1949). */
+const inFindings = (p) => S.findings.some((root) => within(root, p));
 /** The scratchpad and <temp>/claude/ for the file tools; the whole temp folder for the shell. */
 const inTemp = (p, roots = S.temps) => roots.some((root) => inside(root, p));
 
 /** Inside `.claude/agent-memory/<agent>/` of the main checkout or of one of its worktrees: whose. */
 function memoryOwner(p) {
+  if (inside(S.memory, p)) return p.slice(S.memory.length + 1).match(/^([^/]+)\/./)?.[1] ?? null;
   if (!inside(S.repo, p)) return null;
   const rel = p.slice(S.repo.length + 1).replace(/^\.claude\/worktrees\/[^/]+\//, '');
   const m = rel.match(/^\.claude\/agent-memory\/([^/]+)\/./);
@@ -322,9 +327,9 @@ function checkFilePath(value, cwd) {
   }
   const p = realPath(written);
   const lands = p === written.toLowerCase() ? shown : `${shown}, which lands in ${p}`;
-  if (within(FINDINGS, p)) deny('writes a findings file directly (finding.mjs validates and appends; it is the only door)');
+  if (inFindings(p)) deny('writes a findings file directly (finding.mjs validates and appends; it is the only door)');
   // The repository first: a checkout that itself lives under the temp folder is still the repository.
-  const allowed = within(S.repo, p) ? memoryOwner(p) === S.agent : WRITE_ROOTS.some((root) => inside(root, p)) || inTemp(p);
+  const allowed = within(S.repo, p) || within(S.memory, p) ? memoryOwner(p) === S.agent : S.writeRoots.some((root) => inside(root, p)) || inTemp(p);
   if (!allowed) deny(`writes outside its folders (${lands}); a team agent writes only under E:/FMIP/ops/, E:/FMIP/data-audit/, its scratchpad and its own memory`);
 }
 
@@ -344,7 +349,8 @@ function checkShellTarget(value, ctx, repository = false) {
   }
   const owner = scratchCopy ? null : text.match(/(^|\/)\.claude\/agent-memory(\/([^/]+))?(\/|$)/);
   if (owner && owner[3] !== S.agent) deny('changes another agent\'s memory');
-  if (p !== null ? within(FINDINGS, p) : /(^|\/)ops\/+findings(\/|$)/.test(text)) {
+  if (!scratchCopy && p !== null && within(S.memory, p) && memoryOwner(`${p}/x`) !== S.agent) deny("changes another agent's memory");
+  if (p !== null ? inFindings(p) : /(^|\/)ops\/+findings(\/|$)/.test(text)) {
     deny('writes, moves or removes a findings file from the shell (the only door is `node .claude/skills/team-charter/bin/finding.mjs`)');
   }
   if (repository && p !== null && within(S.repo, p) && memoryOwner(`${p}/x`) !== S.agent) {
@@ -897,7 +903,7 @@ function checkLink(paths, ctx) {
   for (const raw of paths) {
     const p = normPath(raw, ctx.cwd, true);
     if (p === null || /[$`*?]/.test(p)) deny(`makes a link with an end the guard cannot place (${raw})`);
-    if (within(S.repo, p) || within(FINDINGS, p)) deny(`makes a link or junction that touches the repository or the findings folder (${raw})`);
+    if (within(S.repo, p) || within(S.memory, p) || inFindings(p)) deny(`makes a link or junction that touches the repository or the findings folder (${raw})`);
     checkShellTarget(raw, ctx);
   }
 }
@@ -924,7 +930,7 @@ function checkGeneric(w, c, ctx) {
   for (const x of w.slice(1)) {
     const value = x.includes('=') && x.startsWith('-') ? x.slice(x.indexOf('=') + 1) : x;
     const p = normPath(value, ctx.cwd, true);
-    if (p !== null ? within(FINDINGS, p) : /(^|[\\/])ops[\\/]+findings([\\/]|$)/i.test(value)) {
+    if (p !== null ? inFindings(p) : /(^|[\\/])ops[\\/]+findings([\\/]|$)/i.test(value)) {
       deny(`hands ${baseName(w[0])} a findings path (${value}); the only door for writing is finding.mjs, and cat, grep, jq read`);
     }
   }
@@ -1253,6 +1259,12 @@ process.stdin.on('end', () => {
     // Folders are known by their real path (what the file tools are judged by) and as written.
     const real = (p) => realPath(canonPath(p, null) ?? String(p));
     S.repo = real(slash(fileURLToPath(import.meta.url)).replace(/\/\.claude\/hooks\/[^/]+$/, '')).replace(/\/\.claude\/worktrees\/[^/]+$/, '');
+    // Since 2026-11-21 E:/FMIP/ops and the main checkout's .claude/agent-memory are junctions into the
+    // private ops repository: a path is judged by where it lands, so the roots are known there too (T-1949).
+    const memory = real(`${S.repo}/.claude/agent-memory`);
+    S.memory = within(S.repo, memory) ? '' : memory;
+    S.writeRoots = [...new Set(WRITE_ROOTS.flatMap((p) => [p, real(p)]))];
+    S.findings = [...new Set([FINDINGS, real(FINDINGS)])];
     const tmp = normPath(S.tmp, null);
     const scratch = typeof input.scratchpad_dir === 'string' && input.scratchpad_dir.trim() !== '' ? normPath(input.scratchpad_dir, null) : null;
     S.scratch = scratch !== null;
