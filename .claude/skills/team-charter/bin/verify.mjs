@@ -377,7 +377,7 @@ function main(argv) {
     }
     const shown = check.kind === 'invariant' ? check.text : `${check.url} ${describe(check.assertion)}`;
     if (!dry) {
-      const refused = write(f.id, result.verdict, `verify.mjs (T-1896) ${stamp}, verify ${JSON.stringify(shown)}: ${result.saw}.`);
+      const refused = write(f.id, result.verdict, `verify.mjs (T-1896) ${stamp}, check: ${shown}. Seen: ${result.saw}.`);
       if (refused !== null) {
         groups['not-judged'].push(`${f.id}  ${result.verdict}, but finding.mjs refused the line: ${refused}`);
         continue;

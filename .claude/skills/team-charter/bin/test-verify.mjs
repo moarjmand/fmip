@@ -130,7 +130,7 @@ const HOME = http(200, { 'X-Frame-Options': 'DENY', 'X-Powered-By': 'Next.js' },
   check('an invariant named by its code alone is judged', status(F.r1) === 'open', r.out);
   check('an invariant named by its name alone is judged', status(F.byName) === 'resolved', r.out);
   check('a failing invariant moves its finding to open, with what it saw', status(F.r1) === 'open' && /R1 extra_time_sum: 3 violation\(s\) \(Copa del Rey/.test(lineOf(c, F.r1.id)?.evidence ?? ''), lineOf(c, F.r1.id)?.evidence);
-  check('the resolved line names the check and its 0', /verify "S2 scheduled_in_the_past": data-audit\/run\.sh, S2 scheduled_in_the_past: 0 violation\(s\); the fix holds/.test(lineOf(c, F.s2.id)?.evidence ?? ''), lineOf(c, F.s2.id)?.evidence);
+  check('the resolved line names the check and its 0', /check: S2 scheduled_in_the_past\. Seen: data-audit\/run\.sh, S2 scheduled_in_the_past: 0 violation\(s\); the fix holds\.$/.test(lineOf(c, F.s2.id)?.evidence ?? ''), lineOf(c, F.s2.id)?.evidence);
   check('an invariant the run does not print changes nothing', status(F.absent) === undefined && /no invariant "Z9 no_such_check"/.test(r.out), r.out);
   check('lacks: a page without the text resolves', status(F.lacks) === 'resolved');
   check('has: a page with the text resolves, entities decoded', status(F.has) === 'resolved', r.out);
