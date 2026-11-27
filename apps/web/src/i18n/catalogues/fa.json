@@ -2154,6 +2154,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "auth.register.signupsClosed": {
+    "source": "Sign-ups are closed for now. If you already have an account, you can still sign in.",
+    "text": "ثبت‌نام فعلاً بسته است. اگر حساب کاربری دارید، همچنان می‌توانید وارد شوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1970."
+  },
   "auth.register.usernameHint": {
     "source": "3 to 20 characters: lower-case letters, digits, underscore. Shown on leaderboards.",
     "text": "۳ تا ۲۰ نویسه: حروف کوچک لاتین، رقم و زیرخط (_). در جدول برترین‌ها نمایش داده می‌شود.",
