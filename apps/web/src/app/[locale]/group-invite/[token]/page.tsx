@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound, redirect } from 'next/navigation';
@@ -83,9 +84,7 @@ export default async function GroupInvitePage({
         {group.name}
       </h1>
       {group.description !== null && (
-        <p lang={group.language ?? undefined} dir="auto">
-          {group.description}
-        </p>
+        <MemberWords text={group.description} lang={group.language ?? undefined} />
       )}
 
       {member ? (
@@ -113,13 +112,11 @@ export default async function GroupInvitePage({
               <h2 className="text-lg font-semibold">
                 <Translated locale={locale} message="groupsPage.rulesTitle" />
               </h2>
-              <p
+              <MemberWords
+                text={rules.body}
                 className="whitespace-pre-line text-sm"
                 lang={group.language ?? undefined}
-                dir="auto"
-              >
-                {rules.body}
-              </p>
+              />
               <p className="text-sm text-muted">
                 <Translated locale={locale} message="groupsPage.invite.rulesWhose" />
               </p>

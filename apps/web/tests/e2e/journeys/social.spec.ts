@@ -180,7 +180,7 @@ test.describe('blueprint 19 social, with two members', () => {
     await robin.getByTestId('friend-block').click();
     // The handle is a left-to-right isolate (T-1975): U+2066 … U+2069 around it.
     await expect(robin.getByTestId('friend-state')).toContainText(
-      `You blocked ⁦@${A.username}⁩`,
+      `You blocked \u2066@${A.username}\u2069`,
     );
 
     // The blocked member is told a request cannot be sent. They are not told

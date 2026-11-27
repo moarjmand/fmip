@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import {
   isDeletedMember,
   type MatchPanelPage,
@@ -238,9 +239,10 @@ function Post({
           ) : null
         }
       />
-      <p className="whitespace-pre-wrap text-sm" dir="auto">
-        {post.body}
-      </p>
+      {/* A removed post keeps no body (the contract), so nothing is drawn for it. */}
+      {post.body !== null && (
+        <MemberWords text={post.body} className="whitespace-pre-wrap text-sm" />
+      )}
       <LinkCard
         locale={locale}
         post={post}

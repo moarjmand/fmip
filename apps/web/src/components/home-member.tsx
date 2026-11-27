@@ -9,6 +9,7 @@ import {
   type ScoreCard,
 } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
+import { MemberWords, wordsIsolate } from '@/components/member-words';
 import { ProductRow } from '@/components/product-row';
 import { CoverageBadge } from '@/components/ui/coverage-badge';
 import { MessageText } from '@/components/message-text';
@@ -217,7 +218,7 @@ export function GroupDiscussionsSection({
                               text:
                                 last.body === null
                                   ? excerpt(message(lang, 'home.groups.card').text)
-                                  : nameIsolate(excerpt(last.body)),
+                                  : wordsIsolate(excerpt(last.body)),
                             })
                     }
                   />
@@ -331,7 +332,7 @@ export function PanelsSection({
                           />
                         </>
                       )}
-                      : <bdi>{excerpt(post.body ?? '')}</bdi>
+                      : <MemberWords as="bdi" text={excerpt(post.body ?? '')} />
                     </li>
                   ))}
                 </ul>

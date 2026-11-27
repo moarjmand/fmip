@@ -29,7 +29,7 @@ export interface ClientWords<K extends MessageKey, P extends PluralKey = never> 
 
 /**
  * `{name}` placeholders, filled from `params`; an unknown name is left as it is, visibly.
- * `@{name}` is a handle, isolated left to right with its `@` (T-1975), as
+ * `@{username}` is a handle, isolated left to right with its `@` (T-1975), as
  * `interpolate` does on the server; kept apart so a client bundle does not
  * pull in the catalogues.
  */
@@ -37,7 +37,7 @@ export function fill(template: string, params: Record<string, string>): string {
   return template.replace(/(@?)\{([a-zA-Z]+)\}/g, (whole, at: string, name: string) => {
     const value = params[name];
     if (value === undefined) return whole;
-    return at === '@' ? `⁦@${value}⁩` : value;
+    return at === '@' && name === 'username' ? `\u2066@${value}\u2069` : at + value;
   });
 }
 

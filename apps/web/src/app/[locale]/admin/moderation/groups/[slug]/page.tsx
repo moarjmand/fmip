@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
@@ -81,7 +82,7 @@ export default async function GroupModerationPage({
                 </>
               )}
             </p>
-            {result.data.description !== null && <p dir="auto">{result.data.description}</p>}
+            {result.data.description !== null && <MemberWords text={result.data.description} />}
             {result.data.closed !== null ? (
               <Notice tone="warning" data-testid="moderation-group-closed">
                 Closed: {result.data.closed.reason}
@@ -102,7 +103,7 @@ export default async function GroupModerationPage({
                     {report.reason} from <bdi dir="ltr">@{report.reporter}</bdi>
                     {report.detail !== null && (
                       <>
-                        : <bdi>{report.detail}</bdi>
+                        : <MemberWords as="bdi" text={report.detail} />
                       </>
                     )}
                     {report.decision_id === null ? ' · open' : ' · answered'}
@@ -162,7 +163,7 @@ export default async function GroupModerationPage({
                   <li key={decision.id} className="text-sm">
                     <time dateTime={decision.created_at}>{decision.created_at}</time> ·{' '}
                     {decision.outcome} by <bdi dir="ltr">@{decision.moderator}</bdi>:{' '}
-                    <bdi>{decision.reason}</bdi>
+                    <MemberWords as="bdi" text={decision.reason} />
                   </li>
                 ))}
               </ul>

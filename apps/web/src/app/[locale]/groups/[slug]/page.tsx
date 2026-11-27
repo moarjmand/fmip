@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound, redirect } from 'next/navigation';
@@ -180,9 +181,7 @@ export default async function GroupPage({
           )}
         </p>
         {group.description !== null && (
-          <p data-testid="group-description" lang={lang} dir="auto">
-            {group.description}
-          </p>
+          <MemberWords text={group.description} data-testid="group-description" lang={lang} />
         )}
         {/* A group with neither says nothing, rather than "none" (T-1022). */}
         {group.language !== null && (
@@ -268,14 +267,12 @@ export default async function GroupPage({
           <h2 className="text-lg font-semibold">
             <Translated locale={locale} message="groupsPage.rulesTitle" />
           </h2>
-          <p
+          <MemberWords
+            text={group.rules.body}
             className="whitespace-pre-line text-sm"
             lang={lang}
-            dir="auto"
             data-testid="group-rules-body-text"
-          >
-            {group.rules.body}
-          </p>
+          />
           <p className="text-sm text-muted" data-testid="group-rules-whose">
             <Said
               locale={locale}
@@ -475,9 +472,7 @@ export default async function GroupPage({
                     <MemberHandle username={request.username} className="text-muted" />
                   </p>
                   {request.note !== null && (
-                    <p className="whitespace-pre-line text-sm" dir="auto">
-                      {request.note}
-                    </p>
+                    <MemberWords text={request.note} className="whitespace-pre-line text-sm" />
                   )}
                   <JoinRequestControls
                     locale={locale}

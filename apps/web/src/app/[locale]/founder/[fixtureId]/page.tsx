@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
@@ -217,9 +218,7 @@ export default async function FounderAnalysisPage({
                   <time dateTime={version.published_at}>{utcMoment(l, version.published_at)}</time>{' '}
                   · {confidenceText(l, version.confidence)}
                 </p>
-                <p className="mt-1" dir="auto">
-                  {version.reasoning}
-                </p>
+                <MemberWords text={version.reasoning} className="mt-1" />
               </li>
             ))}
           </ol>

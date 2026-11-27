@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import {
   DEFAULT_PICK_CONFIDENCE,
   MAX_REASON_TAGS,
@@ -452,11 +453,7 @@ export function StoredDetail({
           )}
         </p>
       )}
-      {v.explanation !== null && (
-        <p className="text-fg" dir="auto">
-          {v.explanation}
-        </p>
-      )}
+      {v.explanation !== null && <MemberWords text={v.explanation} className="text-fg" />}
       <p data-testid="prediction-versions">
         {locked ? (
           <FilledMessage

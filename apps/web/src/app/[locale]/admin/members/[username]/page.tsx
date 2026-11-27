@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
@@ -349,7 +350,7 @@ export default async function MemberPage({
                 {contributor.data.grant.history.map((event) => (
                   <p key={`${event.kind}-${event.at}`} className="text-muted">
                     {event.kind} by <bdi dir="ltr">@{event.actor}</bdi> on <When iso={event.at} />:{' '}
-                    <bdi>{event.reason}</bdi>
+                    <MemberWords as="bdi" text={event.reason} />
                   </p>
                 ))}
               </Card>

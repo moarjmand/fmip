@@ -2,6 +2,7 @@ import Link from '@/components/ui/link';
 import { conversationTitle, threadStanding } from '@/lib/conversation-title';
 import type { ConversationSummary, Message, SharedCard } from '@fmip/contracts';
 import { MemberName } from '@/components/member-name';
+import { MemberWords, wordsIsolate } from '@/components/member-words';
 import { Score, nameIsolate } from '@/components/score';
 import { memberName } from '@/lib/member-name';
 import { formatDateTime, formatNumber } from '@/i18n/format';
@@ -201,20 +202,18 @@ export function MessageRow({
               <Said
                 locale={locale}
                 message="messagesPage.removedWhy"
-                params={{ reason: nameIsolate(message.removed.reason) }}
+                params={{ reason: wordsIsolate(message.removed.reason) }}
               />
             </span>
           )}
         </p>
       ) : (
         <>
-          {/* The member's own words take their direction from their first
-              letter (T-1975): a Persian message on an English page, or an
+          {/* The member's own words in their own direction, handles kept
+              left to right (T-1975): a Persian message on an English page, or an
               English one on a Persian page, aligns and punctuates as written. */}
           {message.body !== null && (
-            <p className="whitespace-pre-line text-sm" lang={lang} dir="auto">
-              {message.body}
-            </p>
+            <MemberWords text={message.body} className="whitespace-pre-line text-sm" lang={lang} />
           )}
           {message.card !== null && (
             <FootballCard card={message.card} locale={locale} timeZone={timeZone} />

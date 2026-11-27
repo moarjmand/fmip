@@ -5,7 +5,7 @@ import type { PredictionOutcome, Rating } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
-import { type MessageKey, interpolate, plural, t } from '@/i18n/messages';
+import { type MessageKey, interpolate, plural, t, withoutIsolates } from '@/i18n/messages';
 import { fetchMe, fetchPredictionHistory, fetchRating } from '@/lib/api';
 import { COMPARE_WINDOW, compared, settledCount, tally, truncated } from '@/lib/compare';
 import { ratingLabel, statusLabel, tierLabel } from '@/lib/leaderboard';
@@ -27,7 +27,8 @@ export async function generateMetadata({
   return pageMetadata({
     locale,
     path: `/u/${encodeURIComponent(name)}/compare`,
-    title: `${interpolate(t(lang, 'profile.compare.metaTitle'), { username: name })} · Stadiomind`,
+    // Metadata is copied, not laid out: no isolates in it (T-1975).
+    title: `${withoutIsolates(interpolate(t(lang, 'profile.compare.metaTitle'), { username: name }))} · Stadiomind`,
   });
 }
 

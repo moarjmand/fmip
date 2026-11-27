@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import {
   type GroupPoll,
   type GroupPollsResponse,
@@ -102,9 +103,7 @@ function PollItem({
   const ended = poll.closed_at ?? poll.closes_at;
   return (
     <>
-      <p className="font-semibold" dir="auto">
-        {poll.question}
-      </p>
+      <MemberWords text={poll.question} className="font-semibold" />
       <p className="text-xs text-muted">
         {poll.created_by !== null && (
           <>
@@ -124,12 +123,11 @@ function PollItem({
           <ul className="flex flex-col gap-1 text-sm">
             {poll.options.map((option) => (
               <li key={option.id} className="flex flex-wrap items-baseline gap-x-2">
-                <span
+                <MemberWords
+                  as="span"
+                  text={option.label}
                   className={option.id === poll.my_vote ? 'font-semibold' : undefined}
-                  dir="auto"
-                >
-                  {option.label}
-                </span>
+                />
                 <span className="tabular-nums text-muted">
                   <Translated
                     locale={locale}
@@ -168,13 +166,11 @@ function PollItem({
           testId="group-poll-vote"
         >
           <fieldset className="flex flex-col gap-1 text-sm">
-            <legend className="sr-only" dir="auto">
-              {poll.question}
-            </legend>
+            <MemberWords as="legend" text={poll.question} className="sr-only" />
             {poll.options.map((option) => (
               <Radio
                 key={option.id}
-                label={<bdi>{option.label}</bdi>}
+                label={<MemberWords as="bdi" text={option.label} />}
                 name="option_id"
                 value={option.id}
                 defaultChecked={option.id === poll.my_vote}

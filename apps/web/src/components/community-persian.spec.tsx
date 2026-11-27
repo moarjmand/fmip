@@ -127,8 +127,8 @@ describe('the community surfaces on /fa', () => {
       <MessageRow message={message} locale="fa" timeZone="Asia/Tehran" isMine={false} />,
     );
     expect(html).toContain('ناظر آن را حذف کرد.');
-    // The moderator's words are isolated inside the sentence (T-1975).
-    expect(html).toContain('دلیل: \u2068تبلیغ\u2069');
+    // The moderator's words are isolated, right to left, inside the sentence (T-1975).
+    expect(html).toContain('دلیل: \u2067تبلیغ\u2069');
     // The Solar Hijri date, in Persian digits (D-175).
     expect(html).toMatch(/۱۴۰۵/);
   });

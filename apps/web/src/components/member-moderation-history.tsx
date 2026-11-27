@@ -1,5 +1,6 @@
 'use client';
 
+import { MemberWords } from '@/components/member-words';
 import { useActionState } from 'react';
 import type { MemberModerationHistory, Sanction } from '@fmip/contracts';
 import { liftSanctionAction } from '@/lib/moderation-actions';
@@ -133,9 +134,7 @@ export function MemberModerationHistoryView({
                   {report.decision_id === null ? ', open' : ', answered'}
                 </span>
                 {report.detail !== null && (
-                  <p className="whitespace-pre-wrap text-muted" dir="auto">
-                    {report.detail}
-                  </p>
+                  <MemberWords text={report.detail} className="whitespace-pre-wrap text-muted" />
                 )}
               </li>
             ))}

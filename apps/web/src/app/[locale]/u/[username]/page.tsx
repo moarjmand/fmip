@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
@@ -286,9 +287,7 @@ export default async function ProfilePage({
       {/* No bio is not drawn (T-1787, D-390): to a visitor it says nothing,
           and the member's own page asks for one in its first steps. */}
       {profile.bio !== null && (
-        <p className="whitespace-pre-line" dir="auto" data-testid="profile-bio">
-          {profile.bio}
-        </p>
+        <MemberWords text={profile.bio} className="whitespace-pre-line" data-testid="profile-bio" />
       )}
 
       {profile.favourite_teams.length > 0 ? (

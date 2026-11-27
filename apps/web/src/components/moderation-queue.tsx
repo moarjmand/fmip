@@ -1,5 +1,6 @@
 'use client';
 
+import { MemberWords } from '@/components/member-words';
 import { useActionState, useState } from 'react';
 import Link from '@/components/ui/link';
 import {
@@ -101,9 +102,7 @@ function ReportItem({
         </time>
       </p>
       {report.detail !== null && (
-        <p className="whitespace-pre-wrap text-muted" dir="auto">
-          {report.detail}
-        </p>
+        <MemberWords text={report.detail} className="whitespace-pre-wrap text-muted" />
       )}
       {report.suggestion !== null ? (
         <p className="text-xs" data-testid="moderation-suggestion">
