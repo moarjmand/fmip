@@ -21,12 +21,14 @@ vi.mock('@/lib/first-run-actions', () => ({
   saveFirstRunStepAction: async () => undefined,
   finishFirstRunAction: async () => undefined,
 }));
-vi.mock('next/navigation', () => ({ usePathname: () => '/en/welcome' }));
+let pathname = '/en/welcome';
+vi.mock('next/navigation', () => ({ usePathname: () => pathname }));
 vi.mock('next/server', () => ({ connection: async () => undefined }));
 
 const { default: WelcomePage } = await import('./page');
 
 async function render(locale = 'en'): Promise<string> {
+  pathname = `/${locale}/welcome`;
   const element = await WelcomePage({
     params: Promise.resolve({ locale }),
     searchParams: Promise.resolve({ step: 'timezone' }),
@@ -59,5 +61,9 @@ describe('/welcome', () => {
     const fa = await render('fa');
     expect(fa).toContain('چیزی نامفهوم، نادرست یا ناقص است؟ با ایمیل برای ما بنویسید:');
     expect(fa).toContain('>ارسال بازخورد</a>');
+    const faSubject = encodeURIComponent(
+      'بازخورد درباره‌ی Stadiomind، از صفحه‌ی \u200e/fa/welcome\u200e',
+    );
+    expect(fa).toContain(`href="mailto:feedback@example.test?subject=${faSubject}"`);
   });
 });

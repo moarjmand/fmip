@@ -1,8 +1,14 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { feedbackHref, feedbackSubject, siteContactEmail } from '@/lib/feedback';
+import {
+  KEYED_ROUTES,
+  feedbackHref,
+  feedbackPage,
+  feedbackSubject,
+  siteContactEmail,
+} from '@/lib/feedback';
 import { FeedbackLink, feedbackAddress } from './feedback-link';
 
 /**
@@ -47,9 +53,23 @@ describe('the contact mailbox', () => {
       'a@example.test?cc=b@example.test',
       'a@example.test,b@example.test',
       'a b@example.test',
+      // Percent-encoded separators: a mail program decodes them into a second
+      // recipient or a header (RFC 6068).
+      'a%2Cb@example.test',
+      'a%0Abcc%3Ab@example.test',
+      'a@example.test%3Fbcc%3Dx',
+      'a=b@example.test',
+      // Not a domain.
+      'a@b..c',
+      'a@.b.c',
+      'a@example.c',
+      'a@sub_domain.example',
     ]) {
       expect(siteContactEmail({ SITE_CONTACT_EMAIL: value }), String(value)).toBeNull();
     }
+    expect(
+      siteContactEmail({ SITE_CONTACT_EMAIL: 'first.last+test@mail.example-site.co.uk' }),
+    ).toBe('first.last+test@mail.example-site.co.uk');
   });
 
   it('gets the page’s path in the subject, never its query', () => {
@@ -58,6 +78,37 @@ describe('the contact mailbox', () => {
     );
     expect(feedbackSubject('{page}', '/en/search?q=private#x')).toBe('/en/search');
     expect(feedbackSubject('{page}', '')).toBe('/');
+  });
+
+  it('names a keyed route by its name only, never the key in its path', () => {
+    expect(feedbackPage('/en/group-invite/s3cr3t-t0ken')).toBe('/en/group-invite');
+    expect(feedbackPage('/fa/called-it/s3cr3t-t0ken?x=1')).toBe('/fa/called-it');
+    expect(feedbackSubject('{page}', '/en/group-invite/s3cr3t')).not.toContain('s3cr3t');
+    expect(feedbackPage('/en/match/0a1b')).toBe('/en/match/0a1b');
+  });
+
+  it('knows every route with a [token] segment as keyed', () => {
+    const found: string[] = [];
+    const walk = (dir: string, parent: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name === '[token]') found.push(parent);
+        walk(join(dir, entry.name), entry.name);
+      }
+    };
+    walk(join(WEB, 'app', '[locale]'), '');
+    expect(found.length).toBeGreaterThanOrEqual(2);
+    expect([...found].sort()).toEqual([...KEYED_ROUTES].sort());
+  });
+
+  it('keeps the path left to right inside a right-to-left subject', () => {
+    expect(feedbackSubject('از صفحه‌ی {page}', '/fa/welcome')).toBe(
+      'از صفحه‌ی \u200e/fa/welcome\u200e',
+    );
+    expect(feedbackSubject('from {page}', '/en/welcome')).toBe('from /en/welcome');
+  });
+
+  it('encodes the whole subject into the address', () => {
     expect(feedbackHref(ADDRESS, 'a b/ی')).toBe(
       `mailto:${ADDRESS}?subject=${encodeURIComponent('a b/ی')}`,
     );
@@ -79,7 +130,9 @@ describe('Send feedback', () => {
     const html = await draw('fa', 'line', 'profile-feedback');
     expect(html).toContain('چیزی نامفهوم، نادرست یا ناقص است؟ با ایمیل برای ما بنویسید:');
     expect(html).toContain('>ارسال بازخورد</a>');
-    const subject = encodeURIComponent('بازخورد درباره‌ی Stadiomind، از صفحه‌ی /fa/u/new_member');
+    const subject = encodeURIComponent(
+      'بازخورد درباره‌ی Stadiomind، از صفحه‌ی \u200e/fa/u/new_member\u200e',
+    );
     expect(html).toContain(`?subject=${subject}"`);
     expect(html).not.toContain('data-translation="untranslated"');
   });

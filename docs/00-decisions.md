@@ -16359,14 +16359,14 @@ These are reported beside the verdict but are not gates:
 
 ## D-466 — Testers' feedback is an e-mail link to the site's contact mailbox, read from the server's environment; no form, nothing stored
 
-**Date.** 2026-11-27. **Status.** Accepted (the maintainer, interactively, on the desk question of T-1965: option (b)). **Task:** T-1965. **Follows:** D-459; rule 3.
+**Date.** 2026-11-27. **Status.** Accepted (the maintainer, interactively, on the desk question of T-1965: option (b)). **Task:** T-1965. **Amends:** D-392 point 5 (the footer's legal strip ends on "Send feedback" while an address is set). **Follows:** D-459; rule 3.
 
 **Context.** The invitation weeks need a place where a tester says what was unclear or broken. T-1965's desk question offered (a) the teammate-request path, which is the team's, not the members'; (b) a link that opens an e-mail to the site's official address, no form and no storage; (c) a one-field form stored in the database and read by the moderator, which needs a table, a migration and a privacy line.
 
 **Decision.**
-1. **(b).** «ارسال بازخورد» / "Send feedback" is a `mailto:` link to the site's contact mailbox, the subject prefilled in the reader's language with the path of the page they are on (never its query, so nothing typed in a search rides along). The message leaves from the reader's own mail program; the site stores nothing.
+1. **(b).** «ارسال بازخورد» / "Send feedback" is a `mailto:` link to the site's contact mailbox, the subject prefilled in the reader's language with the path of the page they are on (never its query, so nothing typed in a search rides along, and never a key in the path: an invite's or a "called it" card's token is cut to the route's name). The message leaves from the reader's own mail program; the site stores nothing.
 2. **Where.** On `/welcome` (under the steps, with the question "Something unclear, wrong or missing?"), at the end of the footer's legal strip, and on the member's own profile (never on another member's).
-3. **The address is configuration.** `SITE_CONTACT_EMAIL`, the same variable the privacy notice names, read by the web at request time; it is never written in this public repository. Empty, or not one plain address, there is no link and no question anywhere (rule 3: no link to nobody).
+3. **The address is configuration.** `SITE_CONTACT_EMAIL`, the same variable the privacy notice names, read by the web at request time; it is never written in this public repository. Empty, or not one plain address (no `%`, so an encoded separator cannot add a recipient or a header), there is no link and no question anywhere (rule 3: no link to nobody).
 
 **Rejected.** *(c) a stored form*: a new table, a migration, a moderator surface and a privacy line, for a few dozen testers. *(a)*: not a members' path. *The address in the catalogue or the code*: the repository is public.
 
