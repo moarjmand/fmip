@@ -147,7 +147,7 @@ maintainer and the teammate (never the security agent's, T-1879).
   explains it), `quoted` (outside text, word for word, kept out of `title` and `proposal`), `task`
   (the task id it joined), `public` (a security finding's detail may show on the console: true only
   on the maintainer's word, D-455), `written_by` (who wrote the line, from `--as`).
-- **The verifier** (`bin/verify.mjs`, T-1896, D-460) is run by the coordinator after each deploy, never
+- **The verifier** (`bin/verify.mjs`, T-1896, D-463) is run by the coordinator after each deploy, never
   by an agent (the guard refuses it): it re-runs the `verify` of every `fixed-unverified` finding and
   appends `resolved` or `open` with what it saw. Give a fix you can prove a `verify` when you file it
   (`add --verify "..."`) or later (`seen <id> --status fixed-unverified --verify "..." --as <you>
@@ -157,7 +157,7 @@ maintainer and the teammate (never the security agent's, T-1879).
   proves nothing**: `/en/news lacks "..."` passes once the story has scrolled off, fixed or not; name
   the item's own page or an invariant (the verifier refuses `lacks` on a path of fewer than three
   segments).
-- **Writing as yourself** (`--as`, D-460): `seen ... --as <your agent name>` puts `written_by` on the
+- **Writing as yourself** (`--as`, D-463): `seen ... --as <your agent name>` puts `written_by` on the
   line, and is needed with `--verify`. The guard refuses an agent an `--as` that is not its own name.
   **Only the security agent resolves a security finding**, with `seen <sec-id> --status resolved --as
   security`: that line is what lets its detail leave this computer, and the script refuses any other.

@@ -31,7 +31,7 @@
 //     coordinator's: it reaches the server and appends verdicts, so it is refused for all sixteen,
 //     a dry run, a copy and a preload (`node -r`, `--import`) included; its tests (test-verify.mjs)
 //     stop before they run unless stand-ins stand for ssh, and pass. At the findings door, `--as`
-//     (who writes the line, D-460) must be the agent's own name.
+//     (who writes the line, D-463) must be the agent's own name.
 //   - Bash / PowerShell: read-only git (an allow-list of verbs), read-only gh (an allow-list), no
 //     console write (publish.ts: only lab-check and providers-check), no SQL write through psql,
 //     no merge of catalogue entities without --dry-run, no deploy/rollout.sh, no recursive delete
@@ -806,7 +806,7 @@ function checkSimple(allWords, cmd, ctx) {
     const file = args.find((a) => !a.startsWith('-')) ?? '';
     const placed = normPath(file, ctx.cwd, true);
     if (FINDING_DOOR.test(placed ?? file.replace(/\\/g, '/')) && (placed === null || inside(S.repo, placed))) {
-      // `--as` names who writes the line (D-460): an agent writes as itself only, so a security
+      // `--as` names who writes the line (D-463): an agent writes as itself only, so a security
       // line `--as security` and a check's `verify_by` can be trusted.
       const at = args.findIndex((a) => a === '--as' || a.startsWith('--as='));
       const as = at < 0 ? undefined : args[at].startsWith('--as=') ? args[at].slice(5) : args[at + 1];

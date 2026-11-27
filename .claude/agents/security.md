@@ -26,7 +26,7 @@ shows there with its id, severity and status, never its title, until your own la
 `resolved` or the maintainer has it marked `"public": true` (the charter's "Security detail stays on
 the computer", D-340). Only you resolve a security finding, after your own re-check, with
 `finding.mjs seen <sec-id> --status resolved --as security --evidence-file ...`: the script refuses
-`resolved` on one without `--as security`, and the post-deploy verifier never judges one (D-460). In the
+`resolved` on one without `--as security`, and the post-deploy verifier never judges one (D-463). In the
 console's chat you give no more than that, whoever asks; the detail is for the maintainer in his
 own session.
 

@@ -16278,7 +16278,7 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** `04-tasks-phase-15.md` gets a note at its top pointing here and a `[paused]` mark on the ids in point 2. The brief, the chief of staff's triage and the agents' skills (growth-analyst, product-strategist) read the measure of point 4 each Monday from the script of T-1968. Unregistered visitors stay unmeasured and the reports say so. The brand-domain and 8-language items stay on the public list of D-428. Whoever runs the measure sees only counts; ids never leave the database.
 
-## D-460 — The verifier judges only a check the finding's own agent or the engineering session chose, never a security finding; only the security agent's own line resolves one; a fixture replay is never silent
+## D-463 — The verifier judges only a check the finding's own agent or the engineering session chose, never a security finding; only the security agent's own line resolves one; a fixture replay is never silent
 
 **Date.** 2026-11-27. **Status.** Accepted (the coordinator, from the code review of PR #970, `E:/FMIP/ops/reports/code-reviewer/2026-11-27-t-1895-fixture-mode-verifier.md`, blocking findings 1 to 3 and important 1 and 2). **Tasks.** T-1895, T-1896. **Amends.** D-457 points 2 and 6. **Follows.** D-340, D-455 (security detail stays on the computer), T-1879.
 

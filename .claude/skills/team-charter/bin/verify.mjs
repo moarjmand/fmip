@@ -8,7 +8,7 @@
 // re-runs the finding's `verify` check read-only, and appends through `finding.mjs seen --as
 // engineering-session` either `resolved`, with what it saw as the evidence, or `open`, with what it
 // saw instead. The coordinator runs it after each deploy (T-1900) and by hand; the sixteen team
-// agents may not (team-guard.mjs). Three kinds are only listed, never judged (D-460):
+// agents may not (team-guard.mjs). Three kinds are only listed, never judged (D-463):
 //   - a security finding (agent security, or an id `sec-...`): only the security agent re-checks and
 //     resolves one, with its own line, since that line lets its detail leave this computer (T-1879).
 //     It is listed by its id alone: its title, address and assertion can describe the weakness;
@@ -77,7 +77,7 @@ const EXIT_OPEN = 3;
 const EXIT_NOT_JUDGED = 4;
 /** Below this a page is an error or an empty shell: its lacking a text proves nothing. */
 const LACKS_MIN_BYTES = 4096;
-/** Who may choose the proof of a finding's fix: its own agent, or the engineering session (D-460). */
+/** Who may choose the proof of a finding's fix: its own agent, or the engineering session (D-463). */
 const TRUSTED_SETTER = 'engineering-session';
 const isSecurity = (f) => f.agent === 'security' || String(f.id).startsWith('sec-');
 

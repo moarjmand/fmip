@@ -60,7 +60,7 @@ const AGENTS = [...Object.keys(PREFIX), 'chief-of-staff'];
 const OWNERS = ['maintainer', 'engineering-session', ...AGENTS];
 /**
  * Who writes a `seen` line (`--as`, kept as `written_by`) and whose `verify` check it is (`verify_by`):
- * an agent or the engineering session (D-460). The team guard refuses an agent an `--as` that is not
+ * an agent or the engineering session (D-463). The team guard refuses an agent an `--as` that is not
  * its own name, so verify.mjs can trust `verify_by` and the console a security line `written_by` security.
  */
 const WRITERS = ['engineering-session', ...AGENTS];
@@ -661,7 +661,7 @@ function severity(options, required) {
   return oneOf(options, 'severity', ['critical', 'major', 'minor'], required);
 }
 
-/** `setter` is who sets a `--verify`: the filing agent on `add`, the `--as` writer on `seen` (D-460). */
+/** `setter` is who sets a `--verify`: the filing agent on `add`, the `--as` writer on `seen` (D-463). */
 function optionalFields(options, line, setter) {
   for (const key of ['verify', 'report', 'task']) {
     if (options[key] === undefined) continue;
@@ -901,7 +901,7 @@ function seen(argv) {
     const security = first.agent === SECURITY || id.startsWith('sec-');
     if (security && status === 'resolved' && writer !== SECURITY) {
       refuse(
-        `${id} is a security finding: only the security agent resolves it, with its own line (--as security), after its own re-check (D-460)`,
+        `${id} is a security finding: only the security agent resolves it, with its own line (--as security), after its own re-check (D-463)`,
       );
     }
     const isPublic = truth(options, 'public', false);

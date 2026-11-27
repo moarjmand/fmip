@@ -1100,7 +1100,7 @@ const BROKEN = [
   rmSync(root, { recursive: true, force: true });
 }
 
-// ---------- 8b. who chose the check, who wrote the line, and security's own resolved (D-460) ----------
+// ---------- 8b. who chose the check, who wrote the line, and security's own resolved (D-463) ----------
 {
   const root = ops({
     '2026-11-10.jsonl': [
