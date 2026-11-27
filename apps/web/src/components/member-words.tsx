@@ -61,10 +61,17 @@ export function wordsIsolate(text: string): string {
   return `${open}${text}\u2069`;
 }
 
-/** The words with each `@handle` in a left-to-right isolate. */
+/**
+ * A link, or a handle outside one: each kept whole, left to right. A link is
+ * matched first, so `https://youtube.com/@varzesh3` is one isolate rather than
+ * a link cut around a handle; trailing punctuation (`،`, `.`, `)`) stays out.
+ */
+const LEFT_TO_RIGHT = /(\b(?:https?:\/\/|www\.)\S+?(?=[.,!?;:،؛)\]]*(?:\s|$))|@[a-z0-9_]{3,20})/gi;
+
+/** The words with each link and each `@handle` in a left-to-right isolate. */
 export function withHandles(text: string): ReactNode[] {
   return text
-    .split(HANDLE)
+    .split(LEFT_TO_RIGHT)
     .map((part, index) =>
       index % 2 === 1 ? (
         <bdi key={index} dir="ltr">

@@ -86,6 +86,15 @@ describe('a message in a conversation', () => {
       );
     });
 
+    it(`a link that ends in a handle stays one left-to-right run on /${locale}`, () => {
+      expect(body(row(locale, 'کانال ورزش سه: https://youtube.com/@varzesh3 را ببینید'))).toBe(
+        '<p class="whitespace-pre-line text-sm" dir="rtl">کانال ورزش سه: <bdi dir="ltr">https://youtube.com/@varzesh3</bdi> را ببینید</p>',
+      );
+      expect(body(row(locale, 'ببین https://youtube.com/@varzesh3، عالیه @ali_fan'))).toBe(
+        '<p class="whitespace-pre-line text-sm" dir="rtl">ببین <bdi dir="ltr">https://youtube.com/@varzesh3</bdi>، عالیه <bdi dir="ltr">@ali_fan</bdi></p>',
+      );
+    });
+
     it(`an English message that opens with a handle is left to right on /${locale}`, () => {
       expect(body(row(locale, '@ali_fan what a goal'))).toBe(
         '<p class="whitespace-pre-line text-sm" dir="ltr"><bdi dir="ltr">@ali_fan</bdi> what a goal</p>',
