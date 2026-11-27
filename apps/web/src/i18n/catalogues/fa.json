@@ -257,6 +257,12 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); a proposal from the package 8 board (D-410)."
   },
+  "shell.footer.privacy": {
+    "source": "Privacy",
+    "text": "حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "لحظه‌های مهم",
@@ -2225,6 +2231,18 @@
     "text": "ایمیل شما فقط برای ورود، بازیابی گذرواژه و اعلان‌هایی که خودتان انتخاب می‌کنید استفاده می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "auth.register.privacy": {
+    "source": "What we keep about you, and why, is in the {privacy}.",
+    "text": "آنچه درباره‌ی شما نگه می‌داریم و دلیلش، در {privacy} آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "auth.register.privacyLink": {
+    "source": "privacy notice",
+    "text": "اطلاعیه‌ی حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "auth.register.invited": {
     "source": "@{username} invited you. After you register you can send them a friend request, or not.",
@@ -19663,5 +19681,1349 @@
     "text": "بیشتر",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175), from the package 9 mockups' proposal (D-401, D-402)."
+  },
+  "privacy.title": {
+    "source": "Privacy notice",
+    "text": "اطلاعیه‌ی حریم خصوصی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.meta.description": {
+    "source": "What personal data Stadiomind collects, why, who it is shared with, how long it is kept, and the rights you have.",
+    "text": "Stadiomind چه داده‌ی شخصی‌ای جمع می‌کند، چرا، با چه کسانی به اشتراک می‌گذارد، چه مدت نگه می‌دارد و شما چه حقوقی دارید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.preparing": {
+    "source": "The privacy notice is being prepared. It is not published yet.",
+    "text": "اطلاعیه‌ی حریم خصوصی در حال آماده شدن است و هنوز منتشر نشده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.draft": {
+    "source": "This is a draft (version {version}) and is not in effect yet. Where it says {pending}, that part is still being decided.",
+    "text": "این یک پیش‌نویس است (نسخه‌ی {version}) و هنوز اجرا نمی‌شود. هر جا {pending} آمده، آن بخش هنوز در حال تصمیم‌گیری است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.pending": {
+    "source": "not yet confirmed",
+    "text": "هنوز تأیید نشده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.inEffect": {
+    "source": "Version {version}, in effect from {date}.",
+    "text": "نسخه‌ی {version}، اجرا از {date}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.intro": {
+    "source": "This notice explains what personal data Stadiomind collects when you use {site} (the “site”), why we use it, who we share it with, how long we keep it, and the rights you have. It applies to visitors, to registered members, and to people we write about (such as football players and coaches).",
+    "text": "این اطلاعیه توضیح می‌دهد وقتی از {site} (از این پس «سایت») استفاده می‌کنید، Stadiomind چه داده‌ی شخصی‌ای جمع می‌کند، چرا از آن استفاده می‌کند، آن را با چه کسانی به اشتراک می‌گذارد، چه مدت نگهش می‌دارد و شما چه حقوقی دارید. این اطلاعیه شامل بازدیدکنندگان، اعضای ثبت‌نام‌کرده و کسانی است که درباره‌ی آن‌ها می‌نویسیم (مثل بازیکنان و مربیان فوتبال).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.title": {
+    "source": "Who we are",
+    "text": "ما چه کسی هستیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.body": {
+    "source": "Stadiomind is run by {controller}, an individual who lives in the United Kingdom, during a private test with invited members (“we”, “us”). {controller} is the **controller** of the personal data described in this notice. A developer runs the site’s server and code for him, only on his instructions and under a written agreement (Sections 5 and 7). We intend to move Stadiomind to a company. Before that company becomes the controller, we will tell members by a notification on the site, at least 30 days ahead, and you will be able to download your data or delete your account before the change.",
+    "text": "Stadiomind را {controller}، فردی که در بریتانیا زندگی می‌کند، در دوره‌ی یک آزمون خصوصی با اعضای دعوت‌شده اداره می‌کند (از این پس «ما»). {controller} **کنترل‌کننده‌ی** (controller) داده‌های شخصیِ توصیف‌شده در این اطلاعیه است. یک توسعه‌دهنده سرور و کد سایت را برای او اداره می‌کند، فقط طبق دستور او و با قراردادی کتبی (بخش‌های ۵ و ۷). قصد داریم Stadiomind را به یک شرکت منتقل کنیم. پیش از آن‌که آن شرکت کنترل‌کننده شود، دست‌کم ۳۰ روز زودتر با اعلانی در سایت به اعضا خبر می‌دهیم، و پیش از این تغییر می‌توانید نسخه‌ای از داده‌هایتان را دریافت کنید یا حسابتان را حذف کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.contact": {
+    "source": "Contact for anything about your data: {email}",
+    "text": "نشانی تماس برای هر موضوعی درباره‌ی داده‌هایتان: {email}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.postal": {
+    "source": "Postal address: {address}",
+    "text": "نشانی پستی: {address}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.ico": {
+    "source": "ICO registration number: {ico}",
+    "text": "شماره‌ی ثبت نزد ICO: {ico}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.who.dpo": {
+    "source": "We have not appointed a Data Protection Officer, because we do not believe the law requires one for our activities.",
+    "text": "مسئول حفاظت از داده (DPO) تعیین نکرده‌ایم، چون فکر نمی‌کنیم قانون برای فعالیت‌های ما آن را لازم بداند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.short.title": {
+    "source": "The short version",
+    "text": "خلاصه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.short.visitors": {
+    "source": "You can read the whole site without an account. As a visitor we keep **no profile of you on our servers**; a few cookies on your own device remember your choices (Section 6).",
+    "text": "همه‌ی سایت را بدون حساب کاربری می‌توانید بخوانید. برای بازدیدکننده **هیچ پرونده‌ای روی سرورهای ما نگه داشته نمی‌شود**؛ فقط چند کوکی روی دستگاه خودتان انتخاب‌هایتان را به خاطر می‌سپارند (بخش ۶).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.short.members": {
+    "source": "If you create an account, we hold your e-mail address, username, display name, a scrambled (hashed) form of your password, your country, language and time zone, and what you do on the site: predictions, follows, messages, group activity and settings.",
+    "text": "اگر حساب بسازید، نشانی ایمیل، نام کاربری، نام نمایشی، شکل درهم‌سازی‌شده‌ی (هش‌شده‌ی) گذرواژه، کشور، زبان و منطقه‌ی زمانی‌تان را نگه می‌داریم، و نیز کارهایی که در سایت می‌کنید: پیش‌بینی‌ها، دنبال‌کردن‌ها، پیام‌ها، فعالیت در گروه‌ها و تنظیمات.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.short.noTracking": {
+    "source": "We use **no advertising and no analytics or tracking tools**, and we do not sell your data.",
+    "text": "**هیچ تبلیغ و هیچ ابزار تحلیل آماری یا ردیابی** به کار نمی‌بریم و داده‌های شما را نمی‌فروشیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.short.control": {
+    "source": "You can **download a copy** of your data and **delete your account** yourself, from Settings.",
+    "text": "خودتان از تنظیمات می‌توانید **نسخه‌ای از داده‌هایتان را دریافت کنید** و **حسابتان را حذف کنید**.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.collect.title": {
+    "source": "What we collect and why",
+    "text": "چه چیزی جمع می‌کنیم و چرا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.why": {
+    "source": "Why",
+    "text": "چرا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.basis": {
+    "source": "Lawful basis",
+    "text": "مبنای قانونی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.basis.contract": {
+    "source": "Contract",
+    "text": "قرارداد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.basis.legitimate": {
+    "source": "Legitimate interests",
+    "text": "منفعت مشروع",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.title": {
+    "source": "Visitors (no account)",
+    "text": "بازدیدکنندگان (بدون حساب)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.requests.what": {
+    "source": "Your IP address and browser details, as part of every request, handled by our content-delivery provider (Cloudflare) and recorded in our web server’s access log",
+    "text": "نشانی IP و مشخصات مرورگر شما، که همراه هر درخواست می‌آید، توسط ارائه‌دهنده‌ی شبکه‌ی توزیع محتوای ما (Cloudflare) پردازش می‌شود و در لاگ دسترسیِ وب‌سرور ما ثبت می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.requests.why": {
+    "source": "To deliver the site, keep it secure and investigate faults",
+    "text": "برای رساندن سایت، امن نگه داشتن آن و بررسی خطاها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.requests.basis": {
+    "source": "Legitimate interests (running a secure website)",
+    "text": "منفعت مشروع (اداره‌ی یک وب‌سایت امن)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ipCode.what": {
+    "source": "A keyed, irreversible code derived from your IP address, counted per hour (never the address itself)",
+    "text": "کدی کلیددار و برگشت‌ناپذیر که از نشانی IP شما ساخته می‌شود و در هر ساعت شمرده می‌شود (هرگز خود نشانی ذخیره نمی‌شود)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ipCode.why": {
+    "source": "To limit repeated sign-up, sign-in, password-reset and question-search attempts from one address",
+    "text": "برای محدود کردن تلاش‌های پیاپیِ ثبت‌نام، ورود، بازیابی گذرواژه و جست‌وجوی پرسشی از یک نشانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ipCode.basis": {
+    "source": "Legitimate interests (preventing abuse)",
+    "text": "منفعت مشروع (جلوگیری از سوءاستفاده)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.choices.what": {
+    "source": "Choices you make on the site (theme, text size, contrast, motion, “lite” mode, your first-visit choices of language, region, time zone and up to 10 favourite teams)",
+    "text": "انتخاب‌هایی که در سایت می‌کنید (پوسته، اندازه‌ی متن، کنتراست، حرکت، حالت سبک، و انتخاب‌های اولین بازدید: زبان، منطقه، منطقه‌ی زمانی و حداکثر ۱۰ تیم محبوب)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.choices.why": {
+    "source": "To show the site the way you asked",
+    "text": "برای نشان دادن سایت همان‌طور که خواسته‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.choices.basis": {
+    "source": "Kept only in cookies on your device; see Section 6",
+    "text": "فقط در کوکی‌های روی دستگاه خودتان؛ بخش ۶ را ببینید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ask.what": {
+    "source": "A question you type into the “ask” search, when our language-model feature is switched on",
+    "text": "پرسشی که در جست‌وجوی «طرح پرسش» می‌نویسید، وقتی قابلیت مدل زبانی ما روشن است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ask.why": {
+    "source": "To understand the question and find the teams, competitions or people it mentions",
+    "text": "برای فهمیدن پرسش و پیدا کردن تیم‌ها، رقابت‌ها یا افرادی که در آن آمده‌اند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.visitors.ask.basis": {
+    "source": "Legitimate interests (providing the search you asked for)",
+    "text": "منفعت مشروع (ارائه‌ی جست‌وجویی که خواسته‌اید)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.title": {
+    "source": "Members (with an account)",
+    "text": "اعضا (با حساب کاربری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.account.what": {
+    "source": "**Account details:** username, display name, e-mail address, whether you verified it, country, preferred language, time zone, the date you accepted our platform rules and which version",
+    "text": "**مشخصات حساب:** نام کاربری، نام نمایشی، نشانی ایمیل، تأیید شدن یا نشدن آن، کشور، زبان دلخواه، منطقه‌ی زمانی، تاریخ پذیرش قوانین پلتفرم و نسخه‌ی آن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.account.why": {
+    "source": "To create and run your account and show your content under your chosen name",
+    "text": "برای ساختن و اداره کردن حساب و نشان دادن محتوای شما با نامی که انتخاب کرده‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.account.basis": {
+    "source": "Contract (providing the service you signed up for)",
+    "text": "قرارداد (ارائه‌ی خدمتی که برایش ثبت‌نام کرده‌اید)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.password.what": {
+    "source": "**Password:** stored only as a salted scrypt hash; we never see or keep the password itself",
+    "text": "**گذرواژه:** فقط به صورت هش scrypt نمک‌دار ذخیره می‌شود؛ خود گذرواژه را هرگز نمی‌بینیم و نگه نمی‌داریم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.password.why": {
+    "source": "To let you sign in securely",
+    "text": "برای ورود امن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sessions.what": {
+    "source": "**Sessions:** a random sign-in token (we keep only a keyed hash of it), when it was created, last used and expires, and your browser’s “user agent” description",
+    "text": "**نشست‌ها:** یک توکن ورود تصادفی (فقط هش کلیددارش را نگه می‌داریم)، زمان ساخت، آخرین استفاده و انقضای آن، و توصیف «user agent» مرورگرتان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sessions.why": {
+    "source": "To keep you signed in and protect your account",
+    "text": "برای وارد نگه داشتن شما و محافظت از حسابتان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sessions.basis": {
+    "source": "Contract; legitimate interests (security)",
+    "text": "قرارداد؛ منفعت مشروع (امنیت)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.emailLinks.what": {
+    "source": "**One-time e-mail links** (verification, password reset), stored as keyed hashes",
+    "text": "**پیوندهای یک‌بارمصرف ایمیلی** (تأیید نشانی، بازیابی گذرواژه)، به صورت هش کلیددار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.emailLinks.why": {
+    "source": "To verify your address and reset your password",
+    "text": "برای تأیید نشانی و بازیابی گذرواژه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.profile.what": {
+    "source": "**Profile:** optional biography and an optional avatar image address that you supply",
+    "text": "**نمایه:** بیوگرافی اختیاری و نشانی اختیاری تصویر آواتار که خودتان می‌دهید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.profile.why": {
+    "source": "To show your public profile",
+    "text": "برای نمایش نمایه‌ی عمومی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.visibility.what": {
+    "source": "**Privacy settings:** who can see your profile and prediction history (everyone, friends, or only you)",
+    "text": "**تنظیمات حریم خصوصی:** چه کسی نمایه و سابقه‌ی پیش‌بینی‌هایتان را ببیند (همه، دوستان، یا فقط خودتان)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.visibility.why": {
+    "source": "To apply your choice",
+    "text": "برای اجرای انتخاب شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.predictions.what": {
+    "source": "**Predictions:** your predicted result and score for a match, confidence, reason tags and an optional short explanation, every version you submit, and how each was settled",
+    "text": "**پیش‌بینی‌ها:** نتیجه و نتیجه‌ی دقیق پیش‌بینی‌شده برای یک بازی، میزان اطمینان، برچسب‌های دلیل و توضیح کوتاه اختیاری، همه‌ی نسخه‌هایی که ثبت می‌کنید و نحوه‌ی تسویه‌ی هر کدام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.predictions.why": {
+    "source": "To run the prediction game",
+    "text": "برای اجرای بازی پیش‌بینی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.pendingPick.what": {
+    "source": "**A pick saved before you confirm your e-mail address:** the result you chose for a match (home win, draw or away win) and what became of it. It becomes a prediction only if you confirm your address before kick-off",
+    "text": "**انتخابی که پیش از تأیید نشانی ایمیل ذخیره می‌شود:** نتیجه‌ای که برای یک بازی انتخاب کرده‌اید (برد میزبان، مساوی یا برد میهمان) و سرانجامش. فقط اگر پیش از شروع بازی نشانی‌تان را تأیید کنید، پیش‌بینی می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.pendingPick.why": {
+    "source": "To keep the pick you made while signing up",
+    "text": "برای نگه داشتن انتخابی که هنگام ثبت‌نام کرده‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sharedCards.what": {
+    "source": "**Shared prediction cards:** when you press Share on a prediction, a public link to that one prediction’s card, until you revoke it",
+    "text": "**کارت‌های پیش‌بینیِ به اشتراک گذاشته‌شده:** وقتی روی یک پیش‌بینی «اشتراک‌گذاری» را می‌زنید، یک پیوند عمومی به کارت همان یک پیش‌بینی، تا وقتی آن را لغو کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sharedCards.why": {
+    "source": "To let you publish the card you chose to share",
+    "text": "برای منتشر کردن کارتی که خودتان خواسته‌اید به اشتراک بگذارید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.sharedCards.basis": {
+    "source": "Contract (at your request)",
+    "text": "قرارداد (به درخواست شما)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.signupSource.what": {
+    "source": "**Where your sign-up started:** when you create an account we add one to a monthly count of sign-ups, by the kind of page where you clicked “Create account” (home, match, team, competition, news or other) and the main domain of another site that linked straight to the registration page (for example `example.com`, never the full address). No cookie is used, and no account id or exact time is kept with the count; with few sign-ups a month a count may still relate to one person",
+    "text": "**جایی که ثبت‌نامتان شروع شد:** وقتی حساب می‌سازید، یکی به شمارش ماهانه‌ی ثبت‌نام‌ها افزوده می‌شود، بر اساس نوع صفحه‌ای که در آن «ساخت حساب» را زدید (خانه، بازی، تیم، رقابت، خبر یا دیگر) و دامنه‌ی اصلی سایت دیگری که مستقیم به صفحه‌ی ثبت‌نام پیوند داده است (مثلاً `example.com`، هرگز نشانی کامل). هیچ کوکی‌ای به کار نمی‌رود و هیچ شناسه‌ی حساب یا زمان دقیقی کنار این شمارش نمی‌ماند؛ با این حال وقتی ثبت‌نام‌های یک ماه کم است، یک شمارش ممکن است به یک نفر برگردد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.signupSource.why": {
+    "source": "To learn which pages and sites bring new members",
+    "text": "برای دانستن این‌که کدام صفحه‌ها و سایت‌ها عضو تازه می‌آورند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.ratings.what": {
+    "source": "**Ratings, points and achievements** calculated from your settled predictions",
+    "text": "**امتیاز عملکرد، امتیازها و دستاوردها** که از پیش‌بینی‌های تسویه‌شده‌ی شما محاسبه می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.ratings.why": {
+    "source": "To run the reputation system and leaderboards",
+    "text": "برای اجرای نظام اعتبار و جدول برترین‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.follows.what": {
+    "source": "**Follows and favourites:** teams, competitions and people you follow; members you follow",
+    "text": "**دنبال‌کردن‌ها و محبوب‌ها:** تیم‌ها، رقابت‌ها و افرادی که دنبال می‌کنید؛ اعضایی که دنبال می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.follows.why": {
+    "source": "To personalise your pages, feed and alerts",
+    "text": "برای شخصی‌سازی صفحه‌ها، خوراک و هشدارها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.social.what": {
+    "source": "**Social features:** friends and friend requests, blocks, group membership, group polls and votes, messages and reactions in conversations, posts and reactions on match panels, community analyses and drafts",
+    "text": "**قابلیت‌های اجتماعی:** دوستان و درخواست‌های دوستی، مسدودسازی‌ها، عضویت در گروه، نظرسنجی‌ها و رأی‌های گروه، پیام‌ها و واکنش‌ها در گفت‌وگوها، پست‌ها و واکنش‌ها در میزگرد مسابقه، تحلیل‌های جامعه و پیش‌نویس‌هایشان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.social.why": {
+    "source": "To provide these features to you and the people you interact with",
+    "text": "برای ارائه‌ی این قابلیت‌ها به شما و کسانی که با آن‌ها تعامل می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.savedNews.what": {
+    "source": "**Saved news stories**",
+    "text": "**خبرهای ذخیره‌شده**",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.savedNews.why": {
+    "source": "To keep your reading list",
+    "text": "برای نگه داشتن فهرست خواندنی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.display.what": {
+    "source": "**Display and region preferences:** theme, text size, contrast, motion, viewing region (for the “where to watch” guide)",
+    "text": "**ترجیحات نمایش و منطقه:** پوسته، اندازه‌ی متن، کنتراست، حرکت، منطقه‌ی تماشا (برای راهنمای «کجا ببینیم»)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.display.why": {
+    "source": "To show the site as you asked",
+    "text": "برای نشان دادن سایت همان‌طور که خواسته‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.notifications.what": {
+    "source": "**Notifications:** the notifications we create for you, whether they were read, your settings per type, quiet hours and mutes, and the outcome of each delivery attempt (sent / failed)",
+    "text": "**اعلان‌ها:** اعلان‌هایی که برایتان می‌سازیم، خوانده شدن یا نشدنشان، تنظیمات هر نوع، ساعت‌های سکوت و بی‌صدا کردن‌ها، و نتیجه‌ی هر تلاش برای ارسال (فرستاده شد / ناموفق)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.notifications.why": {
+    "source": "To tell you about things you asked to hear about",
+    "text": "برای خبر دادن درباره‌ی چیزهایی که خواسته‌اید از آن‌ها باخبر شوید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.push.what": {
+    "source": "**Push subscriptions:** the address and keys your browser gives us when you turn on push alerts on a device, and that browser’s user-agent description",
+    "text": "**اشتراک‌های push:** نشانی و کلیدهایی که مرورگرتان هنگام روشن کردن هشدار push روی یک دستگاه به ما می‌دهد، و توصیف user agent همان مرورگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.push.why": {
+    "source": "To send push alerts to that device",
+    "text": "برای فرستادن هشدار push به آن دستگاه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.push.basis": {
+    "source": "Consent (you turn push on in your browser, and can turn it off at any time)",
+    "text": "رضایت (push را خودتان در مرورگر روشن می‌کنید و هر وقت بخواهید می‌توانید خاموشش کنید)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.campaigns.what": {
+    "source": "**Messages from the platform (“campaigns”)** to groups of members, chosen by what they follow, country, language, verification status or join date",
+    "text": "**پیام‌های پلتفرم («کمپین‌ها»)** به گروه‌هایی از اعضا، بر اساس آنچه دنبال می‌کنند، کشور، زبان، وضعیت تأیید ایمیل یا تاریخ عضویت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.campaigns.why": {
+    "source": "To tell members about the platform",
+    "text": "برای خبر دادن درباره‌ی پلتفرم به اعضا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.campaigns.basis": {
+    "source": "{pending}: consent or the “soft opt-in” (Section 3.4)",
+    "text": "{pending}: رضایت یا «soft opt-in» (بخش ۳.۴)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.briefings.what": {
+    "source": "**Briefings** you ask for: a summary of your feed, written by a language model when the feature is on",
+    "text": "**خلاصه‌های خبری** که درخواست می‌کنید: خلاصه‌ای از خوراک شما که در صورت روشن بودن قابلیت، یک مدل زبانی می‌نویسد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.briefings.why": {
+    "source": "To give you the summary you requested",
+    "text": "برای دادن خلاصه‌ای که خواسته‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.exports.what": {
+    "source": "**Copies of your data you download:** a record of when you downloaded (not what the file contained)",
+    "text": "**نسخه‌هایی از داده‌تان که دریافت می‌کنید:** ثبت زمان دریافت (نه محتوای فایل)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.exports.why": {
+    "source": "To limit downloads to one a day and keep a record of the request",
+    "text": "برای محدود کردن دریافت به یک بار در روز و نگه داشتن سابقه‌ی درخواست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.exports.basis": {
+    "source": "Legitimate interests; legal obligation (record of a data-access request)",
+    "text": "منفعت مشروع؛ تکلیف قانونی (سابقه‌ی درخواست دسترسی به داده)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.moderation.what": {
+    "source": "**Reports, moderation and appeals:** reports you make about another member (reason and details), decisions and restrictions applied to your account, appeal notes",
+    "text": "**گزارش‌ها، نظارت و درخواست‌های تجدیدنظر:** گزارش‌هایی که درباره‌ی عضو دیگری می‌دهید (دلیل و جزئیات)، تصمیم‌ها و محدودیت‌هایی که روی حسابتان اعمال می‌شود، یادداشت‌های درخواست تجدیدنظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.moderation.why": {
+    "source": "To enforce our platform rules and keep the community safe",
+    "text": "برای اجرای قوانین پلتفرم و امن نگه داشتن جامعه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.moderation.basis": {
+    "source": "Legitimate interests; legal obligation where the law requires us to act on content",
+    "text": "منفعت مشروع؛ تکلیف قانونی در جایی که قانون ما را به اقدام درباره‌ی محتوا ملزم کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.rateLimits.what": {
+    "source": "**Rate-limit counters** per account per hour, and keyed codes of identifiers typed into sign-in or reset forms",
+    "text": "**شمارنده‌های محدودیت نرخ** برای هر حساب در هر ساعت، و کدهای کلیددارِ شناسه‌هایی که در فرم ورود یا بازیابی وارد می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.members.rateLimits.why": {
+    "source": "To prevent abuse",
+    "text": "برای جلوگیری از سوءاستفاده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.staff.title": {
+    "source": "Staff and administrators",
+    "text": "کارکنان و مدیران",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.staff.body": {
+    "source": "Members who hold an administrator, moderator or founder role have that role recorded with who granted it and why. High-impact administrative actions are recorded in an audit log with the person who acted, the time, the reason and the previous value. Our internal agents console has its own separate staff accounts (username, display name, password hash, sign-in attempts and audit records) and holds staff messages and requests, which may include images. Staff are given a separate notice.",
+    "text": "برای اعضایی که نقش مدیر، ناظر یا بنیان‌گذار دارند، آن نقش همراه با این‌که چه کسی و چرا آن را داده ثبت می‌شود. اقدام‌های مدیریتیِ پراثر در یک لاگ ممیزی ثبت می‌شوند: چه کسی، چه زمانی، به چه دلیلی و مقدار قبلی چه بوده است. کنسول داخلی عامل‌ها حساب‌های جداگانه‌ی خودش را برای کارکنان دارد (نام کاربری، نام نمایشی، هش گذرواژه، تلاش‌های ورود و سوابق ممیزی) و پیام‌ها و درخواست‌های کارکنان را، که ممکن است تصویر هم داشته باشند، نگه می‌دارد. برای کارکنان اطلاعیه‌ی جداگانه‌ای داده می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.emails.title": {
+    "source": "E-mails and alerts we send",
+    "text": "ایمیل‌ها و هشدارهایی که می‌فرستیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.emails.account": {
+    "source": "**Account e-mails** (address verification, password reset) are part of running your account.",
+    "text": "**ایمیل‌های حساب** (تأیید نشانی، بازیابی گذرواژه) بخشی از اداره‌ی حساب شما هستند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.emails.notifications": {
+    "source": "**Notification e-mails and pushes:** when a notification type is switched on in your settings, we may send it to you **by e-mail and, if you turned push on for a device, by push**. Match alerts (kick-off, goals, result and similar) are sent by push and shown on the site, never by e-mail. You can turn each type off in Settings → Notifications, set quiet hours, or mute a team, competition or category.",
+    "text": "**ایمیل و push اعلان‌ها:** وقتی نوعی از اعلان در تنظیماتتان روشن است، ممکن است آن را **با ایمیل و، اگر push را روی دستگاهی روشن کرده باشید، با push** برایتان بفرستیم. هشدارهای بازی (شروع بازی، گل‌ها، نتیجه و مانند آن) با push و در خود سایت می‌آیند و هرگز با ایمیل فرستاده نمی‌شوند. هر نوع را می‌توانید در تنظیمات ← اعلان‌ها خاموش کنید، ساعت سکوت بگذارید، یا یک تیم، رقابت یا دسته را بی‌صدا کنید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.emails.campaigns": {
+    "source": "**Messages from the platform (“campaigns”)** are switched on by default and can be turned off in Settings → Notifications.",
+    "text": "**پیام‌های پلتفرم («کمپین‌ها»)** به طور پیش‌فرض روشن‌اند و در تنظیمات ← اعلان‌ها خاموش می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.title": {
+    "source": "Language-model features",
+    "text": "قابلیت‌های مدل زبانی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.lead": {
+    "source": "Some optional features use a third-party language model, provided by Mistral AI (Section 5), when we have switched them on:",
+    "text": "برخی قابلیت‌های اختیاری، وقتی روشنشان کرده باشیم، از یک مدل زبانیِ شخص ثالث استفاده می‌کنند که Mistral AI ارائه می‌دهد (بخش ۵):",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.sent": {
+    "source": "What is sent to the model provider",
+    "text": "آنچه برای ارائه‌دهنده‌ی مدل فرستاده می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.ask": {
+    "source": "“Ask” search",
+    "text": "جست‌وجوی «طرح پرسش»",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.ask.sent": {
+    "source": "The question you typed. Not your name, account or IP address.",
+    "text": "پرسشی که نوشته‌اید. نه نام، نه حساب و نه نشانی IP شما.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.briefings": {
+    "source": "Briefings (members, on request)",
+    "text": "خلاصه‌های خبری (اعضا، به درخواست خودشان)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.briefings.sent": {
+    "source": "A digest of your feed: matches, teams, competitions and headlines you follow, and the display names and usernames of members whose public posts appear in it. Not your e-mail address.",
+    "text": "چکیده‌ای از خوراک شما: بازی‌ها، تیم‌ها، رقابت‌ها و تیترهایی که دنبال می‌کنید، و نام نمایشی و نام کاربری اعضایی که پست عمومی‌شان در آن آمده است. نه نشانی ایمیل شما.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.summaries": {
+    "source": "Match summaries",
+    "text": "خلاصه‌ی بازی‌ها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.summaries.sent": {
+    "source": "Match facts only (teams, players, events). No member data.",
+    "text": "فقط واقعیت‌های بازی (تیم‌ها، بازیکنان، رویدادها). هیچ داده‌ی عضوی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.moderation": {
+    "source": "Moderation assistance (staff)",
+    "text": "کمک به نظارت (کارکنان)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.models.moderation.sent": {
+    "source": "The reason and the free-text details of a report about a member. Not the names of the reporter or the reported member. A human moderator always makes the decision.",
+    "text": "دلیل و جزئیات متنیِ گزارشی درباره‌ی یک عضو. نه نام گزارش‌دهنده و نه نام عضو گزارش‌شده. تصمیم را همیشه یک ناظر انسانی می‌گیرد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.people.title": {
+    "source": "People we write about (players, coaches and others in the news)",
+    "text": "کسانی که درباره‌ی آن‌ها می‌نویسیم (بازیکنان، مربیان و دیگر چهره‌های خبری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.people.body": {
+    "source": "The site publishes football information about players, coaches and officials: names, dates of birth, nationality, height, photographs, clubs, career and transfer history, match statistics, line-ups, and reported availability such as injuries and suspensions. We obtain this from licensed football-data providers and from news publishers, and we show links to news stories from other publishers. We use it for our legitimate interest in providing football information and journalism-style coverage. Some of it (such as injury reports) may be health information, which we only publish where it has already been made public. If you are one of these people and want to ask about your data, contact {email}.",
+    "text": "سایت اطلاعات فوتبالی درباره‌ی بازیکنان، مربیان و داوران منتشر می‌کند: نام، تاریخ تولد، ملیت، قد، عکس، باشگاه، سابقه‌ی حرفه‌ای و نقل‌وانتقالات، آمار بازی، ترکیب‌ها، و وضعیت گزارش‌شده‌ی در دسترس بودن مثل مصدومیت و محرومیت. این‌ها را از ارائه‌دهندگان دارای مجوزِ داده‌ی فوتبال و از ناشران خبری می‌گیریم و به خبرهای ناشران دیگر پیوند می‌دهیم. استفاده‌ی ما بر پایه‌ی منفعت مشروع ما در ارائه‌ی اطلاعات فوتبالی و پوشش خبری است. بخشی از این داده‌ها (مثل گزارش مصدومیت) ممکن است اطلاعات سلامت باشد که فقط وقتی منتشرش می‌کنیم که پیش‌تر عمومی شده باشد. اگر یکی از این افراد هستید و درباره‌ی داده‌هایتان پرسشی دارید، به {email} بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.not.title": {
+    "source": "What we do not do",
+    "text": "کارهایی که نمی‌کنیم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.not.ads": {
+    "source": "No advertising, no advertising cookies, no analytics or tracking scripts.",
+    "text": "نه تبلیغ، نه کوکی تبلیغاتی، نه اسکریپت تحلیل آماری یا ردیابی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.not.selling": {
+    "source": "No selling or renting of personal data.",
+    "text": "نه فروش و نه اجاره‌ی داده‌ی شخصی.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.not.automated": {
+    "source": "No decisions with legal or similarly significant effects made solely by automated means. Ratings, points and leaderboards are calculated automatically from your predictions under published rules; moderation decisions are made by people.",
+    "text": "هیچ تصمیمی با اثر حقوقی یا اثر مهمِ مشابه، صرفاً به صورت خودکار گرفته نمی‌شود. امتیاز عملکرد، امتیازها و جدول برترین‌ها طبق قواعد منتشرشده به طور خودکار از پیش‌بینی‌هایتان محاسبه می‌شوند؛ تصمیم‌های نظارتی را انسان‌ها می‌گیرند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.not.providers": {
+    "source": "The football-data, highlights and news providers we buy data from receive no personal data about you: our servers fetch their data; your browser does not contact them. Team crests, player photos and news photos are copied to our own server, and highlights open on the publisher’s own site.",
+    "text": "ارائه‌دهندگان داده‌ی فوتبال، خلاصه‌ی ویدیویی و خبر که از آن‌ها داده می‌خریم هیچ داده‌ی شخصی‌ای درباره‌ی شما دریافت نمی‌کنند: سرورهای ما داده‌ی آن‌ها را می‌گیرند و مرورگر شما با آن‌ها تماسی ندارد. نشان تیم‌ها، عکس بازیکنان و عکس خبرها روی سرور خودمان کپی می‌شوند و خلاصه‌های ویدیویی در سایت خود ناشر باز می‌شوند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.public.title": {
+    "source": "What is public",
+    "text": "چه چیزی عمومی است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.public.body": {
+    "source": "Unless you change your privacy settings, **your profile and your prediction history are visible to everyone**. Your username and display name appear next to anything you post, on leaderboards, and on your profile page. Your e-mail address is never shown to other members. If you add an avatar image address, it points to a server you chose, and other people’s browsers load the image from there.",
+    "text": "تا وقتی تنظیمات حریم خصوصی‌تان را عوض نکنید، **نمایه و سابقه‌ی پیش‌بینی‌هایتان برای همه دیده می‌شود**. نام کاربری و نام نمایشی‌تان کنار هر چیزی که منتشر می‌کنید، در جدول‌های برترین‌ها و در صفحه‌ی نمایه‌تان می‌آید. نشانی ایمیلتان هرگز به اعضای دیگر نشان داده نمی‌شود. اگر نشانی تصویری برای آواتار بدهید، آن نشانی به سروری اشاره می‌کند که خودتان انتخاب کرده‌اید و مرورگر دیگران تصویر را از همان‌جا بارگذاری می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.title": {
+    "source": "Who we share it with",
+    "text": "با چه کسانی به اشتراک می‌گذاریم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.lead": {
+    "source": "We share personal data only with service providers who process it for us (“processors”), and only as far as they need to:",
+    "text": "داده‌ی شخصی را فقط با ارائه‌دهندگان خدماتی به اشتراک می‌گذاریم که آن را برای ما پردازش می‌کنند («پردازشگرها»)، و فقط به اندازه‌ای که لازم دارند:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.does": {
+    "source": "What they do",
+    "text": "کاری که می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.where": {
+    "source": "Where",
+    "text": "محل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.developer": {
+    "source": "Our developer, an individual working for the controller under a written agreement (Section 1)",
+    "text": "توسعه‌دهنده‌ی ما، فردی که با قراردادی کتبی برای کنترل‌کننده کار می‌کند (بخش ۱)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.developer.does": {
+    "source": "Runs and maintains our server, database and code; can access all the personal data we hold, only on the controller’s instructions",
+    "text": "اداره و نگهداری سرور، پایگاه داده و کد ما؛ به همه‌ی داده‌های شخصی‌ای که نگه می‌داریم دسترسی دارد، فقط طبق دستور کنترل‌کننده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.developer.where": {
+    "source": "Iran (Section 7)",
+    "text": "ایران (بخش ۷)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.hetzner": {
+    "source": "Hetzner Online GmbH",
+    "text": "Hetzner Online GmbH",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.hetzner.does": {
+    "source": "Hosts our server and database",
+    "text": "میزبانی سرور و پایگاه داده‌ی ما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.hetzner.where": {
+    "source": "Germany (Nuremberg)",
+    "text": "آلمان (نورنبرگ)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.cloudflare": {
+    "source": "Cloudflare, Inc.",
+    "text": "Cloudflare, Inc.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.cloudflare.does": {
+    "source": "Content delivery, DNS and security proxy in front of the site; sees every request, including your IP address",
+    "text": "شبکه‌ی توزیع محتوا، DNS و پراکسی امنیتی جلوی سایت؛ همه‌ی درخواست‌ها، از جمله نشانی IP شما، را می‌بیند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.cloudflare.where": {
+    "source": "Global network; United States company",
+    "text": "شبکه‌ی جهانی؛ شرکت آمریکایی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.backblaze": {
+    "source": "Backblaze, Inc. (B2)",
+    "text": "Backblaze, Inc. (B2)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.backblaze.does": {
+    "source": "Stores our encrypted backups. Backups are encrypted on our server before upload, so Backblaze cannot read them",
+    "text": "نگهداری نسخه‌های پشتیبان رمزگذاری‌شده‌ی ما. پشتیبان‌ها پیش از ارسال روی سرور خودمان رمزگذاری می‌شوند، پس Backblaze نمی‌تواند آن‌ها را بخواند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.backblaze.where": {
+    "source": "Region: {pending}",
+    "text": "منطقه: {pending}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.email": {
+    "source": "Our e-mail service: {pending}",
+    "text": "سرویس ایمیل ما: {pending}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.email.does": {
+    "source": "Sends our e-mails: receives your e-mail address and the message content",
+    "text": "ارسال ایمیل‌های ما: نشانی ایمیل شما و متن پیام را دریافت می‌کند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.email.where": {
+    "source": "{pending}",
+    "text": "{pending}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.mistral": {
+    "source": "Mistral AI",
+    "text": "Mistral AI",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.mistral.does": {
+    "source": "Language-model features in Section 3.5",
+    "text": "قابلیت‌های مدل زبانیِ بخش ۳.۵",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.mistral.where": {
+    "source": "France (EU) company",
+    "text": "شرکت فرانسوی (اتحادیه‌ی اروپا)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.push": {
+    "source": "The push service of your browser’s maker: Google (Chrome), Mozilla (Firefox), Apple (Safari) or Microsoft (Edge)",
+    "text": "سرویس push سازنده‌ی مرورگر شما: Google (Chrome)، Mozilla (Firefox)، Apple (Safari) یا Microsoft (Edge)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.push.does": {
+    "source": "Carries push alerts to your device, if you turned push on; we accept no other push service",
+    "text": "رساندن هشدارهای push به دستگاهتان، اگر push را روشن کرده باشید؛ هیچ سرویس push دیگری را نمی‌پذیریم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.push.where": {
+    "source": "Mostly United States",
+    "text": "بیشتر آمریکا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.law": {
+    "source": "We may also disclose data if the law requires it, to protect people’s safety, or to a buyer if the business is sold (you would be told).",
+    "text": "همچنین ممکن است داده را در این موارد افشا کنیم: اگر قانون بخواهد، برای حفظ امنیت افراد، یا به خریدار در صورت فروش کسب‌وکار (که به شما اطلاع داده می‌شود).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.sharing.members": {
+    "source": "Other members see what you choose to make public or send to them (Section 4).",
+    "text": "اعضای دیگر آنچه را که خودتان عمومی می‌کنید یا برایشان می‌فرستید می‌بینند (بخش ۴).",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.title": {
+    "source": "Cookies and similar technologies",
+    "text": "کوکی‌ها و فناوری‌های مشابه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.lead": {
+    "source": "We use only cookies that are needed for the site to work or that remember a choice you made. We use **no advertising or analytics cookies** and no analytics script, Cloudflare’s included, so we do not ask for cookie consent. We do not use a cookie to learn where sign-ups come from (Section 3.2). Cloudflare may set its own strictly necessary security cookie (`__cf_bm`) when it checks whether a visit is automated.",
+    "text": "فقط کوکی‌هایی به کار می‌بریم که برای کار کردن سایت لازم‌اند یا انتخابی را که کرده‌اید به خاطر می‌سپارند. **هیچ کوکی تبلیغاتی یا آماری** و هیچ اسکریپت آماری، از جمله اسکریپت Cloudflare، نداریم، پس برای کوکی رضایت نمی‌گیریم. برای دانستن این‌که ثبت‌نام‌ها از کجا می‌آیند هم کوکی به کار نمی‌بریم (بخش ۳.۲). Cloudflare ممکن است وقتی بررسی می‌کند بازدیدی خودکار است یا نه، کوکی امنیتیِ کاملاً ضروری خودش (`__cf_bm`) را بگذارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.purpose": {
+    "source": "Purpose",
+    "text": "کاربرد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.set": {
+    "source": "Set when",
+    "text": "چه زمانی گذاشته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.lasts": {
+    "source": "Lasts",
+    "text": "مدت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.year": {
+    "source": "1 year",
+    "text": "۱ سال",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.session.purpose": {
+    "source": "Keeps you signed in. Not readable by scripts",
+    "text": "شما را وارد نگه می‌دارد. اسکریپت‌ها نمی‌توانند آن را بخوانند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.session.set": {
+    "source": "You sign in or register",
+    "text": "هنگام ورود یا ثبت‌نام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.session.lasts": {
+    "source": "14 days, or until you sign out",
+    "text": "۱۴ روز، یا تا خروج",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.firstRun.purpose": {
+    "source": "Remembers a visitor’s first-visit choices (language, region, time zone, favourite teams) until sign-up",
+    "text": "انتخاب‌های اولین بازدیدِ بازدیدکننده (زبان، منطقه، منطقه‌ی زمانی، تیم‌های محبوب) را تا ثبت‌نام نگه می‌دارد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.firstRun.set": {
+    "source": "You make those choices without an account",
+    "text": "وقتی بدون حساب این انتخاب‌ها را می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.firstRun.lasts": {
+    "source": "1 year, or until applied to your new account",
+    "text": "۱ سال، یا تا اعمال روی حساب تازه‌تان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.theme.purpose": {
+    "source": "Light/dark theme",
+    "text": "پوسته‌ی روشن/تیره",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.theme.set": {
+    "source": "You choose a theme (or sign in with one saved)",
+    "text": "وقتی پوسته انتخاب می‌کنید (یا با پوسته‌ی ذخیره‌شده وارد می‌شوید)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.display.purpose": {
+    "source": "Accessibility display choices",
+    "text": "انتخاب‌های نمایشیِ دسترس‌پذیری",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.display.set": {
+    "source": "You choose them (or sign in with them saved)",
+    "text": "وقتی انتخابشان می‌کنید (یا با انتخاب‌های ذخیره‌شده وارد می‌شوید)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.lite.purpose": {
+    "source": "Your choice to switch “lite” mode on or off",
+    "text": "انتخاب شما برای روشن یا خاموش کردن حالت سبک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.lite.set": {
+    "source": "You choose",
+    "text": "وقتی انتخاب می‌کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.slow.purpose": {
+    "source": "Notes that your connection looked slow, so the next page loads in lite mode",
+    "text": "ثبت این‌که اتصالتان کند به نظر رسید تا صفحه‌ی بعد در حالت سبک بیاید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.slow.set": {
+    "source": "Detected automatically",
+    "text": "خودکار تشخیص داده می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.slow.lasts": {
+    "source": "7 days",
+    "text": "۷ روز",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.heldNotice.purpose": {
+    "source": "Remembers that you have seen a notice about a language version, so it is not shown again",
+    "text": "به خاطر می‌سپارد که اطلاعیه‌ای درباره‌ی نسخه‌ی یک زبان را دیده‌اید تا دوباره نشان داده نشود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.heldNotice.set": {
+    "source": "The notice is shown",
+    "text": "وقتی اطلاعیه نشان داده می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.console.purpose": {
+    "source": "Staff sign-in to the internal console (staff only)",
+    "text": "ورود کارکنان به کنسول داخلی (فقط کارکنان)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.console.set": {
+    "source": "A staff member signs in",
+    "text": "وقتی یکی از کارکنان وارد می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.console.lasts": {
+    "source": "Up to 12 hours idle",
+    "text": "تا ۱۲ ساعت بی‌فعالیتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.storage": {
+    "source": "**Local storage on your device:** `fmip.pushOffer.dismissedAt` remembers that you said “not now” to the offer of push alerts (for 60 days), and `fmip.pushOffer.intent` holds, for at most two minutes, which item you just followed so the offer can appear. Our service worker stores only the offline page, the app icons and the site’s static files, so the site can show an “offline” page; it never stores your pages or data.",
+    "text": "**حافظه‌ی محلی روی دستگاه شما:** `fmip.pushOffer.dismissedAt` به خاطر می‌سپارد که به پیشنهاد هشدار push گفته‌اید «الان نه» (به مدت ۶۰ روز)، و `fmip.pushOffer.intent` حداکثر دو دقیقه نگه می‌دارد که همین الان چه چیزی را دنبال کردید تا پیشنهاد نشان داده شود. service worker ما فقط صفحه‌ی آفلاین، آیکون‌های برنامه و فایل‌های ثابت سایت را ذخیره می‌کند تا سایت بتواند صفحه‌ی «آفلاین» نشان دهد؛ هرگز صفحه‌ها یا داده‌های شما را ذخیره نمی‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.video": {
+    "source": "**No embedded video players.** Highlights open on the publisher’s own site. We do not embed players from other sites, so no other site sets cookies through our pages.",
+    "text": "**پخش‌کننده‌ی ویدیوی جاسازی‌شده نداریم.** خلاصه‌های ویدیویی در سایت خود ناشر باز می‌شوند. پخش‌کننده‌ی سایت‌های دیگر را در صفحه‌هایمان جاسازی نمی‌کنیم، پس هیچ سایت دیگری از راه صفحه‌های ما کوکی نمی‌گذارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.cookies.delete": {
+    "source": "You can delete cookies and site data in your browser at any time. Removing `fmip_session` signs you out.",
+    "text": "هر وقت بخواهید می‌توانید کوکی‌ها و داده‌های سایت را در مرورگرتان پاک کنید. پاک کردن `fmip_session` شما را از حساب خارج می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.transfers.title": {
+    "source": "International transfers",
+    "text": "انتقال بین‌المللی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.transfers.body": {
+    "source": "Our main server is in Germany. Some of our providers (Section 5) are based in, or may process data in, the United States or elsewhere outside the UK. Where personal data leaves the UK we rely on UK adequacy regulations (for example for the European Economic Area), the UK Extension to the EU-US Data Privacy Framework where the recipient is certified, or the UK International Data Transfer Agreement or Addendum. Our developer (Section 5) works from Iran, which is not covered by UK adequacy regulations, and accesses personal data on our server in Germany from there. That access is covered by the UK International Data Transfer Agreement between him and the controller. You can ask us for a copy of the safeguards we use.",
+    "text": "سرور اصلی ما در آلمان است. برخی از ارائه‌دهندگان ما (بخش ۵) در آمریکا یا جای دیگری بیرون از بریتانیا مستقرند یا ممکن است داده را آن‌جا پردازش کنند. وقتی داده‌ی شخصی از بریتانیا خارج می‌شود، به این‌ها تکیه می‌کنیم: مقررات کفایت (adequacy) بریتانیا (مثلاً برای منطقه‌ی اقتصادی اروپا)، الحاقیه‌ی بریتانیا به چارچوب حریم خصوصی داده‌ی اتحادیه‌ی اروپا و آمریکا در جایی که گیرنده عضو آن است، یا قرارداد بین‌المللی انتقال داده‌ی بریتانیا (IDTA) یا الحاقیه‌ی آن. توسعه‌دهنده‌ی ما (بخش ۵) از ایران کار می‌کند که مقررات کفایت بریتانیا شاملش نمی‌شود، و از همان‌جا به داده‌ی شخصی روی سرور ما در آلمان دسترسی دارد. این دسترسی با قرارداد بین‌المللی انتقال داده‌ی بریتانیا (IDTA) میان او و کنترل‌کننده پوشش داده می‌شود. می‌توانید نسخه‌ای از تضمین‌هایی را که به کار می‌بریم از ما بخواهید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.title": {
+    "source": "How long we keep it",
+    "text": "چه مدت نگه می‌داریم",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.lead": {
+    "source": "A daily clean-up deletes records whose time is up. Our rules page states the same periods.",
+    "text": "یک پاک‌سازی روزانه سوابقی را که زمانشان سر آمده حذف می‌کند. صفحه‌ی قوانین ما هم همین مدت‌ها را می‌گوید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.column.howLong": {
+    "source": "How long",
+    "text": "مدت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.account": {
+    "source": "Account details, profile, preferences, follows, social connections, saved stories",
+    "text": "مشخصات حساب، نمایه، ترجیحات، دنبال‌کردن‌ها، ارتباط‌های اجتماعی، خبرهای ذخیره‌شده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.account.howLong": {
+    "source": "Until you delete your account",
+    "text": "تا وقتی حسابتان را حذف کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.sessions": {
+    "source": "Sign-in sessions",
+    "text": "نشست‌های ورود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.sessions.howLong": {
+    "source": "Valid for 14 days; deleted 30 days after they expire, whether or not you signed out earlier",
+    "text": "۱۴ روز اعتبار دارند؛ ۳۰ روز پس از انقضا پاک می‌شوند، چه زودتر خارج شده باشید چه نه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.emailLinks": {
+    "source": "One-time e-mail links",
+    "text": "پیوندهای یک‌بارمصرف ایمیلی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.emailLinks.howLong": {
+    "source": "Valid for 24 hours (verification) or 1 hour (password reset); deleted 7 days after they expire",
+    "text": "۲۴ ساعت (تأیید) یا ۱ ساعت (بازیابی گذرواژه) اعتبار دارند؛ ۷ روز پس از انقضا پاک می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.pendingPick": {
+    "source": "A pick saved before you confirmed your e-mail address",
+    "text": "انتخابی که پیش از تأیید نشانی ایمیل ذخیره شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.pendingPick.howLong": {
+    "source": "Deleted 30 days after the match kicks off; if it became a prediction, deleted at the next daily clean-up (the prediction is kept)",
+    "text": "۳۰ روز پس از شروع بازی پاک می‌شود؛ اگر پیش‌بینی شده باشد، در پاک‌سازی روزانه‌ی بعدی پاک می‌شود (پیش‌بینی می‌ماند)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.sharedCards": {
+    "source": "Links to prediction cards you shared",
+    "text": "پیوند کارت‌های پیش‌بینی که به اشتراک گذاشته‌اید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.sharedCards.howLong": {
+    "source": "Until you revoke them or delete your account",
+    "text": "تا وقتی لغوشان کنید یا حسابتان را حذف کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.predictions": {
+    "source": "Predictions, settlements, rating history and points",
+    "text": "پیش‌بینی‌ها، تسویه‌ها، سابقه‌ی امتیاز عملکرد و امتیازها",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.predictions.howLong": {
+    "source": "Kept after account deletion **without your name**, because other members’ ratings were calculated against them and must remain reproducible",
+    "text": "پس از حذف حساب **بدون نام شما** نگه داشته می‌شوند، چون امتیاز عملکرد اعضای دیگر در برابر آن‌ها محاسبه شده و باید قابل بازتولید بماند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.messages": {
+    "source": "Messages and match-panel posts",
+    "text": "پیام‌ها و پست‌های میزگرد مسابقه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.messages.howLong": {
+    "source": "Until you remove them; after account deletion they stay, shown as written by “a deleted member”",
+    "text": "تا وقتی خودتان حذفشان کنید؛ پس از حذف حساب می‌مانند و نویسنده‌شان «یک عضو حذف‌شده» نشان داده می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.analysis": {
+    "source": "Published community analysis",
+    "text": "تحلیل‌های منتشرشده‌ی جامعه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.analysis.howLong": {
+    "source": "Taken down when you delete your account",
+    "text": "با حذف حساب از دسترس برداشته می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.moderation": {
+    "source": "Reports you made, moderation decisions about you, appeals",
+    "text": "گزارش‌هایی که داده‌اید، تصمیم‌های نظارتی درباره‌ی شما، درخواست‌های تجدیدنظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.moderation.howLong": {
+    "source": "Kept for the moderation record",
+    "text": "برای سابقه‌ی نظارت نگه داشته می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.audit": {
+    "source": "Audit log of administrative actions",
+    "text": "لاگ ممیزیِ اقدام‌های مدیریتی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.audit.howLong": {
+    "source": "Kept",
+    "text": "نگه داشته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.inbox": {
+    "source": "Notifications in your inbox",
+    "text": "اعلان‌های صندوق شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.inbox.howLong": {
+    "source": "Kept; after account deletion they stay attached to the anonymous account record",
+    "text": "نگه داشته می‌شوند؛ پس از حذف حساب به ردیف ناشناسِ حساب وصل می‌مانند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.delivery": {
+    "source": "The record of whether each notification reached you by e-mail or push",
+    "text": "سابقه‌ی این‌که هر اعلان با ایمیل یا push به شما رسید یا نه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.delivery.howLong": {
+    "source": "90 days; after that only anonymous daily counts remain",
+    "text": "۹۰ روز؛ پس از آن فقط شمارش‌های روزانه‌ی ناشناس می‌ماند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.rateLimits": {
+    "source": "Rate-limit counters (keyed codes, per hour)",
+    "text": "شمارنده‌های محدودیت نرخ (کدهای کلیددار، ساعتی)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.rateLimits.howLong": {
+    "source": "Kept in hourly windows; the per-account counters are deleted with your account",
+    "text": "در بازه‌های ساعتی نگه داشته می‌شوند؛ شمارنده‌های هر حساب با حذف حساب پاک می‌شوند",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.signupCounts": {
+    "source": "Monthly sign-up counts by entry page and referring site",
+    "text": "شمارش ماهانه‌ی ثبت‌نام بر اساس صفحه‌ی ورود و سایت ارجاع‌دهنده",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.signupCounts.howLong": {
+    "source": "Kept as counts",
+    "text": "به صورت شمارش نگه داشته می‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.accessLogs": {
+    "source": "Web server access logs",
+    "text": "لاگ‌های دسترسی وب‌سرور",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.accessLogs.howLong": {
+    "source": "{pending}",
+    "text": "{pending}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.backups": {
+    "source": "Backups (encrypted)",
+    "text": "نسخه‌های پشتیبان (رمزگذاری‌شده)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.retention.backups.howLong": {
+    "source": "On the server about 7 days; off-site up to about 90 days, within a storage limit, always at least the 3 newest copies. Data you deleted can remain in backups until they expire; it is not restored to the live site except to recover from a failure",
+    "text": "روی سرور حدود ۷ روز؛ بیرون از سرور تا حدود ۹۰ روز، در محدوده‌ی یک سقف حجم، و همیشه دست‌کم ۳ نسخه‌ی تازه‌تر. داده‌ای که حذف کرده‌اید ممکن است تا انقضای پشتیبان‌ها در آن‌ها بماند؛ جز برای بازیابی پس از خرابی، به سایت زنده برگردانده نمی‌شود",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.title": {
+    "source": "Your rights",
+    "text": "حقوق شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.lead": {
+    "source": "Under UK data protection law you have the right to:",
+    "text": "طبق قانون حفاظت از داده‌ی بریتانیا حق دارید:",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.access": {
+    "source": "**Access** your data. From Settings you can download one file (JSON) of what we hold about you — account and preferences, follows, friendships, groups, predictions with every version and how they settled, picks saved before you confirmed your address, rating history and achievements, saved stories, the messages and panel posts you wrote, your community analysis, the reports you filed and the notifications sent to you — once a day, after confirming your password. For anything not in that file, write to {email}.",
+    "text": "**به داده‌هایتان دسترسی داشته باشید.** از تنظیمات می‌توانید یک فایل (JSON) از آنچه درباره‌ی شما نگه می‌داریم دریافت کنید: حساب و ترجیحات، دنبال‌کردن‌ها، دوستی‌ها، گروه‌ها، پیش‌بینی‌ها با همه‌ی نسخه‌ها و نحوه‌ی تسویه، انتخاب‌هایی که پیش از تأیید نشانی‌تان ذخیره شد، سابقه‌ی امتیاز عملکرد و دستاوردها، خبرهای ذخیره‌شده، پیام‌ها و پست‌های میزگردی که نوشته‌اید، تحلیل‌های جامعه‌ی شما، گزارش‌هایی که داده‌اید و اعلان‌هایی که برایتان فرستاده شده؛ روزی یک بار و پس از تأیید گذرواژه. برای هر چیزی که در این فایل نیست به {email} بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.rectify": {
+    "source": "**Rectify** inaccurate data. You can change your display name, biography, avatar, language, time zone, region, display and privacy settings in Settings. To change your e-mail address or username, contact {email}.",
+    "text": "**داده‌ی نادرست را اصلاح کنید.** نام نمایشی، بیوگرافی، آواتار، زبان، منطقه‌ی زمانی، منطقه، تنظیمات نمایش و حریم خصوصی را در تنظیمات می‌توانید عوض کنید. برای تغییر نشانی ایمیل یا نام کاربری به {email} بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.erase": {
+    "source": "**Erase** your data. From Settings you can delete your account at once with your password and your username typed again. Your e-mail address, password, display name, biography, preferences, sessions, push subscriptions, follows, friendships, friend requests, blocks, group memberships and invitations, analysis drafts, saved stories, picks saved before you confirmed your address and links to prediction cards you shared are removed. Your username is retired so nobody can use it after you. What is kept, and why, is described in Section 8.",
+    "text": "**داده‌هایتان را پاک کنید.** از تنظیمات، با گذرواژه و تایپ دوباره‌ی نام کاربری، می‌توانید حسابتان را فوراً حذف کنید. نشانی ایمیل، گذرواژه، نام نمایشی، بیوگرافی، ترجیحات، نشست‌ها، اشتراک‌های push، دنبال‌کردن‌ها، دوستی‌ها، درخواست‌های دوستی، مسدودسازی‌ها، عضویت‌ها و دعوت‌های گروه، پیش‌نویس‌های تحلیل، خبرهای ذخیره‌شده، انتخاب‌هایی که پیش از تأیید نشانی‌تان ذخیره شد و پیوند کارت‌های پیش‌بینیِ به اشتراک گذاشته‌شده پاک می‌شوند. نام کاربری‌تان بازنشسته می‌شود تا کسی پس از شما از آن استفاده نکند. آنچه نگه داشته می‌شود و دلیلش در بخش ۸ آمده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.restrict": {
+    "source": "**Restrict** or **object** to processing based on our legitimate interests.",
+    "text": "**پردازشی را که بر پایه‌ی منفعت مشروع ماست محدود کنید** یا **به آن اعتراض کنید**.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.portability": {
+    "source": "**Data portability:** the download above is in a machine-readable format.",
+    "text": "**انتقال‌پذیری داده:** فایل دریافتی بالا قالبی ماشین‌خوان دارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.withdraw": {
+    "source": "**Withdraw consent** at any time, for example by turning push alerts off in Settings or in your browser.",
+    "text": "**رضایتتان را پس بگیرید**، هر وقت بخواهید؛ مثلاً با خاموش کردن هشدار push در تنظیمات یا در مرورگر.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.rights.answer": {
+    "source": "We will answer within one month. We may need to confirm your identity first. There is normally no fee.",
+    "text": "ظرف یک ماه پاسخ می‌دهیم. ممکن است لازم باشد اول هویتتان را تأیید کنیم. معمولاً هزینه‌ای ندارد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.complain.title": {
+    "source": "How to complain",
+    "text": "چگونه شکایت کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.complain.body": {
+    "source": "Please contact us first at {email}. You also have the right to complain to the Information Commissioner’s Office (ICO), the UK supervisory authority: {icoLink} or {icoPhone}.",
+    "text": "لطفاً اول با ما به نشانی {email} تماس بگیرید. همچنین حق دارید به دفتر کمیسیونر اطلاعات بریتانیا (ICO)، مرجع ناظر بریتانیا، شکایت کنید: {icoLink} یا تلفن {icoPhone}.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.children.title": {
+    "source": "Children",
+    "text": "کودکان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.children.body": {
+    "source": "Stadiomind is not designed for children. You must be at least {pending} to create an account. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
+    "text": "Stadiomind برای کودکان طراحی نشده است. سن شما برای ساختن حساب باید دست‌کم {pending} باشد. اگر بفهمیم کودکی زیر این سن حساب ساخته، آن را حذف می‌کنیم. اگر پدر، مادر یا سرپرست هستید و فکر می‌کنید فرزندتان به ما داده‌ی شخصی داده است، به {email} بنویسید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.security.title": {
+    "source": "Security",
+    "text": "امنیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.security.body": {
+    "source": "Passwords are stored as salted scrypt hashes. Sign-in tokens and one-time links are stored only as keyed hashes. The session cookie cannot be read by scripts and is sent only over HTTPS. Addresses used for rate limiting are stored only as keyed codes. Backups are encrypted before they leave our server. All traffic is encrypted in transit (HTTPS). No system is perfectly secure; if a breach affects you in a way that is likely to cause a high risk, we will tell you.",
+    "text": "گذرواژه‌ها به صورت هش scrypt نمک‌دار ذخیره می‌شوند. توکن‌های ورود و پیوندهای یک‌بارمصرف فقط به صورت هش کلیددار ذخیره می‌شوند. کوکی نشست را اسکریپت‌ها نمی‌توانند بخوانند و فقط روی HTTPS فرستاده می‌شود. نشانی‌هایی که برای محدودیت نرخ به کار می‌روند فقط به صورت کد کلیددار ذخیره می‌شوند. پشتیبان‌ها پیش از خروج از سرور ما رمزگذاری می‌شوند. همه‌ی ترافیک در مسیر رمزگذاری می‌شود (HTTPS). هیچ سامانه‌ای کاملاً امن نیست؛ اگر رخنه‌ای به گونه‌ای بر شما اثر بگذارد که احتمالاً خطر بالایی داشته باشد، به شما اطلاع می‌دهیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.changes.title": {
+    "source": "Changes to this notice",
+    "text": "تغییرات این اطلاعیه",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
+  },
+  "privacy.changes.body": {
+    "source": "We will post any change on this page with a new effective date. If a change materially affects how we use your data, we will tell members by a notification on the site before it applies.",
+    "text": "هر تغییری را با تاریخ اجرای تازه در همین صفحه منتشر می‌کنیم. اگر تغییری به شکل مهمی بر نحوه‌ی استفاده از داده‌هایتان اثر بگذارد، پیش از اجرا با اعلانی در سایت به اعضا خبر می‌دهیم.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   }
 }

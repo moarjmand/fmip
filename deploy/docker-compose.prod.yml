@@ -324,6 +324,13 @@ services:
       CONSOLE_PATH: ${CONSOLE_PATH-/agents}
       # Off on a real deployment; on only where the database holds seeded fixtures (D-065).
       DEMONSTRATION_DATA: ${DEMONSTRATION_DATA:-off}
+      # Who the privacy notice names (T-1969, D-465): personal data that lives
+      # only in the server's .env. Without the first two, /privacy says the
+      # notice is being prepared and nothing links to it.
+      PRIVACY_CONTROLLER_NAME: ${PRIVACY_CONTROLLER_NAME:-}
+      SITE_CONTACT_EMAIL: ${SITE_CONTACT_EMAIL:-}
+      PRIVACY_POSTAL_ADDRESS: ${PRIVACY_POSTAL_ADDRESS:-}
+      PRIVACY_ICO_NUMBER: ${PRIVACY_ICO_NUMBER:-}
     depends_on:
       api:
         condition: service_healthy

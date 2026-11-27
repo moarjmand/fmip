@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { PRIVACY_PATH } from './privacy-notice';
 import {
   FOOTER_LEGAL,
   FOOTER_NAV,
+  FOOTER_PRIVACY,
   HEADER_NAV,
   MORE_NAV,
   PICKS_PATH,
   currentLink,
+  footerLegal,
   localeFreePath,
   tabBarLinks,
 } from './shell-nav';
@@ -160,6 +163,16 @@ describe('the site footer', () => {
       { id: 'rules', path: '/rules' },
       { id: 'data', path: '/about#data' },
     ]);
+  });
+
+  it('adds the privacy notice after the rules only when it can be shown (T-1969, D-465)', () => {
+    expect(footerLegal(false)).toBe(FOOTER_LEGAL);
+    expect(footerLegal(true)).toEqual([
+      { id: 'rules', path: '/rules' },
+      { id: 'privacy', path: '/privacy' },
+      { id: 'data', path: '/about#data' },
+    ]);
+    expect(FOOTER_PRIVACY.path).toBe(PRIVACY_PATH);
   });
 
   it('keeps What Stadiomind is and the rules reachable, now that More does not carry them', () => {

@@ -123,6 +123,7 @@ export interface FooterLink {
     | 'analysis'
     | 'about'
     | 'rules'
+    | 'privacy'
     | 'settings'
     | 'data';
   path: string;
@@ -175,13 +176,28 @@ export const FOOTER_NAV: readonly FooterGroup[] = [
 /**
  * The footer's legal strip beside the copyright (T-1790, D-410): the rules,
  * linked from nowhere else (T-1572), and where the data comes from. Only
- * pages that exist: Privacy and Contact join when the maintainer's texts do
- * (T-1793), never as a link to nothing (rule 3).
+ * pages that exist: the privacy notice joins through `footerLegal` when the
+ * server names its controller (T-1969, D-465); Contact when the
+ * maintainer's text does (T-1793), never as a link to nothing (rule 3).
  */
 export const FOOTER_LEGAL: readonly FooterLink[] = [
   { id: 'rules', path: '/rules' },
   { id: 'data', path: '/about#data' },
 ];
+
+/** The privacy notice's link in the legal strip (T-1969, D-465). */
+export const FOOTER_PRIVACY: FooterLink = { id: 'privacy', path: '/privacy' };
+
+/**
+ * The legal strip for this deployment: the privacy notice after the rules
+ * only when it can be shown (`privacyController`), never a link to a page
+ * that says it is being prepared.
+ */
+export function footerLegal(privacy: boolean): readonly FooterLink[] {
+  if (!privacy) return FOOTER_LEGAL;
+  const [rules, ...rest] = FOOTER_LEGAL;
+  return rules === undefined ? [FOOTER_PRIVACY] : [rules, FOOTER_PRIVACY, ...rest];
+}
 
 /** `/fa/scores?d=1` → `/scores`; `/fa` → `''`. The first segment is the locale. */
 export function localeFreePath(pathname: string): string {

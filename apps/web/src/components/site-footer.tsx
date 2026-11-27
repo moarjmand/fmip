@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import Link from '@/components/ui/link';
 import { BrandMark } from '@/components/brand-mark';
 import { LanguagePicker } from '@/components/language-picker';
@@ -8,7 +9,8 @@ import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, attribute, message } from '@/i18n/messages';
 import { currentHolds, offeredGiven } from '@/lib/language-hold';
 import { offeredLanguages } from '@/lib/language-picker';
-import { FOOTER_LEGAL, FOOTER_NAV, type FooterGroup, type FooterLink } from '@/lib/shell-nav';
+import { privacyController } from '@/lib/privacy-notice';
+import { FOOTER_NAV, type FooterGroup, type FooterLink, footerLegal } from '@/lib/shell-nav';
 
 /** Each column's heading. "Stadiomind" is the name, the same in every language. */
 const GROUP_HEADINGS: Record<FooterGroup['id'], MessageKey | null> = {
@@ -29,6 +31,7 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
   analysis: 'analysis.founder.title',
   about: 'about.meta.title',
   rules: 'rules.title',
+  privacy: 'shell.footer.privacy',
   settings: 'nav.settings',
   data: 'shell.footer.dataSources',
 };
@@ -52,8 +55,11 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
  * raised surface with a hairline above it, in Day and in Night.
  *
  * No provider's name or attribution line: what a licence requires to be
- * said is the maintainer's to word (D-014). No Privacy or Contact link until
- * those pages exist (T-1793): never a link to nothing (rule 3).
+ * said is the maintainer's to word (D-014). The privacy notice's link only
+ * when the server names its controller and mailbox (T-1969, D-465), read at
+ * request time after `connection()`; no Contact link until that page exists
+ * (T-1793): never a link to nothing, or to a page that says it is not ready
+ * (rule 3).
  */
 export async function SiteFooter({ locale }: { locale: string }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
@@ -61,6 +67,8 @@ export async function SiteFooter({ locale }: { locale: string }) {
   const href = (path: string) => `/${locale}${path}`;
   const nav = attribute(lang, 'shell.footer.nav');
   const year = localDigits(lang, String(new Date().getUTCFullYear()));
+  await connection();
+  const legal = footerLegal(privacyController() !== null);
 
   return (
     <footer className="mt-16 border-t border-default bg-surface" data-testid="site-footer">
@@ -141,7 +149,7 @@ export async function SiteFooter({ locale }: { locale: string }) {
             © {year} <span className="ms-1 font-latin">Stadiomind</span>
           </p>
           <ul className="flex flex-wrap gap-x-5" data-testid="footer-legal">
-            {FOOTER_LEGAL.map((link) => (
+            {legal.map((link) => (
               <li key={link.id}>
                 <Link
                   href={href(link.path)}

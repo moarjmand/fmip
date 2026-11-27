@@ -13,6 +13,8 @@ import { CONSOLE_BASE_HEADER, consoleRoute } from '@/lib/console-host';
 import { FIRST_RUN_COOKIE, parseGuestChoices } from '@/lib/first-run';
 import { negotiatedLanguage } from '@/lib/language-negotiation';
 import { READER_LOCALE_HEADER } from '@/lib/locale-query';
+import { PRIVACY_PATH } from '@/lib/privacy-notice';
+import { localeFreePath } from '@/lib/shell-nav';
 
 /**
  * Next 16 renamed this convention from `middleware` to `proxy`.
@@ -34,6 +36,9 @@ import { READER_LOCALE_HEADER } from '@/lib/locale-query';
  * `fa-IR` lands on Persian. A written language that is held is not offered
  * and its pages carry `X-Robots-Tag: noindex`, so a hold takes it out of
  * search engines too.
+ *
+ * The privacy notice carries it in every language while the trial is
+ * private (T-1953's condition 3, D-465), beside the page's own `noindex`.
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
@@ -79,7 +84,10 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     const forwarded = new Headers(request.headers);
     forwarded.set(READER_LOCALE_HEADER, locale);
     const response = NextResponse.next({ request: { headers: forwarded } });
-    if (WRITTEN_LOCALES.includes(locale) && (await isHeld(locale))) {
+    if (
+      localeFreePath(pathname) === PRIVACY_PATH ||
+      (WRITTEN_LOCALES.includes(locale) && (await isHeld(locale)))
+    ) {
       response.headers.set('X-Robots-Tag', 'noindex, nofollow');
     }
     return response;
