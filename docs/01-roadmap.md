@@ -317,6 +317,11 @@ phase starts only from a new decision or what running the product finds.
 **Planned in `04-tasks-phase-15.md`** (2026-11-19, from the console and team
 review of that day and the maintainer's four answers). Tasks T-1884 to
 T-1945. Asked for as "Phase 14"; that number is the model factors' above.
+**Reduced on 2026-11-27 (D-459)** to security and finishing; the rest waits for the launch phase.
+
+## Launch phase — invite 20 to 30 people and measure
+
+**Planned in `04-tasks-launch.md`** (2026-11-27, D-459). Tasks T-1952 to T-1972: the maintainer's blockers (site e-mail, privacy notice, community rules, domain, the invitation), the 26 manual tests, invitation readiness, and the small engineering items that make it measurable and safe.
 
 ---
 
