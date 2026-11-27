@@ -79,6 +79,21 @@ export function rulesSections(version: string, body: string): RulesSection[] | n
   return sections;
 }
 
+/**
+ * The versions the community rules in plain words were written for (T-1969,
+ * D-459): the plain words explain one text, sentence by sentence against
+ * `docs/13-policy.md`. They are catalogue text, not part of a version, so a
+ * member still accepts only the version shown under them. A version that is
+ * not here is shown without them until somebody checks the plain words
+ * against it, so an explanation of an older text never sits above a newer one.
+ */
+const PLAIN_WORDS_VERSIONS: ReadonlySet<string> = new Set(['platform-rules@1.0.0']);
+
+/** Whether the plain words explain this version (T-1969). */
+export function hasPlainWords(version: string): boolean {
+  return PLAIN_WORDS_VERSIONS.has(version);
+}
+
 /** `platform-rules@1.1.0` → `1.1.0`; anything else is shown as it is. */
 export function rulesVersionNumber(version: string): string {
   const at = version.indexOf('@');
