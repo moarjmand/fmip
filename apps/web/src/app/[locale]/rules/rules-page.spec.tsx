@@ -142,10 +142,13 @@ describe('the community rules in plain words (T-1969, D-459)', () => {
     for (const rule of ['Spam and advertising.', 'Abuse and harassment.', 'Impersonation.']) {
       expect(plain).toContain(`<strong class="font-semibold">${rule}</strong>`);
     }
-    // Where to report and to appeal, by the names of the controls (T-1973).
+    // Where to report and to appeal, by the labels the controls show (T-1973):
+    // `report.open`, `report.reason.other`, `restrictions.heading`,
+    // `restrictions.appeal.submit`.
     expect(plain).toContain('use “Report” on their profile');
+    expect(plain).toContain('If you choose “Something else”');
     expect(plain).toContain(
-      '“Restrictions on your account” lists each restriction with its own Appeal form',
+      '“Restrictions on your account” lists each restriction with its own “Appeal” form',
     );
     // Nothing the policy does not say: no ranking of this page over the text,
     // no promise of who moderates, no "everything else is fine".
@@ -167,12 +170,16 @@ describe('the community rules in plain words (T-1969, D-459)', () => {
       'جعل هویت.',
       'امتیاز عملکرد',
       'از «گزارش» در نمایه‌ی او',
+      'گزینه‌ی «مورد دیگر»',
       '«محدودیت‌های حساب»',
-      'فرم «اعتراض»',
+      'فرم «درخواست تجدیدنظر»',
       '«عضو حذف‌شده»',
     ]) {
       expect(plain).toContain(words);
     }
+    // The site's word for an appeal, from the groups to the restrictions
+    // (T-1973), is «درخواست تجدیدنظر»; never a second one.
+    expect(plain).not.toContain('اعتراض');
     expect(plain).not.toContain('data-translation="untranslated"');
     expect(plain).not.toContain('lang="en"');
     expect(html).toMatch(/<article lang="en" dir="ltr"[^>]*data-testid="rules-body"/);

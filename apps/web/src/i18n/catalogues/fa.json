@@ -1694,7 +1694,7 @@
   },
   "rulesPage.meta.description": {
     "source": "The rules every member accepts, in plain words and in full: what Stadiomind is for, what is not allowed, how reports and appeals work, and how leaving works.",
-    "text": "قوانینی که هر عضو می‌پذیرد، به زبان ساده و با متن کامل: Stadiomind برای چیست، چه کارهایی مجاز نیست، گزارش و اعتراض چگونه است و ترک آن چگونه است.",
+    "text": "قوانینی که هر عضو می‌پذیرد، به زبان ساده و با متن کامل: Stadiomind برای چیست، چه کارهایی مجاز نیست، و گزارش، درخواست تجدیدنظر و ترک آن چگونه است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
@@ -16978,13 +16978,13 @@
   },
   "rules.plain.arguing": {
     "source": "Arguing hard about a match is welcome.",
-    "text": "بحث داغ سر یک مسابقه این‌جا بجاست.",
+    "text": "بحث داغ سر یک مسابقه این‌جا به‌جاست.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
   "rules.plain.rating.title": {
     "source": "Your rating is earned",
-    "text": "امتیاز شما به دست‌آوردنی است",
+    "text": "امتیاز شما به‌دست‌آوردنی است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
@@ -17001,8 +17001,8 @@
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
   "rules.plain.report.body": {
-    "source": "Anyone can report a member: use “Report” on their profile, or on the message itself where it is offered. If something breaks the three rules above, send a report and tell us what happened. If you choose “other”, please describe it, because a report with no description is one nobody can act on.",
-    "text": "هر کسی می‌تواند یک عضو را گزارش کند: از «گزارش» در نمایه‌ی او استفاده کنید، یا روی خود پیام، هر جا که این گزینه آمده است. اگر چیزی یکی از آن سه قانون را شکسته، گزارش بفرستید و بنویسید چه شده است. اگر گزینه‌ی «دیگر» را انتخاب می‌کنید لطفاً توضیح بدهید، چون گزارشی بدون توضیح چیزی است که کسی نمی‌تواند رویش تصمیم بگیرد.",
+    "source": "Anyone can report a member: use “Report” on their profile, or on the message itself where it is offered. If something breaks the three rules above, send a report and tell us what happened. If you choose “Something else”, please describe it, because a report with no description is one nobody can act on.",
+    "text": "هر کسی می‌تواند یک عضو را گزارش کند: از «گزارش» در نمایه‌ی او استفاده کنید، یا روی خود پیام، هر جا که این گزینه آمده است. اگر چیزی یکی از آن سه قانون را شکسته، گزارش بفرستید و بنویسید چه شده است. اگر گزینه‌ی «مورد دیگر» را انتخاب می‌کنید لطفاً توضیح بدهید، چون گزارشی بدون توضیح چیزی است که کسی نمی‌تواند رویش تصمیم بگیرد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
@@ -17020,13 +17020,13 @@
   },
   "rules.plain.appeal.title": {
     "source": "How to appeal",
-    "text": "چطور اعتراض کنیم",
+    "text": "چطور درخواست تجدیدنظر بدهیم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
   "rules.plain.appeal.body": {
-    "source": "You can appeal any decision about you, once, in writing. In Settings, “Restrictions on your account” lists each restriction with its own Appeal form. Your appeal is kept with the decision.",
-    "text": "هر تصمیمی درباره‌ی شما را می‌توانید یک بار و کتبی اعتراض کنید. در تنظیمات، بخش «محدودیت‌های حساب» هر محدودیت را با فرم «اعتراض» خودش نشان می‌دهد. اعتراض شما کنار همان تصمیم نگهداری می‌شود.",
+    "source": "You can appeal any decision about you, once, in writing. In Settings, “Restrictions on your account” lists each restriction with its own “Appeal” form. Your appeal is kept with the decision.",
+    "text": "برای هر تصمیمی درباره‌ی شما می‌توانید یک بار و کتبی درخواست تجدیدنظر بدهید. در تنظیمات، بخش «محدودیت‌های حساب» هر محدودیت را با فرم «درخواست تجدیدنظر» خودش نشان می‌دهد. درخواست تجدیدنظر شما کنار همان تصمیم نگهداری می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
