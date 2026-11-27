@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
 import { GroupModerationQueue } from '@/components/group-moderation';
+import { MemberAppeals } from '@/components/member-moderation-history';
 import { ModerationQueue } from '@/components/moderation-queue';
 import { fetchMe, fetchModerationQueue } from '@/lib/api';
 import { pageMetadata } from '@/lib/seo';
@@ -61,6 +62,14 @@ export default async function ModerationPage({ params }: { params: Promise<{ loc
         <section className="flex flex-col gap-3" data-testid="moderation-groups-section">
           <h2 className="text-lg font-semibold">Reports about groups</h2>
           <GroupModerationQueue locale={locale} groups={result.data.groups} />
+        </section>
+      )}
+
+      {result.ok && (
+        // T-1973: members' appeals of sanctions and decisions, read here.
+        <section className="flex flex-col gap-3" data-testid="moderation-appeals-section">
+          <h2 className="text-lg font-semibold">Appeals from members</h2>
+          <MemberAppeals locale={locale} appeals={result.data.appeals} showMember />
         </section>
       )}
 

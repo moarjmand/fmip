@@ -2145,22 +2145,22 @@
     "status": "untranslated"
   },
   "restrictions.heading": {
-    "source": "Restrictions on your account",
+    "source": "Moderation decisions on your account",
     "text": "",
     "status": "untranslated"
   },
   "restrictions.none": {
-    "source": "Nothing on your account is restricted.",
+    "source": "No moderator has restricted your account, warned you or removed your content.",
     "text": "",
     "status": "untranslated"
   },
   "restrictions.unreachable": {
-    "source": "The restrictions on your account could not be loaded right now.",
+    "source": "The moderation decisions on your account could not be loaded right now.",
     "text": "",
     "status": "untranslated"
   },
   "restrictions.lead": {
-    "source": "A moderator decided to restrict what your account can do. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
+    "source": "A moderator made a decision about your account. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
     "text": "",
     "status": "untranslated"
   },
@@ -2230,7 +2230,7 @@
     "status": "untranslated"
   },
   "restrictions.appeal.hint": {
-    "source": "Say why the decision should change. One appeal per restriction, up to {max} characters.",
+    "source": "Say why the decision should change. One appeal per decision, up to {max} characters.",
     "text": "",
     "status": "untranslated"
   },
@@ -2255,12 +2255,32 @@
     "status": "untranslated"
   },
   "restrictions.appeal.already": {
-    "source": "You have already appealed this restriction.",
+    "source": "You have already appealed this decision.",
     "text": "",
     "status": "untranslated"
   },
   "restrictions.appeal.unknown": {
-    "source": "This restriction is not on your account.",
+    "source": "This decision is not on your account.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.decision.warned": {
+    "source": "Warning",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.decision.contentRemoved": {
+    "source": "Content removed",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.decision.on": {
+    "source": "On {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.decision.contentNote": {
+    "source": "The decision does not record which item was removed; the reason above is what the moderator wrote.",
     "text": "",
     "status": "untranslated"
   },

@@ -1,19 +1,21 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MAX_APPEAL, type OwnSanction } from '@fmip/contracts';
+import { MAX_APPEAL, type OwnDecision, type OwnSanction } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/report-actions', () => ({
   reportMemberAction: async () => null,
   appealSanctionAction: async () => null,
+  appealDecisionAction: async () => null,
 }));
 
 const { AccountRestrictions } = await import('./account-restrictions');
 
 /**
- * Settings -> "Restrictions on your account" (T-1973): what was restricted,
- * why and until when, and the appeal -- once.
+ * Settings -> "Moderation decisions on your account" (T-1973): every decision
+ * against the member -- a restriction, a warning, a content removal -- with
+ * what, why and when, and the appeal, once each.
  */
 
 const SANCTION: OwnSanction = {
@@ -32,24 +34,38 @@ const SANCTION: OwnSanction = {
   appealed_at: null,
 };
 
-const render = (sanctions: OwnSanction[] | null, locale = 'en') =>
+const WARNING: OwnDecision = {
+  id: '00000000-0000-4000-8000-00000000e1e1',
+  outcome: 'warned',
+  reason: 'Insults in a group chat.',
+  created_at: '2026-11-20T10:00:00.000Z',
+  appealed_at: null,
+};
+
+const render = (sanctions: OwnSanction[] | null, locale = 'en', decisions: OwnDecision[] = []) =>
   renderToStaticMarkup(
-    <AccountRestrictions locale={locale} sanctions={sanctions} timeZone="Europe/London" />,
+    <AccountRestrictions
+      locale={locale}
+      standing={sanctions === null ? null : { sanctions, decisions }}
+      timeZone="Europe/London"
+    />,
   );
 
 describe('the section', () => {
-  it('says in one line that nothing is restricted, rather than an empty list', () => {
+  it('says in one line that nothing has been decided against them, rather than an empty list', () => {
     const html = render([]);
-    expect(html).toContain('Restrictions on your account');
+    expect(html).toContain('Moderation decisions on your account');
     expect(html).toContain('data-testid="restrictions-none"');
-    expect(html).toContain('Nothing on your account is restricted.');
+    expect(html).toContain(
+      'No moderator has restricted your account, warned you or removed your content.',
+    );
     expect(html).not.toContain('data-testid="restrictions-list"');
   });
 
   it('says it could not load them, never that there are none, when the API did not answer', () => {
     const html = render(null);
     expect(html).toContain('data-testid="restrictions-unreachable"');
-    expect(html).not.toContain('Nothing on your account is restricted.');
+    expect(html).not.toContain('No moderator has restricted');
   });
 
   it('shows what was restricted, why, and until when', () => {
@@ -102,6 +118,43 @@ describe('the section', () => {
   });
 });
 
+describe('a warning or a content removal', () => {
+  it('is shown with what, when and why, and is appealed once like a restriction', () => {
+    const html = render([], 'en', [WARNING]);
+    expect(html).not.toContain('data-testid="restrictions-none"');
+    expect(html).toContain('data-testid="decision"');
+    expect(html).toMatch(/<h3[^>]*>(<span[^>]*>)?Warning</);
+    expect(html).toContain('On 20 Nov 2026, 10:00');
+    expect(html).toContain('Insults in a group chat.');
+    expect(html).toContain('data-testid="decision-appeal-form"');
+
+    const appealed = render([], 'en', [{ ...WARNING, appealed_at: '2026-11-21T08:00:00.000Z' }]);
+    expect(appealed).toContain('Appeal sent on 21 Nov 2026, 08:00.');
+    expect(appealed).not.toContain('decision-appeal-form');
+  });
+
+  it('for a removal, never repeats the removed words and says no item is recorded', () => {
+    const html = render([], 'en', [
+      { ...WARNING, id: '00000000-0000-4000-8000-00000000e2e2', outcome: 'content_removed' },
+    ]);
+    expect(html).toMatch(/<h3[^>]*>(<span[^>]*>)?Content removed</);
+    expect(html).toContain('data-testid="decision-content-note"');
+    expect(html).toContain('The decision does not record which item was removed');
+  });
+
+  it('sits beside the restrictions, each with its own form and its own field ids', () => {
+    const html = render([SANCTION], 'en', [WARNING]);
+    expect(html.match(/data-testid="restriction-appeal-form"/g)).toHaveLength(1);
+    expect(html.match(/data-testid="decision-appeal-form"/g)).toHaveLength(1);
+    const defined = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    const labelled = [...html.matchAll(/\sfor="([^"]+)"/g)].map((m) => m[1]);
+    expect(html.match(/<textarea/g)).toHaveLength(2);
+    expect(new Set(defined).size).toBe(defined.length);
+    expect(labelled).toHaveLength(2);
+    for (const target of labelled) expect(defined).toContain(target);
+  });
+});
+
 describe('the appeal', () => {
   it('is a form while the restriction has not been appealed', () => {
     const html = render([SANCTION]);
@@ -109,7 +162,7 @@ describe('the appeal', () => {
     expect(html).toMatch(
       new RegExp(`<textarea[^>]*name="body"[^>]*maxlength="${MAX_APPEAL}"[^>]*required`, 'i'),
     );
-    expect(html).toContain('One appeal per restriction, up to 4,000 characters.');
+    expect(html).toContain('One appeal per decision, up to 4,000 characters.');
     expect(html).toMatch(/data-testid="restriction-appeal-submit"[^>]*>(<span[^>]*>)?Appeal</);
   });
 
@@ -131,26 +184,16 @@ describe('the appeal', () => {
     expect(html.match(/data-testid="restriction-appealed"/g)).toHaveLength(1);
   });
 
-  it('gives each appeal field its own id, so each label names its own field', () => {
-    const html = render([
-      SANCTION,
-      { ...SANCTION, id: '00000000-0000-4000-8000-00000000b2b2', scope: 'contact' },
-    ]);
-    const defined = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
-    const labelled = [...html.matchAll(/\sfor="([^"]+)"/g)].map((m) => m[1]);
-    expect(html.match(/<textarea/g)).toHaveLength(2);
-    expect(new Set(defined).size).toBe(defined.length);
-    expect(labelled).toHaveLength(2);
-    for (const target of labelled) expect(defined).toContain(target);
-  });
-
   it('is written in Persian for a Persian reader', () => {
-    const html = render([SANCTION], 'fa');
-    expect(html).toContain('محدودیت‌های حساب');
+    const html = render([SANCTION], 'fa', [WARNING]);
+    expect(html).toContain('تصمیم‌های نظارتی درباره‌ی حساب شما');
     expect(html).toContain('فرستادن پیام');
-    expect(html).toContain('درخواست تجدیدنظر');
+    expect(html).toContain('هشدار');
+    expect(html).toContain('ارسال درخواست تجدیدنظر');
     expect(html).not.toContain('lang="en"');
-    expect(render([], 'fa')).toContain('هیچ محدودیتی روی حساب شما نیست.');
+    expect(render([], 'fa')).toContain(
+      'هیچ ناظری حساب شما را محدود نکرده، به شما هشدار نداده یا محتوایتان را حذف نکرده است.',
+    );
   });
 });
 
@@ -167,6 +210,6 @@ describe('Settings', () => {
     expect(guest).toBeGreaterThan(-1);
     expect(member).toBeGreaterThan(guest);
     expect(section).toBeGreaterThan(member);
-    expect(PAGE).toMatch(/sanctions=\{standing\.ok \? standing\.data\.sanctions : null\}/);
+    expect(PAGE).toMatch(/standing=\{standing\.ok \? standing\.data : null\}/);
   });
 });

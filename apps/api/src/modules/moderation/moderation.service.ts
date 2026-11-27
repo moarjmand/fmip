@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import {
   type AppealNote,
+  type AppealableDecisionOutcome,
   type DecideRequest,
   MAX_APPEAL,
   MAX_REPORT_DETAIL,
@@ -10,7 +11,9 @@ import {
   type ModerationDecision,
   type ModerationOutcome,
   type ModerationQueueResponse,
+  type OwnDecision,
   type OwnSanction,
+  type QueuedAppeal,
   REPORT_REASONS,
   type Report,
   type ReportReason,
@@ -21,11 +24,13 @@ import {
 } from '@fmip/contracts';
 import { PG_POOL } from '../../database/database.module';
 import {
+  type AppealOutcome,
   type DecisionRow,
   ModerationQueueStore,
   ModerationStore,
   type OwnSanctionRow,
   type QueueRow,
+  type QueuedAppealRow,
   type SanctionRow,
 } from './internal/moderation-store';
 import { ModerationAssistService } from '../moderation-assist/moderation-assist.service';
@@ -44,13 +49,13 @@ export type AppealResult =
   | { ok: true }
   | {
       ok: false;
-      reason: 'unknown_sanction' | 'not_yours' | 'already_appealed' | 'invalid';
+      reason: 'unknown' | 'already_appealed' | 'invalid';
       fields?: Record<string, string>;
     };
 
 const MAX_DETAIL = MAX_REPORT_DETAIL;
 
-/** A sanction's id as the route takes it; anything else names no sanction. */
+/** A sanction's or decision's id as the routes take it; anything else names none. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function queued(row: QueueRow) {
@@ -94,6 +99,22 @@ function shape(row: SanctionRow): Sanction {
     lifted_by: row.lifted_by,
     lift_reason: row.lift_reason,
     decision_id: row.decision_id,
+  };
+}
+
+/** A member's appeal as a moderator reads it (T-1973). */
+function appealShape(row: QueuedAppealRow): QueuedAppeal {
+  return {
+    id: row.id,
+    username: row.username,
+    sanction_id: row.sanction_id,
+    scope: row.scope as SanctionScope | null,
+    active: row.active,
+    decision_id: row.decision_id,
+    outcome: row.outcome as ModerationOutcome,
+    decision_reason: row.decision_reason,
+    body: row.body,
+    created_at: row.created_at.toISOString(),
   };
 }
 
@@ -235,8 +256,36 @@ export class ModerationService {
     return rows.filter((row) => row.active && row.scope === scope).map(shape)[0] ?? null;
   }
 
-  async appeal(userId: string, sanctionId: string, body: string): Promise<AppealResult> {
-    const text = body.trim();
+  /** A sanction on the member, appealed once (T-1973). */
+  appeal(userId: string, sanctionId: string, body: string): Promise<AppealResult> {
+    return this.appealOnce(sanctionId, body, (text) =>
+      this.store.appealOnce(sanctionId, userId, text),
+    );
+  }
+
+  /**
+   * A decision about the member with no sanction -- a warning, content
+   * removed -- appealed once, the same way (T-1973). A `sanctioned` decision
+   * is appealed through its sanction and `no_action` has nothing to appeal:
+   * both are "not found" here, like a decision about somebody else.
+   */
+  appealDecision(userId: string, decisionId: string, body: string): Promise<AppealResult> {
+    return this.appealOnce(decisionId, body, (text) =>
+      this.store.appealDecisionOnce(decisionId, userId, text),
+    );
+  }
+
+  /**
+   * The checks every appeal shares, then the write. Once per sanction or
+   * decision: the platform rules promise "every decision can be appealed
+   * once, in writing", and the store holds that under a lock.
+   */
+  private async appealOnce(
+    id: string,
+    body: string,
+    write: (text: string) => Promise<AppealOutcome | 'not_appealable'>,
+  ): Promise<AppealResult> {
+    const text = typeof body === 'string' ? body.trim() : '';
     if (text === '') {
       return { ok: false, reason: 'invalid', fields: { body: 'Say why you are appealing.' } };
     }
@@ -247,12 +296,25 @@ export class ModerationService {
         fields: { body: `At most ${MAX_APPEAL} characters.` },
       };
     }
+    if (!UUID.test(id)) return { ok: false, reason: 'unknown' };
 
-    if (!UUID.test(sanctionId)) return { ok: false, reason: 'unknown_sanction' };
-    // Once per sanction (T-1973): the platform rules promise "every decision
-    // can be appealed once, in writing", and the store holds that under a lock.
-    const outcome = await this.store.appealOnce(sanctionId, userId, text);
-    return outcome === 'appealed' ? { ok: true } : { ok: false, reason: outcome };
+    const outcome = await write(text);
+    if (outcome === 'appealed') return { ok: true };
+    if (outcome === 'already_appealed') return { ok: false, reason: 'already_appealed' };
+    // Somebody else's, unknown, or not a kind that is appealed here: all one
+    // answer, so the caller learns nothing about an id that is not theirs.
+    return { ok: false, reason: 'unknown' };
+  }
+
+  /** The decisions against the member that carry no sanction (T-1973). Never who decided. */
+  async ownDecisions(userId: string): Promise<OwnDecision[]> {
+    return (await this.store.ownDecisions(userId)).map((row) => ({
+      id: row.id,
+      outcome: row.outcome as AppealableDecisionOutcome,
+      reason: row.reason,
+      created_at: row.created_at.toISOString(),
+      appealed_at: row.appealed_at?.toISOString() ?? null,
+    }));
   }
 
   // -------------------------------------------------------------------------
@@ -301,6 +363,8 @@ export class ModerationService {
       groups: await this.groupModeration.queue(limit),
       open_total: total,
       assistant: this.assist.assistant(),
+      // Members' appeals beside the reports (T-1973): a person reads them here.
+      appeals: (await this.store.appeals(limit)).map(appealShape),
     };
   }
 
@@ -308,16 +372,18 @@ export class ModerationService {
     const member = await this.store.memberByUsername(username);
     if (member === null) return null;
 
-    const [reports, decisions, sanctions] = await Promise.all([
+    const [reports, decisions, sanctions, appeals] = await Promise.all([
       this.queueStore.reportsAbout(member.id),
       this.queueStore.decisionsAbout(member.id),
       this.store.sanctionsOn(member.id),
+      this.store.appeals(100, member.id),
     ]);
     return {
       username: member.username,
       reports_about_them: reports.map(queued),
       decisions: decisions.map(decisionShape),
       sanctions: sanctions.map(shape),
+      appeals: appeals.map(appealShape),
     };
   }
 

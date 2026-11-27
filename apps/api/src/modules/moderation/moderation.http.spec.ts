@@ -139,7 +139,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
       await client.query(`SET session_replication_role = 'replica'`);
       await client.query(
         `DELETE FROM appeal_note WHERE sanction_id IN
-           (SELECT id FROM sanction WHERE user_id = ANY($1::uuid[]))`,
+           (SELECT id FROM sanction WHERE user_id = ANY($1::uuid[]))
+            OR author_id = ANY($1::uuid[])`,
         [everyone],
       );
       await client.query(`DELETE FROM sanction WHERE user_id = ANY($1::uuid[])`, [everyone]);
@@ -235,7 +236,7 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
   });
 
   it('shows a member nothing when nothing has been done to them', async () => {
-    expect((await get('/me/standing', reporter)).json()).toEqual({ sanctions: [] });
+    expect((await get('/me/standing', reporter)).json()).toEqual({ sanctions: [], decisions: [] });
   });
 
   describe('a contact sanction', () => {
@@ -352,6 +353,97 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
       expect(
         (await post('/me/sanctions/not-a-uuid/appeal', { body: 'let me out' }, restricted))
           .statusCode,
+      ).toBe(404);
+    });
+  });
+
+  describe('a decision with no sanction (T-1973)', () => {
+    /** A decision about a member, written the way the moderator's queue writes one. */
+    async function decide(username: string, outcome: string, reason: string): Promise<string> {
+      const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO moderation_decision (moderator_id, subject_type, subject_id, outcome, reason)
+         VALUES ($1, 'member', $2, $3, $4) RETURNING id`,
+        [ids.get(moderator), ids.get(username), outcome, reason],
+      );
+      return rows[0]?.id ?? '';
+    }
+
+    let warning = '';
+    let removal = '';
+    let dismissed = '';
+
+    beforeAll(async () => {
+      warning = await decide(subject, 'warned', 'Three advertising links in a group chat.');
+      removal = await decide(subject, 'content_removed', 'A post with a stranger’s address.');
+      dismissed = await decide(subject, 'no_action', 'The reports did not hold.');
+    });
+
+    it('shows the member each warning and removal: what, why and when, never who', async () => {
+      const { decisions } = (await get('/me/standing', subject)).json();
+
+      expect(decisions.map((d: { id: string }) => d.id).sort()).toEqual([warning, removal].sort());
+      expect(decisions.find((d: { id: string }) => d.id === warning)).toEqual({
+        id: warning,
+        outcome: 'warned',
+        reason: 'Three advertising links in a group chat.',
+        created_at: expect.any(String),
+        appealed_at: null,
+      });
+      // Nothing against them is not shown as something against them.
+      expect(decisions.some((d: { id: string }) => d.id === dismissed)).toBe(false);
+      expect(JSON.stringify(decisions)).not.toContain(moderator);
+
+      // Somebody else's decisions are nobody else's to read.
+      expect((await get('/me/standing', reporter)).json().decisions).toEqual([]);
+    });
+
+    it('is appealed once, by the member it is about, and two at once still write one', async () => {
+      const url = `/me/decisions/${warning}/appeal`;
+      expect((await post(url, { body: '  ' }, subject)).statusCode).toBe(400);
+      // Not theirs: "not found", like a sanction.
+      expect((await post(url, { body: 'not mine' }, reporter)).statusCode).toBe(404);
+
+      const racing = await Promise.all([
+        post(url, { body: 'The links were the match streams the group asked for.' }, subject),
+        post(url, { body: 'second tap' }, subject),
+      ]);
+      expect(racing.map((r) => r.statusCode).sort()).toEqual([204, 409]);
+      expect((await post(url, { body: 'again' }, subject)).json()).toMatchObject({
+        error: 'conflict',
+      });
+
+      const { rows } = await pool.query(`SELECT 1 FROM appeal_note WHERE decision_id = $1`, [
+        warning,
+      ]);
+      expect(rows).toHaveLength(1);
+      const shown = (await get('/me/standing', subject))
+        .json()
+        .decisions.find((d: { id: string }) => d.id === warning);
+      expect(Date.parse(shown.appealed_at)).not.toBeNaN();
+
+      // The other decision is still open to its own appeal.
+      expect(
+        (await post(`/me/decisions/${removal}/appeal`, { body: 'It was my own address.' }, subject))
+          .statusCode,
+      ).toBe(204);
+    });
+
+    it('takes no appeal of a decision that is not a warning or a removal, or of no decision', async () => {
+      // `no_action` decided nothing against them; a sanction is appealed through its sanction.
+      expect(
+        (await post(`/me/decisions/${dismissed}/appeal`, { body: 'why' }, subject)).statusCode,
+      ).toBe(404);
+      const sanctioned = (
+        await pool.query<{ decision_id: string }>(
+          `SELECT decision_id FROM sanction WHERE user_id = $1 LIMIT 1`,
+          [ids.get(restricted)],
+        )
+      ).rows[0]?.decision_id;
+      expect(
+        (await post(`/me/decisions/${sanctioned}/appeal`, { body: 'why' }, restricted)).statusCode,
+      ).toBe(404);
+      expect(
+        (await post('/me/decisions/not-a-uuid/appeal', { body: 'why' }, subject)).statusCode,
       ).toBe(404);
     });
   });

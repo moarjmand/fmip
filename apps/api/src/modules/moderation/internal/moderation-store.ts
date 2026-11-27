@@ -9,6 +9,7 @@
  */
 
 import type { Pool, PoolClient } from 'pg';
+import { APPEALABLE_DECISION_OUTCOMES } from '@fmip/contracts';
 
 export interface MemberRow {
   id: string;
@@ -33,6 +34,30 @@ export interface SanctionRow {
 export interface OwnSanctionRow extends Omit<SanctionRow, 'lifted_by'> {
   reason: string;
   appealed_at: Date | null;
+}
+
+/** What writing an appeal came to. `unknown` and `not_yours` are both "not found" to the caller. */
+export type AppealOutcome = 'appealed' | 'unknown' | 'not_yours' | 'already_appealed';
+
+export interface OwnDecisionRow {
+  id: string;
+  outcome: string;
+  reason: string;
+  created_at: Date;
+  appealed_at: Date | null;
+}
+
+export interface QueuedAppealRow {
+  id: string;
+  username: string;
+  sanction_id: string | null;
+  scope: string | null;
+  active: boolean | null;
+  decision_id: string;
+  outcome: string;
+  decision_reason: string;
+  body: string;
+  created_at: Date;
 }
 
 export interface ReportRow {
@@ -172,33 +197,81 @@ export class ModerationStore {
     sanctionId: string,
     userId: string,
     body: string,
-  ): Promise<'appealed' | 'unknown_sanction' | 'not_yours' | 'already_appealed'> {
+  ): Promise<AppealOutcome | 'not_appealable'> {
+    return this.appealUnderLock(
+      // A member appeals their own sanction. A moderator's note on somebody
+      // else's is part of the queue (T-212), not of this route.
+      `SELECT user_id = $2 AS mine, true AS appealable FROM sanction WHERE id = $1 FOR UPDATE`,
+      'sanction_id',
+      sanctionId,
+      userId,
+      body,
+    );
+  }
+
+  /**
+   * The member's appeal of a decision about them that carries no sanction --
+   * a warning, content removed -- written once, the same way (T-1973). The
+   * decision's row is the one locked: it is immutable, and `FOR UPDATE` on a
+   * read changes nothing its trigger would refuse.
+   */
+  async appealDecisionOnce(
+    decisionId: string,
+    userId: string,
+    body: string,
+  ): Promise<AppealOutcome | 'not_appealable'> {
+    return this.appealUnderLock(
+      `SELECT (subject_type = 'member' AND subject_id = $2::text) AS mine,
+              outcome = ANY($3::text[]) AS appealable
+         FROM moderation_decision WHERE id = $1 FOR UPDATE`,
+      'decision_id',
+      decisionId,
+      userId,
+      body,
+      [APPEALABLE_DECISION_OUTCOMES],
+    );
+  }
+
+  /**
+   * Lock the appealed row, check it is the member's and that they have not
+   * appealed it, and write the note: one transaction, so two taps cannot both
+   * find no appeal and both write one.
+   */
+  private async appealUnderLock(
+    lockSql: string,
+    column: 'sanction_id' | 'decision_id',
+    id: string,
+    userId: string,
+    body: string,
+    extra: unknown[] = [],
+  ): Promise<AppealOutcome | 'not_appealable'> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      const { rows } = await client.query<{ user_id: string }>(
-        `SELECT user_id FROM sanction WHERE id = $1 FOR UPDATE`,
-        [sanctionId],
-      );
+      const { rows } = await client.query<{ mine: boolean; appealable: boolean }>(lockSql, [
+        id,
+        userId,
+        ...extra,
+      ]);
       const found = rows[0];
-      let outcome: 'appealed' | 'unknown_sanction' | 'not_yours' | 'already_appealed';
+      let outcome: AppealOutcome | 'not_appealable';
       if (found === undefined) {
-        outcome = 'unknown_sanction';
-      } else if (found.user_id !== userId) {
-        // A member appeals their own sanction. A moderator's note on somebody
-        // else's is part of the queue (T-212), not of this route.
+        outcome = 'unknown';
+      } else if (!found.mine) {
         outcome = 'not_yours';
+      } else if (!found.appealable) {
+        outcome = 'not_appealable';
       } else {
         const { rowCount } = await client.query(
-          `SELECT 1 FROM appeal_note WHERE sanction_id = $1 AND author_id = $2 LIMIT 1`,
-          [sanctionId, userId],
+          `SELECT 1 FROM appeal_note WHERE ${column} = $1 AND author_id = $2 LIMIT 1`,
+          [id, userId],
         );
         if ((rowCount ?? 0) > 0) {
           outcome = 'already_appealed';
         } else {
           await client.query(
-            `INSERT INTO appeal_note (sanction_id, author_id, body) VALUES ($1, $2, $3)`,
-            [sanctionId, userId, body],
+            `INSERT INTO appeal_note (${column}, author_id, body) VALUES ($1, $2, $3)`,
+            [id, userId, body],
           );
           outcome = 'appealed';
         }
@@ -211,6 +284,65 @@ export class ModerationStore {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * The decisions about a member that carry no sanction and are shown to them
+   * (T-1973): what, why, when, and when they appealed it. Never who decided.
+   */
+  async ownDecisions(userId: string): Promise<OwnDecisionRow[]> {
+    const { rows } = await this.pool.query<OwnDecisionRow>(
+      `SELECT d.id,
+              d.outcome,
+              d.reason,
+              d.created_at,
+              (SELECT min(n.created_at)
+                 FROM appeal_note n
+                WHERE n.decision_id = d.id AND n.author_id = $1) AS appealed_at
+         FROM moderation_decision d
+        WHERE d.subject_type = 'member'
+          AND d.subject_id = $1::text
+          AND d.outcome = ANY($2::text[])
+        ORDER BY d.created_at DESC`,
+      [userId, APPEALABLE_DECISION_OUTCOMES],
+    );
+    return rows;
+  }
+
+  /**
+   * Members' own appeals of sanctions and decisions about them, newest first
+   * (T-1973): for the moderators' queue, or one member's history. A note by
+   * anybody but the member the decision is about is not their appeal, and a
+   * group's closure has its own page.
+   */
+  async appeals(limit: number, memberId: string | null = null): Promise<QueuedAppealRow[]> {
+    const { rows } = await this.pool.query<QueuedAppealRow>(
+      `SELECT n.id,
+              u.username,
+              n.sanction_id,
+              s.scope,
+              CASE WHEN s.id IS NULL THEN NULL
+                   ELSE (s.lifted_at IS NULL
+                           AND s.starts_at <= now()
+                           AND (s.ends_at IS NULL OR s.ends_at > now()))
+              END AS active,
+              d.id AS decision_id,
+              d.outcome,
+              d.reason AS decision_reason,
+              n.body,
+              n.created_at
+         FROM appeal_note n
+         JOIN user_account u ON u.id = n.author_id
+         LEFT JOIN sanction s ON s.id = n.sanction_id
+         JOIN moderation_decision d ON d.id = COALESCE(s.decision_id, n.decision_id)
+        WHERE d.subject_type = 'member'
+          AND d.subject_id = n.author_id::text
+          AND ($2::uuid IS NULL OR n.author_id = $2::uuid)
+        ORDER BY n.created_at DESC
+        LIMIT $1`,
+      [limit, memberId],
+    );
+    return rows;
   }
 
   async appealNotes(

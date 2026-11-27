@@ -13,7 +13,8 @@ vi.mock('@/lib/api', () => ({ apiRequest: (...args: unknown[]) => apiRequest(...
 vi.mock('@/lib/session', () => ({ sessionCookieHeader: async () => 'fmip_session=abc' }));
 vi.mock('next/cache', () => ({ revalidatePath: (...args: unknown[]) => revalidatePath(...args) }));
 
-const { appealSanctionAction, reportMemberAction } = await import('./report-actions');
+const { appealDecisionAction, appealSanctionAction, reportMemberAction } =
+  await import('./report-actions');
 
 const SANCTION = '00000000-0000-4000-8000-00000000a1a1';
 
@@ -152,7 +153,7 @@ describe('an appeal', () => {
     apiRequest.mockResolvedValue(failed(409, 'You have already appealed this restriction.'));
     expect(await appealSanctionAction('fa', SANCTION, null, form({ body: 'again' }))).toEqual({
       ok: false,
-      message: 'برای این محدودیت قبلاً درخواست تجدیدنظر داده‌اید.',
+      message: 'برای این تصمیم قبلاً درخواست تجدیدنظر داده‌اید.',
     });
     expect(revalidatePath).not.toHaveBeenCalled();
   });
@@ -167,7 +168,27 @@ describe('an appeal', () => {
     apiRequest.mockResolvedValue(failed(404));
     expect(await appealSanctionAction('en', SANCTION, null, form({ body: 'why' }))).toEqual({
       ok: false,
-      message: 'This restriction is not on your account.',
+      message: 'This decision is not on your account.',
+    });
+  });
+
+  it('of a warning or a removal goes to the decision’s own route, once (T-1973)', async () => {
+    const DECISION = '00000000-0000-4000-8000-00000000e1e1';
+    apiRequest.mockResolvedValueOnce(appealed);
+    expect(
+      await appealDecisionAction('en', DECISION, null, form({ body: ' Those were replies. ' })),
+    ).toEqual({ ok: true, message: 'Appeal sent. A person will read it.' });
+    expect(apiRequest).toHaveBeenCalledWith(`/me/decisions/${DECISION}/appeal`, {
+      method: 'POST',
+      cookie: 'fmip_session=abc',
+      body: { body: 'Those were replies.' },
+    });
+    expect(revalidatePath).toHaveBeenCalledWith('/en/settings');
+
+    apiRequest.mockResolvedValueOnce(failed(409));
+    expect(await appealDecisionAction('en', DECISION, null, form({ body: 'again' }))).toEqual({
+      ok: false,
+      message: 'You have already appealed this decision.',
     });
   });
 });

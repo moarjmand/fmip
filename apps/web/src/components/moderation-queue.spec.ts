@@ -51,6 +51,14 @@ describe('the moderation queue page', () => {
     expect(history).toContain('Do not name or hint at who reported them.');
   });
 
+  it('shows members’ appeals beside the reports and on the member’s history (T-1973)', () => {
+    expect(PAGE).toContain('data-testid="moderation-appeals-section"');
+    expect(PAGE).toContain('appeals={result.data.appeals}');
+    const history = readFileSync(join(HERE, 'member-moderation-history.tsx'), 'utf8');
+    expect(history).toContain('appeals={history.appeals}');
+    expect(history).toContain('data-testid="moderation-appeal-body"');
+  });
+
   it('asks for a reason, and leaves the rules to the API', () => {
     expect(QUEUE).toContain('name="reason"');
     expect(ACTIONS).toContain("request.reason === ''");

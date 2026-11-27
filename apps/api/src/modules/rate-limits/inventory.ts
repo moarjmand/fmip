@@ -367,6 +367,8 @@ export const EXEMPT: Readonly<Record<string, string>> = {
     'Deliberately unlimited (T-213): reporting is limited by target instead -- one open report per subject (T-210) -- because a member harassed by twenty accounts must be able to report twenty.',
   'POST /me/sanctions/:id/appeal':
     'Deliberately unlimited (T-213): an appeal is the way out of a sanction, and the exit is never gated; only the sanctioned member can write, on their own sanction, once (T-1973), length-capped.',
+  'POST /me/decisions/:id/appeal':
+    "Deliberately unlimited, like a sanction's appeal (T-213, T-1973): only the member a warning or a content removal is about can write, once per decision, length-capped.",
   'POST /me/blocks/:username':
     'Deliberately unlimited: a block protects the caller, reaches nobody, and is one row per pair.',
   'DELETE /me/blocks/:username': REMOVAL,

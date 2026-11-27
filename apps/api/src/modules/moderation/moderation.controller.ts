@@ -22,9 +22,42 @@ import type {
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
-import { ModerationService } from './moderation.service';
+import { type AppealResult, ModerationService } from './moderation.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
+
+/** An appeal's refusal as HTTP: the same for a sanction and a decision (T-1973). */
+function answer(result: AppealResult, what: 'sanction' | 'decision'): void {
+  if (result.ok) return;
+  if (result.reason === 'invalid') {
+    throw new BadRequestException({
+      error: 'validation',
+      message: 'The appeal is not valid.',
+      fields: result.fields,
+    } satisfies ApiError);
+  }
+  if (result.reason === 'already_appealed') {
+    // Once (T-1973): the platform rules' "appealed once, in writing". The
+    // first appeal is the one kept with the decision.
+    throw new ConflictException({
+      error: 'conflict',
+      message:
+        what === 'sanction'
+          ? 'You have already appealed this restriction.'
+          : 'You have already appealed this decision.',
+    } satisfies ApiError);
+  }
+  // Somebody else's is "not found" rather than "forbidden": a 403 would
+  // confirm that a particular id exists and belongs to a member the caller
+  // is not.
+  throw new NotFoundException({
+    error: 'not_found',
+    message:
+      what === 'sanction'
+        ? 'No such sanction on your account.'
+        : 'No such decision on your account that can be appealed.',
+  } satisfies ApiError);
+}
 
 /**
  * Reporting and a member's own standing (blueprint 10.4, T-211).
@@ -102,7 +135,11 @@ export class ModerationController {
   @Get('me/standing')
   async standing(@Req() request: FastifyRequest): Promise<OwnStandingResponse> {
     const viewer = await this.requireViewer(request);
-    return { sanctions: await this.moderation.standing(viewer.id) };
+    const [sanctions, decisions] = await Promise.all([
+      this.moderation.standing(viewer.id),
+      this.moderation.ownDecisions(viewer.id),
+    ]);
+    return { sanctions, decisions };
   }
 
   @Post('me/sanctions/:id/appeal')
@@ -113,31 +150,23 @@ export class ModerationController {
     @Req() request: FastifyRequest,
   ): Promise<void> {
     const viewer = await this.requireViewer(request);
-    const result = await this.moderation.appeal(viewer.id, id, body?.body ?? '');
-    if (result.ok) return;
+    answer(await this.moderation.appeal(viewer.id, id, body?.body ?? ''), 'sanction');
+  }
 
-    if (result.reason === 'invalid') {
-      throw new BadRequestException({
-        error: 'validation',
-        message: 'The appeal is not valid.',
-        fields: result.fields,
-      } satisfies ApiError);
-    }
-    if (result.reason === 'already_appealed') {
-      // Once per sanction (T-1973): the platform rules' "appealed once, in
-      // writing". The first appeal is the one kept with the decision.
-      throw new ConflictException({
-        error: 'conflict',
-        message: 'You have already appealed this restriction.',
-      } satisfies ApiError);
-    }
-    // A sanction on somebody else is "not found" rather than "forbidden": a 403
-    // would confirm that a particular id exists and belongs to a member the
-    // caller is not.
-    throw new NotFoundException({
-      error: 'not_found',
-      message: 'No such sanction on your account.',
-    } satisfies ApiError);
+  /**
+   * A decision about the member that carries no sanction -- a warning,
+   * content removed -- appealed once, like a sanction (T-1973; the platform
+   * rules: "every decision can be appealed once, in writing").
+   */
+  @Post('me/decisions/:id/appeal')
+  @HttpCode(204)
+  async appealDecision(
+    @Param('id') id: string,
+    @Body() body: { body?: string },
+    @Req() request: FastifyRequest,
+  ): Promise<void> {
+    const viewer = await this.requireViewer(request);
+    answer(await this.moderation.appealDecision(viewer.id, id, body?.body ?? ''), 'decision');
   }
 
   @Get('me/sanctions/:id/appeal')

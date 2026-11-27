@@ -1,4 +1,4 @@
-import { MAX_APPEAL, type OwnSanction } from '@fmip/contracts';
+import { MAX_APPEAL, type OwnDecision, type OwnSanction } from '@fmip/contracts';
 import { CommunityAction } from '@/components/community-action';
 import { Said } from '@/components/community-text';
 import { Translated } from '@/components/translated';
@@ -6,45 +6,54 @@ import { Card, Notice, TextArea } from '@/components/ui';
 import { formatDateTime, formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
-import { sanctionScopeLabel } from '@/lib/report';
-import { appealSanctionAction } from '@/lib/report-actions';
+import type { ActionState } from '@/lib/auth-actions';
+import { DECISION_OUTCOME_LABELS, sanctionScopeLabel } from '@/lib/report';
+import { appealDecisionAction, appealSanctionAction } from '@/lib/report-actions';
+
+type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
 /**
- * Settings -> «محدودیت‌های حساب» / "Restrictions on your account" (T-1973).
+ * Settings -> «تصمیم‌های نظارتی درباره‌ی حساب شما» / "Moderation decisions on
+ * your account" (T-1973).
  *
- * The platform rules promise that a decision restricting what a member can do
- * tells them "which and why", and that "every decision can be appealed once,
- * in writing". This is where both are kept: each sanction with what it
- * restricts, the decision's reason and until when, and under it either the
- * appeal form or the day the appeal was sent -- never both, since the API
- * takes one appeal per sanction.
+ * The platform rules promise that a decision tells the member "which and
+ * why", and that "every decision can be appealed once, in writing". This is
+ * where both are kept: each sanction with what it restricts, the decision's
+ * reason and until when; each warning or content removal with its reason and
+ * date; and under every one either the appeal form or the day the appeal was
+ * sent -- never both, since the API takes one appeal per sanction or
+ * decision. Never who decided (policy section 2).
  *
- * With no sanction the section says so in one line rather than vanishing:
- * a moderation decision's notification opens `#restrictions` (whatever the
- * decision was), and a heading with nothing under it would look like a list
- * that failed to load. A standing the API did not answer is said as that,
- * not as "nothing is restricted" (rule 3).
+ * With nothing to show the section says so in one line rather than
+ * vanishing: a moderation decision's notification opens `#restrictions`, and
+ * a heading with nothing under it would look like a list that failed to
+ * load. A standing the API did not answer is said as that, not as "nothing"
+ * (rule 3).
  */
 export function AccountRestrictions({
   locale,
-  sanctions,
+  standing,
   timeZone,
 }: {
   locale: string;
   /** `null` when the API did not answer. */
-  sanctions: OwnSanction[] | null;
+  standing: { sanctions: OwnSanction[]; decisions: OwnDecision[] } | null;
   timeZone: string;
 }) {
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  const when = (iso: string) => formatDateTime(lang, iso, timeZone);
+  const empty =
+    standing !== null && standing.sanctions.length === 0 && standing.decisions.length === 0;
   return (
     <section id="restrictions" className="flex flex-col gap-4" data-testid="account-restrictions">
       <h2 className="text-xl font-semibold">
         <Translated locale={locale} message="restrictions.heading" />
       </h2>
-      {sanctions === null ? (
+      {standing === null ? (
         <Notice tone="danger" data-testid="restrictions-unreachable">
           <Translated locale={locale} message="restrictions.unreachable" />
         </Notice>
-      ) : sanctions.length === 0 ? (
+      ) : empty ? (
         <p className="text-sm text-muted" data-testid="restrictions-none">
           <Translated locale={locale} message="restrictions.none" />
         </p>
@@ -54,13 +63,11 @@ export function AccountRestrictions({
             <Translated locale={locale} message="restrictions.lead" />
           </p>
           <ul className="flex flex-col gap-4" data-testid="restrictions-list">
-            {sanctions.map((sanction) => (
-              <Restriction
-                key={sanction.id}
-                locale={locale}
-                sanction={sanction}
-                timeZone={timeZone}
-              />
+            {standing.sanctions.map((sanction) => (
+              <Restriction key={sanction.id} locale={locale} sanction={sanction} when={when} />
+            ))}
+            {standing.decisions.map((decision) => (
+              <Decision key={decision.id} locale={locale} decision={decision} when={when} />
             ))}
           </ul>
         </>
@@ -72,14 +79,13 @@ export function AccountRestrictions({
 function Restriction({
   locale,
   sanction,
-  timeZone,
+  when,
 }: {
   locale: string;
   sanction: OwnSanction;
-  timeZone: string;
+  when: (iso: string) => string;
 }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const when = (iso: string) => formatDateTime(lang, iso, timeZone);
   return (
     <Card as="li" data-testid="restriction">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
@@ -91,15 +97,7 @@ function Restriction({
         </span>
       </div>
       <dl className="flex flex-col gap-2 text-sm">
-        <div className="flex flex-col gap-0.5">
-          <dt className="text-muted">
-            <Translated locale={locale} message="restrictions.why" />
-          </dt>
-          {/* The moderator's own words, as recorded with the decision. */}
-          <dd className="whitespace-pre-line break-words" data-testid="restriction-reason">
-            {sanction.reason}
-          </dd>
-        </div>
+        <Why locale={locale} reason={sanction.reason} />
         <div className="flex flex-col gap-0.5">
           <dt className="text-muted">
             <Translated locale={locale} message="restrictions.until" />
@@ -121,8 +119,74 @@ function Restriction({
           </div>
         )}
       </dl>
-      <Appeal locale={locale} sanction={sanction} when={when} />
+      {/* A lifted sanction has been undone already and asks for no appeal. */}
+      <Appeal
+        locale={locale}
+        appealedAt={sanction.appealed_at}
+        open={sanction.lifted_at === null}
+        action={appealSanctionAction.bind(null, locale, sanction.id)}
+        testId="restriction"
+        when={when}
+      />
     </Card>
+  );
+}
+
+/** A warning or a content removal (T-1973): what, when, why, and the appeal. */
+function Decision({
+  locale,
+  decision,
+  when,
+}: {
+  locale: string;
+  decision: OwnDecision;
+  when: (iso: string) => string;
+}) {
+  const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
+  return (
+    <Card as="li" data-testid="decision">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="font-semibold">
+          <Translated locale={locale} message={DECISION_OUTCOME_LABELS[decision.outcome]} />
+        </h3>
+        <span className="text-sm text-muted" data-testid="decision-date">
+          <time dateTime={decision.created_at}>
+            {interpolate(t(lang, 'restrictions.decision.on'), { date: when(decision.created_at) })}
+          </time>
+        </span>
+      </div>
+      <dl className="flex flex-col gap-2 text-sm">
+        <Why locale={locale} reason={decision.reason} />
+      </dl>
+      {decision.outcome === 'content_removed' && (
+        // The decision names no item, and the removed words are never repeated.
+        <p className="text-sm text-muted" data-testid="decision-content-note">
+          <Translated locale={locale} message="restrictions.decision.contentNote" />
+        </p>
+      )}
+      <Appeal
+        locale={locale}
+        appealedAt={decision.appealed_at}
+        open
+        action={appealDecisionAction.bind(null, locale, decision.id)}
+        testId="decision"
+        when={when}
+      />
+    </Card>
+  );
+}
+
+/** The moderator's own words, as recorded with the decision; their form says the member reads them. */
+function Why({ locale, reason }: { locale: string; reason: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-muted">
+        <Translated locale={locale} message="restrictions.why" />
+      </dt>
+      <dd className="whitespace-pre-line break-words" data-testid="restriction-reason">
+        {reason}
+      </dd>
+    </div>
   );
 }
 
@@ -141,42 +205,49 @@ function stateLine(lang: Locale, sanction: OwnSanction, when: (iso: string) => s
 }
 
 /**
- * The appeal: once. Sent, it is the day it was sent and no second form; a
- * lifted sanction has been undone already and asks for none.
+ * The appeal: once. Sent, it is the day it was sent and no second form. The
+ * field takes the id `TextArea` makes itself, so two forms never share one.
  */
 function Appeal({
   locale,
-  sanction,
+  appealedAt,
+  open,
+  action,
+  testId,
   when,
 }: {
   locale: string;
-  sanction: OwnSanction;
+  appealedAt: string | null;
+  /** False when there is nothing left to appeal (a lifted sanction). */
+  open: boolean;
+  action: BoundAction;
+  testId: 'restriction' | 'decision';
   when: (iso: string) => string;
 }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  if (sanction.appealed_at !== null) {
+  if (appealedAt !== null) {
     return (
-      <p className="text-sm" data-testid="restriction-appealed">
+      <p className="text-sm" data-testid={`${testId}-appealed`}>
         <Said
           locale={locale}
           message="restrictions.appeal.sentOn"
-          params={{ date: when(sanction.appealed_at) }}
+          params={{ date: when(appealedAt) }}
         />
       </p>
     );
   }
-  if (sanction.lifted_at !== null) return null;
+  if (!open) return null;
   return (
     <CommunityAction
-      action={appealSanctionAction.bind(null, locale, sanction.id)}
+      action={action}
       submit={<Translated locale={locale} message="restrictions.appeal.submit" />}
       working={<Translated locale={locale} message="auth.form.working" />}
       done={<Translated locale={locale} message="restrictions.appeal.sent" />}
       variant="secondary"
       formClassName="flex flex-col gap-2"
-      formTestId="restriction-appeal-form"
-      testId="restriction-appeal-submit"
-      resultTestId="restriction-appeal-result"
+      formTestId={`${testId}-appeal-form`}
+      testId={`${testId}-appeal-submit`}
+      resultTestId={`${testId}-appeal-result`}
     >
       <TextArea
         label={<Translated locale={locale} message="restrictions.appeal.label" />}

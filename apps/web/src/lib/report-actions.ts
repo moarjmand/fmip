@@ -88,10 +88,24 @@ export async function appealSanctionAction(
   _previous: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  return appeal(locale, `/me/sanctions/${encodeURIComponent(sanctionId)}/appeal`, formData);
+}
+
+/** Appeal a warning or a content removal on the member's own account: once, in writing (T-1973). */
+export async function appealDecisionAction(
+  locale: string,
+  decisionId: string,
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  return appeal(locale, `/me/decisions/${encodeURIComponent(decisionId)}/appeal`, formData);
+}
+
+async function appeal(locale: string, path: string, formData: FormData): Promise<ActionState> {
   const l = lang(locale);
   const text = String(formData.get('body') ?? '').trim();
   if (text === '') return { ok: false, message: t(l, 'restrictions.appeal.empty') };
-  const result = await apiRequest<null>(`/me/sanctions/${encodeURIComponent(sanctionId)}/appeal`, {
+  const result = await apiRequest<null>(path, {
     method: 'POST',
     cookie: await sessionCookieHeader(),
     body: { body: text },
@@ -101,7 +115,7 @@ export async function appealSanctionAction(
     if (result.status === 404) return { ok: false, message: t(l, 'restrictions.appeal.unknown') };
     return failureState(result, locale);
   }
-  // The page reads the standing again, and the sanction now says when it was
+  // The page reads the standing again, and the decision now says when it was
   // appealed instead of offering the form.
   revalidatePath(`/${locale}/settings`);
   return { ok: true, message: t(l, 'restrictions.appeal.sent') };

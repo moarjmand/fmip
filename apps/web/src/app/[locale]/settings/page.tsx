@@ -256,10 +256,10 @@ export default async function SettingsPage({
         />
       )}
 
-      {/* T-1973: what a moderator restricted, why, until when, and the appeal. */}
+      {/* T-1973: what a moderator decided about the account, why, until when, and the appeal. */}
       <AccountRestrictions
         locale={locale}
-        sanctions={standing.ok ? standing.data.sanctions : null}
+        standing={standing.ok ? standing.data : null}
         timeZone={account.timezone}
       />
 

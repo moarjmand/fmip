@@ -165,13 +165,65 @@ export interface OwnSanction extends Omit<Sanction, 'lifted_by'> {
 }
 
 /**
+ * The decisions about a member that carry no sanction and are shown to them
+ * (T-1973): a warning, and content removed. A `sanctioned` decision is shown
+ * as its sanction; `no_action` decided nothing against them, so there is
+ * nothing to appeal.
+ */
+export const APPEALABLE_DECISION_OUTCOMES = ['warned', 'content_removed'] as const;
+export type AppealableDecisionOutcome = (typeof APPEALABLE_DECISION_OUTCOMES)[number];
+
+/**
+ * One such decision as the member it is about reads it (T-1973): what was
+ * decided, why, when, and whether they have appealed it. Never who decided
+ * (policy section 2). A `content_removed` decision names no item: the
+ * decision does not record one, and the removed words are never repeated.
+ */
+export interface OwnDecision {
+  id: string;
+  outcome: AppealableDecisionOutcome;
+  /** The moderator's written reason, which their form says the member reads. */
+  reason: string;
+  /** ISO 8601. */
+  created_at: string;
+  /** ISO 8601: when this member appealed it, or null while they have not. */
+  appealed_at: string | null;
+}
+
+/**
  * What a member is told about their own standing.
  *
  * A sanctioned member is told, and told when it ends. A restriction the member
  * cannot see is one they cannot appeal, and blueprint 10.4 asks for appeals.
+ * Since T-1973 the other decisions against them are told too, so that every
+ * decision can be appealed once, as the platform rules promise.
  */
 export interface OwnStandingResponse {
   sanctions: OwnSanction[];
+  decisions: OwnDecision[];
+}
+
+/**
+ * A member's appeal as a moderator reads it (T-1973): who appealed, what
+ * against -- a sanction (its scope and whether it is still in force) or a
+ * decision -- the decision's reason, and the appeal's words.
+ */
+export interface QueuedAppeal {
+  /** The appeal note's id. */
+  id: string;
+  /** The member who appealed. */
+  username: string;
+  /** The sanction appealed, or null when the appeal is against a decision with none. */
+  sanction_id: string | null;
+  scope: SanctionScope | null;
+  /** Whether that sanction is in force now; null for a decision. */
+  active: boolean | null;
+  decision_id: string;
+  outcome: ModerationOutcome;
+  decision_reason: string;
+  body: string;
+  /** ISO 8601. */
+  created_at: string;
 }
 
 /** An appeal's longest text (T-211): the same cap for a sanction and a group's closure. */
@@ -243,6 +295,8 @@ export interface ModerationQueueResponse {
   assistant: LanguageModelState;
   /** Open reports in total, so a page showing one screen can say what it is not showing. */
   open_total: number;
+  /** Members' appeals of sanctions and decisions, newest first (T-1973). */
+  appeals: QueuedAppeal[];
 }
 
 /** What a moderator asks for when a decision carries a restriction. */
@@ -281,6 +335,8 @@ export interface MemberModerationHistory {
   reports_about_them: QueuedReport[];
   decisions: ModerationDecision[];
   sanctions: Sanction[];
+  /** Their appeals of those sanctions and decisions, newest first (T-1973). */
+  appeals: QueuedAppeal[];
 }
 
 // ---------------------------------------------------------------------------

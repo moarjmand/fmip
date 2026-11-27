@@ -1,4 +1,9 @@
-import { REPORT_REASONS, type ReportReason } from '@fmip/contracts';
+import {
+  type AppealableDecisionOutcome,
+  REPORT_REASONS,
+  type ReportReason,
+  type SanctionScope,
+} from '@fmip/contracts';
 import type { MessageKey } from '@/i18n/messages';
 
 /**
@@ -25,21 +30,39 @@ export const REPORT_REASON_LABELS: Record<ReportReason, MessageKey> = {
 };
 
 /**
- * What a sanction restricts, in words: the contract's scopes, and the two the
- * schema also accepts (`groups`, `post`; the match panel's migration) so that
- * a row made some other way is named rather than breaking Settings.
+ * What a sanction restricts, in words. Keyed by the contract's union, so a
+ * scope added to `SANCTION_SCOPES` without words here does not compile.
  */
-const SANCTION_SCOPE_LABELS: Record<string, MessageKey> = {
+const SANCTION_SCOPE_LABELS: Record<SanctionScope, MessageKey> = {
   contact: 'restrictions.scope.contact',
   messaging: 'restrictions.scope.messaging',
+};
+
+/**
+ * The two scopes the schema also accepts (`groups`, `post`; the groups' and
+ * the match panel's migrations) without the contract offering them to a
+ * moderator: a row made some other way is named rather than breaking Settings.
+ */
+const SCHEMA_ONLY_SCOPE_LABELS: Record<'groups' | 'post', MessageKey> = {
   groups: 'restrictions.scope.groups',
   post: 'restrictions.scope.post',
 };
 
 /** The words for a scope; one this code has never heard of is "another part of your account", never a raw key. */
 export function sanctionScopeLabel(scope: string): MessageKey {
-  return SANCTION_SCOPE_LABELS[scope] ?? 'restrictions.scope.other';
+  if (Object.hasOwn(SANCTION_SCOPE_LABELS, scope))
+    return SANCTION_SCOPE_LABELS[scope as SanctionScope];
+  if (Object.hasOwn(SCHEMA_ONLY_SCOPE_LABELS, scope)) {
+    return SCHEMA_ONLY_SCOPE_LABELS[scope as keyof typeof SCHEMA_ONLY_SCOPE_LABELS];
+  }
+  return 'restrictions.scope.other';
 }
+
+/** What a decision without a sanction did, in words; keyed by the contract's union for the same reason. */
+export const DECISION_OUTCOME_LABELS: Record<AppealableDecisionOutcome, MessageKey> = {
+  warned: 'restrictions.decision.warned',
+  content_removed: 'restrictions.decision.contentRemoved',
+};
 
 export function isReportReason(value: unknown): value is ReportReason {
   return typeof value === 'string' && (REPORT_REASONS as readonly string[]).includes(value);

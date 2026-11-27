@@ -2575,26 +2575,26 @@
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
   "restrictions.heading": {
-    "source": "Restrictions on your account",
-    "text": "محدودیت‌های حساب",
+    "source": "Moderation decisions on your account",
+    "text": "تصمیم‌های نظارتی درباره‌ی حساب شما",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.none": {
-    "source": "Nothing on your account is restricted.",
-    "text": "هیچ محدودیتی روی حساب شما نیست.",
+    "source": "No moderator has restricted your account, warned you or removed your content.",
+    "text": "هیچ ناظری حساب شما را محدود نکرده، به شما هشدار نداده یا محتوایتان را حذف نکرده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.unreachable": {
-    "source": "The restrictions on your account could not be loaded right now.",
-    "text": "محدودیت‌های حساب شما در حال حاضر بارگیری نشدند.",
+    "source": "The moderation decisions on your account could not be loaded right now.",
+    "text": "تصمیم‌های نظارتی درباره‌ی حساب شما در حال حاضر بارگیری نشدند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.lead": {
-    "source": "A moderator decided to restrict what your account can do. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
-    "text": "یک ناظر تصمیم گرفته است بخشی از کارهایی را که حساب شما می‌تواند انجام دهد محدود کند. برای هر تصمیم یک بار می‌توانید به‌صورت نوشتاری درخواست تجدیدنظر بدهید؛ یک نفر آن را می‌خواند و درخواست کنار همان تصمیم نگه داشته می‌شود.",
+    "source": "A moderator made a decision about your account. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
+    "text": "یک ناظر درباره‌ی حساب شما تصمیمی گرفته است. برای هر تصمیم یک بار می‌توانید به‌صورت نوشتاری درخواست تجدیدنظر بدهید؛ یک نفر آن را می‌خواند و درخواست کنار همان تصمیم نگه داشته می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
@@ -2677,8 +2677,8 @@
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.appeal.hint": {
-    "source": "Say why the decision should change. One appeal per restriction, up to {max} characters.",
-    "text": "بنویسید چرا این تصمیم باید تغییر کند. برای هر محدودیت یک درخواست تجدیدنظر، حداکثر {max} نویسه.",
+    "source": "Say why the decision should change. One appeal per decision, up to {max} characters.",
+    "text": "بنویسید چرا این تصمیم باید تغییر کند. برای هر تصمیم یک درخواست تجدیدنظر، حداکثر {max} نویسه.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
@@ -2707,14 +2707,38 @@
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.appeal.already": {
-    "source": "You have already appealed this restriction.",
-    "text": "برای این محدودیت قبلاً درخواست تجدیدنظر داده‌اید.",
+    "source": "You have already appealed this decision.",
+    "text": "برای این تصمیم قبلاً درخواست تجدیدنظر داده‌اید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "restrictions.appeal.unknown": {
-    "source": "This restriction is not on your account.",
-    "text": "این محدودیت روی حساب شما نیست.",
+    "source": "This decision is not on your account.",
+    "text": "این تصمیم مربوط به حساب شما نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.decision.warned": {
+    "source": "Warning",
+    "text": "هشدار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.decision.contentRemoved": {
+    "source": "Content removed",
+    "text": "حذف محتوا",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.decision.on": {
+    "source": "On {date}",
+    "text": "در {date}",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.decision.contentNote": {
+    "source": "The decision does not record which item was removed; the reason above is what the moderator wrote.",
+    "text": "این تصمیم ثبت نمی‌کند کدام مورد حذف شد؛ دلیل بالا همان چیزی است که ناظر نوشته است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
