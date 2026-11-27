@@ -279,6 +279,17 @@ export class PostgresIdentityStore {
     );
   }
 
+  /** What became of the token's mail (T-1967): `sent`, `failed`, `absent` or `skipped`, and when. */
+  async recordMailOutcome(
+    tokenHash: string,
+    outcome: 'sent' | 'failed' | 'absent' | 'skipped',
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE email_token SET mail_outcome = $2, mailed_at = now() WHERE token_hash = $1`,
+      [tokenHash, outcome],
+    );
+  }
+
   /**
    * Marks the token used and returns its user, or `null` if it is unknown,
    * expired, of another kind, or already used. Single-use is decided by this

@@ -7,6 +7,7 @@ import {
   type OutboundDelivery,
   type OutboundEmail,
   type OutboundPush,
+  SendFailed,
   describeDelivery,
 } from './delivery.port';
 import { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
@@ -134,6 +135,20 @@ export class DeliveryService implements OnModuleInit {
       // The channel is there; this member has no device on it. Not a fault.
       if (error instanceof NoRecipient) return 'skipped';
       // The event that caused this already happened; a footnote must not undo it.
+      if (error instanceof SendFailed) {
+        // The provider's refusal, stated so the next failure names its cause
+        // (T-1967): code, reply code, command, reply -- no address, no secret.
+        const { code, responseCode, command, reason } = error.detail;
+        this.log.error(`delivery.${name}_failed provider=${channel.provider} ${error.message}`, {
+          event: `delivery.${name}_failed`,
+          provider: channel.provider,
+          code,
+          response_code: responseCode,
+          command,
+          reason,
+        });
+        return 'failed';
+      }
       this.log.error(
         `delivery.${name}_failed provider=${channel.provider}`,
         error instanceof Error ? error.stack : String(error),

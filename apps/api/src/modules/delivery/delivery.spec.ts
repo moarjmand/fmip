@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { AbsentDelivery, NoRecipient, deliveryFromEnv, describeDelivery } from './delivery.port';
+import { Logger } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  AbsentDelivery,
+  NoRecipient,
+  SendFailed,
+  deliveryFromEnv,
+  describeDelivery,
+} from './delivery.port';
 import type { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 import { DeliveryService } from './delivery.service';
 
@@ -137,5 +144,44 @@ describe('DeliveryService', () => {
       url: '/en/notifications',
     });
     expect(outcome).toEqual({ email: 'absent', push: 'skipped' });
+  });
+
+  it('logs a refused send with the provider cause and without the address (T-1967)', async () => {
+    const logged = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      const service = new DeliveryService({
+        email: {
+          provider: 'smtp',
+          send: async () => {
+            throw new SendFailed({
+              code: 'EAUTH',
+              responseCode: 534,
+              command: 'AUTH PLAIN',
+              reason: '534-5.7.9 Please log in with your web browser',
+            });
+          },
+        },
+        push: null,
+      });
+      const outcome = await service.deliver(
+        { to: 'ada.lovelace@example.test', subject: 'x', text: 'y' },
+        null,
+      );
+      expect(outcome).toEqual({ email: 'failed', push: 'absent' });
+      expect(logged).toHaveBeenCalledWith(
+        'delivery.email_failed provider=smtp code=EAUTH response_code=534 command="AUTH PLAIN" reason="534-5.7.9 Please log in with your web browser"',
+        {
+          event: 'delivery.email_failed',
+          provider: 'smtp',
+          code: 'EAUTH',
+          response_code: 534,
+          command: 'AUTH PLAIN',
+          reason: '534-5.7.9 Please log in with your web browser',
+        },
+      );
+      expect(JSON.stringify(logged.mock.calls)).not.toContain('ada.lovelace');
+    } finally {
+      logged.mockRestore();
+    }
   });
 });

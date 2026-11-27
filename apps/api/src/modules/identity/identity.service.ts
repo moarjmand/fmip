@@ -19,7 +19,7 @@ import {
 } from './internal/auth-rate-limit';
 import { clearSessionCookie, serializeSessionCookie } from './internal/cookies';
 import { PostgresIdentityStore, toAuthUser } from './internal/identity-store';
-import { MAILER, type Mailer } from './internal/mailer';
+import { MAILER, type Mailer, type OutboundMail } from './internal/mailer';
 import { type AcceptOutcome, PostgresPlatformRulesStore } from './internal/platform-rules-store';
 import { decoyHash, hashPassword, verifyPassword } from './internal/password';
 import { hashToken, newToken } from './internal/tokens';
@@ -326,13 +326,14 @@ export class IdentityService {
     if (user === null) return { kind: 'accepted' };
 
     const token = newToken();
+    const tokenHash = this.hash(token);
     await this.store.createEmailToken(
       user.id,
       'reset_password',
-      this.hash(token),
+      tokenHash,
       this.expiry(this.options.resetPasswordTtlSeconds),
     );
-    await this.mailer.send({
+    await this.mailRecorded(tokenHash, {
       to: user.email,
       subject: 'Reset your Stadiomind password',
       text: [
@@ -508,13 +509,14 @@ export class IdentityService {
 
   private async sendVerificationEmail(user: AuthUser): Promise<void> {
     const token = newToken();
+    const tokenHash = this.hash(token);
     await this.store.createEmailToken(
       user.id,
       'verify_email',
-      this.hash(token),
+      tokenHash,
       this.expiry(this.options.verifyEmailTtlSeconds),
     );
-    await this.mailer.send({
+    await this.mailRecorded(tokenHash, {
       to: user.email,
       subject: 'Verify your Stadiomind e-mail address',
       text: [
@@ -526,6 +528,25 @@ export class IdentityService {
         `The link works once and expires in ${Math.round(this.options.verifyEmailTtlSeconds / 3600)} hours.`,
       ].join('\n'),
     });
+  }
+
+  /**
+   * Sends a token's mail and records on the token what became of it (T-1967),
+   * so a sign-up, verification or reset mail that failed is counted by the
+   * watchdog and the ops snapshot, not only noted in a log a restart clears.
+   * A record that cannot be written is logged, never thrown: the token exists
+   * and the member can ask again.
+   */
+  private async mailRecorded(tokenHash: string, mail: OutboundMail): Promise<void> {
+    const outcome = await this.mailer.send(mail);
+    try {
+      await this.store.recordMailOutcome(tokenHash, outcome);
+    } catch (error) {
+      this.log.error(
+        `email_token.outcome_not_recorded outcome=${outcome}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   /**

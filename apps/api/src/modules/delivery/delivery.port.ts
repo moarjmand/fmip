@@ -12,6 +12,39 @@ import { WebPushChannel, vapidSettingsFromEnv } from './internal/webpush';
 export class NoRecipient extends Error {}
 
 /**
+ * What the log may show of a send the provider refused (T-1967): the
+ * provider's error code (`EAUTH`, `ECONNECTION`, `EENVELOPE`), the reply code
+ * and the command it answered (`AUTH PLAIN`, `RCPT TO`), and its reply or
+ * message with every address cut to its domain. Never a credential, never a
+ * recipient in full.
+ */
+export interface SendFailureDetail {
+  code: string | null;
+  responseCode: number | null;
+  command: string | null;
+  reason: string;
+}
+
+/**
+ * Thrown by a channel whose provider refused a send, carrying only the
+ * detail above. The provider's own error is not kept, not even as a `cause`:
+ * its message can name the recipient.
+ */
+export class SendFailed extends Error {
+  constructor(readonly detail: SendFailureDetail) {
+    super(
+      [
+        `code=${detail.code ?? 'none'}`,
+        `response_code=${detail.responseCode === null ? 'none' : String(detail.responseCode)}`,
+        `command=${JSON.stringify(detail.command ?? 'none')}`,
+        `reason=${JSON.stringify(detail.reason)}`,
+      ].join(' '),
+    );
+    this.name = 'SendFailed';
+  }
+}
+
+/**
  * Delivery behind one port (T-330, blueprint 12.2): e-mail and push, with a
  * provider chosen at deployment and **a deployment that has none saying so**.
  *

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DeliveryService } from '../../delivery/delivery.service';
-import { LogMailer, type Mailer, type OutboundMail } from './mailer';
+import { LogMailer, type MailOutcome, type Mailer, type OutboundMail } from './mailer';
 
 /** Where a message that is not printed is noted: one line, never its text. */
 export type MailNote = (line: string) => void;
@@ -35,15 +35,16 @@ export class DeliveryMailer implements Mailer {
     private readonly note: MailNote = (line) => process.stdout.write(line),
   ) {}
 
-  async send(mail: OutboundMail): Promise<void> {
+  async send(mail: OutboundMail): Promise<MailOutcome> {
     const outcome = await this.delivery.deliver(mail, null);
-    if (outcome.email === 'sent') return;
+    if (outcome.email === 'sent') return 'sent';
     if (outcome.email === 'absent' && this.printable) {
       await this.fallback.send(mail);
-      return;
+      return 'absent';
     }
     this.note(
       `[mail-not-sent] email=${outcome.email} to=${maskAddress(mail.to)} subject=${JSON.stringify(mail.subject)}\n`,
     );
+    return outcome.email;
   }
 }

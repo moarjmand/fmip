@@ -1,7 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
 import { IdentityModule } from './identity.module';
 import {
@@ -332,6 +332,32 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('/auth', () =
     expect(mailer.sent.at(-1)?.text).toContain('http://web.test/en/reset-password?token=');
     expect(mailer.sent.at(-1)?.subject).toBe('Reset your Stadiomind password');
     expect(mailer.sent.at(-1)?.text).not.toContain('FMIP');
+  });
+
+  it('records on each token what became of its mail, a failure included (T-1967)', async () => {
+    const outcomes = async () =>
+      (
+        await pool.query<{ kind: string; mail_outcome: string | null; mailed: boolean }>(
+          `SELECT t.kind, t.mail_outcome, t.mailed_at IS NOT NULL AS mailed
+             FROM email_token t JOIN user_account u ON u.id = t.user_id
+            WHERE u.email = $1 ORDER BY t.created_at, t.kind`,
+          [registration.email],
+        )
+      ).rows;
+    expect(await outcomes()).toEqual([
+      { kind: 'verify_email', mail_outcome: 'sent', mailed: true },
+      { kind: 'reset_password', mail_outcome: 'sent', mailed: true },
+    ]);
+    // A reset whose mail the channel refused is counted as failed, and still accepted.
+    const refused = vi.spyOn(mailer, 'send').mockResolvedValueOnce('failed');
+    const answer = await post('/auth/password/forgot', { email: registration.email });
+    refused.mockRestore();
+    expect(answer.statusCode).toBe(202);
+    expect((await outcomes()).at(-1)).toEqual({
+      kind: 'reset_password',
+      mail_outcome: 'failed',
+      mailed: true,
+    });
   });
 
   it('resets the password, revokes every session, and spends the token', async () => {
