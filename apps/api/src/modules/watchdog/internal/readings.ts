@@ -7,6 +7,7 @@ import {
   type CloudflareRangesSeen,
   dataQuality,
   deliveryChannel,
+  type DeliverySeen,
   eloSource,
   eloSourceRetired,
   type EloSourceSeen,
@@ -61,12 +62,8 @@ export interface Observations {
    * before it still type-checks; absent reads as not reported.
    */
   elo?: { configured: false } | Unreadable | { source: EloSourceSeen | null };
-  delivery:
-    | {
-        email: { configured: false } | { configured: true; sent: number; failed: number };
-        push: { configured: false } | { configured: true; sent: number; failed: number };
-      }
-    | Unreadable;
+  /** Per channel: the last hour's outcomes and the newest of the day (T-330, T-1967). */
+  delivery: { email: DeliverySeen; push: DeliverySeen } | Unreadable;
   /**
    * What the backup and the restore drill recorded in `backup_run` (T-805),
    * and the WAL archiver's state for point-in-time recovery (T-845); `wal`
@@ -191,8 +188,9 @@ export function readingsOf(
       out.push({ ...deliveryChannel(channel, { configured: false }), note: why });
     }
   } else {
-    out.push(deliveryChannel('email', seen.delivery.email));
-    out.push(deliveryChannel('push', seen.delivery.push));
+    // The stored state is the hysteresis (T-1967): an open incident recovers on sends, not on a quiet hour.
+    out.push(deliveryChannel('email', seen.delivery.email, previous.get('delivery:email') ?? null));
+    out.push(deliveryChannel('push', seen.delivery.push, previous.get('delivery:push') ?? null));
   }
 
   out.push(

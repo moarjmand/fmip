@@ -15,7 +15,8 @@ describe('DeliveryMailer', () => {
   it('falls back to printing where the deployment has no channel', async () => {
     const fallback = new CaptureMailer();
     const mailer = new DeliveryMailer(new DeliveryService(new AbsentDelivery()), fallback);
-    await mailer.send(mail);
+    // Printed is not delivered: the outcome identity records says so (T-1967).
+    await expect(mailer.send(mail)).resolves.toBe('absent');
     expect(fallback.sent).toEqual([mail]);
   });
 
@@ -31,7 +32,9 @@ describe('DeliveryMailer', () => {
       push: null,
     };
     const fallback = new CaptureMailer();
-    await new DeliveryMailer(new DeliveryService(channels), fallback).send(mail);
+    await expect(
+      new DeliveryMailer(new DeliveryService(channels), fallback).send(mail),
+    ).resolves.toBe('sent');
     expect(sent).toEqual([mail]);
     expect(fallback.sent).toEqual([]);
   });
@@ -58,7 +61,7 @@ describe('DeliveryMailer', () => {
       new DeliveryMailer(new DeliveryService(broken), fallback, true, (line) =>
         lines.push(line),
       ).send(linkMail),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe('failed');
     expect(fallback.sent).toEqual([]);
     expect(lines).toEqual([
       '[mail-not-sent] email=failed to=***@example.test subject="Confirm your address"\n',

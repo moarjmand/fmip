@@ -1,5 +1,12 @@
-import { describe, expect, it } from 'vitest';
-import { AbsentDelivery, NoRecipient, deliveryFromEnv, describeDelivery } from './delivery.port';
+import { Logger } from '@nestjs/common';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  AbsentDelivery,
+  NoRecipient,
+  SendFailed,
+  deliveryFromEnv,
+  describeDelivery,
+} from './delivery.port';
 import type { PostgresPushSubscriptionStore } from './internal/push-subscriptions';
 import { DeliveryService } from './delivery.service';
 
@@ -137,5 +144,80 @@ describe('DeliveryService', () => {
       url: '/en/notifications',
     });
     expect(outcome).toEqual({ email: 'absent', push: 'skipped' });
+  });
+
+  it('logs a refused send with the provider cause and without the address (T-1967)', async () => {
+    const logged = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      const service = new DeliveryService({
+        email: {
+          provider: 'smtp',
+          send: async () => {
+            throw new SendFailed({
+              scope: 'channel',
+              code: 'EAUTH',
+              responseCode: 534,
+              command: 'AUTH PLAIN',
+              reason: '534-5.7.9 Please log in with your web browser',
+            });
+          },
+        },
+        push: null,
+      });
+      const outcome = await service.deliver(
+        { to: 'ada.lovelace@example.test', subject: 'x', text: 'y' },
+        null,
+      );
+      expect(outcome).toEqual({ email: 'failed', push: 'absent' });
+      expect(logged).toHaveBeenCalledWith(
+        'delivery.email_failed provider=smtp code=EAUTH response_code=534 command="AUTH PLAIN" reason="534-5.7.9 Please log in with your web browser"',
+        {
+          event: 'delivery.email_failed',
+          provider: 'smtp',
+          code: 'EAUTH',
+          response_code: 534,
+          command: 'AUTH PLAIN',
+          reason: '534-5.7.9 Please log in with your web browser',
+        },
+      );
+      expect(JSON.stringify(logged.mock.calls)).not.toContain('ada.lovelace');
+    } finally {
+      logged.mockRestore();
+    }
+  });
+
+  it('records a refusal of only this recipient as skipped, with a warning, not a failure (T-1967)', async () => {
+    const warned = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    const errored = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+    try {
+      const service = new DeliveryService({
+        email: {
+          provider: 'smtp',
+          send: async () => {
+            throw new SendFailed({
+              scope: 'recipient',
+              code: 'EENVELOPE',
+              responseCode: 550,
+              command: 'RCPT TO',
+              reason: '550 5.1.1 <***@example.test>: unknown mailbox',
+            });
+          },
+        },
+        push: null,
+      });
+      const outcome = await service.deliver(
+        { to: 'ada.lovelace@example.test', subject: 'x', text: 'y' },
+        null,
+      );
+      expect(outcome).toEqual({ email: 'skipped', push: 'absent' });
+      expect(errored).not.toHaveBeenCalled();
+      expect(warned).toHaveBeenCalledWith(
+        expect.stringMatching(/^delivery\.email_recipient_refused provider=smtp code=EENVELOPE /),
+        expect.objectContaining({ event: 'delivery.email_recipient_refused', response_code: 550 }),
+      );
+    } finally {
+      warned.mockRestore();
+      errored.mockRestore();
+    }
   });
 });

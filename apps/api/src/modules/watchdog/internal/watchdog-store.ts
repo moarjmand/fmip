@@ -294,28 +294,76 @@ export class WatchdogStore {
     }));
   }
 
-  /** Outcomes per channel of the deliveries carried since `since` (T-330's record). */
+  /**
+   * Outcomes per channel of the deliveries carried since `since` (T-330's
+   * record), and the newest `kept` outcomes since `recentSince`, newest first
+   * (T-1967). E-mail counts the sign-up, verification and reset mails recorded
+   * on `email_token` beside the notifications, and says whether the newest of
+   * those failed.
+   */
   async deliveryOutcomes(
     since: Date,
-  ): Promise<{ email: { sent: number; failed: number }; push: { sent: number; failed: number } }> {
+    recentSince: Date,
+    kept: number,
+  ): Promise<{
+    email: {
+      sent: number;
+      failed: number;
+      recent: ('sent' | 'failed')[];
+      accountMailFailing: boolean;
+    };
+    push: { sent: number; failed: number; recent: ('sent' | 'failed')[] };
+  }> {
     const { rows } = await this.pool.query<{
       email_sent: string;
       email_failed: string;
       push_sent: string;
       push_failed: string;
+      email_recent: ('sent' | 'failed')[];
+      push_recent: ('sent' | 'failed')[];
+      account_failing: boolean;
     }>(
-      `SELECT count(*) FILTER (WHERE email = 'sent')::text AS email_sent,
-              count(*) FILTER (WHERE email = 'failed')::text AS email_failed,
-              count(*) FILTER (WHERE push = 'sent')::text AS push_sent,
-              count(*) FILTER (WHERE push = 'failed')::text AS push_failed
-         FROM notification_delivery
-        WHERE carried_at >= $1`,
-      [since],
+      `WITH outcome AS (
+         SELECT email, push, carried_at AS at
+           FROM notification_delivery
+          WHERE carried_at >= least($1::timestamptz, $2::timestamptz)
+         UNION ALL
+         SELECT mail_outcome, NULL::text, mailed_at
+           FROM email_token
+          WHERE mailed_at >= least($1::timestamptz, $2::timestamptz)
+       )
+       SELECT count(*) FILTER (WHERE email = 'sent' AND at >= $1)::text AS email_sent,
+              count(*) FILTER (WHERE email = 'failed' AND at >= $1)::text AS email_failed,
+              count(*) FILTER (WHERE push = 'sent' AND at >= $1)::text AS push_sent,
+              count(*) FILTER (WHERE push = 'failed' AND at >= $1)::text AS push_failed,
+              (SELECT coalesce(array_agg(e.email ORDER BY e.at DESC), '{}')
+                 FROM (SELECT email, at FROM outcome
+                        WHERE email IN ('sent', 'failed') AND at >= $2
+                        ORDER BY at DESC LIMIT $3) e) AS email_recent,
+              (SELECT coalesce(array_agg(p.push ORDER BY p.at DESC), '{}')
+                 FROM (SELECT push, at FROM outcome
+                        WHERE push IN ('sent', 'failed') AND at >= $2
+                        ORDER BY at DESC LIMIT $3) p) AS push_recent,
+              coalesce((SELECT t.mail_outcome = 'failed'
+                          FROM email_token t
+                         WHERE t.mailed_at >= $2 AND t.mail_outcome IN ('sent', 'failed')
+                         ORDER BY t.mailed_at DESC LIMIT 1), false) AS account_failing
+         FROM outcome`,
+      [since, recentSince, kept],
     );
     const row = rows[0];
     return {
-      email: { sent: Number(row?.email_sent ?? 0), failed: Number(row?.email_failed ?? 0) },
-      push: { sent: Number(row?.push_sent ?? 0), failed: Number(row?.push_failed ?? 0) },
+      email: {
+        sent: Number(row?.email_sent ?? 0),
+        failed: Number(row?.email_failed ?? 0),
+        recent: row?.email_recent ?? [],
+        accountMailFailing: row?.account_failing ?? false,
+      },
+      push: {
+        sent: Number(row?.push_sent ?? 0),
+        failed: Number(row?.push_failed ?? 0),
+        recent: row?.push_recent ?? [],
+      },
     };
   }
 
