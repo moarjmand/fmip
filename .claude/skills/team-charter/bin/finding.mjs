@@ -58,6 +58,13 @@ const PREFIX = {
 };
 const AGENTS = [...Object.keys(PREFIX), 'chief-of-staff'];
 const OWNERS = ['maintainer', 'engineering-session', ...AGENTS];
+/**
+ * Who writes a `seen` line (`--as`, kept as `written_by`) and whose `verify` check it is (`verify_by`):
+ * an agent or the engineering session (D-463). The team guard refuses an agent an `--as` that is not
+ * its own name, so verify.mjs can trust `verify_by` and the console a security line `written_by` security.
+ */
+const WRITERS = ['engineering-session', ...AGENTS];
+const SECURITY = 'security';
 const SEVERITIES = ['critical', 'major', 'minor', 'info']; // `info` is read in old lines, never filed (D-457 point 7)
 const CONFIDENCES = ['high', 'medium', 'low'];
 /** The status vocabulary of D-457, written once. */
@@ -88,8 +95,18 @@ const REQUIRED = [
 ];
 const TEXT_FIELDS = ['title', 'evidence', 'likely_cause', 'proposal'];
 /** Optional fields a line may carry (D-457 point 2), plus the two a status needs. */
-const OPTIONAL_TEXT = ['verify', 'report', 'quoted', 'task', 'duplicate_of', 'until', 'by'];
-const CARRIED = ['verify', 'report', 'quoted', 'task', 'public'];
+const OPTIONAL_TEXT = [
+  'verify',
+  'verify_by',
+  'report',
+  'quoted',
+  'task',
+  'duplicate_of',
+  'until',
+  'by',
+  'written_by',
+];
+const CARRIED = ['verify', 'verify_by', 'report', 'quoted', 'task', 'public'];
 /** Who a line is by, when a person decided it: one short word that is not an agent's name. */
 const BY_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
 
@@ -444,6 +461,12 @@ function lineProblems(o) {
   if ('until' in o && typeof o.until === 'string' && !validDate(o.until))
     error('bad-value', '`until` must be a date, YYYY-MM-DD');
   if (typeof o.by === 'string' && !BY_RE.test(o.by)) error('bad-value', '`by` is one short name');
+  for (const key of ['verify_by', 'written_by']) {
+    if (typeof o[key] === 'string' && !WRITERS.includes(o[key]))
+      error('bad-value', `\`${key}\` is an agent or engineering-session, not ${JSON.stringify(o[key])}`);
+  }
+  if ('verify_by' in o && !('verify' in o))
+    error('bad-value', '`verify_by` names whose `verify` it is, and the line has none');
   if (PERSON_STATUSES.includes(o.status)) {
     if (typeof o.by !== 'string') {
       error(
@@ -638,7 +661,8 @@ function severity(options, required) {
   return oneOf(options, 'severity', ['critical', 'major', 'minor'], required);
 }
 
-function optionalFields(options, line) {
+/** `setter` is who sets a `--verify`: the filing agent on `add`, the `--as` writer on `seen` (D-463). */
+function optionalFields(options, line, setter) {
   for (const key of ['verify', 'report', 'task']) {
     if (options[key] === undefined) continue;
     // `report` is a path, and a path is what the shell is right to rewrite
@@ -647,6 +671,14 @@ function optionalFields(options, line) {
     ).trim();
     if (value === '') refuse(`--${key} is empty`);
     line[key] = value;
+  }
+  if (options.verify !== undefined) {
+    if (setter === undefined) {
+      refuse(
+        '--verify says what proves the fix, so the line names who chose it: add --as <your agent name, or engineering-session>',
+      );
+    }
+    line.verify_by = setter;
   }
   const quoted = text(options, 'quoted');
   if (quoted !== undefined) line.quoted = quoted;
@@ -658,6 +690,7 @@ function ordered(line) {
   for (const key of [
     ...REQUIRED,
     'verify',
+    'verify_by',
     'report',
     'quoted',
     'task',
@@ -665,6 +698,7 @@ function ordered(line) {
     'duplicate_of',
     'until',
     'by',
+    'written_by',
   ])
     if (key in line) out[key] = line[key];
   return out;
@@ -726,7 +760,7 @@ function add(argv) {
     confidence: oneOf(options, 'confidence', CONFIDENCES, true),
     status: oneOf(options, 'status', ['new', 'decide'], false) ?? 'new',
   };
-  optionalFields(options, line);
+  optionalFields(options, line, agent);
   const date = today();
   line.first_seen = date;
   // everything that can be judged without the files is judged before the lock is taken
@@ -819,6 +853,7 @@ const SEEN_OPTIONS = [
   'task',
   'public',
   'by',
+  'as',
 ];
 
 function seen(argv) {
@@ -858,7 +893,17 @@ function seen(argv) {
       first_seen: first.first_seen ?? last.first_seen ?? /\d{4}-\d{2}-\d{2}/.exec(id)?.[0],
     };
     for (const key of CARRIED) if (key in last) line[key] = last[key];
-    optionalFields(options, line);
+    const writer = oneOf(options, 'as', WRITERS, false);
+    optionalFields(options, line, writer);
+    if (writer !== undefined) line.written_by = writer;
+    // Only the security agent's own line resolves a security finding: that line is what lets its
+    // detail leave this computer (T-1879, D-340), and `agent` on a `seen` line is the first line's.
+    const security = first.agent === SECURITY || id.startsWith('sec-');
+    if (security && status === 'resolved' && writer !== SECURITY) {
+      refuse(
+        `${id} is a security finding: only the security agent resolves it, with its own line (--as security), after its own re-check (D-463)`,
+      );
+    }
     const isPublic = truth(options, 'public', false);
     if (isPublic !== undefined) line.public = isPublic;
 
@@ -1126,6 +1171,9 @@ Folder: $OPS_ROOT/findings (default E:/FMIP/ops/findings), one file a UTC day.
             --evidence-file <file>   what was seen today, or why the status changed
             [--of <id>] with duplicate   [--until YYYY-MM-DD] with snoozed
             [--by <person>] needed for ${PERSON_STATUSES.join(', ')} and --public: a person's decisions, never an agent's
+            [--as <your agent name>|engineering-session]   who writes the line (kept as written_by);
+                      needed with --verify (kept as verify_by: whose check it is), and --as security
+                      for resolved on a security finding (only the security agent resolves one)
             stale: only a minor finding whose last line is ${STALE_AFTER_DAYS} days old or more
             [--title --severity --visible --cause --proposal --owner --confidence --verify --report
              --quoted-file --task]   anything not given is carried from the last line

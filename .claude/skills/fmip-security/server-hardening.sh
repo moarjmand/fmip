@@ -5,8 +5,19 @@
 #
 # Lists listening ports, the SSH daemon's effective settings, the firewall, automatic updates, the
 # site's response headers and the origin lock. Never prints a secret, never changes anything.
+#
+# Fixture mode (T-1895, ../team-charter/bin/fixture-replay.sh): FMIP_FIXTURE=<dir> with
+# FMIP_FIXTURE_OK=1 replays <dir>/server-hardening.txt between two "FIXTURE REPLAY" lines, opens no
+# connection, and exits with the code in <dir>/server-hardening.exit (0 when there is none); without
+# FMIP_FIXTURE_OK=1 it exits 2. Make one with
+# `bash server-hardening.sh > <dir>/server-hardening.txt; echo $? > <dir>/server-hardening.exit`.
 
 set -uo pipefail
+if [ -n "${FMIP_FIXTURE:-}" ]; then
+  . "$(dirname "$0")/../team-charter/bin/fixture-replay.sh"
+  fixture_replay server-hardening HARDENING
+  exit "$FX_STATUS"
+fi
 echo "== site headers (https://traveltohormuz.ir/en)"
 ssh -o ConnectTimeout=20 fmip-prod 'h="$(curl -sI -m 20 https://traveltohormuz.ir/en)"; printf "%s\n" "$h" | cut -d: -f1 | tr "A-Z" "a-z" | sort -u | tr "\n" " "; echo
 for want in strict-transport-security content-security-policy x-frame-options x-content-type-options referrer-policy permissions-policy; do
