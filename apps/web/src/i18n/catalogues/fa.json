@@ -17025,8 +17025,8 @@
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },
   "rules.plain.appeal.body": {
-    "source": "You can appeal any decision about you, once, in writing. In Settings, “Restrictions on your account” lists each restriction with its own “Appeal” form. Your appeal is kept with the decision.",
-    "text": "برای هر تصمیمی درباره‌ی شما می‌توانید یک بار و کتبی درخواست تجدیدنظر بدهید. در تنظیمات، بخش «محدودیت‌های حساب» هر محدودیت را با فرم «درخواست تجدیدنظر» خودش نشان می‌دهد. درخواست تجدیدنظر شما کنار همان تصمیم نگهداری می‌شود.",
+    "source": "You can appeal any decision about you, once, in writing. In Settings, “Moderation decisions on your account” lists each decision with its own “Appeal” form. Your appeal is kept with the decision.",
+    "text": "برای هر تصمیمی درباره‌ی شما می‌توانید یک بار و کتبی درخواست تجدیدنظر بدهید. در تنظیمات، بخش «تصمیم‌های نظارتی درباره‌ی حساب شما» هر تصمیم را با فرم «درخواست تجدیدنظر» خودش نشان می‌دهد. درخواست تجدیدنظر شما کنار همان تصمیم نگهداری می‌شود.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the content-community draft of 2026-11-27 (T-1954), fitted to the site's terms (T-1969)."
   },

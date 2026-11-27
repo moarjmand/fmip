@@ -13993,7 +13993,7 @@
     "status": "untranslated"
   },
   "rules.plain.appeal.body": {
-    "source": "You can appeal any decision about you, once, in writing. In Settings, “Restrictions on your account” lists each restriction with its own “Appeal” form. Your appeal is kept with the decision.",
+    "source": "You can appeal any decision about you, once, in writing. In Settings, “Moderation decisions on your account” lists each decision with its own “Appeal” form. Your appeal is kept with the decision.",
     "text": "",
     "status": "untranslated"
   },

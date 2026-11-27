@@ -148,7 +148,7 @@ describe('the community rules in plain words (T-1969, D-459)', () => {
     expect(plain).toContain('use “Report” on their profile');
     expect(plain).toContain('If you choose “Something else”');
     expect(plain).toContain(
-      '“Restrictions on your account” lists each restriction with its own “Appeal” form',
+      '“Moderation decisions on your account” lists each decision with its own “Appeal” form',
     );
     // Nothing the policy does not say: no ranking of this page over the text,
     // no promise of who moderates, no "everything else is fine".
@@ -171,7 +171,7 @@ describe('the community rules in plain words (T-1969, D-459)', () => {
       'امتیاز عملکرد',
       'از «گزارش» در نمایه‌ی او',
       'گزینه‌ی «مورد دیگر»',
-      '«محدودیت‌های حساب»',
+      'بخش «تصمیم‌های نظارتی درباره‌ی حساب شما»',
       'فرم «درخواست تجدیدنظر»',
       '«عضو حذف‌شده»',
     ]) {

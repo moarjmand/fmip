@@ -3071,7 +3071,7 @@
   "rules.plain.after.title": "What happens after a report",
   "rules.plain.after.body": "A person reads every report, and records what they decided, even when the decision is that nothing was wrong. A decision can limit what you can do, for a stated time or for good. If it is about you, you are told what was decided and why.",
   "rules.plain.appeal.title": "How to appeal",
-  "rules.plain.appeal.body": "You can appeal any decision about you, once, in writing. In Settings, “Restrictions on your account” lists each restriction with its own “Appeal” form. Your appeal is kept with the decision.",
+  "rules.plain.appeal.body": "You can appeal any decision about you, once, in writing. In Settings, “Moderation decisions on your account” lists each decision with its own “Appeal” form. Your appeal is kept with the decision.",
   "rules.plain.leave.title": "How to leave",
   "rules.plain.leave.body": "You can delete your account from Settings. You type your password and your username again. It happens at once and cannot be undone. Your email address, password, display name, biography and follows are removed, and the community analysis you published is taken down. Your predictions stay without your name, because other people’s ratings were worked out against them, and your messages stay, shown as written by “a deleted member”. Your username is retired, so nobody can take it after you.",
   "rules.plain.changes.title": "If the rules change",
