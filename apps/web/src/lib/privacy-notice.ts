@@ -38,8 +38,12 @@ export interface PrivacyController {
   icoNumber: string | null;
 }
 
-/** One address, nothing around it: no space, one `@`, a dot in the domain. */
-const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>".]+$/;
+/**
+ * One address, nothing around it: no space, one `@`, a domain of letters,
+ * digits and hyphens ending in a top-level name of letters -- so nothing
+ * like `?cc=` can ride into the `mailto:` link.
+ */
+const EMAIL = /^[^\s@<>"?&=]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$/;
 
 /** A value, trimmed; empty or absent is null. */
 function value(env: Record<string, string | undefined>, name: string): string | null {

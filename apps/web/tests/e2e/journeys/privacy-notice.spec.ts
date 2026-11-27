@@ -69,12 +69,22 @@ for (const [locale, dir, heading] of [
   });
 }
 
-test('the sign-up form leads to the notice beside what the address is for', async ({ page }) => {
-  await page.goto('/fa/register');
-  await expect(page.getByTestId('register-privacy-link')).toHaveAttribute('href', '/fa/privacy');
-  expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
-  await page.goto('/en/register');
-  await expect(page.getByTestId('register-privacy')).toHaveText(
-    'What we keep about you, and why, is in the privacy notice.',
-  );
-});
+// At 375 px the form once scrolled sideways by a pixel in CI's fonts: the
+// password input's own width and the longest country name set its narrowest
+// width (`ui/field.tsx`, T-1969). Both languages, the new line in place.
+for (const [locale, words] of [
+  ['fa', 'آنچه درباره‌ی شما نگه می‌داریم و دلیلش، در اطلاعیه‌ی حریم خصوصی آمده است.'],
+  ['en', 'What we keep about you, and why, is in the privacy notice.'],
+] as const) {
+  test(`/${locale}/register leads to the notice beside what the address is for, at 375 px`, async ({
+    page,
+  }) => {
+    await page.goto(`/${locale}/register`);
+    await expect(page.getByTestId('register-privacy')).toHaveText(words);
+    await expect(page.getByTestId('register-privacy-link')).toHaveAttribute(
+      'href',
+      `/${locale}/privacy`,
+    );
+    expect(await sidewaysOverflow(page)).toBeLessThanOrEqual(0);
+  });
+}

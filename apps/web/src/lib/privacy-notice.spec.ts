@@ -68,6 +68,11 @@ describe('who the notice names', () => {
     ['blank values', { PRIVACY_CONTROLLER_NAME: ' ', SITE_CONTACT_EMAIL: '' }],
     ['a mailbox that is not an address', { ...env, SITE_CONTACT_EMAIL: 'privacy at example' }],
     ['two addresses', { ...env, SITE_CONTACT_EMAIL: 'a@example.test b@example.test' }],
+    [
+      'an address carrying a query',
+      { ...env, SITE_CONTACT_EMAIL: 'a@example.com?cc=b@example.com' },
+    ],
+    ['a top-level name that is not letters', { ...env, SITE_CONTACT_EMAIL: 'a@example.c0m' }],
   ])('is nobody with %s: the page says it is being prepared', (_, given) => {
     expect(privacyController(given)).toBeNull();
   });
@@ -80,6 +85,14 @@ describe('who the notice names', () => {
     // Whoever brings in the approved text sets the date in the same change
     // (T-1953); until then the page says "draft, not in effect".
     expect(PRIVACY_NOTICE).toEqual({ version: '0.4', effective: null });
+  });
+
+  it('has no open value left once the text has an effective date', () => {
+    // The approved text writes in every value the draft left open; a notice
+    // in force never says "not yet confirmed" (review of PR #977).
+    const open = privacyTexts().filter((entry) => entry.text.includes('{pending}'));
+    if (PRIVACY_NOTICE.effective === null) expect(open.length).toBeGreaterThan(0);
+    else expect(open.map((entry) => `${entry.file} ${entry.key}`)).toEqual([]);
   });
 });
 

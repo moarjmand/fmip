@@ -91,9 +91,29 @@ describe('TextArea and Select', () => {
     );
     expect(attr(select, 'select', 'aria-describedby')).toBe('scope-hint');
     expect(select).toContain('<option value="a">A</option>');
-    // A long option never widens a phone's page (T-605): the select fits its row.
+    // A long option never widens a phone's page (T-605): the select fits its
+    // row, and a percentage width lets it be narrower than its longest
+    // option, so that option never sets the form's narrowest width (T-1969).
     expect(attr(select, 'select', 'class')).toContain('max-w-full');
+    expect(attr(select, 'select', 'class')?.split(' ')).toContain('w-full');
     expect(select).toMatch(/^<div class="flex min-w-0 max-w-full flex-col gap-1">/);
+  });
+});
+
+describe('a text field with a control after it (T-1737)', () => {
+  it('grows the input from nothing, so its own 20-character width never sets the row’s narrowest (T-1969)', () => {
+    const html = renderToStaticMarkup(
+      <TextField
+        label="Password"
+        id="pw"
+        name="password"
+        after={<button type="button">Show</button>}
+      />,
+    );
+    expect(attr(html, 'input', 'class')?.split(' ')).toEqual(
+      expect.arrayContaining(['w-0', 'min-w-0', 'grow']),
+    );
+    expect(html).toContain('<div class="flex items-stretch gap-2">');
   });
 });
 

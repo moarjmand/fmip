@@ -16201,7 +16201,7 @@
     "status": "untranslated"
   },
   "privacy.draft": {
-    "source": "This is a draft (version {version}) and is not in effect yet. Where it says {pending}, that part is still being decided.",
+    "source": "This is a draft (version {version}) under legal review: any part of it may still change, and none of it is in force until it has an effective date. Where a value is not decided yet, it reads {pending}.",
     "text": "",
     "status": "untranslated"
   },
@@ -17281,7 +17281,7 @@
     "status": "untranslated"
   },
   "privacy.children.body": {
-    "source": "Stadiomind is not designed for children. You must be at least {pending} to create an account. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
+    "source": "Stadiomind is not designed for children. The minimum age to create an account: {pending}. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
     "text": "",
     "status": "untranslated"
   },

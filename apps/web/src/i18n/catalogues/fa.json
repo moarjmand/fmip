@@ -19701,8 +19701,8 @@
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "privacy.draft": {
-    "source": "This is a draft (version {version}) and is not in effect yet. Where it says {pending}, that part is still being decided.",
-    "text": "این یک پیش‌نویس است (نسخه‌ی {version}) و هنوز اجرا نمی‌شود. هر جا {pending} آمده، آن بخش هنوز در حال تصمیم‌گیری است.",
+    "source": "This is a draft (version {version}) under legal review: any part of it may still change, and none of it is in force until it has an effective date. Where a value is not decided yet, it reads {pending}.",
+    "text": "این پیش‌نویس (نسخه‌ی {version}) در دست بررسی حقوقی است: هر بخشی از آن ممکن است هنوز تغییر کند و تا تاریخ لازم‌الاجرا شدنش هیچ بخشی از آن لازم‌الاجرا نیست. هر جا مقداری هنوز تعیین نشده، {pending} نوشته شده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -19714,7 +19714,7 @@
   },
   "privacy.inEffect": {
     "source": "Version {version}, in effect from {date}.",
-    "text": "نسخه‌ی {version}، اجرا از {date}.",
+    "text": "نسخه‌ی {version}، لازم‌الاجرا از {date}.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -19882,7 +19882,7 @@
   },
   "privacy.visitors.ask.what": {
     "source": "A question you type into the “ask” search, when our language-model feature is switched on",
-    "text": "پرسشی که در جست‌وجوی «طرح پرسش» می‌نویسید، وقتی قابلیت مدل زبانی ما روشن است",
+    "text": "پرسشی که در جست‌وجوی سایت می‌نویسید، وقتی قابلیت مدل زبانی ما روشن است",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20062,7 +20062,7 @@
   },
   "privacy.members.follows.why": {
     "source": "To personalise your pages, feed and alerts",
-    "text": "برای شخصی‌سازی صفحه‌ها، خوراک و هشدارها",
+    "text": "برای شخصی‌سازی صفحه‌ها، فید و هشدارها",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20116,19 +20116,19 @@
   },
   "privacy.members.push.what": {
     "source": "**Push subscriptions:** the address and keys your browser gives us when you turn on push alerts on a device, and that browser’s user-agent description",
-    "text": "**اشتراک‌های push:** نشانی و کلیدهایی که مرورگرتان هنگام روشن کردن هشدار push روی یک دستگاه به ما می‌دهد، و توصیف user agent همان مرورگر",
+    "text": "**اشتراک‌های اعلان مرورگر:** نشانی و کلیدهایی که مرورگرتان هنگام روشن کردن اعلان مرورگر روی یک دستگاه به ما می‌دهد، و توصیف user agent همان مرورگر",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "privacy.members.push.why": {
     "source": "To send push alerts to that device",
-    "text": "برای فرستادن هشدار push به آن دستگاه",
+    "text": "برای فرستادن اعلان مرورگر به آن دستگاه",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "privacy.members.push.basis": {
     "source": "Consent (you turn push on in your browser, and can turn it off at any time)",
-    "text": "رضایت (push را خودتان در مرورگر روشن می‌کنید و هر وقت بخواهید می‌توانید خاموشش کنید)",
+    "text": "رضایت (اعلان مرورگر را خودتان در مرورگر روشن می‌کنید و هر وقت بخواهید می‌توانید خاموشش کنید)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20152,7 +20152,7 @@
   },
   "privacy.members.briefings.what": {
     "source": "**Briefings** you ask for: a summary of your feed, written by a language model when the feature is on",
-    "text": "**خلاصه‌های خبری** که درخواست می‌کنید: خلاصه‌ای از خوراک شما که در صورت روشن بودن قابلیت، یک مدل زبانی می‌نویسد",
+    "text": "**خلاصه‌های خبری** که درخواست می‌کنید: خلاصه‌ای از فید شما که در صورت روشن بودن قابلیت، یک مدل زبانی می‌نویسد",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20236,7 +20236,7 @@
   },
   "privacy.emails.notifications": {
     "source": "**Notification e-mails and pushes:** when a notification type is switched on in your settings, we may send it to you **by e-mail and, if you turned push on for a device, by push**. Match alerts (kick-off, goals, result and similar) are sent by push and shown on the site, never by e-mail. You can turn each type off in Settings → Notifications, set quiet hours, or mute a team, competition or category.",
-    "text": "**ایمیل و push اعلان‌ها:** وقتی نوعی از اعلان در تنظیماتتان روشن است، ممکن است آن را **با ایمیل و، اگر push را روی دستگاهی روشن کرده باشید، با push** برایتان بفرستیم. هشدارهای بازی (شروع بازی، گل‌ها، نتیجه و مانند آن) با push و در خود سایت می‌آیند و هرگز با ایمیل فرستاده نمی‌شوند. هر نوع را می‌توانید در تنظیمات ← اعلان‌ها خاموش کنید، ساعت سکوت بگذارید، یا یک تیم، رقابت یا دسته را بی‌صدا کنید.",
+    "text": "**اعلان‌ها با ایمیل و اعلان مرورگر:** وقتی نوعی از اعلان در تنظیماتتان روشن است، ممکن است آن را **با ایمیل و، اگر اعلان مرورگر را روی دستگاهی روشن کرده باشید، با اعلان مرورگر** برایتان بفرستیم. هشدارهای بازی (شروع بازی، گل‌ها، نتیجه و مانند آن) با اعلان مرورگر و در خود سایت می‌آیند و هرگز با ایمیل فرستاده نمی‌شوند. هر نوع را می‌توانید در تنظیمات ← اعلان‌ها خاموش کنید، ساعت سکوت بگذارید، یا یک تیم، رقابت یا دسته را بی‌صدا کنید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20266,7 +20266,7 @@
   },
   "privacy.models.ask": {
     "source": "“Ask” search",
-    "text": "جست‌وجوی «طرح پرسش»",
+    "text": "جست‌وجوی سایت",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20284,7 +20284,7 @@
   },
   "privacy.models.briefings.sent": {
     "source": "A digest of your feed: matches, teams, competitions and headlines you follow, and the display names and usernames of members whose public posts appear in it. Not your e-mail address.",
-    "text": "چکیده‌ای از خوراک شما: بازی‌ها، تیم‌ها، رقابت‌ها و تیترهایی که دنبال می‌کنید، و نام نمایشی و نام کاربری اعضایی که پست عمومی‌شان در آن آمده است. نه نشانی ایمیل شما.",
+    "text": "چکیده‌ای از فید شما: بازی‌ها، تیم‌ها، رقابت‌ها و تیترهایی که دنبال می‌کنید، و نام نمایشی و نام کاربری اعضایی که پست عمومی‌شان در آن آمده است. نه نشانی ایمیل شما.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20500,13 +20500,13 @@
   },
   "privacy.sharing.push": {
     "source": "The push service of your browser’s maker: Google (Chrome), Mozilla (Firefox), Apple (Safari) or Microsoft (Edge)",
-    "text": "سرویس push سازنده‌ی مرورگر شما: Google (Chrome)، Mozilla (Firefox)، Apple (Safari) یا Microsoft (Edge)",
+    "text": "سرویس اعلان سازنده‌ی مرورگر شما: Google (Chrome)، Mozilla (Firefox)، Apple (Safari) یا Microsoft (Edge)",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "privacy.sharing.push.does": {
     "source": "Carries push alerts to your device, if you turned push on; we accept no other push service",
-    "text": "رساندن هشدارهای push به دستگاهتان، اگر push را روشن کرده باشید؛ هیچ سرویس push دیگری را نمی‌پذیریم",
+    "text": "رساندن اعلان‌های مرورگر به دستگاهتان، اگر اعلان مرورگر را روشن کرده باشید؛ هیچ سرویس اعلان دیگری را نمی‌پذیریم",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20686,7 +20686,7 @@
   },
   "privacy.cookies.storage": {
     "source": "**Local storage on your device:** `fmip.pushOffer.dismissedAt` remembers that you said “not now” to the offer of push alerts (for 60 days), and `fmip.pushOffer.intent` holds, for at most two minutes, which item you just followed so the offer can appear. Our service worker stores only the offline page, the app icons and the site’s static files, so the site can show an “offline” page; it never stores your pages or data.",
-    "text": "**حافظه‌ی محلی روی دستگاه شما:** `fmip.pushOffer.dismissedAt` به خاطر می‌سپارد که به پیشنهاد هشدار push گفته‌اید «الان نه» (به مدت ۶۰ روز)، و `fmip.pushOffer.intent` حداکثر دو دقیقه نگه می‌دارد که همین الان چه چیزی را دنبال کردید تا پیشنهاد نشان داده شود. service worker ما فقط صفحه‌ی آفلاین، آیکون‌های برنامه و فایل‌های ثابت سایت را ذخیره می‌کند تا سایت بتواند صفحه‌ی «آفلاین» نشان دهد؛ هرگز صفحه‌ها یا داده‌های شما را ذخیره نمی‌کند.",
+    "text": "**حافظه‌ی محلی روی دستگاه شما:** `fmip.pushOffer.dismissedAt` به خاطر می‌سپارد که به پیشنهاد اعلان مرورگر گفته‌اید «الان نه» (به مدت ۶۰ روز)، و `fmip.pushOffer.intent` حداکثر دو دقیقه نگه می‌دارد که همین الان چه چیزی را دنبال کردید تا پیشنهاد نشان داده شود. service worker ما فقط صفحه‌ی آفلاین، آیکون‌های برنامه و فایل‌های ثابت سایت را ذخیره می‌کند تا سایت بتواند صفحه‌ی «آفلاین» نشان دهد؛ هرگز صفحه‌ها یا داده‌های شما را ذخیره نمی‌کند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20866,7 +20866,7 @@
   },
   "privacy.retention.delivery": {
     "source": "The record of whether each notification reached you by e-mail or push",
-    "text": "سابقه‌ی این‌که هر اعلان با ایمیل یا push به شما رسید یا نه",
+    "text": "سابقه‌ی این‌که هر اعلان با ایمیل یا اعلان مرورگر به شما رسید یا نه",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20950,7 +20950,7 @@
   },
   "privacy.rights.erase": {
     "source": "**Erase** your data. From Settings you can delete your account at once with your password and your username typed again. Your e-mail address, password, display name, biography, preferences, sessions, push subscriptions, follows, friendships, friend requests, blocks, group memberships and invitations, analysis drafts, saved stories, picks saved before you confirmed your address and links to prediction cards you shared are removed. Your username is retired so nobody can use it after you. What is kept, and why, is described in Section 8.",
-    "text": "**داده‌هایتان را پاک کنید.** از تنظیمات، با گذرواژه و تایپ دوباره‌ی نام کاربری، می‌توانید حسابتان را فوراً حذف کنید. نشانی ایمیل، گذرواژه، نام نمایشی، بیوگرافی، ترجیحات، نشست‌ها، اشتراک‌های push، دنبال‌کردن‌ها، دوستی‌ها، درخواست‌های دوستی، مسدودسازی‌ها، عضویت‌ها و دعوت‌های گروه، پیش‌نویس‌های تحلیل، خبرهای ذخیره‌شده، انتخاب‌هایی که پیش از تأیید نشانی‌تان ذخیره شد و پیوند کارت‌های پیش‌بینیِ به اشتراک گذاشته‌شده پاک می‌شوند. نام کاربری‌تان بازنشسته می‌شود تا کسی پس از شما از آن استفاده نکند. آنچه نگه داشته می‌شود و دلیلش در بخش ۸ آمده است.",
+    "text": "**داده‌هایتان را پاک کنید.** از تنظیمات، با گذرواژه و تایپ دوباره‌ی نام کاربری، می‌توانید حسابتان را فوراً حذف کنید. نشانی ایمیل، گذرواژه، نام نمایشی، بیوگرافی، ترجیحات، نشست‌ها، اشتراک‌های اعلان مرورگر، دنبال‌کردن‌ها، دوستی‌ها، درخواست‌های دوستی، مسدودسازی‌ها، عضویت‌ها و دعوت‌های گروه، پیش‌نویس‌های تحلیل، خبرهای ذخیره‌شده، انتخاب‌هایی که پیش از تأیید نشانی‌تان ذخیره شد و پیوند کارت‌های پیش‌بینیِ به اشتراک گذاشته‌شده پاک می‌شوند. نام کاربری‌تان بازنشسته می‌شود تا کسی پس از شما از آن استفاده نکند. آنچه نگه داشته می‌شود و دلیلش در بخش ۸ آمده است.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20968,7 +20968,7 @@
   },
   "privacy.rights.withdraw": {
     "source": "**Withdraw consent** at any time, for example by turning push alerts off in Settings or in your browser.",
-    "text": "**رضایتتان را پس بگیرید**، هر وقت بخواهید؛ مثلاً با خاموش کردن هشدار push در تنظیمات یا در مرورگر.",
+    "text": "**رضایتتان را پس بگیرید**، هر وقت بخواهید؛ مثلاً با خاموش کردن اعلان مرورگر در تنظیمات یا در مرورگر.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
@@ -20997,8 +20997,8 @@
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
   "privacy.children.body": {
-    "source": "Stadiomind is not designed for children. You must be at least {pending} to create an account. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
-    "text": "Stadiomind برای کودکان طراحی نشده است. سن شما برای ساختن حساب باید دست‌کم {pending} باشد. اگر بفهمیم کودکی زیر این سن حساب ساخته، آن را حذف می‌کنیم. اگر پدر، مادر یا سرپرست هستید و فکر می‌کنید فرزندتان به ما داده‌ی شخصی داده است، به {email} بنویسید.",
+    "source": "Stadiomind is not designed for children. The minimum age to create an account: {pending}. If we learn that a child below that age has created an account, we will delete it. If you are a parent or guardian and believe your child has given us personal data, contact {email}.",
+    "text": "Stadiomind برای کودکان طراحی نشده است. حداقل سن برای ساختن حساب: {pending}. اگر بفهمیم کودکی زیر این سن حساب ساخته، آن را حذف می‌کنیم. اگر پدر، مادر یا سرپرست هستید و فکر می‌کنید فرزندتان به ما داده‌ی شخصی داده است، به {email} بنویسید.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175). From the business adviser's Persian draft 0.4 of the privacy notice (T-1953), in the site's own terms (T-1969); not yet approved."
   },
