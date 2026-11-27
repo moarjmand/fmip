@@ -1,4 +1,5 @@
 import { canonicalUrl } from './seo';
+import { PICKS_PATH } from './shell-nav';
 
 /**
  * Invite links (T-522): a member's link to the registration page, and what a
@@ -26,8 +27,10 @@ export function inviteUrl(locale: string, username: string, origin?: string): st
 }
 
 /**
- * Where a new account goes: the inviter's profile when someone else invited
- * them, their own otherwise.
+ * Where a new account goes, after the first run when it is offered: the
+ * inviter's profile when someone else invited them; otherwise the day's
+ * matches still to pick (T-1964), where a new member makes a first
+ * prediction in a tap or two, rather than their own empty profile.
  */
 export function afterRegistration(
   locale: string,
@@ -36,5 +39,5 @@ export function afterRegistration(
 ): string {
   return inviter !== null && inviter !== username
     ? `/${locale}/u/${encodeURIComponent(inviter)}?invited=1`
-    : `/${locale}/u/${encodeURIComponent(username)}`;
+    : `/${locale}${PICKS_PATH}`;
 }

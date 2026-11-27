@@ -7321,6 +7321,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "scores.firstPick.title": {
+    "source": "Your first prediction",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.firstPick.lead": {
+    "source": "Choose the result you expect in one of these matches. The model’s forecast is shown beside your pick, never mixed into it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "scores.firstPick.action": {
+    "source": "Make a prediction",
+    "text": "",
+    "status": "untranslated"
+  },
   "scores.liveEmpty": {
     "source": "No match on this day is in play.",
     "text": "",

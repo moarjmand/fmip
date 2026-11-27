@@ -107,7 +107,8 @@ export async function registerAndVerify(page: Page, who: Member): Promise<void> 
   await form.getByLabel('Country or territory').selectOption({ label: 'England' });
   await form.getByLabel('I accept the platform rules').check();
   await form.getByRole('button', { name: 'Create account' }).click();
-  await leaveFirstRun(page, `/en/u/${who.username}`);
+  // A new account leaves the first run on the day's matches still to pick (T-1964).
+  await leaveFirstRun(page, '/en/scores?unpicked=1');
   await chooseDisplayName(page, who.displayName);
 
   await page.goto(verifyLink(who.email));

@@ -45,6 +45,7 @@ import {
   isFiltered,
   isOpenForPick,
   NO_FILTERS,
+  nothingToPick,
   withSelected,
   type FilterOption,
 } from '@/lib/scores-filters';
@@ -66,6 +67,7 @@ import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { LiveNext, nextKickoff } from './live-next';
+import { FirstPick, showsFirstPick } from './first-pick';
 import { MatchPreview, NoPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -150,11 +152,14 @@ export default async function ScoresPage({
   const now = Date.now();
   const next = isToday ? nextKickoff(dayCards, now) : null;
   // An empty day (an international break, a winter pause) points at the next
-  // day with a match rather than leaving the reader to step through blanks (T-1331).
+  // day with a match rather than leaving the reader to step through blanks
+  // (T-1331); so does "Not picked yet" on a day with no match still open, where
+  // a new member lands after /welcome (T-1964).
   let nextDay: string | null = null;
   if (
     result.ok &&
     ((result.data.total === 0 && view === 'all') ||
+      (view === 'unpicked' && nothingToPick(allCards(result.data), now)) ||
       (liveNone && wholeDay?.ok === true && wholeDay.data.total === 0))
   ) {
     for (const [start, end] of NEXT_DAY_WINDOWS) {
@@ -245,6 +250,18 @@ export default async function ScoresPage({
         (me === null ? null : await fetchOwnPrediction(previewCard.id, cookie)));
   if (previewCard !== null && current !== null) own.set(previewCard.id, current);
   const pendingPick = await pendingRead;
+  // A member's first prediction (T-1964): one clear action above the list.
+  const firstPick =
+    previewCard !== null &&
+    showsFirstPick({
+      signedIn: me !== null,
+      history: mine,
+      pending: pendingPick,
+      card: previewCard,
+      now,
+    })
+      ? `${pageHref(locale, q, { pick: previewCard.id })}#m-${previewCard.id}`
+      : null;
 
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const trouble = feedTrouble(ingestion, locale, q.timezone);
@@ -361,6 +378,7 @@ export default async function ScoresPage({
       {me === null && asked.unpicked === true && (
         <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
       )}
+      {firstPick !== null && <FirstPick locale={locale} href={firstPick} />}
 
       <div className="scores-flat grid items-start gap-6 lg:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (

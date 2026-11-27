@@ -106,6 +106,20 @@ export function isOpenForPick(
 }
 
 /**
+ * A day with no match still open for a pick (T-1964): none at all, or every
+ * one kicked off. "Not picked yet" then points at the next day with a match,
+ * as the All view does for an empty day (T-1331), so a new member who lands
+ * there after /welcome late in the evening is never left on a day with
+ * nothing to pick and no way on.
+ */
+export function nothingToPick(
+  cards: readonly Pick<ScoreCard, 'status' | 'kickoff_at'>[],
+  now: number,
+): boolean {
+  return !cards.some((card) => isOpenForPick(card, now));
+}
+
+/**
  * "Not picked yet" (T-1496): only the matches still open for a pick that the
  * member has not picked, pinned and grouped as before, `total` recounted.
  * Applied to every snapshot, so a match that kicks off leaves the view.
