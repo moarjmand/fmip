@@ -105,7 +105,10 @@ export function FriendControls({
   );
 
   return (
-    <div className="flex flex-wrap items-start gap-3" data-testid="friend-controls">
+    <div
+      className="flex min-w-0 max-w-full flex-wrap items-start gap-3"
+      data-testid="friend-controls"
+    >
       {status === 'none' && (
         <>
           <ActionButton

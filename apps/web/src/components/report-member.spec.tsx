@@ -83,6 +83,32 @@ describe('the report on a profile', () => {
     expect(html).toContain('Up to 2,000 characters.');
     expect(html).toContain('Send report');
     expect(html).toContain('A person reads every report and records a decision');
+    // What the member types keeps its own direction.
+    expect(html).toMatch(/<textarea[^>]*dir="auto"/);
+  });
+
+  it('never widens a phone: every flex box on the way can shrink, and the select fills its column', () => {
+    // The screenshot pass of 2026-11-27: the longest reason kept the select
+    // 382 px wide and the profile 440 px at 375. The e2e journey measures the
+    // page (social.spec.ts); this holds the classes that make it fit.
+    const html = renderToStaticMarkup(<FriendControls locale="en" username="ali" status="none" />);
+    expect(html).toMatch(
+      /^<div class="flex min-w-0 max-w-full flex-wrap[^"]*" data-testid="friend-controls"/,
+    );
+    expect(html).toMatch(/<details class="min-w-0 max-w-full open:basis-full"/);
+    const select = (/<select class="([^"]*)"[^>]*name="reason"/.exec(html)?.[1] ?? '').split(' ');
+    expect(select).toEqual(expect.arrayContaining(['w-full', 'max-w-full']));
+    for (const page of [
+      join(__dirname, '..', 'app', '[locale]', 'u', '[username]', 'page.tsx'),
+      join(__dirname, '..', 'app', '[locale]', 'friends', 'page.tsx'),
+    ]) {
+      expect(readFileSync(page, 'utf8')).toMatch(
+        /<div className="flex min-w-0 max-w-full flex-wrap items-start gap-4">\s*<FriendControls/,
+      );
+    }
+    // The same size as Add friend and Block beside it.
+    expect(html).toMatch(/data-testid="report-member-open"/);
+    expect(html).not.toMatch(/<summary class="[^"]*min-h-touch/);
   });
 
   it('gives every row of /friends its own ids, so each label and hint names its own field', () => {
@@ -123,7 +149,8 @@ describe('the report on a message', () => {
     const html = renderToStaticMarkup(<ReportMember locale="en" username="ali" fromMessage />);
     expect(html).toContain('data-testid="report-message"');
     expect(html).toContain('data-testid="report-message-open"');
-    expect(html).toContain('This reports @ali, who wrote this message.');
+    // The handle is isolated left to right, so Persian keeps the @ before the name.
+    expect(html).toContain('This reports \u2066@ali\u2069, who wrote this message.');
     expect(html).toContain('The message itself is not attached');
     expect(html).toMatch(new RegExp(`<textarea[^>]*maxlength="${MAX_REPORT_DETAIL}"`, 'i'));
   });

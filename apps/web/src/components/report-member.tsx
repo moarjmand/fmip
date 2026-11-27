@@ -7,7 +7,7 @@ import { cx } from '@/components/ui/cx';
 import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
-import { REPORT_REASON_LABELS } from '@/lib/report';
+import { REPORT_REASON_LABELS, handleText } from '@/lib/report';
 import { reportMemberAction } from '@/lib/report-actions';
 
 /**
@@ -47,9 +47,9 @@ export function ReportMember({
       <summary
         className={buttonClasses({
           variant: fromMessage ? 'ghost' : 'secondary',
-          size: fromMessage ? 'xs' : 'md',
+          size: fromMessage ? 'xs' : 'sm',
           className: cx(
-            'cursor-pointer list-none [&::-webkit-details-marker]:hidden',
+            'inline-block cursor-pointer list-none [&::-webkit-details-marker]:hidden',
             fromMessage && 'text-muted',
           ),
         })}
@@ -60,7 +60,11 @@ export function ReportMember({
       <div className="mt-2 flex flex-col gap-3 rounded border border-default p-3">
         <p className="text-sm text-muted">
           {fromMessage ? (
-            <Said locale={locale} message="report.leadMessage" params={{ username }} />
+            <Said
+              locale={locale}
+              message="report.leadMessage"
+              params={{ handle: handleText(username) }}
+            />
           ) : (
             <Translated locale={locale} message="report.lead" />
           )}
@@ -81,6 +85,7 @@ export function ReportMember({
             name="reason"
             required
             defaultValue=""
+            controlClassName="w-full"
           >
             <option value="" disabled>
               {t(lang, 'report.chooseReason')}
@@ -97,6 +102,7 @@ export function ReportMember({
               max: formatNumber(lang, MAX_REPORT_DETAIL),
             })}
             name="detail"
+            dir="auto"
             rows={3}
             maxLength={MAX_REPORT_DETAIL}
           />

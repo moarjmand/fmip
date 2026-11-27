@@ -73,6 +73,10 @@ describe('the section', () => {
     expect(html).toContain('Sending messages');
     expect(html).toMatch(/data-testid="restriction-state"[^>]*>In force</);
     expect(html).toContain('Repeated advertising links in three conversations.');
+    // A moderator's words keep their own direction: a Persian reason in /en
+    // is laid out right to left, and what the member types too.
+    expect(html).toMatch(/<dd dir="auto"[^>]*data-testid="restriction-reason"/);
+    expect(html).toMatch(/<textarea[^>]*dir="auto"/);
     expect(html).toMatch(/<time dateTime="2026-12-02T12:00:00.000Z">2 Dec 2026, 12:00<\/time>/);
 
     const permanent = render([{ ...SANCTION, permanent: true, ends_at: null, scope: 'contact' }]);

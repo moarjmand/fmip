@@ -77,14 +77,14 @@ describe('a report', () => {
     ).toEqual({
       ok: true,
       message:
-        'You have already reported @ali, and a person will read that report. What you wrote now was not added to it.',
+        'You have already reported \u2066@ali\u2069, and a person will read that report. What you wrote now was not added to it.',
     });
     expect(
       await reportMemberAction('fa', 'ali', null, form({ reason: 'abuse', detail: 'again' })),
     ).toEqual({
       ok: true,
       message:
-        'شما قبلاً @ali را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.',
+        'شما قبلاً \u2066@ali\u2069 را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.',
     });
   });
 

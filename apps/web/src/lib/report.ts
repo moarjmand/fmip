@@ -64,6 +64,15 @@ export const DECISION_OUTCOME_LABELS: Record<AppealableDecisionOutcome, MessageK
   content_removed: 'restrictions.decision.contentRemoved',
 };
 
+/**
+ * `@username` inside a sentence, isolated left to right (U+2066 ... U+2069),
+ * so a Persian sentence keeps the `@` before the name instead of reading
+ * `ali_fan@`. A plain string, because it also travels in an action's message.
+ */
+export function handleText(username: string): string {
+  return `⁦@${username}⁩`;
+}
+
 export function isReportReason(value: unknown): value is ReportReason {
   return typeof value === 'string' && (REPORT_REASONS as readonly string[]).includes(value);
 }

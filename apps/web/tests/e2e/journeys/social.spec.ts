@@ -147,6 +147,34 @@ test.describe('blueprint 19 social, with two members', () => {
     await expect(robin.getByTestId('message')).toHaveCount(4);
   });
 
+  test('T-1973 the Report form fits a phone, on a profile and a /friends row, in en and fa', async () => {
+    // The screenshot pass of 2026-11-27 found the open form widening the page
+    // to 440 px at 375: the longest reason kept the select wide.
+    const before = alex.viewportSize();
+    await alex.setViewportSize({ width: 375, height: 812 });
+    const overflow = () =>
+      alex.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+    try {
+      for (const locale of ['en', 'fa']) {
+        await alex.goto(`/${locale}/u/${B.username}`);
+        await alex.getByTestId('report-member-open').click();
+        await expect(alex.getByTestId('report-member-form')).toBeVisible();
+        expect(await overflow(), `${locale} profile`).toBeLessThanOrEqual(0);
+
+        await alex.goto(`/${locale}/friends`);
+        await alex.getByTestId('friend-list').getByTestId('report-member-open').first().click();
+        await expect(
+          alex.getByTestId('friend-list').getByTestId('report-member-form').first(),
+        ).toBeVisible();
+        expect(await overflow(), `${locale} /friends`).toBeLessThanOrEqual(0);
+      }
+    } finally {
+      if (before !== null) await alex.setViewportSize(before);
+    }
+  });
+
   test('19.4 a block is not symmetrical, and is not announced', async () => {
     await robin.goto(`/en/u/${A.username}`);
     await robin.getByTestId('friend-block').click();

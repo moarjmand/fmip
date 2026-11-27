@@ -6375,8 +6375,8 @@
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "report.leadMessage": {
-    "source": "This reports @{username}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
-    "text": "با این گزارش، @{username} که این پیام را نوشته گزارش می‌شود. خود پیام پیوست نمی‌شود؛ پس در توضیحات بنویسید پیام چه بود یا چه مشکلی داشت. هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند.",
+    "source": "This reports {handle}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
+    "text": "با این گزارش، {handle} که این پیام را نوشته گزارش می‌شود. خود پیام پیوست نمی‌شود؛ پس در توضیحات بنویسید پیام چه بود یا چه مشکلی داشت. هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
@@ -6459,8 +6459,8 @@
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "report.alreadyOpen": {
-    "source": "You have already reported @{username}, and a person will read that report. What you wrote now was not added to it.",
-    "text": "شما قبلاً @{username} را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.",
+    "source": "You have already reported {handle}, and a person will read that report. What you wrote now was not added to it.",
+    "text": "شما قبلاً {handle} را گزارش کرده‌اید و یک نفر همان گزارش را می‌خواند. آنچه الان نوشتید به آن افزوده نشد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },

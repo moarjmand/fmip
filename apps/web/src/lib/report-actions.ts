@@ -13,7 +13,7 @@ import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/i18n/locales';
 import { interpolate, t } from '@/i18n/messages';
 import { failureState } from './action-failure';
-import { isReportReason } from './report';
+import { handleText, isReportReason } from './report';
 
 /**
  * A member's report of another member, and their appeal of a restriction on
@@ -76,7 +76,10 @@ export async function reportMemberAction(
     return failureState(result, locale);
   }
   if (result.data?.filed === false) {
-    return { ok: true, message: interpolate(t(l, 'report.alreadyOpen'), { username }) };
+    return {
+      ok: true,
+      message: interpolate(t(l, 'report.alreadyOpen'), { handle: handleText(username) }),
+    };
   }
   return { ok: true, message: t(l, 'report.sent') };
 }

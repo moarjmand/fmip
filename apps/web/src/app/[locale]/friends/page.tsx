@@ -163,7 +163,7 @@ export default async function FriendsPage({ params }: { params: Promise<{ locale
                   )}
                 </span>
               </p>
-              <div className="flex flex-wrap items-start gap-4">
+              <div className="flex min-w-0 max-w-full flex-wrap items-start gap-4">
                 <FriendControls
                   locale={locale}
                   username={friend.member.username}

@@ -115,7 +115,9 @@ function Restriction({
             <dt className="text-muted">
               <Translated locale={locale} message="restrictions.liftedWhy" />
             </dt>
-            <dd className="whitespace-pre-line break-words">{sanction.lift_reason}</dd>
+            <dd dir="auto" className="whitespace-pre-line break-words">
+              {sanction.lift_reason}
+            </dd>
           </div>
         )}
       </dl>
@@ -183,7 +185,7 @@ function Why({ locale, reason }: { locale: string; reason: string }) {
       <dt className="text-muted">
         <Translated locale={locale} message="restrictions.why" />
       </dt>
-      <dd className="whitespace-pre-line break-words" data-testid="restriction-reason">
+      <dd dir="auto" className="whitespace-pre-line break-words" data-testid="restriction-reason">
         {reason}
       </dd>
     </div>
@@ -255,6 +257,7 @@ function Appeal({
           max: formatNumber(lang, MAX_APPEAL),
         })}
         name="body"
+        dir="auto"
         rows={4}
         maxLength={MAX_APPEAL}
         required

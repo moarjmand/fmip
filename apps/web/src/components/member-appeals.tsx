@@ -58,11 +58,12 @@ export function MemberAppeals({
               appealed <time dateTime={appeal.created_at}>{appeal.created_at}</time>
             </span>
           </p>
-          <p className="text-muted">
-            Decision&apos;s reason:{' '}
-            <span className="whitespace-pre-wrap">{appeal.decision_reason}</span>
+          {/* Written words keep their own direction: moderators and members write Persian. */}
+          <p className="text-muted">Decision&apos;s reason:</p>
+          <p dir="auto" className="whitespace-pre-wrap text-muted">
+            {appeal.decision_reason}
           </p>
-          <p className="whitespace-pre-wrap" data-testid="moderation-appeal-body">
+          <p dir="auto" className="whitespace-pre-wrap" data-testid="moderation-appeal-body">
             {appeal.body}
           </p>
         </li>

@@ -5268,7 +5268,7 @@
     "status": "untranslated"
   },
   "report.leadMessage": {
-    "source": "This reports @{username}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
+    "source": "This reports {handle}, who wrote this message. The message itself is not attached, so say in the details what it said or what was wrong with it. A person reads every report and records a decision.",
     "text": "",
     "status": "untranslated"
   },
@@ -5338,7 +5338,7 @@
     "status": "untranslated"
   },
   "report.alreadyOpen": {
-    "source": "You have already reported @{username}, and a person will read that report. What you wrote now was not added to it.",
+    "source": "You have already reported {handle}, and a person will read that report. What you wrote now was not added to it.",
     "text": "",
     "status": "untranslated"
   },
