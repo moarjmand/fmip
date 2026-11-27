@@ -16357,7 +16357,7 @@ These are reported beside the verdict but are not gates:
 
 **Consequences.** `OwnStandingResponse` carries `decisions` (`OwnDecision`), `ModerationQueueResponse` and `MemberModerationHistory` carry `appeals` (`QueuedAppeal`), and `OwnSanction` drops `lifted_by`. The rate-limit inventory lists the new route as deliberately unlimited, like the sanction's appeal (T-213). A moderator's reply to an appeal, or a removal that records its item, needs its own decision.
 
-## D-465 — Testers' feedback is an e-mail link to the site's contact mailbox, read from the server's environment; no form, nothing stored
+## D-466 — Testers' feedback is an e-mail link to the site's contact mailbox, read from the server's environment; no form, nothing stored
 
 **Date.** 2026-11-27. **Status.** Accepted (the maintainer, interactively, on the desk question of T-1965: option (b)). **Task:** T-1965. **Follows:** D-459; rule 3.
 

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * `/welcome` (T-620), rendered whole with the API mocked, on its time-zone
  * step (the one step drawn without a fetch of its own). What it is checked
  * for here: the testers' "Send feedback" line under the steps when the
- * contact mailbox is set, and nothing when it is not (T-1965, D-465).
+ * contact mailbox is set, and nothing when it is not (T-1965, D-466).
  */
 
 vi.mock('@/lib/api', () => ({

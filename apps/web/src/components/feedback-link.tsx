@@ -6,7 +6,7 @@ import { message, t } from '@/i18n/messages';
 import { siteContactEmail } from '@/lib/feedback';
 
 /**
- * The contact mailbox for this request, or null (T-1965, D-465).
+ * The contact mailbox for this request, or null (T-1965, D-466).
  *
  * `connection()` comes first for the reason `DemonstrationBanner` gives:
  * `SITE_CONTACT_EMAIL` is a runtime variable, and a prerender would read
@@ -19,7 +19,7 @@ export async function feedbackAddress(): Promise<string | null> {
 }
 
 /**
- * "Send feedback" / «ارسال بازخورد» (T-1965, D-465): an e-mail to the site's
+ * "Send feedback" / «ارسال بازخورد» (T-1965, D-466): an e-mail to the site's
  * contact mailbox, the subject in the reader's language naming the page they
  * are on. On `/welcome`, in the footer and on the member's own profile.
  * Without an address nothing is drawn, the line's question included (rule 3:

@@ -6,7 +6,7 @@ import { feedbackHref, feedbackSubject, siteContactEmail } from '@/lib/feedback'
 import { FeedbackLink, feedbackAddress } from './feedback-link';
 
 /**
- * The testers' feedback place (T-1965, D-465): "Send feedback" opens an
+ * The testers' feedback place (T-1965, D-466): "Send feedback" opens an
  * e-mail to `SITE_CONTACT_EMAIL`, the subject in the reader's language with
  * the page they are on; with no address there is no link and no question
  * (rule 3). On `/welcome`, in the footer and on the member's own profile.

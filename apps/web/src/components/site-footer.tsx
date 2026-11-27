@@ -154,7 +154,7 @@ export async function SiteFooter({ locale }: { locale: string }) {
                 </Link>
               </li>
             ))}
-            {/* Testers' feedback by e-mail (T-1965, D-465); none without an address. */}
+            {/* Testers' feedback by e-mail (T-1965, D-466); none without an address. */}
             <FeedbackLink
               locale={lang}
               address={feedback}

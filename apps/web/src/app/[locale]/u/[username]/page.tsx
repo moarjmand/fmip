@@ -267,7 +267,7 @@ export default async function ProfilePage({
           />
         </p>
       )}
-      {/* The member's own page only (T-1965, D-465); none without an address. */}
+      {/* The member's own page only (T-1965, D-466); none without an address. */}
       <FeedbackLink locale={locale} address={feedback} variant="line" testId="profile-feedback" />
       <div className="flex min-w-0 max-w-full flex-wrap items-start gap-4">
         <FriendControls locale={locale} username={profile.username} status={friendStatus} />
