@@ -40,9 +40,10 @@
 //   - A wrapper is entered where its command can be read (env, command, timeout, cmd /c,
 //     bash -c, powershell -Command, find -exec ...); where it cannot (xargs or Start-Process
 //     running git, gh, ssh or psql: the arguments come from elsewhere) the call is refused.
-//   - The server: only through the five read-only scripts (data-audit/run.sh,
+//   - The server: only through the six read-only scripts (data-audit/run.sh,
 //     ops-check/ops-check.sh, fmip-security/server-hardening.sh, product-strategy/seo-check.sh,
-//     search-visibility/structured-data.sh) and the raw `ssh fmip-prod '...'` read shapes in
+//     search-visibility/structured-data.sh, and growth-funnel/launch-measure.sh, which reaches
+//     the database only through run.sh; T-1968) and the raw `ssh fmip-prod '...'` read shapes in
 //     RAW_SSH, which are exactly the ones the agents' files and skills name for ops-release,
 //     security and model-scientist. Raw psql on the server is refused
 //     whatever it says. A command that names the server and is not one of the above is refused
@@ -94,7 +95,7 @@ const TEAM = new Set([
   'social-media',
 ]);
 
-/** Never the server: no ssh in any shape, none of the five scripts, not its name on a command line. */
+/** Never the server: no ssh in any shape, none of the six scripts, not its name on a command line. */
 const NO_SERVER = new Set(['chief-of-staff', 'marketing-manager']);
 /** The browser only on our own site and local previews. */
 const OWN_SITE_ONLY = new Set(['content-community', 'social-media', 'qa-engineer']);
@@ -109,14 +110,14 @@ const FINDINGS = 'e:/fmip/ops/findings';
 const SERVER = 'fmip-prod';
 
 const SERVER_SCRIPT =
-  /(^|\/)\.claude\/skills\/(data-audit\/run\.sh|ops-check\/ops-check\.sh|fmip-security\/server-hardening\.sh|product-strategy\/seo-check\.sh|search-visibility\/structured-data\.sh)$/i;
+  /(^|\/)\.claude\/skills\/(data-audit\/run\.sh|ops-check\/ops-check\.sh|fmip-security\/server-hardening\.sh|product-strategy\/seo-check\.sh|search-visibility\/structured-data\.sh|growth-funnel\/launch-measure\.sh)$/i;
 const FINDING_DOOR = /(^|\/)\.claude\/skills\/team-charter\/bin\/finding\.mjs$/i;
 const ROLLOUT = /(^|\/)deploy\/rollout\.sh$|^rollout\.sh$/i;
 
 /**
  * The raw read shapes each agent's own file already allows, matched against the whole remote
  * command (one quoted argument after `ssh fmip-prod`). Anchored, with no room for `;`, `|`, `>`,
- * `$(` or a quote: anything else on the server goes through the five scripts.
+ * `$(` or a quote: anything else on the server goes through the six scripts.
  */
 const RAW_SSH = {
   // ops-release.md: `bash deploy/check-setup.sh` on the server. ops-check/SKILL.md: `git log
@@ -811,7 +812,7 @@ function checkSimple(allWords, cmd, ctx) {
   if (name === 'git') return checkGit(args, ctx);
   if (name === 'gh') return checkGh(args);
   if (name === 'ssh') return checkSsh(args);
-  if (REMOTE_TOOLS.has(name)) deny(`reaches another machine with ${name} (the server is read only through the five read-only scripts)`);
+  if (REMOTE_TOOLS.has(name)) deny(`reaches another machine with ${name} (the server is read only through the six read-only scripts)`);
   if (name === 'rsync' && args.some((a) => a === '-e' || /^[\w.-]+@|^[\w.-]{2,}:/.test(a))) deny('copies to or from another machine with rsync');
   if (name === 'psql') return checkPsql(args, c, ctx);
   if (DB_WRITERS.has(name)) deny(`changes a database (${name})`);
@@ -1058,7 +1059,7 @@ function checkSsh(args) {
   }
   if (host !== SERVER) deny(`opens ssh to ${host}; the only machine is ${SERVER}, and only in its read-only shapes`);
   if (!(RAW_SSH[S.agent] ?? []).some((re) => re.test(remote))) {
-    deny('reaches the server outside the five read-only scripts and the raw read shapes its own file allows');
+    deny('reaches the server outside the six read-only scripts and the raw read shapes its own file allows');
   }
 }
 

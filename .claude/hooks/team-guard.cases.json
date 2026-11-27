@@ -169,6 +169,11 @@
 
   { "expect": "pass", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "bash .claude/skills/data-audit/run.sh q.sql" } },
   { "expect": "pass", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "AGENT=growth-analyst bash ${REPO_BASH}/.claude/skills/data-audit/run.sh ${SCRATCH}/funnel.sql | tail -40" } },
+  { "expect": "pass", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "bash .claude/skills/growth-funnel/launch-measure.sh 2026-12-01 /e/FMIP/data-audit/launch-internal-ids.txt" } },
+  { "expect": "pass", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "cd ${REPO_BASH} && bash ./.claude/skills/growth-funnel/launch-measure.sh 2026-12-01 E:/FMIP/data-audit/launch-internal-ids.txt 2>&1 | tail -20" } },
+  { "expect": "block", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "MEASURE_RUNNER=\"ssh fmip-prod psql\" bash .claude/skills/growth-funnel/launch-measure.sh 2026-12-01 /e/FMIP/data-audit/launch-internal-ids.txt" } },
+  { "expect": "block", "agent": "chief-of-staff", "tool": "Bash", "input": { "command": "bash .claude/skills/growth-funnel/launch-measure.sh 2026-12-01 /e/FMIP/data-audit/launch-internal-ids.txt" } },
+  { "expect": "block", "agent": "marketing-manager", "tool": "PowerShell", "input": { "command": "bash .claude/skills/growth-funnel/launch-measure.sh 2026-12-01 E:\\FMIP\\data-audit\\launch-internal-ids.txt" } },
   { "expect": "block", "agent": "growth-analyst", "tool": "Bash", "input": { "command": "ssh fmip-prod 'cd /opt/fmip && docker compose exec -T postgres psql -U fmip -d fmip -c \"select count(*) from app_user\"'" } },
   { "expect": "block", "agent": "data-auditor", "tool": "Bash", "input": { "command": "ssh fmip-prod \"cd /opt/fmip && docker compose exec -T postgres psql -c 'UPDATE team SET name = 1'\"" } },
   { "expect": "block", "agent": "data-auditor", "tool": "Bash", "input": { "command": "ssh fmip-prod 'cd /opt/fmip && docker compose run --rm -T api node scripts/catalog.mjs --merge-people --from a --into b'" } },

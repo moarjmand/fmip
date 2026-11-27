@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# The launch measure as one command (T-1968, T-1966, D-459 point 4), read-only:
+#
+#     bash .claude/skills/growth-funnel/launch-measure.sh <launch yyyy-mm-dd> <internal ids file>
+#
+# Runs launch-measure.sql for the invitation weeks since <launch> (a UTC day; week 1 is its first
+# seven days) through .claude/skills/data-audit/run.sh, whose session is read-only and is the
+# only way to production's database, prints one short table in Persian and writes it to
+# $MEASURE_OUT/<UTC date>-launch-measure.md (default E:/FMIP/ops/reports/growth-analyst).
+#
+# The ids file lists the internal accounts (the maintainer's, the team's, test accounts): one id
+# per line, blank lines and `#` comments ignored. It stays outside every git tree, and a file git
+# would take is refused (E:/FMIP/ops is a git repository that a bridge commits). The ids travel
+# only inside the temporary query file, which run.sh deletes on the server and this script here;
+# the output carries counts only. Nothing is written to the database.
+#
+# MEASURE_RUNNER replaces run.sh with another runner that takes one SQL file, for the fixture
+# test against a local database; it is not a way to production.
+# A failure says MEASURE-ERROR, exits non-zero and writes no report.
+
+set -uo pipefail
+
+here="$(cd "$(dirname "$0")" && pwd)"
+out_dir="${MEASURE_OUT:-/e/FMIP/ops/reports/growth-analyst}"
+
+fail() {
+  echo "MEASURE-ERROR: $*" >&2
+  exit 2
+}
+# Persian digits, for the lines this script writes (the SQL writes its own).
+fa() { sed 's/0/۰/g; s/1/۱/g; s/2/۲/g; s/3/۳/g; s/4/۴/g; s/5/۵/g; s/6/۶/g; s/7/۷/g; s/8/۸/g; s/9/۹/g'; }
+
+[ "$#" -eq 2 ] || fail "usage: launch-measure.sh <launch yyyy-mm-dd> <internal ids file>"
+launch="$1"
+ids_file="$2"
+
+if [[ ! "$launch" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [ "$(date -u -d "$launch" +%F 2>/dev/null)" != "$launch" ]; then
+  fail "the launch date \"$launch\" is not a day written yyyy-mm-dd"
+fi
+today="$(date -u +%F)"
+if [[ "$launch" > "$today" ]]; then
+  fail "the launch date $launch is after today ($today, UTC)"
+fi
+
+[ -f "$ids_file" ] || fail "the internal ids file was not found: $ids_file"
+ids_dir="$(cd "$(dirname "$ids_file")" && pwd)"
+ids_path="$ids_dir/$(basename "$ids_file")"
+if git -C "$ids_dir" rev-parse --is-inside-work-tree > /dev/null 2>&1 &&
+  ! git -C "$ids_dir" check-ignore -q "$ids_path" 2> /dev/null; then
+  fail "the internal ids file is inside a git tree ($(git -C "$ids_dir" rev-parse --show-toplevel)) that does not ignore it; keep it outside every git tree"
+fi
+
+ids=()
+n=0
+while IFS= read -r line || [ -n "$line" ]; do
+  n=$((n + 1))
+  line="${line%%#*}"
+  line="$(printf '%s' "$line" | tr -d '[:space:]')"
+  [ -z "$line" ] && continue
+  if [[ ! "$line" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+    fail "line $n of the internal ids file is not an account id (one id per line, # for a comment)"
+  fi
+  ids+=("$(printf '%s' "$line" | tr 'A-F' 'a-f')")
+done < "$ids_file"
+internal=""
+count=0
+if [ "${#ids[@]}" -gt 0 ]; then
+  unique="$(printf '%s\n' "${ids[@]}" | sort -u)"
+  internal="$(printf '%s' "$unique" | paste -sd, -)"
+  count="$(printf '%s\n' "$unique" | wc -l | tr -d ' ')"
+fi
+
+query="$(mktemp "${TMPDIR:-/tmp}/launch-measure-XXXXXX")"
+trap 'rm -f "$query"' EXIT
+{
+  echo '\pset format unaligned'
+  echo '\pset tuples_only on'
+  echo "\\set launch '$launch'"
+  echo "\\set internal '{$internal}'"
+  cat "$here/launch-measure.sql"
+} > "$query"
+
+if [ -n "${MEASURE_RUNNER:-}" ]; then
+  # shellcheck disable=SC2086 # the runner is a command line, e.g. "bash local-runner.sh"
+  result="$($MEASURE_RUNNER "$query")"
+else
+  result="$(bash "$here/../data-audit/run.sh" "$query")"
+fi
+status=$?
+if [ "$status" -ne 0 ] || [ -z "$result" ] || printf '%s\n' "$result" | grep -q '^AUDIT-'; then
+  printf '%s\n' "$result" >&2
+  fail "the queries did not run (exit $status); no report written"
+fi
+
+table="$(printf '%s\n' "$result" | grep '^|')"
+back="$(printf '%s\n' "$result" | grep -v '^|' | grep -v '^[[:space:]]*$')"
+ran="$(date -u '+%Y-%m-%d %H:%M')"
+
+report="$(
+  cat << EOF
+# سنجش راه‌اندازی، $(printf '%s' "$today" | fa)
+
+تاریخ دعوت $(printf '%s' "$launch" | fa) (UTC)؛ هر هفته هفت روز از همان روز. بی $(printf '%s' "$count" | fa) حساب داخلی و بی کادر سایت (نقش‌دار). اجرا: $(printf '%s' "$ran" | fa) UTC.
+
+$table
+
+$back
+
+- خانهٔ هفتگی زیر ۵ «کمتر از ۵» است، و هفته‌ای با کمتر از ۵ عضو فعال هر سه ستون پیش‌بینی را پنهان می‌کند. ردیف «همه» و بازگشت ۷ روزه جمع‌اند و همان‌طور که هستند آمده‌اند.
+- عضو فعال یعنی دست‌کم یک پیش‌بینی در همان هفته. در ردیف «همه» هر عضو فعال یک بار شمرده شده و «پیش‌بینی هر عضو فعال» میانگین هفته‌هایی است که عضو فعال بوده است.
+- حد شناخته‌شده: «دوباره دیده شدند» از \`session.last_seen_at\` می‌آید که با استفاده جلو می‌رود (هر درخواستِ با حساب، دست‌بالا هر ۵ دقیقه یک بار) و پس نمی‌رود؛ یعنی «در روز هفتم یا پس از آن دیده شد»، نه «درست روز هفتم سر زد». زبانه‌ای که باز مانده (گفت‌وگوی زنده، جریان نتایج) هم آن را جلو می‌برد؛ «پیش‌بینی هم کردند» کف سخت‌گیرانه‌تر کنار آن است. سر زدن بی ورود به حساب دیده نمی‌شود.
+- بازدیدکننده‌ای که ثبت‌نام نکرده سنجیده نمی‌شود (\`not_supplied\`)، و شمار دعوت‌شده‌ها را سایت نمی‌داند: آن را نگه‌دارنده می‌گوید.
+EOF
+)"
+
+printf '%s\n' "$report"
+mkdir -p "$out_dir" || fail "could not make $out_dir"
+target="$out_dir/$today-launch-measure.md"
+printf '%s\n' "$report" > "$target" || fail "could not write $target"
+echo "written: $target"
