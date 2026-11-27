@@ -11,6 +11,8 @@ import {
   RemoveMessage,
 } from '@/components/conversation-controls';
 import { LiveConversation } from '@/components/live-conversation';
+import { ReportMember } from '@/components/report-member';
+import { isDeletedMember } from '@fmip/contracts';
 import { GroupComparison } from '@/components/group-comparison';
 import {
   fetchConversation,
@@ -276,6 +278,15 @@ export default async function ConversationPage({
                   )}
                   {mayModerate(message.author) && (
                     <ModerateMessage locale={locale} conversationId={id} messageId={message.id} />
+                  )}
+                  {/* Somebody else's words (T-1973): their author is reported, and the
+                      report names this message. A deleted member has nobody to report. */}
+                  {message.author !== me.username && !isDeletedMember(message.author) && (
+                    <ReportMember
+                      locale={locale}
+                      username={message.author}
+                      message={{ conversationId: id, messageId: message.id }}
+                    />
                   )}
                 </div>
               )}

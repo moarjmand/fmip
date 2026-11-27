@@ -131,14 +131,36 @@ export interface AppealNote {
 }
 
 /**
+ * One sanction as the member it is on reads it (T-1973): the sanction, the
+ * written reason of the decision it descends from, and whether they have
+ * appealed it.
+ *
+ * The platform rules (`platform-rules@1.0.0`) promise the member is told
+ * "which and why", and that every decision "can be appealed once, in
+ * writing": `reason` is the why, `appealed_at` is the once.
+ */
+export interface OwnSanction extends Sanction {
+  /** The decision's written reason: no decision exists without one. */
+  reason: string;
+  /** ISO 8601: when this member appealed it, or null while they have not. */
+  appealed_at: string | null;
+}
+
+/**
  * What a member is told about their own standing.
  *
  * A sanctioned member is told, and told when it ends. A restriction the member
  * cannot see is one they cannot appeal, and blueprint 10.4 asks for appeals.
  */
 export interface OwnStandingResponse {
-  sanctions: Sanction[];
+  sanctions: OwnSanction[];
 }
+
+/** An appeal's longest text (T-211): the same cap for a sanction and a group's closure. */
+export const MAX_APPEAL = 4_000;
+
+/** A report's longest detail (T-211). */
+export const MAX_REPORT_DETAIL = 2_000;
 
 // ---------------------------------------------------------------------------
 // The moderator's queue (blueprint 16, T-212)

@@ -261,6 +261,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
         active: true,
         permanent: false,
         username: restricted,
+        // T-1973: told which and why, and not yet appealed.
+        reason: 'repeated unsolicited requests',
+        appealed_at: null,
       });
       expect(standing[0].ends_at).toBeTruthy();
     });
@@ -301,6 +304,46 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('reporting an
           .statusCode,
       ).toBe(404);
       expect((await get(`/me/sanctions/${sanctionId}/appeal`, subject)).statusCode).toBe(404);
+    });
+
+    it('is appealed once: the standing says when, and a second appeal is refused (T-1973)', async () => {
+      const [appealed] = (await get('/me/standing', restricted)).json().sanctions;
+      expect(appealed.id).toBe(sanctionId);
+      expect(Date.parse(appealed.appealed_at)).not.toBeNaN();
+
+      const again = await post(
+        `/me/sanctions/${sanctionId}/appeal`,
+        { body: 'And another thing.' },
+        restricted,
+      );
+      expect(again.statusCode).toBe(409);
+      expect(again.json()).toMatchObject({ error: 'conflict' });
+
+      // Two at once still write one: the sanction's row is locked for the check.
+      const sanctionTwo = await restrict(restricted, true);
+      const racing = await Promise.all([
+        post(`/me/sanctions/${sanctionTwo}/appeal`, { body: 'first tap' }, restricted),
+        post(`/me/sanctions/${sanctionTwo}/appeal`, { body: 'second tap' }, restricted),
+      ]);
+      expect(racing.map((r) => r.statusCode).sort()).toEqual([204, 409]);
+      expect(
+        (await get(`/me/sanctions/${sanctionTwo}/appeal`, restricted)).json().notes,
+      ).toHaveLength(1);
+
+      // The first appeal is the one kept, and its time does not move.
+      expect(
+        (await get(`/me/sanctions/${sanctionId}/appeal`, restricted)).json().notes,
+      ).toHaveLength(1);
+      const after = (await get('/me/standing', restricted)).json().sanctions;
+      expect(after.find((s: { id: string }) => s.id === sanctionId).appealed_at).toBe(
+        appealed.appealed_at,
+      );
+
+      // An id that is not a sanction's shape names no sanction, rather than a 500.
+      expect(
+        (await post('/me/sanctions/not-a-uuid/appeal', { body: 'let me out' }, restricted))
+          .statusCode,
+      ).toBe(404);
     });
   });
 });

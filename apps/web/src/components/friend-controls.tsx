@@ -11,6 +11,7 @@ import {
 import type { MessageKey } from '@/i18n/messages';
 import { CommunityAction } from '@/components/community-action';
 import { Said } from '@/components/community-text';
+import { ReportMember } from '@/components/report-member';
 import { Translated } from '@/components/translated';
 
 type BoundAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
@@ -69,6 +70,8 @@ function ActionButton({
  *
  * The block control stays available in every state, including `unavailable`. A
  * member's exit is never taken away because of something the other member did.
+ * So does the report (T-1973), and for the same reason. Neither is drawn for
+ * a guest or on the member's own profile: there is nobody to block or report.
  */
 export function FriendControls({
   locale,
@@ -192,6 +195,10 @@ export function FriendControls({
           {block}
         </>
       )}
+
+      {/* Beside the way out, in every state (T-1973): a member who has
+          blocked somebody may still need a person to look at what they did. */}
+      <ReportMember locale={locale} username={username} />
     </div>
   );
 }

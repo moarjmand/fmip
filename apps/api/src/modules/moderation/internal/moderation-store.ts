@@ -30,6 +30,11 @@ export interface SanctionRow {
   decision_id: string;
 }
 
+export interface OwnSanctionRow extends SanctionRow {
+  reason: string;
+  appealed_at: Date | null;
+}
+
 export interface ReportRow {
   id: string;
   subject_type: string;
@@ -118,20 +123,95 @@ export class ModerationStore {
     return rows;
   }
 
-  /** One sanction with the member it is on, for the appeal check. */
-  async sanction(id: string): Promise<{ id: string; user_id: string } | null> {
-    const { rows } = await this.pool.query<{ id: string; user_id: string }>(
-      `SELECT id, user_id FROM sanction WHERE id = $1`,
-      [id],
+  /**
+   * The sanctions on a member as they read them (T-1973): each with its
+   * decision's written reason and when they appealed it.
+   *
+   * `appealed_at` is the member's own first note on it; the moderator's notes
+   * that may sit beside it are not the member's appeal.
+   */
+  async ownSanctions(userId: string): Promise<OwnSanctionRow[]> {
+    const { rows } = await this.pool.query<OwnSanctionRow>(
+      `SELECT s.id,
+              u.username,
+              s.scope,
+              s.scope_id,
+              s.starts_at,
+              s.ends_at,
+              s.permanent,
+              (s.lifted_at IS NULL
+                 AND s.starts_at <= now()
+                 AND (s.ends_at IS NULL OR s.ends_at > now())) AS active,
+              s.lifted_at,
+              lifter.username AS lifted_by,
+              s.lift_reason,
+              s.decision_id,
+              d.reason,
+              (SELECT min(n.created_at)
+                 FROM appeal_note n
+                WHERE n.sanction_id = s.id AND n.author_id = s.user_id) AS appealed_at
+         FROM sanction s
+         JOIN user_account u ON u.id = s.user_id
+         JOIN moderation_decision d ON d.id = s.decision_id
+         LEFT JOIN user_account lifter ON lifter.id = s.lifted_by
+        WHERE s.user_id = $1
+        ORDER BY s.starts_at DESC`,
+      [userId],
     );
-    return rows[0] ?? null;
+    return rows;
   }
 
-  async appeal(sanctionId: string, authorId: string, body: string): Promise<void> {
-    await this.pool.query(
-      `INSERT INTO appeal_note (sanction_id, author_id, body) VALUES ($1, $2, $3)`,
-      [sanctionId, authorId, body],
-    );
+  /**
+   * The member's appeal of their own sanction, written once (T-1973; the
+   * platform rules: "every decision can be appealed once, in writing").
+   *
+   * The sanction's row is locked for the check and the insert, so two taps
+   * cannot both find no appeal and both write one. The lock is `FOR UPDATE`
+   * on a read, which no trigger sees: the sanction itself is not changed.
+   */
+  async appealOnce(
+    sanctionId: string,
+    userId: string,
+    body: string,
+  ): Promise<'appealed' | 'unknown_sanction' | 'not_yours' | 'already_appealed'> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows } = await client.query<{ user_id: string }>(
+        `SELECT user_id FROM sanction WHERE id = $1 FOR UPDATE`,
+        [sanctionId],
+      );
+      const found = rows[0];
+      let outcome: 'appealed' | 'unknown_sanction' | 'not_yours' | 'already_appealed';
+      if (found === undefined) {
+        outcome = 'unknown_sanction';
+      } else if (found.user_id !== userId) {
+        // A member appeals their own sanction. A moderator's note on somebody
+        // else's is part of the queue (T-212), not of this route.
+        outcome = 'not_yours';
+      } else {
+        const { rowCount } = await client.query(
+          `SELECT 1 FROM appeal_note WHERE sanction_id = $1 AND author_id = $2 LIMIT 1`,
+          [sanctionId, userId],
+        );
+        if ((rowCount ?? 0) > 0) {
+          outcome = 'already_appealed';
+        } else {
+          await client.query(
+            `INSERT INTO appeal_note (sanction_id, author_id, body) VALUES ($1, $2, $3)`,
+            [sanctionId, userId, body],
+          );
+          outcome = 'appealed';
+        }
+      }
+      await client.query(outcome === 'appealed' ? 'COMMIT' : 'ROLLBACK');
+      return outcome;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async appealNotes(

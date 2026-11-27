@@ -767,7 +767,9 @@ export type {
 // purpose and grows only when something enforces the next entry.
 export {
   GROUP_DECISION_OUTCOMES,
+  MAX_APPEAL,
   MAX_GROUP_DECISION_REASON,
+  MAX_REPORT_DETAIL,
   MODERATION_OUTCOMES,
   REPORT_REASONS,
   REPORT_SUBJECTS,
@@ -791,6 +793,7 @@ export type {
   ModerationDecision,
   ModerationQueueResponse,
   ModerationOutcome,
+  OwnSanction,
   OwnStandingResponse,
   Report,
   ReportReason,

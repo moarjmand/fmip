@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { PRIVACY_VISIBILITIES } from '@fmip/contracts';
+import { AccountRestrictions } from '@/components/account-restrictions';
 import { ActionForm, type FieldOption } from '@/components/action-form';
 import { AppearanceSwitch } from '@/components/appearance-switch';
 import { LiteSetting } from '@/components/lite-setting';
@@ -11,6 +12,7 @@ import {
   fetchCompetitions,
   fetchFollowing,
   fetchOwnProfile,
+  fetchOwnStanding,
   fetchTeams,
   fetchTerritories,
 } from '@/lib/api';
@@ -110,14 +112,16 @@ export default async function SettingsPage({
   }
 
   const { profile, account, privacy, viewing_territory } = result.data;
-  const [following, teams, competitions, territories, theme, appearance] = await Promise.all([
-    fetchFollowing(cookie),
-    fetchTeams(),
-    fetchCompetitions(),
-    fetchTerritories(),
-    readTheme(),
-    readAppearance(),
-  ]);
+  const [following, teams, competitions, territories, theme, appearance, standing] =
+    await Promise.all([
+      fetchFollowing(cookie),
+      fetchTeams(),
+      fetchCompetitions(),
+      fetchTerritories(),
+      readTheme(),
+      readAppearance(),
+      fetchOwnStanding(cookie),
+    ]);
 
   return (
     <main className="mx-auto flex max-w-md flex-col gap-10 p-8">
@@ -251,6 +255,13 @@ export default async function SettingsPage({
           competitions={competitions}
         />
       )}
+
+      {/* T-1973: what a moderator restricted, why, until when, and the appeal. */}
+      <AccountRestrictions
+        locale={locale}
+        sanctions={standing.ok ? standing.data.sanctions : null}
+        timeZone={account.timezone}
+      />
 
       <DataExportSection locale={locale} refusal={exportRefusal} />
 

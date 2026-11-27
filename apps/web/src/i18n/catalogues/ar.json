@@ -2144,6 +2144,111 @@
     "text": "",
     "status": "untranslated"
   },
+  "restrictions.heading": {
+    "source": "Restrictions on your account",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.none": {
+    "source": "Nothing on your account is restricted.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.unreachable": {
+    "source": "The restrictions on your account could not be loaded right now.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.lead": {
+    "source": "A moderator decided to restrict what your account can do. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.scope.contact": {
+    "source": "Sending friend requests",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.scope.messaging": {
+    "source": "Sending messages",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.why": {
+    "source": "Why",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.until": {
+    "source": "Until",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.permanent": {
+    "source": "Permanent",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.liftedWhy": {
+    "source": "Why it was lifted",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.state.active": {
+    "source": "In force",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.state.lifted": {
+    "source": "Lifted on {date}",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.state.inactive": {
+    "source": "Not in force",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.label": {
+    "source": "Your appeal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.hint": {
+    "source": "Say why the decision should change. One appeal per restriction, up to {max} characters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.submit": {
+    "source": "Appeal",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.sent": {
+    "source": "Appeal sent. A person will read it.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.sentOn": {
+    "source": "Appeal sent on {date}.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.empty": {
+    "source": "Say why you are appealing.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.already": {
+    "source": "You have already appealed this restriction.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "restrictions.appeal.unknown": {
+    "source": "This restriction is not on your account.",
+    "text": "",
+    "status": "untranslated"
+  },
   "profile.unreachable": {
     "source": "The service is unreachable right now, so this profile cannot be shown.",
     "text": "",
@@ -5109,6 +5214,86 @@
   },
   "friendsPage.done.unblocked": {
     "source": "@{username} is unblocked. Any friendship the block ended is not restored.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.open": {
+    "source": "Report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.lead": {
+    "source": "A person reads every report and records a decision, including deciding that nothing was wrong.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.leadMessage": {
+    "source": "This reports @{username}, who wrote this message, and the report names the message. A person reads every report and records a decision.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.reason": {
+    "source": "Reason",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.chooseReason": {
+    "source": "Choose a reason",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.reason.spam": {
+    "source": "Spam: unwanted messages, advertising or links",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.reason.abuse": {
+    "source": "Abuse: harassment, threats or slurs",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.reason.impersonation": {
+    "source": "Impersonation: pretending to be someone else",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.reason.other": {
+    "source": "Something else",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.detail": {
+    "source": "Details (optional)",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.detailHint": {
+    "source": "Needed for “Something else”. Up to {max} characters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.submit": {
+    "source": "Send report",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.sent": {
+    "source": "Report sent. A person will read it and record a decision.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.needsDetail": {
+    "source": "Say what happened: “Something else” needs a few words in the details.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.tooLong": {
+    "source": "The details can be at most {max} characters.",
+    "text": "",
+    "status": "untranslated"
+  },
+  "report.unknown": {
+    "source": "This account could not be found.",
     "text": "",
     "status": "untranslated"
   },

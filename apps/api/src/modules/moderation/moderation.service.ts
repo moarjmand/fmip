@@ -3,11 +3,14 @@ import type { Pool } from 'pg';
 import {
   type AppealNote,
   type DecideRequest,
+  MAX_APPEAL,
+  MAX_REPORT_DETAIL,
   MODERATION_OUTCOMES,
   type MemberModerationHistory,
   type ModerationDecision,
   type ModerationOutcome,
   type ModerationQueueResponse,
+  type OwnSanction,
   REPORT_REASONS,
   type Report,
   type ReportReason,
@@ -21,6 +24,7 @@ import {
   type DecisionRow,
   ModerationQueueStore,
   ModerationStore,
+  type OwnSanctionRow,
   type QueueRow,
   type SanctionRow,
 } from './internal/moderation-store';
@@ -40,12 +44,14 @@ export type AppealResult =
   | { ok: true }
   | {
       ok: false;
-      reason: 'unknown_sanction' | 'not_yours' | 'invalid';
+      reason: 'unknown_sanction' | 'not_yours' | 'already_appealed' | 'invalid';
       fields?: Record<string, string>;
     };
 
-const MAX_DETAIL = 2_000;
-const MAX_APPEAL = 4_000;
+const MAX_DETAIL = MAX_REPORT_DETAIL;
+
+/** A sanction's id as the route takes it; anything else names no sanction. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function queued(row: QueueRow) {
   return {
@@ -89,6 +95,14 @@ function shape(row: SanctionRow): Sanction {
     lift_reason: row.lift_reason,
     decision_id: row.decision_id,
   };
+}
+
+/**
+ * A sanction as the member it is on reads it (T-1973): with the decision's
+ * reason, since they are told "which and why", and when they appealed it.
+ */
+function ownShape(row: OwnSanctionRow): OwnSanction {
+  return { ...shape(row), reason: row.reason, appealed_at: row.appealed_at?.toISOString() ?? null };
 }
 
 /**
@@ -187,8 +201,8 @@ export class ModerationService {
     }));
   }
 
-  async standing(userId: string): Promise<Sanction[]> {
-    return (await this.store.sanctionsOn(userId)).map(shape);
+  async standing(userId: string): Promise<OwnSanction[]> {
+    return (await this.store.ownSanctions(userId)).map(ownShape);
   }
 
   /**
@@ -218,14 +232,11 @@ export class ModerationService {
       };
     }
 
-    const sanction = await this.store.sanction(sanctionId);
-    if (sanction === null) return { ok: false, reason: 'unknown_sanction' };
-    // A member appeals their own sanction. A moderator's note on somebody
-    // else's is part of the queue (T-212), not of this route.
-    if (sanction.user_id !== userId) return { ok: false, reason: 'not_yours' };
-
-    await this.store.appeal(sanctionId, userId, text);
-    return { ok: true };
+    if (!UUID.test(sanctionId)) return { ok: false, reason: 'unknown_sanction' };
+    // Once per sanction (T-1973): the platform rules promise "every decision
+    // can be appealed once, in writing", and the store holds that under a lock.
+    const outcome = await this.store.appealOnce(sanctionId, userId, text);
+    return outcome === 'appealed' ? { ok: true } : { ok: false, reason: outcome };
   }
 
   // -------------------------------------------------------------------------

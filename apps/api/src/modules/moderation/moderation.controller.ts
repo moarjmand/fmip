@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Get,
   HttpCode,
@@ -112,6 +113,14 @@ export class ModerationController {
         error: 'validation',
         message: 'The appeal is not valid.',
         fields: result.fields,
+      } satisfies ApiError);
+    }
+    if (result.reason === 'already_appealed') {
+      // Once per sanction (T-1973): the platform rules' "appealed once, in
+      // writing". The first appeal is the one kept with the decision.
+      throw new ConflictException({
+        error: 'conflict',
+        message: 'You have already appealed this restriction.',
       } satisfies ApiError);
     }
     // A sanction on somebody else is "not found" rather than "forbidden": a 403

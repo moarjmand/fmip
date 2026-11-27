@@ -2574,6 +2574,132 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "restrictions.heading": {
+    "source": "Restrictions on your account",
+    "text": "محدودیت‌های حساب",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.none": {
+    "source": "Nothing on your account is restricted.",
+    "text": "هیچ محدودیتی روی حساب شما نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.unreachable": {
+    "source": "The restrictions on your account could not be loaded right now.",
+    "text": "محدودیت‌های حساب شما در حال حاضر بارگیری نشدند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.lead": {
+    "source": "A moderator decided to restrict what your account can do. You can appeal each decision once, in writing; a person reads the appeal, and it is kept with the decision.",
+    "text": "یک ناظر تصمیم گرفته است بخشی از کارهایی را که حساب شما می‌تواند انجام دهد محدود کند. برای هر تصمیم یک بار می‌توانید به‌صورت نوشتاری درخواست تجدیدنظر بدهید؛ یک نفر آن را می‌خواند و درخواست کنار همان تصمیم نگه داشته می‌شود.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.scope.contact": {
+    "source": "Sending friend requests",
+    "text": "فرستادن درخواست دوستی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.scope.messaging": {
+    "source": "Sending messages",
+    "text": "فرستادن پیام",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.why": {
+    "source": "Why",
+    "text": "دلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.until": {
+    "source": "Until",
+    "text": "پایان",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.permanent": {
+    "source": "Permanent",
+    "text": "دائمی",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.liftedWhy": {
+    "source": "Why it was lifted",
+    "text": "دلیل برداشتن محدودیت",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.state.active": {
+    "source": "In force",
+    "text": "برقرار",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.state.lifted": {
+    "source": "Lifted on {date}",
+    "text": "در {date} برداشته شد",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.state.inactive": {
+    "source": "Not in force",
+    "text": "برقرار نیست",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.label": {
+    "source": "Your appeal",
+    "text": "درخواست تجدیدنظر شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.hint": {
+    "source": "Say why the decision should change. One appeal per restriction, up to {max} characters.",
+    "text": "بنویسید چرا این تصمیم باید تغییر کند. برای هر محدودیت یک درخواست تجدیدنظر، حداکثر {max} نویسه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.submit": {
+    "source": "Appeal",
+    "text": "ارسال درخواست تجدیدنظر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.sent": {
+    "source": "Appeal sent. A person will read it.",
+    "text": "درخواست تجدیدنظر فرستاده شد. یک نفر آن را می‌خواند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.sentOn": {
+    "source": "Appeal sent on {date}.",
+    "text": "درخواست تجدیدنظر در {date} فرستاده شد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.empty": {
+    "source": "Say why you are appealing.",
+    "text": "بنویسید چرا درخواست تجدیدنظر می‌دهید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.already": {
+    "source": "You have already appealed this restriction.",
+    "text": "برای این محدودیت قبلاً درخواست تجدیدنظر داده‌اید.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "restrictions.appeal.unknown": {
+    "source": "This restriction is not on your account.",
+    "text": "این محدودیت روی حساب شما نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
   "profile.unreachable": {
     "source": "The service is unreachable right now, so this profile cannot be shown.",
     "text": "این سرویس در حال حاضر در دسترس نیست، بنابراین این نمایه نمایش داده نمی‌شود.",
@@ -6187,6 +6313,102 @@
     "text": "مسدودیت @{username} برداشته شد. دوستی‌ای که با مسدود کردن پایان یافته بود برنمی‌گردد.",
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
+  },
+  "report.open": {
+    "source": "Report",
+    "text": "گزارش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.lead": {
+    "source": "A person reads every report and records a decision, including deciding that nothing was wrong.",
+    "text": "هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند، حتی اگر تصمیم این باشد که خطایی رخ نداده است.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.leadMessage": {
+    "source": "This reports @{username}, who wrote this message, and the report names the message. A person reads every report and records a decision.",
+    "text": "با این گزارش، @{username} که این پیام را نوشته گزارش می‌شود و همین پیام هم در گزارش مشخص می‌شود. هر گزارش را یک نفر می‌خواند و تصمیمش را ثبت می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.reason": {
+    "source": "Reason",
+    "text": "دلیل",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.chooseReason": {
+    "source": "Choose a reason",
+    "text": "یک دلیل انتخاب کنید",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.reason.spam": {
+    "source": "Spam: unwanted messages, advertising or links",
+    "text": "هرزنامه: پیام‌های ناخواسته، تبلیغ یا پخش لینک",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.reason.abuse": {
+    "source": "Abuse: harassment, threats or slurs",
+    "text": "آزار: مزاحمت، تهدید یا توهین",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.reason.impersonation": {
+    "source": "Impersonation: pretending to be someone else",
+    "text": "جعل هویت: وانمود کردن به اینکه کس دیگری است",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.reason.other": {
+    "source": "Something else",
+    "text": "مورد دیگر",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.detail": {
+    "source": "Details (optional)",
+    "text": "توضیحات (اختیاری)",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.detailHint": {
+    "source": "Needed for “Something else”. Up to {max} characters.",
+    "text": "برای «مورد دیگر» لازم است. حداکثر {max} نویسه.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.submit": {
+    "source": "Send report",
+    "text": "ارسال گزارش",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.sent": {
+    "source": "Report sent. A person will read it and record a decision.",
+    "text": "گزارش فرستاده شد. یک نفر آن را می‌خواند و تصمیمش را ثبت می‌کند.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.needsDetail": {
+    "source": "Say what happened: “Something else” needs a few words in the details.",
+    "text": "بنویسید چه اتفاقی افتاده است: «مورد دیگر» بدون چند کلمه توضیح قابل بررسی نیست.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.tooLong": {
+    "source": "The details can be at most {max} characters.",
+    "text": "توضیحات حداکثر می‌تواند {max} نویسه باشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
+  },
+  "report.unknown": {
+    "source": "This account could not be found.",
+    "text": "این حساب پیدا نشد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); T-1973, not yet reviewed by a translator."
   },
   "messagesPage.title": {
     "source": "Messages",
