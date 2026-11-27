@@ -236,12 +236,35 @@ describe('SmtpEmailChannel: a refused send', () => {
   it('tells a refusal of one recipient from a refusal of the channel', () => {
     const envelope = (command: string, responseCode: number, response: string, message = 'x') =>
       Object.assign(new Error(message), { code: 'EENVELOPE', command, responseCode, response });
-    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 5.1.1 unknown mailbox'))).toBe(true);
-    expect(refusesRecipientOnly(envelope('RCPT TO', 552, '552 5.2.2 mailbox full'))).toBe(true);
-    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 No such user here'))).toBe(true);
-    // A policy refusal at RCPT (relaying denied, an unauthenticated sender) is the channel's.
-    expect(refusesRecipientOnly(envelope('RCPT TO', 550, '550 5.7.1 Relaying denied'))).toBe(false);
-    expect(refusesRecipientOnly(envelope('MAIL FROM', 550, '550 5.1.0 sender rejected'))).toBe(
+    const atRcpt = (response: string) =>
+      refusesRecipientOnly(envelope('RCPT TO', Number(response.slice(0, 3)), response));
+    // The recipient's own mailbox: unknown, full, a multi-line reply, X.1.10.
+    for (const reply of [
+      '550 5.1.1 user unknown',
+      '552 5.2.2 mailbox full',
+      '550-5.1.1 The email account that you tried to reach does not exist',
+      '553 5.1.3 bad destination address syntax',
+      '550 5.1.10 recipient address has null MX',
+    ]) {
+      expect(atRcpt(reply), reply).toBe(true);
+    }
+    // The channel's, though answered at RCPT: no enhanced status, a sender
+    // status (X.1.0, X.1.7, X.1.8), policy, or a number in the text that is
+    // not where a status stands.
+    for (const reply of [
+      '550 relay not permitted',
+      '550 authentication required',
+      '450 4.1.8 sender domain does not resolve',
+      '550 5.1.7 bad sender mailbox address syntax',
+      '550 5.1.0 address rejected',
+      '550 5.7.1 [192.0.2.1] blocked',
+      '550 5.7.1 Relaying denied',
+      '550 blocked, see 5.1.1 at example.test',
+      '550 No such user here',
+    ]) {
+      expect(atRcpt(reply), reply).toBe(false);
+    }
+    expect(refusesRecipientOnly(envelope('MAIL FROM', 550, '550 5.1.1 sender unknown'))).toBe(
       false,
     );
     expect(refusesRecipientOnly(envelope('API', 0, '', 'Invalid recipient "ada@"'))).toBe(true);

@@ -166,11 +166,22 @@ function commandVerb(command: unknown): string | null {
 }
 
 /**
+ * The enhanced status codes (RFC 3463) that concern the recipient alone: a
+ * bad or unknown destination mailbox, address or system (`X.1.1` to `X.1.6`,
+ * `X.1.10`) and the mailbox's own state (`X.2.x`: full, disabled, too
+ * large). `X.1.0`, `X.1.7` and `X.1.8` are about the sender; with `X.7.x`
+ * (policy) and everything else, they are the channel's.
+ */
+const RECIPIENT_STATUS = /^\d{3}[ -][45]\.(?:1\.(?:[1-6]|10)|2\.\d{1,3})(?![\d.])/;
+
+/**
  * Whether nodemailer's error refuses only this recipient (T-1967): the
- * service answered `RCPT TO` with an address or mailbox status (`5.1.x`,
- * `5.2.x`, or a bare 550, 551 or 553), or nodemailer found the address
- * malformed. A policy refusal (`5.7.x`), a refused sender or login, or a
- * connection that failed is the channel's.
+ * service answered `RCPT TO` with one of the statuses above, read only where
+ * a status stands (after the reply's three-digit code, so an address or a
+ * number in the text never counts), or nodemailer found the address
+ * malformed. A reply with no enhanced status (`550 relay not permitted`), a
+ * refused sender or login, or a connection that failed is the channel's:
+ * an outage must never be read as one member's mailbox.
  */
 export function refusesRecipientOnly(error: unknown): boolean {
   const raw = (typeof error === 'object' && error !== null ? error : {}) as {
@@ -186,10 +197,8 @@ export function refusesRecipientOnly(error: unknown): boolean {
     return typeof raw.message === 'string' && raw.message.startsWith('Invalid recipient');
   }
   if (verb !== 'RCPT TO') return false;
-  const reply = typeof raw.response === 'string' ? raw.response.slice(0, READ_MAX) : '';
-  const status = /\b[45]\.(\d{1,3})\.\d{1,3}\b/.exec(reply);
-  if (status !== null) return status[1] === '1' || status[1] === '2';
-  return raw.responseCode === 550 || raw.responseCode === 551 || raw.responseCode === 553;
+  const reply = typeof raw.response === 'string' ? raw.response.slice(0, 40).trimStart() : '';
+  return RECIPIENT_STATUS.test(reply);
 }
 
 /**
