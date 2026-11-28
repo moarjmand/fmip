@@ -7,6 +7,7 @@ import {
   notFootballOf,
   notFootballPageOf,
   persianOtherSportHeadline,
+  searchFootballEvidence,
   sectionOf,
 } from './football-only';
 
@@ -372,7 +373,11 @@ describe('notFootballOf', () => {
         }),
       ),
     ).toBe('other_sport');
-    expect(notFootballOf(item({ headline: 'Arsenal beat Bayern', searched: true }))).toBeNull();
+    // (Filed, as the linker files these names: one filed to none needs
+    // football's evidence too, T-1978.)
+    expect(
+      notFootballOf(item({ headline: 'Arsenal beat Bayern', searched: true, filedTo: ['team'] })),
+    ).toBeNull();
     // Another sport's own event, filed or not (D-426).
     expect(
       notFootballOf(
@@ -644,5 +649,336 @@ describe('notFootballOf, the publisher’s page section (T-1874)', () => {
         }),
       ),
     ).toBeNull();
+  });
+});
+
+/**
+ * T-1978 (D-468). Every headline, summary and address below is one production
+ * stored from GNews' search in the 30 days to 2026-11-28 and filed to none of
+ * ours (summaries cut with "..." where the cut keeps the verdict), except the
+ * ones marked as written for the spec. The daily team found the first two on
+ * /en/news (aud-2026-11-28-01, qa-2026-11-28-01).
+ */
+describe('notFootballOf, a search’s item filed to none of ours (T-1978)', () => {
+  const searched = (headline: string, summary: string, url: string): NewsItemSignals =>
+    item({ headline, summary, url, searched: true });
+
+  it.each([
+    [
+      'Building Beyond the Boom: Dave Sabey on the Future of Data Centers',
+      'From clearing a path for teammates on the football field to spending more than 50 years building the infrastructure ...',
+      'https://techbullion.com/building-beyond-the-boom-dave-sabey-on-the-future-of-data-centers/',
+    ],
+    [
+      '5 High-Profile Trump Allies Facing Scrutiny From Democrats',
+      'New congressional powers could force testimony on questions involving tech, finance, immigration and global soccer.',
+      'https://www.newsweek.com/high-profile-trump-allies-facing-democrats-12773789',
+    ],
+    [
+      'Who’s in charge of NYC while Mamdani goes under knife? Mayor to miss postponed Macy’s parade for surgery on sport injury',
+      'A SOCCER injury has forced Zohran Mamdani to temporarily hand over his duties as he prepares to undergo his first-ever ...',
+      'https://www.the-sun.com/news/17367028/nyc-zohran-mamdani-undergo-surgery-achilles-tendon/',
+    ],
+    [
+      "Leicestershire village could become 'giant town' as 5,000-home plan takes a step forward",
+      'Hundreds of football pitches could be built on in Stoney Stanton after Blaby District Council voted to send a local ...',
+      'https://www.leicestermercury.co.uk/news/local-news/leicestershire-village-could-become-giant-11257231',
+    ],
+    [
+      'Huge solar farm on County Durham border refused by council',
+      'Neighbours cheered as plans for a huge solar farm spanning an area greater than 165 football pitches on the County ...',
+      'https://www.thenorthernecho.co.uk/news/26766948.huge-solar-farm-county-durham-border-refused-council/',
+    ],
+    [
+      'Ex-Tory leader Douglas Ross caught parking on double yellow lines in Glasgow',
+      'The football linesman was spotted on the no-parking spot outside the Grand Central Hotel in the city centre.',
+      'https://www.dailyrecord.co.uk/news/scottish-news/ex-tory-leader-douglas-ross-37920555',
+    ],
+    [
+      'Harry Redknapp’s big-race hope Taurus Bay follows in hoofprints of Jukebox Man',
+      'Newbury winner is victorious for former football manager in same race as last year’s King George VI Chase hero',
+      'https://www.theguardian.com/sport/2026/nov/27/harry-redknapp-taurus-bay-follows-in-hoofprints-jukebox-man-horse-racing-tips',
+    ],
+    [
+      "Japan's data centre boom faces growing revolt from urban residents",
+      "KASHIWA, Japan, Nov 26 - Until a few years ago, Susumu Goto's house in Kashiwa, northeast of Tokyo, looked out on a ...",
+      'https://www.marketscreener.com/news/japan-s-data-centre-boom-faces-growing-revolt-from-urban-residents-ce7851d8dd8cf222',
+    ],
+    [
+      'The Norfolk locals fighting plans for a giant data centre. ‘We are facing an existential threat’',
+      'The Longmarsh Green Energy project would cover nearly 4,700 acres of farmland – an area larger than 2,600 football pitches',
+      'https://www.independent.co.uk/news/uk/home-news/norfolk-data-centre-longmarsh-energy-project-b3076419.html',
+    ],
+    [
+      'Step forward for major Digbeth project aimed at transforming area',
+      'The next phase of the Warwick Bar project will see brownfield land the size of 11 football pitches redeveloped',
+      'https://www.birminghammail.co.uk/news/midlands-news/step-forward-major-digbeth-project-34941250',
+    ],
+    [
+      "Lloyds, NatWest and First Direct customers can get up to £210 before Christmas if they 'act quickly'",
+      "A BBC financial expert has told people to stop making a common mistake telling them 'banks are not football teams'",
+      'https://www.somersetlive.co.uk/news/cost-of-living/lloyds-natwest-first-direct-customers-11243084',
+    ],
+    [
+      "Russell Brand 'moved to new downgraded prison' offering up yoga classes to inmates",
+      "Disgraced comedian Russell Brand has reportedly been moved to a 'cushy' category C prison, HMP Littlehey in ...",
+      'https://www.dailystar.co.uk/news/latest-news/russell-brand-moved-new-downgraded-37878521',
+    ],
+    [
+      'Kanye West Announces New Show In Mexico',
+      "Kanye West is going to be performing at the Azteca in Mexico, which is the country's biggest and most beautiful soccer stadium.",
+      'https://www.hotnewhiphop.com/1015551-kanye-west-mexico-concert',
+    ],
+    [
+      "Inside New Tashkent, Uzbekistan's planned city for two million people",
+      'Nearly 7,000 apartments are complete, three ministries already operate there and university facilities have opened. ...',
+      'https://www.euronews.com/2026/11/05/inside-new-tashkent-uzbekistans-planned-city-for-two-million-people',
+    ],
+    [
+      "He Fought France's Far Right for Half a Century. Now Melenchon's Presidential Bid May Hand It Power",
+      'LE BOURGET, France (AP) — Young supporters wore his name on their backs like a soccer star’s, above the number 27. They ...',
+      'https://www.usnews.com/news/world/articles/2026-11-09/he-fought-frances-far-right-for-half-a-century-now-melenchons-presidential-bid-may-hand-it-power',
+    ],
+    [
+      'How Driver Fatigue Contributes to Commercial Truck Accidents',
+      "That's a micro-sleep. Short little blackout where the brain clocks out even though the eyes stay open. Doesn't sound ...",
+      'https://techbullion.com/how-driver-fatigue-contributes-to-commercial-truck-accidents/',
+    ],
+    [
+      "King accepts 'positive potato' but turns down beans and cheese from Spud Bros on royal visit",
+      'He declined the offer of a potato with cheese and beans but was gifted a signed shirt from football team Preston North End',
+      'https://www.lbc.co.uk/article/king-preston-spud-bros-5HjdmQR_2/',
+    ],
+    [
+      'Canadian Home Sales and Prices Hold Steady in October',
+      'OTTAWA, Ontario, Nov. 17, 2026 (GLOBE NEWSWIRE) -- The number of home sales recorded over Canadian MLS® Systems edged ...',
+      'https://www.brantfordexpositor.ca/press-releases/globe-newswire/canadian-home-sales-and-prices-hold-steady-in-october/',
+    ],
+    [
+      'Train attack victim said knifeman was ‘on a mission’, court hears',
+      "The football supporter said he felt 'confident' to fight back - but he 'came out wounded because he had a knife'",
+      'https://www.cambridge-news.co.uk/news/local-news/train-attack-victim-said-knifeman-34867839',
+    ],
+    [
+      "'Game changer' blood test for CTE may be coming",
+      'Traces of a brain protein in blood could soon lead to a test that could diagnose chronic traumatic encephalopathy (CTE) ...',
+      'https://medicalxpress.com/news/2026-11-game-changer-blood-cte.html',
+    ],
+    [
+      'Roethlisberger, Gronkowski are among first-time eligibles advancing in Hall of Fame voting process',
+      'Ben Roethlisberger and Rob Gronkowski are among the first-time eligible players who have advanced in the voting process ...',
+      'https://www.itv.com/news/2026-11-24/roethlisberger-gronkowski-are-among-first-time-eligibles-advancing-in-hall-of-fame-voting-process',
+    ],
+    [
+      'Vanier Cup preview: Can young Western Mustangs topple mighty Montreal Carabins?',
+      'The national university football final is set for 12:15 p.m. on Saturday.',
+      'https://lfpress.com/sports/western-mustangs/vanier-cup-preview-can-young-western-mustangs-topple-mighty-montreal-carabins/',
+    ],
+  ])('leaves out one passing football word: %s', (headline, summary, url) => {
+    expect(notFootballOf(searched(headline, summary, url))).toBe('search_without_football');
+  });
+
+  it.each([
+    [
+      "Pochettino: I am not nice, and that doesn't suit me",
+      "Manchester United coach Mauricio Pochettino has spoken about his players' fitness ahead of tomorrow's meeting with ...",
+      'https://www.yardbarker.com/soccer/articles/pochettino_i_am_not_nice_and_that_doesnt_suit_me/s1_17790_44626687',
+    ],
+    [
+      'Where did it all go wrong for Raheem Sterling?',
+      'The fall from grace of Raheem Sterling will have surprised few people who have followed the footballer’s career. Too much money, far too soon, followed by celebrity of a kind, and then disgrace. The tale is old as the hills. Football fans may remember the goals he scored – and those he missed – for Manchester City and',
+      'https://spectator.com/article/where-did-it-all-go-wrong-for-raheem-sterling/',
+    ],
+    [
+      'Top-seeded Whitecaps hope to roll through Salt Lake, advance to semis',
+      'While the top two seeds in the Eastern Conference suffered losses in the openers of their first-round MLS Cup playoff ...',
+      'https://www.yardbarker.com/soccer/articles/top_seeded_whitecaps_hope_to_roll_through_salt_lake_advance_to_semis/s1_17064_44625069',
+    ],
+    [
+      "Arsenal sack women's coach Slegers after poor start to WSL season",
+      "LONDON, Nov 27 - Arsenal sacked women's coach Renee Slegers on Friday after a dismal start to the Women's Super League ...",
+      'https://www.straitstimes.com/sport/football/arsenal-sack-womens-coach-slegers-after-poor-start-to-wsl-season',
+    ],
+    [
+      'Loons dominate LAFC in 3-1 win to take playoff chances to Decision Day',
+      'Minnesota United lost all five games in September and its MLS Cup Playoff chances looked all but kaput. But the Loons ...',
+      'https://www.twincities.com/2026/11/01/loons-dominate-lafc-in-3-1-win-to-take-playoff-chances-to-decision-day/',
+    ],
+    [
+      'Messi’s Miami survive defensive horror show to clinch playoff advantage',
+      'MIAMI, Nov 8 — Lionel Messi’s Inter Miami clung on for second place in the Eastern Conference with a wasteful 3-3 draw against Charlotte on the final day of the MLS regular...',
+      'https://www.malaymail.com/news/sports/2026/11/08/messis-miami-survive-defensive-horror-show-to-clinch-playoff-advantage/242403',
+    ],
+    [
+      "Guardiola: 'If Italy had asked earlier I'd have joined'",
+      "Italy's national soccer team might have tempted serial-winner Pep Guardiola to be their next coach - if only...",
+      'https://www.canberratimes.com.au/story/9398453/guardiola-if-italy-had-asked-earlier-id-have-joined/',
+    ],
+    [
+      'Chicago Stars say they’re left out of stadium bill; Illinois disagrees',
+      'The women’s soccer team called it “unacceptable” that lawmakers won’t act on its stadium before January, but Sen. Bill ...',
+      'https://www.chicagotribune.com/2026/11/16/chicago-stars-say-illinois-bears-stadium-push-leaves-them-out-state-officials-say-bill-could-help-womens-team/',
+    ],
+    [
+      'Green Lions roar again in 5',
+      '‘Everyone was electric,’ was manager Tony Vance’s assessment of his side’s performance, as Guernsey beat play-off rivals East Grinstead 5-1 in another dominant Southern Combination Premier League ...',
+      'https://guernseypress.com/sport/2026/11/16/green-lions-roar-again-in-5-1-win-over-east-grinstead',
+    ],
+    [
+      'USA discuss Gareth Southgate to replace Pochettino as elite coach leads four contenders - Exclusive',
+      'Sir Gareth Southgate’s name has been discussed by the US Soccer Federation as a potential successor to Mauricio Pochettino, with TEAMtalk understanding that the former England manager has emerged as ...',
+      'https://www.teamtalk.com/news/usa-discuss-gareth-southgate-pochettino-replacement-elite-coach-leads-four-contenders-exclusive',
+    ],
+    [
+      'Eamon Dunphy column: Ireland need The Dentist to fill the gaps - not create more holes',
+      'The Icelandic coach might be very good at putting in fillings but when it comes to coaching he has given us a soccer team that is toothless.',
+      'https://www.irishmirror.ie/sport/sport-opinion/eamon-dunphy-column-ireland-need-37875453',
+    ],
+    [
+      'De Cuyper urges Albion to stay humble amid title talk',
+      'Maxim De Cuyper says it is impossible to avoid the growing excitement around Albion in the Premier League.',
+      'https://www.theargus.co.uk/sport/26712419.de-cuyper-urges-albion-stay-humble-amid-title-talk/',
+    ],
+    [
+      'Officially: Raul Gonzalez takes on his first professional coaching experience',
+      'Next Saturday the first test awaits. Real Oviedo have appointed Spaniard Raul Gonzalez Blanco as the new head coach of ...',
+      'https://www.yardbarker.com/general_sports/articles/officially_raul_gonzalez_takes_on_his_first_professional_coaching_experience/s1_17790_44536845',
+    ],
+    [
+      'Ronaldo announces end of Portugal career',
+      'Cristiano Ronaldo has ended his international soccer career, the 41-year-old Portuguese superstar announced on social ...',
+      'https://www.thescore.com/news/3645847/ronaldo-announces-end-of-portugal-career',
+    ],
+    [
+      'Man United hires Mauricio Pochettino, who tearfully leaves US job to revive former power',
+      'By CHARLES ODUM, JAMES ROBSON and RONALD BLUM FAYETTEVILLE, Ga. (AP) — Mauricio Pochettino was hired as Manchester United’s head coach on Friday, agreeing to ...',
+      'https://www.baltimoresun.com/2026/11/13/man-united-hires-mauricio-pochettino-who-tearfully-leaves-us-job-to-revive-former-power/',
+    ],
+    [
+      'Michael Carrick hoping Man Utd can build on dramatic fightback against Roma',
+      'United came from 2-0 down to win 3-2 in the Champions League.',
+      'https://www.bournemouthecho.co.uk/sport/national/26708285.michael-carrick-hoping-man-utd-can-build-dramatic-fightback-roma/',
+    ],
+    [
+      "'I'll NEVER close the door'",
+      'BRUNO FERNANDES opened the door to a potential homecoming to Sporting CP after his return to Portugal in the Champions League. Manchester...',
+      'https://www.thesun.co.uk/sport/41147116/man-utd-bruno-fernandes-transfer-sporting/',
+    ],
+    [
+      'Ash shirt collaboration with Irish League team attracts fans from across the world',
+      'The rock outfit is celebrating the 30th anniversary of their album 1977 with the release of a shirt with Ards Football Club.',
+      'https://www.lancashiretelegraph.co.uk/news/national/26688026.ash-shirt-collaboration-irish-league-team-attracts-fans-across-world/',
+    ],
+    [
+      'Tags hail grant funding in bid to become most inclusive club',
+      'Hashtag United believe grant funding has helped them become one of the most inclusive football clubs in the country.',
+      'https://www.lancashiretelegraph.co.uk/news/26768194.tags-hail-grant-funding-bid-become-inclusive-club/',
+    ],
+    [
+      'Davies to miss Canada match with injury',
+      'Canadian soccer star Alphonso Davies is heading to Germany for treatments after a medical scan on Sunday revealed minor ...',
+      'https://www.cp24.com/news/sports/2026/11/16/scan-reveals-lower-body-muscle-strain-for-canadian-soccer-captain-davies/',
+    ],
+    [
+      'Lionel Messi Blocked From Suspension Due to ‘Little',
+      'Lionel Messi benefits from ‘little-known’ MLS rule that doesn’t exist in any other league',
+      'https://www.givemesport.com/lionel-messi-benefits-mls-rule-doesnt-exist-any-other-league/',
+    ],
+    [
+      'Man-U held by Sporting',
+      'manchester : mauricio pochettino was denied his first win as manchester united coach in calamitous circumstances after a 2-2 draw with sporting lisbon in the champions league. paris saint-germain ...',
+      'https://www.thehitavada.com//Encyc/2026/11/27/man-u-held-by-sporting.html',
+    ],
+    [
+      "RingConn and Borussia Dortmund Join Forces in a BVB Women's Premium Partnership",
+      "/PRNewswire/ -- RingConn, a health technology company specializing in smart rings, announced a partnership with Borussia Dortmund's women's football team,...",
+      'https://www.prnewswire.co.uk/news-releases/ringconn-and-borussia-dortmund-join-forces-in-a-bvb-womens-premium-partnership-302929467.html',
+    ],
+  ])('keeps football’s own story: %s', (headline, summary, url) => {
+    expect(notFootballOf(searched(headline, summary, url))).toBeNull();
+  });
+
+  it('judges only a search’s item filed to none of ours', () => {
+    const sabey = {
+      headline: 'Building Beyond the Boom: Dave Sabey on the Future of Data Centers',
+      summary:
+        'From clearing a path for teammates on the football field to spending more than 50 years ...',
+      url: 'https://techbullion.com/building-beyond-the-boom-dave-sabey-on-the-future-of-data-centers/',
+    };
+    expect(notFootballOf(item({ ...sabey, searched: true }))).toBe('search_without_football');
+    // Filed to one of ours: the linker's names are the evidence.
+    expect(notFootballOf(item({ ...sabey, searched: true, filedTo: ['team'] }))).toBeNull();
+    // A publisher's own football feed: D-290's rule only.
+    expect(notFootballOf(item({ ...sabey, feedUrl: YAHOO }))).toBeNull();
+    // Another sport's words still name their own reason first (D-321).
+    expect(
+      notFootballOf(item({ headline: 'Uma Kashvi Becomes Youngest WPL Player', searched: true })),
+    ).toBe('other_sport');
+  });
+});
+
+describe('searchFootballEvidence', () => {
+  const none = { summary: null, url: null };
+
+  it('takes the publisher’s football section, never the page itself', () => {
+    expect(
+      searchFootballEvidence({
+        headline: "Pochettino: I am not nice, and that doesn't suit me",
+        summary: null,
+        url: 'https://www.yardbarker.com/soccer/articles/pochettino_i_am_not_nice_and_that_doesnt_suit_me/s1_17790_44626687',
+      }),
+    ).toBe(true);
+    // Written for the spec: "soccer" as the page's name, not a directory.
+    expect(
+      searchFootballEvidence({
+        headline: 'Weekend plans',
+        summary: null,
+        url: 'https://example.com/soccer',
+      }),
+    ).toBe(false);
+  });
+
+  it('takes football’s name in the headline or in the page’s slug as enough', () => {
+    expect(
+      searchFootballEvidence({
+        headline: "Tributes after tragic death of footballer, 20, who will 'never be forgotten'",
+        ...none,
+      }),
+    ).toBe(true);
+    // Written for the spec: an acronym in capitals.
+    expect(
+      searchFootballEvidence({ headline: 'Messi wins the MLS Golden Boot again', ...none }),
+    ).toBe(true);
+    expect(
+      searchFootballEvidence({
+        headline: "DARREN LEWIS: 'Let’s believe in our team and live this dream'",
+        summary:
+          'Why shouldn’t we believe our men’s football team will be next in line? The significance of England’s victory ...',
+        url: 'https://www.mirror.co.uk/news/uk-news/england-football-european-championship-spain-37882763',
+      }),
+    ).toBe(true);
+  });
+
+  it('counts each football signal once, whatever its case or number', () => {
+    // Written for the spec.
+    expect(
+      searchFootballEvidence({
+        headline: 'Town plan approved',
+        summary:
+          'The FOOTBALL pitches and the football ground, both laid by a former footballer ...',
+        url: null,
+      }),
+    ).toBe(false);
+  });
+
+  it('reads the United States, Real Estate and MLS® as no club and no league', () => {
+    // Written for the spec.
+    expect(
+      searchFootballEvidence({
+        headline: 'The United States tightens visa rules',
+        summary: 'Real Estate agents say soccer fans face MLS® listings at record prices.',
+        url: null,
+      }),
+    ).toBe(false);
   });
 });

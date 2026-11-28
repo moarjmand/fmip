@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PostgresFollowingFeedStore } from '../following-feed/internal/following-feed-store';
 import { PostgresCommunitySearchStore } from '../search/internal/community-search-store';
+import { GNEWS_SOURCE_ID } from './internal/gnews-store';
 import { NO_FILTERS, PostgresNewsReadStore } from './internal/news-read-store';
 
 /**
@@ -16,6 +17,11 @@ import { NO_FILTERS, PostgresNewsReadStore } from './internal/news-read-store';
  *
  * T-1874 (D-449): an English feed's story at a showbiz address, filed to the
  * same club, is left out of the three beside the club's football report.
+ *
+ * T-1978 (D-468): a story GNews' search brought, filed to none of ours, with
+ * one passing football word (TechBullion's data-centre interview) is left out
+ * of the lists and story search beside a searched MLS report filed to none;
+ * the Following feed lists filed stories only.
  */
 const DATABASE_URL = process.env.DATABASE_URL;
 const RUN = `${Date.now().toString(36)}${process.pid.toString(36)}`.slice(-8);
@@ -81,6 +87,9 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
   let english: string;
   let showbiz: string;
   let englishReport: string;
+  let searched: string;
+  let dataCentres: string;
+  let playoffs: string;
 
   beforeAll(async () => {
     pool = new Pool({ connectionString: DATABASE_URL });
@@ -99,6 +108,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
     general = await source(`General ${RUN}`, 'https://www.tehrantimes.com/rss/tp/699', 'en');
     persian = await source(`Persian ${RUN}`, `https://fo.test/${RUN}.xml`, 'fa');
     english = await source(`English ${RUN}`, `https://fo.test/${RUN}-en.xml`, 'en');
+    searched = (
+      await pool.query<{ id: string }>(
+        `INSERT INTO news_source (name, homepage_url, feed_url, kind, rights, language, via_source_id)
+         VALUES ($1, 'https://fo.test', NULL, 'aggregated', 'summary', 'en', $2) RETURNING id`,
+        [`Searched ${RUN}`, GNEWS_SOURCE_ID],
+      )
+    ).rows[0]!.id;
 
     chess = await story(
       general,
@@ -165,13 +181,33 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
       7,
       `https://www.fo.test/sport/football/football-news/${RUN}-derby-34822253`,
     );
+    dataCentres = await story(
+      searched,
+      'en',
+      `Building Beyond the Boom: Dave Sabey on the Future of Data Centers ${RUN}`,
+      'From clearing a path for teammates on the football field to spending more than 50 years building the infrastructure that powers the digital economy, Sabey founder and chairman Dave Sabey has always played the long game.',
+      [],
+      false,
+      8,
+      `https://fo.test/building-beyond-the-boom-dave-sabey-${RUN}/`,
+    );
+    playoffs = await story(
+      searched,
+      'en',
+      `Top-seeded Whitecaps hope to roll through Salt Lake, advance to semis ${RUN}`,
+      'While the top two seeds in the Eastern Conference suffered losses in the openers of their first-round MLS Cup playoff series, the No. 1 seed Vancouver Whitecaps had no such difficulty out West.',
+      [],
+      false,
+      9,
+      `https://fo.test/news/top-seeded-whitecaps-${RUN}/`,
+    );
   }, 60_000);
 
   afterAll(async () => {
     await pool.query(`UPDATE story SET promoted_article_id = NULL WHERE id = ANY($1::uuid[])`, [
       stories,
     ]);
-    const sources = [general, persian, english];
+    const sources = [general, persian, english, searched];
     await pool.query(`DELETE FROM article WHERE source_id = ANY($1::uuid[])`, [sources]);
     await pool.query(`DELETE FROM story WHERE id = ANY($1::uuid[])`, [stories]);
     await pool.query(`DELETE FROM news_source WHERE id = ANY($1::uuid[])`, [sources]);
@@ -246,11 +282,24 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')('football onl
     expect(found).not.toContain(showbiz);
   });
 
+  it('leaves a search’s story with one passing football word out of the lists and search (T-1978)', async () => {
+    const lists = (
+      await new PostgresNewsReadStore(pool).latest(NO_FILTERS, 'en', null, 50)
+    ).cards.map((c) => c.story_id);
+    expect(lists).toContain(playoffs);
+    expect(lists).not.toContain(dataCentres);
+
+    const store = new PostgresCommunitySearchStore(pool);
+    const found = async (q: string) => (await store.stories(q, 10, 'en')).map((r) => r.story_id);
+    expect(await found(`Whitecaps ${RUN}`)).toContain(playoffs);
+    expect(await found(`Dave Sabey ${RUN}`)).not.toContain(dataCentres);
+  });
+
   it('deletes nothing', async () => {
     const { rows } = await pool.query<{ n: number }>(
       `SELECT count(*)::int AS n FROM article WHERE story_id = ANY($1::uuid[])`,
-      [[chess, noSport, volleyball, showbiz]],
+      [[chess, noSport, volleyball, showbiz, dataCentres]],
     );
-    expect(rows[0]!.n).toBe(4);
+    expect(rows[0]!.n).toBe(5);
   });
 });
