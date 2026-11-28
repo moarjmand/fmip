@@ -238,12 +238,55 @@ describe('the member’s own page', () => {
     expect(html).toContain('گام‌های نخست شما');
     expect(html).toContain('۰ از ۳۰');
     expect(html).toContain('هنوز نیست');
-    expect(html).toMatch(/<h1[^>]*data-testid="profile-name"><bdi>/);
-    // The handle is its own left-to-right isolate too (T-1975).
-    expect(html).toContain(
-      '<bdi><span class="text-muted"><bdi dir="ltr">@new_member</bdi></span></bdi>',
+    // The name is isolated by MemberName itself, with no outer isolate (T-1977).
+    expect(html).toMatch(
+      /<h1[^>]*data-testid="profile-name"><span><bdi dir="ltr">@new_member<\/bdi><\/span><\/h1>/,
     );
+    // The handle is its own left-to-right isolate too (T-1975), inside a line
+    // that keeps the page's direction, so it sits at the start of it (T-1977).
+    expect(html).toContain(
+      '<span class="text-muted wrap-anywhere" data-testid="profile-handle"><bdi dir="ltr">@new_member</bdi></span>',
+    );
+    expect(html).not.toMatch(/<bdi>\s*<span[^>]*data-testid="profile-handle"/);
   });
+});
+
+describe('the member’s own header with a long name (T-1977)', () => {
+  // Thirty characters with nowhere to break: longer than the API lets a
+  // username be (20), so the header holds whatever a name or handle can be.
+  const LONG = 'abcdefghijklmnopqrstuvwxyz_123';
+
+  const header = (html: string): string => /<header[\s\S]*?<\/header>/.exec(html)?.[0] ?? '';
+  /** The opening tag of the element with this test id. */
+  const tag = (html: string, testId: string): string =>
+    new RegExp(`<[a-z0-9]+[^>]*data-testid="${testId}"[^>]*>`).exec(html)?.[0] ?? '';
+
+  for (const [locale, edit] of [
+    ['en', 'Edit profile'],
+    ['fa', 'ویرایش نمایه'],
+  ] as const) {
+    it(`lets the name and the handle wrap and keeps "${edit}" whole on /${locale}`, async () => {
+      const own = profile({ is_self: true }) as Extract<ProfileView, { kind: 'visible' }>;
+      api.fetchProfile.mockResolvedValue(
+        ok({ ...own, profile: { ...own.profile, username: LONG, display_name: null } }),
+      );
+      const html = header(await render(locale));
+      expect(LONG).toHaveLength(30);
+      // The column may shrink below its longest word; the name and the handle
+      // break inside a word rather than push the link out.
+      expect(html).toMatch(/<div class="flex min-w-0 flex-1 flex-col gap-1">/);
+      expect(tag(html, 'profile-name')).toMatch(/class="[^"]* wrap-anywhere[ "]/);
+      expect(tag(html, 'profile-handle')).toMatch(/class="[^"]* wrap-anywhere[ "]/);
+      // The link keeps its size.
+      expect(tag(html, 'profile-edit')).toMatch(/class="[^"]* shrink-0[ "]/);
+      expect(html).toContain(`>${edit}</a>`);
+      // `@name`, left to right, in a line of the page's direction.
+      expect(html).toContain(
+        `<span class="text-muted wrap-anywhere" data-testid="profile-handle"><bdi dir="ltr">@${LONG}</bdi></span>`,
+      );
+      expect(html).not.toMatch(/<bdi>\s*<span[^>]*data-testid="profile-handle"/);
+    });
+  }
 });
 
 describe('a visitor', () => {
