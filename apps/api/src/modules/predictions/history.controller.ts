@@ -13,6 +13,7 @@ import type {
   FriendPredictionsResponse,
   GroupPredictionCall,
   GroupPredictionComparisonResponse,
+  OwnPredictionHistoryResponse,
   PredictionHistoryResponse,
 } from '@fmip/contracts';
 import type { FastifyRequest } from 'fastify';
@@ -21,6 +22,7 @@ import { GroupsService } from '../groups/groups.service';
 import { IdentityService, SESSION_COOKIE, parseCookies } from '../identity/identity.service';
 import { ProfileService } from '../profile/profile.service';
 import { parseHistoryQuery, type HistoryQuery } from './internal/history-query';
+import { PendingPickService } from './pending-pick.service';
 import { PredictionsService } from './predictions.service';
 
 const UNAUTHENTICATED: ApiError = { error: 'unauthenticated', message: 'Sign in to continue.' };
@@ -44,6 +46,7 @@ export class HistoryController {
     private readonly profiles: ProfileService,
     private readonly identity: IdentityService,
     private readonly groups: GroupsService,
+    private readonly pendingPicks: PendingPickService,
   ) {}
 
   /**
@@ -143,17 +146,26 @@ export class HistoryController {
     };
   }
 
+  /**
+   * The signed-in member's own history, and whether a pick of theirs waits for
+   * the e-mail confirmation (T-1976): such a pick is never in the history, and
+   * the matches page must not offer a first prediction to a member who already
+   * made one (D-467). Always the session's member; no route takes another.
+   */
   @Get('me/predictions')
   async mine(
     @Query() query: unknown,
     @Req() request: FastifyRequest,
-  ): Promise<PredictionHistoryResponse> {
+  ): Promise<OwnPredictionHistoryResponse> {
     const paging = this.paging(query);
     const user = await this.identity.authenticate(
       parseCookies(request.headers.cookie)[SESSION_COOKIE],
     );
     if (user === null) throw new UnauthorizedException(UNAUTHENTICATED);
-    const page = await this.predictions.history(user.id, paging);
+    const [page, waiting] = await Promise.all([
+      this.predictions.history(user.id, paging),
+      this.pendingPicks.hasWaiting(user.id),
+    ]);
     return {
       kind: 'visible',
       username: user.username,
@@ -162,6 +174,7 @@ export class HistoryController {
       limit: paging.limit,
       offset: paging.offset,
       items: page.items,
+      has_pending_pick: waiting,
     };
   }
 

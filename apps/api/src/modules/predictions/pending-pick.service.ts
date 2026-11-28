@@ -70,6 +70,15 @@ export class PendingPickService implements OnModuleInit {
   }
 
   /**
+   * Whether the member has a pick still waiting on any match (T-1976): the
+   * one thing `GET /me/predictions` says about pending picks, beside a
+   * history they are never part of.
+   */
+  hasWaiting(userId: string): Promise<boolean> {
+    return this.store.anyWaiting(userId);
+  }
+
+  /**
    * Leaves the member's choice waiting on the match, in place of one already
    * waiting. Refused for a member whose address is confirmed (they predict),
    * for an unknown match and after kick-off -- checked here against the

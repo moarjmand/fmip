@@ -111,6 +111,7 @@ import type {
   PlayerTransfers,
   PowerIndexResponse,
   PredictionHistoryResponse,
+  OwnPredictionHistoryResponse,
   OwnPredictionShareResponse,
   PendingPick,
   PendingPickResponse,
@@ -919,13 +920,14 @@ export function fetchPredictionHistory(
 /**
  * `GET /me/predictions?limit=` (T-056): the member's own predictions, newest
  * kick-off first. The Predictions page reads one page of it for its inline
- * picks (T-1383) rather than asking once per match.
+ * picks (T-1383) rather than asking once per match; and whether a pick of
+ * theirs waits for the e-mail confirmation (T-1976), which is never in it.
  */
 export function fetchMyPredictions(
   cookie: string,
   limit: number,
-): Promise<ApiResult<PredictionHistoryResponse>> {
-  return apiRequest<PredictionHistoryResponse>(`/me/predictions?limit=${limit}`, { cookie });
+): Promise<ApiResult<OwnPredictionHistoryResponse>> {
+  return apiRequest<OwnPredictionHistoryResponse>(`/me/predictions?limit=${limit}`, { cookie });
 }
 
 /**

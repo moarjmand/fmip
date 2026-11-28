@@ -1,5 +1,5 @@
 import type {
-  PredictionHistoryResponse,
+  OwnPredictionHistoryResponse,
   ScoreCard as ScoreCardData,
   ScoresResponse,
 } from '@fmip/contracts';
@@ -69,7 +69,7 @@ const day = (cards: ScoreCardData[]): ScoresResponse =>
 
 const ok = <T,>(data: T) => ({ ok: true as const, status: 200, data, setCookie: null });
 const down = { ok: false as const, status: 503, error: null, setCookie: null };
-const history = (total: number) =>
+const history = (total: number, waiting = false) =>
   ok({
     kind: 'visible',
     username: 'newbie',
@@ -78,7 +78,8 @@ const history = (total: number) =>
     limit: 50,
     offset: 0,
     items: [],
-  } as unknown as PredictionHistoryResponse);
+    has_pending_pick: waiting,
+  } as unknown as OwnPredictionHistoryResponse);
 
 let today: ScoresResponse = day([card()]);
 const ahead = day([card({ id: 'later', kickoff_at: '2026-11-29T15:00:00.000Z' })]);
@@ -199,6 +200,25 @@ describe('a new member on "Not picked yet"', () => {
   it('is not beside a pick already waiting for the e-mail confirmation', async () => {
     api.fetchPendingPick.mockResolvedValueOnce({ outcome: 'home', status: 'pending' } as never);
     expect(await render({ unpicked: '1' })).not.toContain('first-pick');
+  });
+
+  it('does not come back on any day’s list while a pick of theirs waits for the e-mail (T-1976)', async () => {
+    // The waiting pick is on another match: none on the previewed one, no
+    // prediction in the history, and the history says one waits.
+    api.fetchMyPredictions.mockResolvedValue(history(0, true));
+    const days: Record<string, string>[] = [
+      { unpicked: '1' },
+      { unpicked: '1', date: '2026-11-29' },
+    ];
+    for (const query of days) {
+      expect(await render(query), query.date ?? 'today').not.toContain('first-pick');
+      expect(await render(query, 'fa'), query.date ?? 'today').not.toContain('first-pick');
+    }
+    // Neither a prediction nor a waiting pick: the card is there on both days, as before.
+    api.fetchMyPredictions.mockResolvedValue(history(0, false));
+    for (const query of days) {
+      expect(await render(query), query.date ?? 'today').toContain('data-testid="first-pick"');
+    }
   });
 });
 

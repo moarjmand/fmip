@@ -1,4 +1,4 @@
-import type { PendingPick, PredictionHistoryResponse, ScoreCard } from '@fmip/contracts';
+import type { OwnPredictionHistoryResponse, PendingPick, ScoreCard } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { nothingToPick } from '@/lib/scores-filters';
@@ -18,7 +18,10 @@ const OPEN: Card = { status: 'scheduled', kickoff_at: '2026-11-27T20:00:00Z' };
 const STARTED: Card = { status: 'scheduled', kickoff_at: '2026-11-27T17:00:00Z' };
 const FINISHED: Card = { status: 'finished', kickoff_at: '2026-11-27T12:00:00Z' };
 
-const history = (total: number): { ok: true; data: PredictionHistoryResponse } => ({
+const history = (
+  total: number,
+  waiting: boolean | 'absent' = false,
+): { ok: true; data: OwnPredictionHistoryResponse } => ({
   ok: true,
   data: {
     kind: 'visible',
@@ -28,7 +31,8 @@ const history = (total: number): { ok: true; data: PredictionHistoryResponse } =
     limit: 50,
     offset: 0,
     items: [],
-  } as unknown as PredictionHistoryResponse,
+    ...(waiting === 'absent' ? {} : { has_pending_pick: waiting }),
+  } as unknown as OwnPredictionHistoryResponse,
 });
 const PENDING = { outcome: 'home', status: 'pending' } as unknown as PendingPick;
 const shows = (over: Partial<Parameters<typeof showsFirstPick>[0]> = {}) =>
@@ -55,6 +59,22 @@ describe('a member’s first prediction', () => {
     expect(shows({ signedIn: false })).toBe(false);
     expect(shows({ history: history(1) })).toBe(false);
     expect(shows({ pending: PENDING })).toBe(false);
+  });
+
+  it('is not offered on any day’s list while a pick of the member waits for the email (T-1976)', () => {
+    // The waiting pick is on another day's match: the previewed one has none,
+    // and the history has no prediction, but the member has picked already.
+    for (const card of [
+      OPEN,
+      { status: 'scheduled', kickoff_at: '2026-11-29T15:00:00Z' },
+    ] as Card[])
+      expect(shows({ history: history(0, true), pending: null, card })).toBe(false);
+    // Neither a prediction nor a waiting pick: offered, as before.
+    expect(shows({ history: history(0, false), pending: null })).toBe(true);
+  });
+
+  it('claims nothing about a waiting pick it was not told of', () => {
+    expect(shows({ history: history(0, 'absent') })).toBe(false);
   });
 
   it('claims nothing about a history it could not read, nor on a match that kicked off', () => {
