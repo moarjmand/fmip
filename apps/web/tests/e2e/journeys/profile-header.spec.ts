@@ -41,7 +41,12 @@ test('a long name on the member’s own profile at 375 px: no overflow, the link
       const header = name.closest('header')!;
       const column = name.parentElement!;
       const isolate = handle.querySelector('bdi')!;
-      const first = isolate.getClientRects()[0]!;
+      // An inline box gives a rect per line, and per text node on a line
+      // (`@` and the name are two): its lines are the distinct tops.
+      const lines = (el: Element) =>
+        new Set([...el.getClientRects()].map((r) => Math.round(r.top)));
+      const rects = [...isolate.getClientRects()];
+      const firstLine = rects.filter((r) => Math.abs(r.top - rects[0]!.top) < 1);
       return {
         page: {
           scroll: document.documentElement.scrollWidth,
@@ -55,13 +60,15 @@ test('a long name on the member’s own profile at 375 px: no overflow, the link
           client: handle.clientWidth,
           direction: getComputedStyle(handle).direction,
           isolate: getComputedStyle(isolate).direction,
-          firstLeft: first.left,
-          firstRight: first.right,
+          firstLeft: Math.min(...firstLine.map((r) => r.left)),
+          firstRight: Math.max(...firstLine.map((r) => r.right)),
+          // The `@` is the first text of the isolate: left of the name when left to right.
+          atFirst: rects[0]!.left === Math.min(...firstLine.map((r) => r.left)),
           // No outer isolate of its own between the handle and the column.
           parent: handle.parentElement === column,
         },
         edit: {
-          lines: edit.getClientRects().length,
+          lines: lines(edit).size,
           left: box(edit).left,
           right: box(edit).right,
           scroll: edit.scrollWidth,
@@ -94,6 +101,7 @@ test('a long name on the member’s own profile at 375 px: no overflow, the link
     expect(found.handle.parent, `${locale}: an isolate around the handle`).toBe(true);
     expect(found.handle.direction).toBe(found.dir);
     expect(found.handle.isolate).toBe('ltr');
+    expect(found.handle.atFirst, `${locale}: the handle does not read @name`).toBe(true);
     if (locale === 'fa') {
       expect(
         Math.abs(found.handle.firstRight - found.column.right),
