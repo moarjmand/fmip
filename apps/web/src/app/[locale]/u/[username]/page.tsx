@@ -128,10 +128,14 @@ export default async function ProfilePage({
   if (view.kind === 'restricted') {
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold" data-testid="profile-name">
+        <h1 className="text-2xl font-semibold wrap-anywhere" data-testid="profile-name">
           <MemberName locale={locale} member={view} />
         </h1>
-        <MemberHandle username={view.username} className="text-muted" />
+        <MemberHandle
+          username={view.username}
+          className="text-muted wrap-anywhere"
+          data-testid="profile-handle"
+        />
         {invited}
         <p data-testid="profile-restricted">
           <Translated
@@ -226,22 +230,33 @@ export default async function ProfilePage({
             />
           </Pictured>
         )}
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold" data-testid="profile-name">
-            <bdi>
-              <MemberName locale={locale} member={profile} />
-            </bdi>
+        {/* A long name or handle wraps, even inside one word, rather than
+            pushing "Edit profile" out of the header at 375px (T-1977): the
+            column may shrink below its words (`min-w-0`), the link may not
+            (`shrink-0`). Name and handle are isolated by `MemberName` and
+            `MemberHandle` themselves; an outer `<bdi>` here had no strong
+            letter of its own, so it was left to right and, as a line of the
+            column, aligned the handle to the left on a Persian page. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h1 className="text-2xl font-semibold wrap-anywhere" data-testid="profile-name">
+            <MemberName locale={locale} member={profile} />
           </h1>
-          <bdi>
-            <MemberHandle username={profile.username} className="text-muted" />
-          </bdi>
+          <MemberHandle
+            username={profile.username}
+            className="text-muted wrap-anywhere"
+            data-testid="profile-handle"
+          />
           <p className="text-sm text-muted">
             <Translated locale={locale} message="profile.memberSince" />{' '}
             <time dateTime={profile.member_since}>{shownDay(profile.member_since)}</time>
           </p>
         </div>
         {view.is_self && (
-          <Link href={`/${locale}/settings`} className="ms-auto text-sm underline">
+          <Link
+            href={`/${locale}/settings`}
+            className="ms-auto shrink-0 text-sm underline"
+            data-testid="profile-edit"
+          >
             <Translated locale={locale} message="profile.edit" />
           </Link>
         )}

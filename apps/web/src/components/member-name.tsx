@@ -50,10 +50,18 @@ export function MemberName({
  * The isolate sits inside the span, so the span keeps the page's direction for
  * its alignment and its logical margins.
  */
-export function MemberHandle({ username, className }: { username: string; className?: string }) {
+export function MemberHandle({
+  username,
+  className,
+  'data-testid': testId,
+}: {
+  username: string;
+  className?: string;
+  'data-testid'?: string;
+}) {
   if (isDeletedMember(username)) return null;
   return (
-    <span className={className}>
+    <span className={className} data-testid={testId}>
       <bdi dir="ltr">@{username}</bdi>
     </span>
   );
