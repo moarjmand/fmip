@@ -146,10 +146,13 @@ export function MatchPreview({
           data-testid="preview-scrim"
         />
       )}
+      {/* `lg:target:`: outlined while it is the page's target, which the
+          first-pick card's desktop action makes it (T-1964); drawn inside the
+          box, which the column's own scrolling would otherwise clip. */}
       <section
         id="pick"
         aria-labelledby="preview-title"
-        className="flex flex-col rounded-2xl border border-default bg-surface max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-50 max-lg:max-h-[70dvh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-b-none max-lg:border-x-0 max-lg:border-b-0 max-lg:pb-[env(safe-area-inset-bottom)] lg:overflow-clip"
+        className="flex flex-col rounded-2xl border border-default bg-surface lg:target:outline-2 lg:target:-outline-offset-2 lg:target:outline-brand max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-50 max-lg:max-h-[70dvh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-b-none max-lg:border-x-0 max-lg:border-b-0 max-lg:pb-[env(safe-area-inset-bottom)] lg:overflow-clip"
         data-testid="match-preview"
         data-fixture-id={card.id}
       >

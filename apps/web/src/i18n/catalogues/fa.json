@@ -8864,6 +8864,24 @@
     "status": "translated",
     "note": "Written by the agent at the maintainer's request (D-175)."
   },
+  "scores.firstPick.title": {
+    "source": "Your first prediction",
+    "text": "نخستین پیش‌بینی شما",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the action's words are the maintainer's (T-1964, 2026-11-27)."
+  },
+  "scores.firstPick.lead": {
+    "source": "Choose the result you expect in one of these matches. The model’s forecast, when it has one, is shown beside your pick, never mixed into it.",
+    "text": "نتیجه‌ای را که انتظار دارید برای یکی از این مسابقه‌ها انتخاب کنید. پیش‌بینی مدل، اگر داشته باشد، کنار انتخاب شما نشان داده می‌شود و هرگز با آن درنمی‌آمیزد.",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the action's words are the maintainer's (T-1964, 2026-11-27)."
+  },
+  "scores.firstPick.action": {
+    "source": "Make a prediction",
+    "text": "پیش‌بینی کن",
+    "status": "translated",
+    "note": "Written by the agent at the maintainer's request (D-175); the action's words are the maintainer's (T-1964, 2026-11-27)."
+  },
   "scores.liveEmpty": {
     "source": "No match on this day is in play.",
     "text": "در این روز هیچ مسابقه‌ای در جریان نیست.",

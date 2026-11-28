@@ -16371,3 +16371,20 @@ These are reported beside the verdict but are not gates:
 **Rejected.** *(c) a stored form*: a new table, a migration, a moderator surface and a privacy line, for a few dozen testers. *(a)*: not a members' path. *The address in the catalogue or the code*: the repository is public.
 
 **Consequences.** The link appears once the server's `.env` sets `SITE_CONTACT_EMAIL`; whether a message reaches the mailbox is checked then (T-1965's second criterion). What happens to a message is said by the privacy notice (T-1969). If mail proves slow to arrive, (c) is the fallback and needs its own decision.
+
+## D-467 — A new account leaves the first run on the day's matches still to pick, with one "Make a prediction" action until the first pick
+
+**Date.** 2026-11-27. **Status.** Accepted (the engineering session, within the brief of T-1964, D-459; visible, shown to the maintainer on screenshots before any deploy). **Task:** T-1964. **Amends:** T-522's and T-1737's landing for a member nobody invited. **Follows:** D-358, D-361, D-390, rule 6.
+
+**Context.** A new account left `/welcome` on its own profile: "Your first steps", an empty rating, empty sections, and a link named "Matches" to the picks. The walk of 2026-11-27 counted 2 taps (desktop) and 3 (phone) from there to a saved pick, but the one action a new member came for was a row of a card under a word that did not say it.
+
+**Decision.**
+1. **Where.** A sign-up with no page it was on its way to and no inviter leaves the first run (or skips it) on `/{locale}/scores?unpicked=1`, the day's matches still to pick, in the order the matches page ranks them (favourites first). An invited member still lands on the inviter's profile (T-522); a guest's own destination still wins (D-358). Sign-in is unchanged.
+2. **One action.** On "Not picked yet" only, until the member's first prediction, one card above the list says what to do and offers «پیش‌بینی کن» / "Make a prediction", which leads to the first open match's pick: under 1024px it opens that match's sheet; from 1024px, where that pick is already open in the side column, it is a plain link to it (`#pick`), and the column is outlined while it is the page's target, so the tap visibly does something. The card says the model's forecast is shown beside the pick "when it has one" / «اگر داشته باشد», since a match may have none (rule 3). It is not shown on the other views, to a guest, after a prediction exists, beside a pick waiting for the e-mail confirmation, on a match that kicked off, or when the member's history could not be read; nothing is stored to remember it.
+3. **Never a dead end.** "Not picked yet" on a day with no match still open points at the next day with a match, as the All view's empty day does (T-1331).
+4. **What stays.** An unconfirmed e-mail does not block: the tap saves a pending pick, said in the pick itself and counted once the address is confirmed before kick-off (D-361). The model's forecast stays in its own labelled box beside the pick, and the community's split stays closed until the member picks (D-206, rule 6).
+5. **No chip cut on a phone.** A member's four view chips did not fit beside Date and Filters under 640px, and the current one, "Not picked yet", was cut ("Not pi…") on the very page a new member lands on. Under 640px a member's views now take a line of their own and wrap; a guest's two still sit beside Date, and from 640px nothing changes. A journey asserts at 375px, in English and Persian, that no chip's words are cut and none lies outside its row.
+
+**Rejected.** *A new onboarding page*: the brief says no new page. *Preselecting a match in the address from the first run*: the first run does not read fixtures, and the matches page already chooses the first open one. *Keeping the profile landing and renaming its link*: the member still meets an empty profile first.
+
+**Consequences.** The journeys' `registerAndVerify` expects the new landing. The profile's "Your first steps" stays where it was, reached from "You".

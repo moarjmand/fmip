@@ -45,6 +45,7 @@ import {
   isFiltered,
   isOpenForPick,
   NO_FILTERS,
+  nothingToPick,
   withSelected,
   type FilterOption,
 } from '@/lib/scores-filters';
@@ -66,6 +67,7 @@ import { Button, ButtonLink, Notice, controlClasses } from '@/components/ui';
 import { pageTimeZone } from '@/lib/reader-time-zone-server';
 import { zoneWords } from '@/lib/reader-time-zone';
 import { LiveNext, nextKickoff } from './live-next';
+import { FirstPick, showsFirstPick } from './first-pick';
 import { MatchPreview, NoPreview } from './match-preview';
 import { MatchesAnalysis } from './matches-analysis';
 
@@ -150,11 +152,14 @@ export default async function ScoresPage({
   const now = Date.now();
   const next = isToday ? nextKickoff(dayCards, now) : null;
   // An empty day (an international break, a winter pause) points at the next
-  // day with a match rather than leaving the reader to step through blanks (T-1331).
+  // day with a match rather than leaving the reader to step through blanks
+  // (T-1331); so does "Not picked yet" on a day with no match still open, where
+  // a new member lands after /welcome (T-1964).
   let nextDay: string | null = null;
   if (
     result.ok &&
     ((result.data.total === 0 && view === 'all') ||
+      (view === 'unpicked' && nothingToPick(allCards(result.data), now)) ||
       (liveNone && wholeDay?.ok === true && wholeDay.data.total === 0))
   ) {
     for (const [start, end] of NEXT_DAY_WINDOWS) {
@@ -245,6 +250,20 @@ export default async function ScoresPage({
         (me === null ? null : await fetchOwnPrediction(previewCard.id, cookie)));
   if (previewCard !== null && current !== null) own.set(previewCard.id, current);
   const pendingPick = await pendingRead;
+  // A member's first prediction (T-1964, D-467): one clear action above
+  // "Not picked yet", where a new account lands after /welcome.
+  const firstPick =
+    previewCard !== null &&
+    showsFirstPick({
+      view,
+      signedIn: me !== null,
+      history: mine,
+      pending: pendingPick,
+      card: previewCard,
+      now,
+    })
+      ? `${pageHref(locale, q, { pick: previewCard.id })}#m-${previewCard.id}`
+      : null;
 
   // A provider outage is named on the page (T-083), never hidden behind old numbers.
   const trouble = feedTrouble(ingestion, locale, q.timezone);
@@ -361,6 +380,7 @@ export default async function ScoresPage({
       {me === null && asked.unpicked === true && (
         <GateCard locale={locale} route="/scores?unpicked=1" heading="h2" compact />
       )}
+      {firstPick !== null && <FirstPick locale={locale} href={firstPick} />}
 
       <div className="scores-flat grid items-start gap-6 lg:grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1fr)_21.25rem] xl:grid-cols-[13.75rem_minmax(0,1fr)_21.25rem]">
         {result.ok && (
@@ -402,12 +422,21 @@ export default async function ScoresPage({
               (`fold-row` in globals.css), one open at a time by their shared
               `name`. A browser without the grouping opens both, one under the
               other; one without `::details-content` opens a panel under its
-              own chip. No script either way. */}
+              own chip. No script either way.
+              A member's four views do not fit beside Date and Filters on a
+              phone, and the one cut was the current one ("Not picked yet",
+              where a new member lands; T-1964): under 640px they take a line
+              of their own and wrap, so no chip is cut. A guest's two fit, and
+              from 640px a member's sit beside the other chips as before. */}
           <div className="fold-row text-sm" data-testid="filter-row">
             <nav
               aria-label={viewNav.text}
               lang={viewNav.lang}
-              className="flex min-w-0 grow basis-0 gap-1.5 overflow-x-auto"
+              className={`flex min-w-0 grow gap-1.5 ${
+                me === null
+                  ? 'basis-0 overflow-x-auto'
+                  : 'basis-full flex-wrap max-sm:pb-1.5 sm:basis-0 sm:flex-nowrap sm:overflow-x-auto'
+              }`}
               data-testid="filters"
             >
               {views

@@ -19,7 +19,10 @@ describe('invite links', () => {
 
   it('sends a new member to the inviter’s profile, and only to someone else’s', () => {
     expect(afterRegistration('en', 'newbie', 'mosiop')).toBe('/en/u/mosiop?invited=1');
-    expect(afterRegistration('en', 'newbie', null)).toBe('/en/u/newbie');
-    expect(afterRegistration('en', 'newbie', 'newbie')).toBe('/en/u/newbie');
+  });
+
+  it('sends anyone else to the day’s matches still to pick, never their empty profile (T-1964)', () => {
+    expect(afterRegistration('en', 'newbie', null)).toBe('/en/scores?unpicked=1');
+    expect(afterRegistration('fa', 'newbie', 'newbie')).toBe('/fa/scores?unpicked=1');
   });
 });
