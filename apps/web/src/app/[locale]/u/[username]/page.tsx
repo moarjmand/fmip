@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { notFound } from 'next/navigation';
@@ -12,6 +13,7 @@ import { FeedbackLink, feedbackAddress } from '@/components/feedback-link';
 import { FriendControls } from '@/components/friend-controls';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import { memberName } from '@/lib/member-name';
+import { nameIsolate } from '@/components/score';
 import { ShareLink } from '@/components/share-link';
 import { PredictionHistory } from '@/components/prediction-history';
 import { RatingHistorySection } from '@/components/rating-history';
@@ -87,7 +89,9 @@ export default async function ProfilePage({
     if (result.status === 404) notFound();
     return (
       <main className="mx-auto flex max-w-3xl flex-col gap-4 p-8">
-        <h1 className="text-2xl font-semibold">{memberName(locale, { username: name })}</h1>
+        <h1 className="text-2xl font-semibold">
+          <MemberName locale={locale} member={{ username: name }} />
+        </h1>
         <Notice tone="danger">
           <Translated locale={locale} message="profile.unreachable" />
         </Notice>
@@ -115,7 +119,9 @@ export default async function ProfilePage({
     friendStatus !== 'self' &&
     friendStatus !== 'friends' ? (
       <p role="status" data-testid="invited-note">
-        {interpolate(t(lang, 'profile.invited'), { name: memberName(locale, { username: name }) })}
+        {interpolate(t(lang, 'profile.invited'), {
+          name: nameIsolate(memberName(locale, { username: name })),
+        })}
       </p>
     ) : null;
 
@@ -288,9 +294,7 @@ export default async function ProfilePage({
       {/* No bio is not drawn (T-1787, D-390): to a visitor it says nothing,
           and the member's own page asks for one in its first steps. */}
       {profile.bio !== null && (
-        <p className="whitespace-pre-line" data-testid="profile-bio">
-          {profile.bio}
-        </p>
+        <MemberWords text={profile.bio} className="whitespace-pre-line" data-testid="profile-bio" />
       )}
 
       {profile.favourite_teams.length > 0 ? (

@@ -239,7 +239,10 @@ describe('the member’s own page', () => {
     expect(html).toContain('۰ از ۳۰');
     expect(html).toContain('هنوز نیست');
     expect(html).toMatch(/<h1[^>]*data-testid="profile-name"><bdi>/);
-    expect(html).toContain('<bdi><span class="text-muted">@new_member</span></bdi>');
+    // The handle is its own left-to-right isolate too (T-1975).
+    expect(html).toContain(
+      '<bdi><span class="text-muted"><bdi dir="ltr">@new_member</bdi></span></bdi>',
+    );
   });
 });
 

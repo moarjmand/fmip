@@ -1,5 +1,6 @@
 'use client';
 
+import { MemberWords } from '@/components/member-words';
 import { useActionState } from 'react';
 import Link from '@/components/ui/link';
 import type { CommunitySubmission } from '@fmip/contracts';
@@ -140,7 +141,7 @@ export function AnalysisQueue({
             <span className="ms-2 text-muted">confidence {submission.confidence}/5</span>
           </p>
 
-          <p className="whitespace-pre-wrap text-sm">{submission.reasoning}</p>
+          <MemberWords text={submission.reasoning} className="whitespace-pre-wrap text-sm" />
           {(
             [
               ['lineup_impact', 'Lineup impact'],
@@ -151,7 +152,11 @@ export function AnalysisQueue({
             submission[field] === null ? null : (
               <p key={field} className="text-sm">
                 <span className="font-medium">{label}:</span>{' '}
-                <span className="whitespace-pre-wrap text-muted">{submission[field]}</span>
+                <MemberWords
+                  as="bdi"
+                  text={submission[field]}
+                  className="whitespace-pre-wrap text-muted"
+                />
               </p>
             ),
           )}

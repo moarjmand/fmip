@@ -53,7 +53,8 @@ describe('the community surfaces on /fa', () => {
     const html = renderToStaticMarkup(
       <FriendControls locale="fa" username="sara" status="blocked" />,
     );
-    expect(html).toContain('@sara را مسدود کرده‌اید. او از این موضوع باخبر نمی‌شود.');
+    // The handle is a left-to-right isolate, so it reads @sara (T-1975).
+    expect(html).toContain('\u2066@sara\u2069 را مسدود کرده‌اید. او از این موضوع باخبر نمی‌شود.');
     expect(html).toContain('رفع مسدودیت');
     expectAllPersian(html);
   });
@@ -62,7 +63,7 @@ describe('the community surfaces on /fa', () => {
     const html = renderToStaticMarkup(
       <FriendControls locale="en" username="sara" status="blocked" />,
     );
-    expect(html).toContain('You blocked @sara. They are not told.');
+    expect(html).toContain('You blocked \u2066@sara\u2069. They are not told.');
     expect(html).toContain('Unblock');
   });
 
@@ -126,7 +127,8 @@ describe('the community surfaces on /fa', () => {
       <MessageRow message={message} locale="fa" timeZone="Asia/Tehran" isMine={false} />,
     );
     expect(html).toContain('ناظر آن را حذف کرد.');
-    expect(html).toContain('دلیل: تبلیغ');
+    // The moderator's words are isolated, right to left, inside the sentence (T-1975).
+    expect(html).toContain('دلیل: \u2067تبلیغ\u2069');
     // The Solar Hijri date, in Persian digits (D-175).
     expect(html).toMatch(/۱۴۰۵/);
   });

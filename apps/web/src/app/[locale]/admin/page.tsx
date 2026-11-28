@@ -376,7 +376,7 @@ export default async function AdminPage({
                     className="font-medium underline"
                     data-testid={`member-page-${user.username}`}
                   >
-                    @{user.username}
+                    <bdi dir="ltr">@{user.username}</bdi>
                   </Link>{' '}
                   · {user.display_name} · {user.email}
                   {user.email_verified ? ' · verified' : ' · unverified'} · {user.status}
