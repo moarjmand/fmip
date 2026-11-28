@@ -24,6 +24,12 @@
  *
  * Applied on read, as D-290's rule is: nothing is deleted or migrated, and an
  * item left out by mistake comes back when the rule changes.
+ *
+ * T-1978 (D-468): an item GNews' search brought and the linker filed to none
+ * of ours must also carry football evidence beyond one passing word
+ * (`searchFootballEvidence`): the search matches the whole article, so a data
+ * centre's founder "on the football field" and US politics' "global soccer"
+ * came in.
  */
 import { otherCodeOf, otherSportEventOf, type OtherCode } from './other-code';
 
@@ -412,6 +418,283 @@ export function notFootballPageOf(url: string | null, headline: string): NotFoot
   return TV_SHOW_HEADLINE.test(headline) ? 'tv_show' : null;
 }
 
+/**
+ * The publisher's football sections (T-1978, D-468), as a whole directory of
+ * the article's URL path: "yardbarker.com/soccer/articles/...",
+ * "straitstimes.com/sport/football/...". The publisher's own word that the
+ * page is football's, as `ENTERTAINMENT_SECTIONS` is that it is not.
+ */
+export const FOOTBALL_SECTIONS: readonly string[] = [
+  'football',
+  'soccer',
+  'football-news',
+  'soccer-news',
+  'womens-football',
+  'womens-soccer',
+  'premier-league',
+  'champions-league',
+  'la-liga',
+  'serie-a',
+  'bundesliga',
+  'mls',
+  'nwsl',
+  'efl',
+  'transfer-news',
+  'transfer-talk',
+];
+
+/**
+ * Football's names (T-1978, D-468): the game, its bodies and its best-known
+ * competitions. One in the headline, or in the page's own name in its address
+ * (the slug), is enough for an item a search brought.
+ */
+export const FOOTBALL_NAMES: readonly string[] = [
+  'football(ers?|ing)?',
+  'soccer',
+  'futsal',
+  'FIFA',
+  'UEFA',
+  'CONCACAF',
+  'CONMEBOL',
+  'Premier League',
+  'Champions League',
+  'Europa League',
+  'Conference League',
+  'La ?Liga',
+  'Serie A',
+  'Bundesliga',
+  'Ligue 1',
+  'Eredivisie',
+  'FA Cup',
+  'Carabao Cup',
+  "Ballon d['’]Or",
+];
+
+/**
+ * Football's names written as acronyms, read in capitals only (lower case in
+ * a slug): MLS, but not the real-estate "MLS®" of Canada's home-sales reports.
+ */
+const FOOTBALL_ACRONYMS: readonly string[] = ['MLS(?!®)', 'NWSL', 'WSL', 'EFL'];
+
+/**
+ * Football's other words (T-1978, D-468), each one signal: `FOOTBALL_WORDS`,
+ * `FOOTBALL_NAMES`, more competitions, the positions, the match, the
+ * calendar, the grounds and the national teams' names. Read in any case.
+ */
+export const FOOTBALL_TERMS: readonly string[] = [
+  ...FOOTBALL_WORDS,
+  ...FOOTBALL_NAMES,
+  'footy',
+  '(Club )?World Cup',
+  "Women[’']?s Super League",
+  'League (One|Two)',
+  'Championship',
+  'Premiership',
+  'National League',
+  'non-league',
+  'Irish League',
+  'League of Ireland',
+  'Copa (América|del Rey|Libertadores)',
+  'Africa Cup of Nations',
+  'European Championships?',
+  'Euro 20\\d\\d',
+  'Nations League',
+  'Gold Cup',
+  'Leagues Cup',
+  'MLS Cup',
+  'Golden Boot',
+  'Saudi Pro League',
+  'A-League',
+  'keepers?',
+  'goalscor(er|ers|ing)',
+  '(centre|center|full|left|right|wing)[- ]backs?',
+  'centre-forwards?',
+  'playmakers?',
+  'hat-tricks?',
+  'clean sheets?',
+  'free-kicks?',
+  'spot-kicks?',
+  'offside',
+  'stoppage time',
+  'injury time',
+  'added time',
+  'own goals?',
+  'equali[sz]ers?',
+  '(red|yellow) cards?',
+  'sent off',
+  'relegat(ed|ion)',
+  'transfer (window|deadline)',
+  'deadline day',
+  'loan (move|deal|spell)',
+  'international break',
+  'matchday',
+  'gameweek',
+  'dugout',
+  'hooligans?',
+  'ultras',
+  'Old Trafford',
+  'Anfield',
+  'Stamford Bridge',
+  '(Etihad|Emirates) Stadium',
+  'Bernab[eé]u',
+  'Camp Nou',
+  'Celtic Park',
+  'Ibrox',
+  'Villa Park',
+  'Goodison( Park)?',
+  "St James['’] Park",
+  'Lionesses',
+  'Three Lions',
+  'Socceroos',
+  'Matildas',
+];
+
+/**
+ * Football's words read in capitals only: acronyms, and the shapes of a
+ * club's name -- "FC", "LAFC", "<Town> United" (not the United States,
+ * Nations or Kingdom), The Sun's capitals ("MANCHESTER UNITED fans"),
+ * "Sporting CP", "Inter Miami", "Borussia Dortmund" (not Real Estate or
+ * Sporting News). The catalogue's own names are the linker's to read
+ * (`news_named_entities`): an item this rule judges is one it filed to none.
+ */
+const FOOTBALL_CAPITALS: readonly string[] = [
+  ...FOOTBALL_ACRONYMS,
+  'VAR',
+  'FPL',
+  'USMNT',
+  'USWNT',
+  'AFCON',
+  'FC',
+  'AFC',
+  'CF',
+  '[A-Z]{2,4}FC',
+  '(?<!The |the )[A-Z][a-z]+ (United|Utd|Albion|Rovers|Wanderers|Hotspur|Argyle)(?! (States|Nations|Kingdom|Arab|Airlines|Way|Methodist|Church|Steelworkers|Auto|Parcel|Health))',
+  '(?<!THE )[A-Z]{3,} (UNITED|UTD|ALBION|ROVERS|WANDERERS|HOTSPUR)(?! (STATES|NATIONS|KINGDOM|ARAB))',
+  'Man (City|U)',
+  'MAN CITY',
+  'Sporting CP',
+  '(Real|Atl[eé]tico|Sporting|Inter|Olympique|Borussia|Dynamo|Dinamo|Deportivo) (?!(Estate|Time|World|Housewives|Life|Talk|News|ID)(?![\\p{L}\\p{N}]))[A-Z][a-z]+',
+];
+
+/**
+ * Words any team sport uses (T-1978, D-468). Two of them, with one football
+ * term, are enough: "Italy's national soccer team ... to be their next coach"
+ * is football's; "former football manager" (a horse-racing report), "football
+ * pitches" (a housing plan) and "global soccer" (US politics) are not.
+ */
+export const TEAM_SPORT_WORDS: readonly string[] = [
+  'coach(es|ing)?',
+  'managers?',
+  'boss(es)?',
+  'teams?',
+  'teammates?',
+  'squads?',
+  'clubs?',
+  'season',
+  'match(es)?',
+  'leagues?',
+  'cups?',
+  'title',
+  'players?',
+  'captain',
+  'stadium',
+  'transfer',
+  'sacked',
+  'career',
+  'international',
+];
+
+const B = '(?<=^|[^\\p{L}\\p{N}])';
+const A = '(?=[^\\p{L}\\p{N}]|$)';
+const NAME = new RegExp(`${B}(${FOOTBALL_NAMES.join('|')})${A}`, 'iu');
+const ACRONYM = new RegExp(`${B}(${FOOTBALL_ACRONYMS.join('|')})${A}`, 'u');
+const SLUG_NAME = new RegExp(
+  `${B}(${[...FOOTBALL_NAMES, ...FOOTBALL_ACRONYMS].join('|')})${A}`,
+  'iu',
+);
+const TERM = new RegExp(`${B}(${FOOTBALL_TERMS.join('|')})${A}`, 'giu');
+const CAPITAL = new RegExp(`${B}(${FOOTBALL_CAPITALS.join('|')})${A}`, 'gu');
+const SPORT_WORD = new RegExp(`${B}(${TEAM_SPORT_WORDS.join('|')})${A}`, 'giu');
+const FOOTBALL_SECTION = new Set(FOOTBALL_SECTIONS);
+
+/**
+ * One key per word, whatever its case or number: "Footballer" and "football",
+ * "penalties" and "penalty", "coaches" and "coach" are one signal each.
+ */
+function signalKey(match: string): string {
+  const k = match.toLowerCase().replace(/’/g, "'").replace(/\s+/g, ' ');
+  if (k.startsWith('football')) return 'football';
+  if (k.length < 4) return k;
+  if (/(ch|sh|ss)es$/.test(k)) return k.slice(0, -2);
+  if (k.endsWith('ies')) return `${k.slice(0, -3)}y`;
+  if (k.endsWith('s') && !k.endsWith('ss')) return k.slice(0, -1);
+  return k;
+}
+
+/** The distinct signals a pattern finds in a text. */
+function signals(pattern: RegExp, text: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of text.matchAll(pattern)) out.add(signalKey(m[1]!));
+  return out;
+}
+
+/**
+ * The page's own name in its address: the path's parts of three words or
+ * more, as words ("/sport/41174008/david-beckham-man-utd-real-madrid-lugano/",
+ * ".../pochettino_i_am_not_nice_and_that_doesnt_suit_me/..."). Empty for no
+ * URL or one that does not parse.
+ */
+function slugOf(url: string | null): string {
+  if (url === null) return '';
+  let path: string;
+  try {
+    path = new URL(url).pathname;
+  } catch {
+    return '';
+  }
+  return path
+    .split('/')
+    .filter((p) => p.split(/[-_]/).length >= 3)
+    .map((p) => {
+      try {
+        return decodeURIComponent(p);
+      } catch {
+        return p;
+      }
+    })
+    .map((p) => p.replace(/[-_]+/g, ' '))
+    .join('\n');
+}
+
+/**
+ * Whether an item a search brought, and filed to none of ours, carries real
+ * football evidence (T-1978, D-468) -- more than one passing football word:
+ *   - a football section in the article's URL path (`FOOTBALL_SECTIONS`);
+ *   - football's name in the headline or the page's slug (`FOOTBALL_NAMES`);
+ *   - two distinct football terms across headline, slug and summary
+ *     (`FOOTBALL_TERMS`, and in capitals the acronyms and club shapes);
+ *   - or one, with two distinct words of team sport in headline and summary
+ *     (`TEAM_SPORT_WORDS`).
+ * GNews' search matches the whole article, so "From clearing a path for
+ * teammates on the football field to ... data centres" came in; such an item
+ * has one football word and no other evidence.
+ */
+export function searchFootballEvidence(item: {
+  headline: string;
+  summary: string | null;
+  url: string | null;
+}): boolean {
+  const page = directoriesOf(item.url);
+  if (page !== null && page.dirs.some((d) => FOOTBALL_SECTION.has(d))) return true;
+  const slug = slugOf(item.url);
+  if (NAME.test(item.headline) || ACRONYM.test(item.headline) || SLUG_NAME.test(slug)) return true;
+  const own = `${item.headline}\n${item.summary ?? ''}`;
+  const text = `${own}\n${slug}`;
+  const football = new Set([...signals(TERM, text), ...signals(CAPITAL, text)]);
+  if (football.size >= 2) return true;
+  return football.size === 1 && signals(SPORT_WORD, own).size >= 2;
+}
+
 /** Why an item is not listed as football, or `null` when it is. */
 export type NotFootball =
   | OtherCode
@@ -419,7 +702,8 @@ export type NotFootball =
   | 'other_sport_event'
   | 'other_sport_section'
   | 'not_football_section'
-  | 'general_feed_without_football';
+  | 'general_feed_without_football'
+  | 'search_without_football';
 
 /** What the judgement reads of a stored item. */
 export interface NewsItemSignals {
@@ -450,7 +734,9 @@ export interface NewsItemSignals {
  *      the headline says football or the item is filed to a club or person of
  *      ours, and its own words name no other sport;
  *   4. another sport in the item's own words (`otherCodeOf`), for an item a
- *      search brought or one filed to none of ours (D-290);
+ *      search brought or one filed to none of ours (D-290); and an item a
+ *      search brought and filed to none of ours that carries no real football
+ *      evidence (`searchFootballEvidence`, T-1978, D-468);
  *   5. a general sports feed's item (`GENERAL_SPORTS_FEEDS`): another sport in
  *      its headline, categories or -- unless filed to a club or person of ours
  *      -- summary, also in Portuguese; or no football word and no club or
@@ -476,7 +762,13 @@ export function notFootballOf(item: NewsItemSignals): NotFootball | null {
   }
   const general = !item.searched && isGeneralSportsFeed(item.feedUrl);
   if (!general) {
-    if (item.searched || item.filedTo.length === 0) return otherCodeOf(item.headline, item.summary);
+    if (item.searched || item.filedTo.length === 0) {
+      const code = otherCodeOf(item.headline, item.summary);
+      if (code !== null) return code;
+    }
+    if (item.searched && item.filedTo.length === 0 && !searchFootballEvidence(item)) {
+      return 'search_without_football';
+    }
     return null;
   }
   const code = otherCodeOf(item.headline, ours ? null : item.summary);
