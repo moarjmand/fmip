@@ -176,6 +176,15 @@ class MemoryStore implements PendingPickStore {
     };
   }
 
+  async anyWaiting(userId: string): Promise<boolean> {
+    return this.rows.some(
+      (r) =>
+        r.userId === userId &&
+        r.status === 'pending' &&
+        (this.kickoffs.get(r.fixtureId) ?? KICKOFF) > this.now,
+    );
+  }
+
   async save(userId: string, fixtureId: string, outcome: PredictionOutcome): Promise<void> {
     if (this.refuse !== null) throw this.refuse;
     const waiting = this.waiting(userId, fixtureId);
@@ -344,6 +353,23 @@ describe('PendingPickService.withdraw', () => {
     expect(await service.withdraw(MEMBER, FIXTURE)).toBe('locked');
     expect(statuses()).toEqual(['home:pending']);
     expect((await service.own(MEMBER, FIXTURE))?.status).toBe('expired');
+  });
+});
+
+describe('PendingPickService.hasWaiting', () => {
+  it('says whether a pick of the member is still waiting, and no more (T-1976)', async () => {
+    const { service, store } = setup();
+    expect(await service.hasWaiting(MEMBER)).toBe(false);
+    await service.save(unverified, FIXTURE, { outcome: 'home' });
+    expect(await service.hasWaiting(MEMBER)).toBe(true);
+    // Another member's waiting pick is not this one's.
+    expect(await service.hasWaiting('00000000-0000-4000-8000-00000000a002')).toBe(false);
+    // Taken back, nothing waits; kick-off ends the wait of one left standing.
+    await service.withdraw(MEMBER, FIXTURE);
+    expect(await service.hasWaiting(MEMBER)).toBe(false);
+    await service.save(unverified, OTHER_FIXTURE, { outcome: 'draw' });
+    store.now = AT;
+    expect(await service.hasWaiting(MEMBER)).toBe(false);
   });
 });
 

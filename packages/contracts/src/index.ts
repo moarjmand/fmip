@@ -579,6 +579,7 @@ export type {
   GroupPredictionCall,
   GroupPredictionComparison,
   GroupPredictionComparisonResponse,
+  OwnPredictionHistoryResponse,
   OwnPredictionShareResponse,
   PendingPick,
   PendingPickResponse,

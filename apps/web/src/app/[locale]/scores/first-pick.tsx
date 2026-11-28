@@ -1,4 +1,4 @@
-import type { PendingPick, PredictionHistoryResponse, ScoreCard } from '@fmip/contracts';
+import type { OwnPredictionHistoryResponse, PendingPick, ScoreCard } from '@fmip/contracts';
 import { Translated } from '@/components/translated';
 import { ButtonLink, buttonClasses } from '@/components/ui';
 import type { ScoresView } from '@/lib/scores';
@@ -16,8 +16,11 @@ import { isOpenForPick } from '@/lib/scores-filters';
  *   the column is outlined while it is the page's target (`match-preview.tsx`).
  *
  * Only on "Not picked yet", only for a member who has no prediction at all
- * (their own history says so, `total` 0) and no pick waiting on that match for
- * their address to be confirmed (D-361), and only while that match is open.
+ * (their own history says so, `total` 0) and no pick waiting for their address
+ * to be confirmed (D-361) -- on that match, or on any other, which the same
+ * history read says (`has_pending_pick`, T-1976), so a member who picked on
+ * one day is not offered a first prediction on the next -- and only while that
+ * match is open.
  * Anyone else sees the page as before: the card goes with the first pick,
  * nothing is stored to remember it.
  */
@@ -32,7 +35,7 @@ export function showsFirstPick({
   view: ScoresView;
   signedIn: boolean;
   /** The member's own history as the page read it, or null when it did not. */
-  history: { ok: true; data: PredictionHistoryResponse } | { ok: false } | null;
+  history: { ok: true; data: OwnPredictionHistoryResponse } | { ok: false } | null;
   /** The pick waiting on the previewed match, as the page read it. */
   pending: PendingPick | null;
   /** The match the preview offers. */
@@ -41,8 +44,10 @@ export function showsFirstPick({
 }): boolean {
   if (view !== 'unpicked' || !signedIn) return false;
   if (card === null || pending !== null || !isOpenForPick(card, now)) return false;
-  // Unread or unreadable is not "none": nothing is claimed about a history the page has not seen.
+  // Unread or unreadable is not "none": nothing is claimed about a history the page has not seen,
+  // nor about a waiting pick it was not told of (an answer without the field says nothing).
   if (history === null || !history.ok || history.data.kind !== 'visible') return false;
+  if (history.data.has_pending_pick !== false) return false;
   return history.data.total === 0 && history.data.items.length === 0;
 }
 

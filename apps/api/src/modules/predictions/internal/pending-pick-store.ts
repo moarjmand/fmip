@@ -40,6 +40,7 @@ export interface ResolvedPicks {
 export interface PendingPickStore {
   kickoffOf(fixtureId: string): Promise<Date | null>;
   newest(userId: string, fixtureId: string): Promise<PendingPick | null>;
+  anyWaiting(userId: string): Promise<boolean>;
   save(userId: string, fixtureId: string, outcome: PredictionOutcome): Promise<void>;
   withdraw(userId: string, fixtureId: string): Promise<boolean>;
   resolveWaiting(
@@ -119,6 +120,22 @@ export class PostgresPendingPickStore implements PendingPickStore {
     );
     const row = rows[0];
     return row === undefined ? null : toPick(row);
+  }
+
+  /**
+   * Whether any pick of the member is still waiting (T-1976): stored as
+   * waiting and its match not kicked off, on the database's clock, as
+   * `newest` reads it. A yes or no, nothing of the pick.
+   */
+  async anyWaiting(userId: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ waiting: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM pending_pick pp JOIN fixture f ON f.id = pp.fixture_id
+          WHERE pp.user_id = $1 AND pp.status = 'pending' AND f.kickoff_at > now()
+       ) AS waiting`,
+      [userId],
+    );
+    return rows[0]?.waiting === true;
   }
 
   /**

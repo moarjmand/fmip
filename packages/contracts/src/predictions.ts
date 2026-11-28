@@ -151,6 +151,22 @@ export type PredictionHistoryResponse =
       visibility: Exclude<'public' | 'friends' | 'private', 'public'>;
     };
 
+/**
+ * `GET /me/predictions`: the member's own history, which is always theirs to
+ * see, and whether a pick of theirs is waiting for the e-mail confirmation
+ * (T-1976, D-361). Such a pick is not a prediction and never in `items` or
+ * `total`; this says only that one exists, so the first-prediction card
+ * (D-467) is not offered to a member who already made a pick. The member's
+ * own, and nothing about the pick itself.
+ */
+export type OwnPredictionHistoryResponse = Extract<
+  PredictionHistoryResponse,
+  { kind: 'visible' }
+> & {
+  /** At least one pick still waiting: saved before the confirmation, its match not kicked off. */
+  has_pending_pick: boolean;
+};
+
 // ---------------------------------------------------------------------------
 // Prediction comparison inside a group (blueprint 8.2, T-246)
 // ---------------------------------------------------------------------------

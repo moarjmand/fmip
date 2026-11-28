@@ -1,7 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { ApiError, PendingPickResponse, PredictionResponse } from '@fmip/contracts';
+import type {
+  ApiError,
+  OwnPredictionHistoryResponse,
+  PendingPickResponse,
+  PredictionResponse,
+} from '@fmip/contracts';
 import { Pool } from 'pg';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DatabaseModule } from '../../database/database.module';
@@ -68,6 +73,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
           await call('GET', `/fixtures/${fixtureId}/pending-pick`, name)
         ).json() as PendingPickResponse
       ).pending_pick;
+    /** What the member's own history says (T-1976): how many predictions, and whether a pick waits. */
+    const history = async (name: Name) => {
+      const answer = (
+        await call('GET', '/me/predictions?limit=50', name)
+      ).json() as OwnPredictionHistoryResponse;
+      return { total: answer.total, waiting: answer.has_pending_pick };
+    };
     /** Every pending pick of a member on a match, oldest first: outcome and stored status. */
     const stored = async (name: Name, fixtureId: string) =>
       (
@@ -184,10 +196,13 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       expect((await pick(null, OPEN, 'home')).statusCode).toBe(401);
       expect((await call('GET', `/fixtures/${OPEN}/pending-pick`, null)).statusCode).toBe(401);
       expect((await call('DELETE', `/fixtures/${OPEN}/pending-pick`, null)).statusCode).toBe(401);
+      // The history that says whether one waits is the member's own (T-1976).
+      expect((await call('GET', '/me/predictions', null)).statusCode).toBe(401);
     });
 
     it('answers null before a pick, and 404 for a match that is not one', async () => {
       expect(await standing('early', OPEN)).toBeNull();
+      expect(await history('early')).toEqual({ total: 0, waiting: false });
       expect((await pick('early', randomUUID(), 'home')).statusCode).toBe(404);
       expect((await pick('early', 'not-a-uuid', 'home')).statusCode).toBe(404);
     });
@@ -206,6 +221,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       // settlement or a rating; the prediction route still says there is none.
       expect(await versions('early', OPEN)).toEqual([]);
       expect((await call('GET', `/fixtures/${OPEN}/prediction`, 'early')).statusCode).toBe(404);
+      // Not in the history either; the history says only that one waits (T-1976).
+      expect(await history('early')).toEqual({ total: 0, waiting: true });
       // And the prediction route still refuses the member, as before.
       const predicting = await call('PUT', `/fixtures/${OPEN}/prediction`, 'early', {
         outcome: 'home',
@@ -243,6 +260,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
 
     it('shows a pick to its owner and to nobody else', async () => {
       expect(await standing('other', OPEN)).toBeNull();
+      // Another member's waiting pick is not this one's (T-1976).
+      expect(await history('other')).toEqual({ total: 0, waiting: false });
       // Another member's own pick on the same match is theirs alone.
       expect((await pick('other', OPEN, 'draw')).statusCode).toBe(200);
       expect(await standing('early', OPEN)).toMatchObject({ outcome: 'away' });
@@ -255,6 +274,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       );
       expect(await stored('other', OPEN)).toEqual(['draw:withdrawn']);
       expect(await standing('other', OPEN)).toMatchObject({ status: 'withdrawn' });
+      expect(await history('other')).toEqual({ total: 0, waiting: false });
+      expect(await history('early')).toEqual({ total: 0, waiting: true });
       expect((await call('DELETE', `/fixtures/${OPEN}/pending-pick`, 'other')).statusCode).toBe(
         404,
       );
@@ -345,6 +366,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       it('records what became of each pick', async () => {
         expect(await stored('early', OPEN)).toEqual(['home:replaced', 'away:converted']);
         expect(await standing('early', OPEN)).toMatchObject({ status: 'converted' });
+        // A prediction in the history now, and nothing waiting (T-1976).
+        expect(await history('early')).toEqual({ total: 1, waiting: false });
       });
 
       it('is the member’s prediction from then on, by the prediction’s own routes', async () => {
@@ -401,6 +424,8 @@ describe.skipIf(DATABASE_URL === undefined || DATABASE_URL === '')(
       it('reads as expired from kick-off on, before anything has recorded it', async () => {
         expect(await stored('late', SOON)).toEqual(['draw:pending']);
         expect(await standing('late', SOON)).toMatchObject({ outcome: 'draw', status: 'expired' });
+        // Kick-off ended the wait: nothing waits, and nothing was predicted (T-1976).
+        expect(await history('late')).toEqual({ total: 0, waiting: false });
         // Saved, not counted: it is kept, not taken back.
         const withdrawn = await call('DELETE', `/fixtures/${SOON}/pending-pick`, 'late');
         expect(withdrawn.statusCode).toBe(409);
