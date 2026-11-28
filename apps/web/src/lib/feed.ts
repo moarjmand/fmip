@@ -8,6 +8,7 @@ import type {
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { memberName } from '@/lib/member-name';
+import { nameIsolate } from '@/components/score';
 
 /** Each kind of item, named in words. Total, so a fifth kind fails the build until it has one. */
 export const KIND_KEY: Record<FeedItemBody['kind'], MessageKey> = {
@@ -79,7 +80,8 @@ export function feedItemTitle(item: FeedItem, locale: string): string {
       return interpolate(
         t(isLocale(locale) ? locale : DEFAULT_LOCALE, 'followingPage.panelPostTitle'),
         {
-          member: memberName(locale, item.author),
+          // A member's name inside the sentence, isolated (T-1975).
+          member: nameIsolate(memberName(locale, item.author)),
           home: item.home.name,
           away: item.away.name,
         },

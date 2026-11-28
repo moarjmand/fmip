@@ -63,8 +63,8 @@ describe('the moderation queue page', () => {
     const list = readFileSync(join(HERE, 'member-appeals.tsx'), 'utf8');
     expect(list).toContain('<MemberHandle username={appeal.username} />');
     expect(list).not.toContain('@{');
-    // The decision's reason and the appeal keep their own direction.
-    expect(list.match(/dir="auto"/g)).toHaveLength(2);
+    // The decision's reason and the appeal keep their own direction (T-1975: MemberWords).
+    expect(list.match(/<MemberWords\s+text=\{appeal\.(?:decision_reason|body)\}/g)).toHaveLength(2);
   });
 
   it('asks for a reason, and leaves the rules to the API', () => {

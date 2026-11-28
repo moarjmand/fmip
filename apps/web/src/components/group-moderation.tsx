@@ -1,5 +1,6 @@
 'use client';
 
+import { MemberWords } from '@/components/member-words';
 import { type ReactNode, useActionState } from 'react';
 import Link from '@/components/ui/link';
 import type { GroupAppealNote, GroupQueueSubject, QueuedReport } from '@fmip/contracts';
@@ -156,11 +157,12 @@ export function AppealNotes({
   return (
     <ol className="flex flex-col gap-2" data-testid="group-appeal-notes">
       {notes.map((note) => (
-        <li key={note.id} className="text-sm">
+        <li key={note.id} className="flex flex-col text-sm">
           <span className="text-muted">
             <time dateTime={note.created_at}>{times?.[note.id] ?? note.created_at}</time>
-          </span>{' '}
-          <span className="whitespace-pre-line">{note.body}</span>
+          </span>
+          {/* A note can run to several lines: a block in its own direction (T-1975). */}
+          <MemberWords text={note.body} className="whitespace-pre-line" />
         </li>
       ))}
     </ol>

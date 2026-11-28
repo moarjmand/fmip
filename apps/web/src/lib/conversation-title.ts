@@ -3,6 +3,7 @@ import { formatNumber } from '@/i18n/format';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
 import { type MessageKey, interpolate, t } from '@/i18n/messages';
 import { memberName } from '@/lib/member-name';
+import { nameIsolate } from '@/components/score';
 
 /** A catalogue sentence in the reader's language (T-1309), its values in. */
 function say(locale: string, key: MessageKey, params: Record<string, string> = {}): string {
@@ -34,7 +35,9 @@ export function conversationTitle(
       // "Deleted member" (T-908).
       const others = conversation.members
         .filter((member) => member.username !== viewer)
-        .map((member) => memberName(locale, member));
+        // Each name in its own isolate (T-1975): `@ali_fan` keeps its `@` in
+        // front on a Persian page, and a Persian name does not turn the list.
+        .map((member) => nameIsolate(memberName(locale, member)));
       return others.length === 0
         ? say(locale, 'shared.conversation.untitled')
         : others.join(say(locale, 'shared.listSeparator'));
@@ -42,7 +45,11 @@ export function conversationTitle(
     case 'group':
       return conversation.group?.name ?? say(locale, 'shared.conversation.group');
     case 'group_thread': {
-      const group = conversation.group?.name ?? say(locale, 'shared.conversation.group');
+      // The group's name is its members' words, isolated inside the sentence (T-1975).
+      const group =
+        conversation.group === null
+          ? say(locale, 'shared.conversation.group')
+          : nameIsolate(conversation.group.name);
       const match = conversation.fixture;
       return match === null
         ? say(locale, 'shared.conversation.threadNoMatch', { group })

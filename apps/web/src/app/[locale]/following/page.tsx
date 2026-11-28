@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { GatePage } from '@/components/gate-card';
@@ -243,7 +244,7 @@ function Item({
           <Translated locale={locale} message="feed.analysisCall" /> {item.predicted_outcome}
         </p>
       )}
-      {item.kind === 'panel_post' && <p className="text-sm">{item.excerpt}</p>}
+      {item.kind === 'panel_post' && <MemberWords text={item.excerpt} className="text-sm" />}
       <ul className="flex flex-wrap gap-2 text-xs" data-testid="feed-because">
         {item.because.map((signal, index) => (
           <li

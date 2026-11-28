@@ -256,9 +256,30 @@ export function t(locale: Locale, key: MessageKey): string {
   return message(locale, key).text;
 }
 
-/** `{name}` placeholders, filled from `params`; an unknown name is left as it is, visibly. */
+/**
+ * `{name}` placeholders, filled from `params`; an unknown name is left as it is, visibly.
+ *
+ * `@{name}` is a member's handle (T-1975): the `@` and the value go into one
+ * left-to-right isolate (`U+2066` … `U+2069`, the string form of
+ * `<bdi dir="ltr">`), so a Persian sentence reads `@ali_fan`, never
+ * `ali_fan@`. Usernames are lower-case Latin letters, digits and `_`. Only
+ * `@{username}` is a handle (every catalogue's `@{` is one; the spec holds
+ * that): any other `@{name}` is filled as it is.
+ */
+/**
+ * The text without bidi isolates (T-1975), for a `<title>`, `og:title` or
+ * other metadata that is copied rather than laid out.
+ */
+export function withoutIsolates(text: string): string {
+  return text.replace(/[\u2066-\u2069]/g, '');
+}
+
 export function interpolate(template: string, params: Record<string, string>): string {
-  return template.replace(/\{([a-zA-Z]+)\}/g, (whole, name: string) => params[name] ?? whole);
+  return template.replace(/(@?)\{([a-zA-Z]+)\}/g, (whole, at: string, name: string) => {
+    const value = params[name];
+    if (value === undefined) return whole;
+    return at === '@' && name === 'username' ? `\u2066@${value}\u2069` : at + value;
+  });
 }
 
 /**

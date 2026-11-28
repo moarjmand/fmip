@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import { type QueuedAppeal, isDeletedMember } from '@fmip/contracts';
 import { MemberHandle, MemberName } from '@/components/member-name';
 import Link from '@/components/ui/link';
@@ -60,12 +61,12 @@ export function MemberAppeals({
           </p>
           {/* Written words keep their own direction: moderators and members write Persian. */}
           <p className="text-muted">Decision&apos;s reason:</p>
-          <p dir="auto" className="whitespace-pre-wrap text-muted">
-            {appeal.decision_reason}
-          </p>
-          <p dir="auto" className="whitespace-pre-wrap" data-testid="moderation-appeal-body">
-            {appeal.body}
-          </p>
+          <MemberWords text={appeal.decision_reason} className="whitespace-pre-wrap text-muted" />
+          <MemberWords
+            text={appeal.body}
+            className="whitespace-pre-wrap"
+            data-testid="moderation-appeal-body"
+          />
         </li>
       ))}
     </ul>

@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import Link from '@/components/ui/link';
 import type { ReactNode } from 'react';
 import type {
@@ -208,18 +209,17 @@ export function FounderAnalysisPanel({
 
         {/* The founder's voice (D-206): the article face, in italic where the
           script has one (Newsreader; Persian has no italic to fake). */}
-        <p
+        <MemberWords
+          text={current.reasoning}
           className="font-article text-article whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
           data-testid="founder-voice"
-        >
-          {current.reasoning}
-        </p>
+        />
 
         {sections.map(([id, label, text]) =>
           text === null ? null : (
             <div key={id} className="flex flex-col gap-0.5">
               <h3 className="text-sm font-medium">{label}</h3>
-              <p className="text-sm whitespace-pre-line text-muted">{text}</p>
+              <MemberWords text={text} className="text-sm whitespace-pre-line text-muted" />
             </div>
           ),
         )}
@@ -252,7 +252,7 @@ export function FounderAnalysisPanel({
                   </time>{' '}
                   · {outcomeLabel(l, version.predicted_outcome, home, away)} ·{' '}
                   {confidenceText(l, version.confidence)}
-                  <p className="mt-1 whitespace-pre-line">{version.reasoning}</p>
+                  <MemberWords text={version.reasoning} className="mt-1 whitespace-pre-line" />
                 </li>
               ))}
             </ol>
@@ -334,12 +334,11 @@ export function FounderAnalysisBrief({
           ) : null}{' '}
           <span className="text-muted">· {confidenceText(l, current.confidence)}</span>
         </p>
-        <p
+        <MemberWords
+          text={current.reasoning}
           className="line-clamp-4 font-article text-base whitespace-pre-line italic [:root:is(:lang(fa),:lang(ar))_&]:not-italic"
           data-testid="founder-voice"
-        >
-          {current.reasoning}
-        </p>
+        />
         <Signature
           author={analysis.analysis.author.display_name}
           publishedAt={current.published_at}

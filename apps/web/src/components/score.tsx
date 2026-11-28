@@ -108,7 +108,7 @@ export function LtrNumeric({
  * that is not a home–away pair; a pair goes through `pairIsolate`.
  */
 export function ltrIsolate(text: string): string {
-  return `⁦${text}⁩`;
+  return `\u2066${text}\u2069`;
 }
 
 /**
@@ -117,14 +117,16 @@ export function ltrIsolate(text: string): string {
  * otherwise, closed by `U+2069`. The string counterpart of `ScorePair`.
  */
 export function pairIsolate(locale: string, text: string): string {
-  return `${directionOf(locale) === 'rtl' ? '⁧' : '⁦'}${text}⁩`;
+  return `${directionOf(locale) === 'rtl' ? '\u2067' : '\u2066'}${text}\u2069`;
 }
 
 /**
  * A name inside a built string as its own first-strong isolate (`U+2068` …
  * `U+2069`, the string form of `<bdi>`), so an English name in a Persian line
- * neither turns the line around nor drags a score along with it.
+ * neither turns the line around nor drags a score along with it. Also for a
+ * member's words inside a sentence (T-1975): a name, a handle, a group's
+ * name, an excerpt or a moderator's reason.
  */
 export function nameIsolate(name: string): string {
-  return `⁨${name}⁩`;
+  return `\u2068${name}\u2069`;
 }

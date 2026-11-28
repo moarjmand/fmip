@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
@@ -144,7 +145,7 @@ export default async function MemberPage({
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-8">
         {back}
         <Notice tone="warning" data-testid="member-page-none">
-          No account has the username @{username}.
+          No account has the username <bdi dir="ltr">@{username}</bdi>.
         </Notice>
       </main>
     );
@@ -176,7 +177,7 @@ export default async function MemberPage({
     <main className="mx-auto flex max-w-3xl flex-col gap-8 p-8">
       {back}
       <h1 className="text-2xl font-semibold" data-testid="member-page-title">
-        @{user.username}
+        <bdi dir="ltr">@{user.username}</bdi>
       </h1>
 
       <Section title="Account" testId="member-account">
@@ -348,7 +349,8 @@ export default async function MemberPage({
                 </p>
                 {contributor.data.grant.history.map((event) => (
                   <p key={`${event.kind}-${event.at}`} className="text-muted">
-                    {event.kind} by @{event.actor} on <When iso={event.at} />: {event.reason}
+                    {event.kind} by <bdi dir="ltr">@{event.actor}</bdi> on <When iso={event.at} />:{' '}
+                    <MemberWords as="bdi" text={event.reason} />
                   </p>
                 ))}
               </Card>

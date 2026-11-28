@@ -52,7 +52,7 @@ export default async function MemberModerationPage({
       </p>
       <h1 className="text-2xl font-semibold">
         <Link href={`/${locale}/u/${encodeURIComponent(username)}`} className="underline">
-          @{username}
+          <bdi dir="ltr">@{username}</bdi>
         </Link>
       </h1>
 

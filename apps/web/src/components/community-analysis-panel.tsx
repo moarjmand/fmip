@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { CommunityAnalysesResponse, CommunityAnalysis } from '@fmip/contracts';
 import { useId } from 'react';
 import { CARD } from '@/components/match-centre-cards';
@@ -98,7 +99,7 @@ function Analysis({ locale, analysis }: { locale: Locale; analysis: CommunityAna
         <span className="ms-2 text-muted">{confidenceText(locale, current.confidence)}</span>
       </p>
 
-      <p className="whitespace-pre-wrap text-sm">{current.reasoning}</p>
+      <MemberWords text={current.reasoning} className="whitespace-pre-wrap text-sm" />
 
       {FIELDS.map(([field, label]) =>
         current[field] === null ? null : (
@@ -106,7 +107,11 @@ function Analysis({ locale, analysis }: { locale: Locale; analysis: CommunityAna
             <span className="font-medium">
               <Translated locale={locale} message={label} />
             </span>{' '}
-            <span className="whitespace-pre-wrap text-muted">{current[field]}</span>
+            <MemberWords
+              as="bdi"
+              text={current[field]}
+              className="whitespace-pre-wrap text-muted"
+            />
           </p>
         ),
       )}

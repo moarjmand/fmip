@@ -320,7 +320,9 @@ export async function SiteHeader({
                 <details className="account-menu relative" data-testid="account-menu">
                   <summary className="flex min-h-touch cursor-pointer list-none items-center gap-1 rounded-control px-3 text-sm font-semibold lg:max-w-32 lg:border xl:max-w-44 lg:border-default lg:bg-surface [&::-webkit-details-marker]:hidden">
                     {/* A long name is cut short in the bar rather than pushing the row wider (T-1534). */}
-                    <span className="truncate">@{me.username}</span>
+                    <bdi dir="ltr" className="truncate">
+                      @{me.username}
+                    </bdi>
                     <span aria-hidden="true">▾</span>
                   </summary>
                   <div className="flex flex-col ps-3 lg:absolute lg:end-0 lg:top-full lg:z-40 lg:mt-1 lg:w-56 lg:rounded-control lg:border lg:border-default lg:bg-surface lg:px-2 lg:py-2">
@@ -329,7 +331,7 @@ export async function SiteHeader({
                       className={item}
                       data-testid="nav-me"
                     >
-                      @{me.username}
+                      <bdi dir="ltr">@{me.username}</bdi>
                     </Link>
                     <Link href={href('/following')} className={item} data-testid="nav-following">
                       <Translated locale={locale} message="nav.following" />

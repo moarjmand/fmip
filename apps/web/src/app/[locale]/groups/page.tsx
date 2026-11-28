@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { GatePage } from '@/components/gate-card';
@@ -63,9 +64,7 @@ function GroupRow({ group, locale }: { group: GroupSummary; locale: string }) {
         {group.favourite !== null && <> · {group.favourite.name}</>}
       </p>
       {group.description !== null && (
-        <p className="text-sm" lang={lang}>
-          {group.description}
-        </p>
+        <MemberWords text={group.description} className="text-sm" lang={lang} />
       )}
     </li>
   );

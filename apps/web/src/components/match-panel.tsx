@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import {
   isDeletedMember,
   type MatchPanelPage,
@@ -99,8 +100,8 @@ function Standing({
   }
   return (
     <span className="flex flex-wrap items-center gap-2 text-xs text-muted">
-      <span className="font-medium text-fg">{author.display_name}</span>
-      <span>@{author.username}</span>
+      <bdi className="font-medium text-fg">{author.display_name}</bdi>
+      <bdi dir="ltr">@{author.username}</bdi>
       {author.rating === null || author.tier === null ? (
         // Said, not left blank. "Not rated yet" and "rated badly" are different
         // facts and a missing number reads as neither.
@@ -238,7 +239,10 @@ function Post({
           ) : null
         }
       />
-      <p className="whitespace-pre-wrap text-sm">{post.body}</p>
+      {/* A removed post keeps no body (the contract), so nothing is drawn for it. */}
+      {post.body !== null && (
+        <MemberWords text={post.body} className="whitespace-pre-wrap text-sm" />
+      )}
       <LinkCard
         locale={locale}
         post={post}

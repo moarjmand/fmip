@@ -1,5 +1,6 @@
 import Link from '@/components/ui/link';
 import { BrandMark } from '@/components/brand-mark';
+import { FeedbackLink, feedbackAddress } from '@/components/feedback-link';
 import { LanguagePicker } from '@/components/language-picker';
 import { MessageText } from '@/components/message-text';
 import { Translated } from '@/components/translated';
@@ -44,7 +45,8 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
  * to this page in each. Then the copyright line, the year in the page's
  * digits, and beside it the legal strip (`FOOTER_LEGAL`, T-1790, D-410):
  * the rules (linked from nowhere else since D-281 took them out of More)
- * and "Data sources", About's `#data` section.
+ * and "Data sources", About's `#data` section, and "Send feedback", an
+ * e-mail to the contact mailbox when `SITE_CONTACT_EMAIL` is set (T-1965).
  *
  * A server component: the words are resolved here and the catalogues stay
  * on the server (T-1040); only the language links, which need the
@@ -57,7 +59,7 @@ export const FOOTER_LABELS: Record<FooterLink['id'], MessageKey> = {
  */
 export async function SiteFooter({ locale }: { locale: string }) {
   const lang = isLocale(locale) ? locale : DEFAULT_LOCALE;
-  const holds = await currentHolds();
+  const [holds, feedback] = await Promise.all([currentHolds(), feedbackAddress()]);
   const href = (path: string) => `/${locale}${path}`;
   const nav = attribute(lang, 'shell.footer.nav');
   const year = localDigits(lang, String(new Date().getUTCFullYear()));
@@ -152,6 +154,14 @@ export async function SiteFooter({ locale }: { locale: string }) {
                 </Link>
               </li>
             ))}
+            {/* Testers' feedback by e-mail (T-1965, D-466); none without an address. */}
+            <FeedbackLink
+              locale={lang}
+              address={feedback}
+              variant="item"
+              className="footer-link underline"
+              testId="footer-feedback"
+            />
           </ul>
         </div>
       </div>

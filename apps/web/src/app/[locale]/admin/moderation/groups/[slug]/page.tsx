@@ -1,3 +1,4 @@
+import { MemberWords } from '@/components/member-words';
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import { redirect } from 'next/navigation';
@@ -74,9 +75,14 @@ export default async function GroupModerationPage({
             <p>
               {result.data.visibility} · {result.data.member_count} member
               {result.data.member_count === 1 ? '' : 's'}
-              {result.data.owner !== null && <> · owned by @{result.data.owner}</>}
+              {result.data.owner !== null && (
+                <>
+                  {' '}
+                  · owned by <bdi dir="ltr">@{result.data.owner}</bdi>
+                </>
+              )}
             </p>
-            {result.data.description !== null && <p>{result.data.description}</p>}
+            {result.data.description !== null && <MemberWords text={result.data.description} />}
             {result.data.closed !== null ? (
               <Notice tone="warning" data-testid="moderation-group-closed">
                 Closed: {result.data.closed.reason}
@@ -94,8 +100,12 @@ export default async function GroupModerationPage({
               <ul className="flex flex-col gap-2">
                 {result.data.reports.map((report) => (
                   <li key={report.id} className="text-sm">
-                    {report.reason} from @{report.reporter}
-                    {report.detail !== null && <>: {report.detail}</>}
+                    {report.reason} from <bdi dir="ltr">@{report.reporter}</bdi>
+                    {report.detail !== null && (
+                      <>
+                        : <MemberWords as="bdi" text={report.detail} />
+                      </>
+                    )}
                     {report.decision_id === null ? ' · open' : ' · answered'}
                   </li>
                 ))}
@@ -152,7 +162,8 @@ export default async function GroupModerationPage({
                 {result.data.decisions.map((decision) => (
                   <li key={decision.id} className="text-sm">
                     <time dateTime={decision.created_at}>{decision.created_at}</time> ·{' '}
-                    {decision.outcome} by @{decision.moderator}: {decision.reason}
+                    {decision.outcome} by <bdi dir="ltr">@{decision.moderator}</bdi>:{' '}
+                    <MemberWords as="bdi" text={decision.reason} />
                   </li>
                 ))}
               </ul>

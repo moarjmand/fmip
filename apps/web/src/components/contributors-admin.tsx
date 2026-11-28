@@ -88,7 +88,7 @@ function Candidate({ locale, entry }: { locale: string; entry: ContributorCandid
           href={`/${locale}/u/${encodeURIComponent(entry.username)}`}
           className="font-medium underline"
         >
-          @{entry.username}
+          <bdi dir="ltr">@{entry.username}</bdi>
         </Link>
       </p>
 
@@ -196,7 +196,7 @@ function ContributorFlags({
                       href={`/${locale}/u/${encodeURIComponent(flag.username)}`}
                       className="font-medium underline"
                     >
-                      @{flag.username}
+                      <bdi dir="ltr">@{flag.username}</bdi>
                     </Link>{' '}
                     <span className="text-sm text-muted">({flag.standing})</span>
                   </p>

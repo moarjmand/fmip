@@ -42,6 +42,9 @@
   "shell.footer.football": "Football",
   "shell.footer.tagline": "Live football, a statistical model, the founder’s analysis and members’ predictions: side by side, never blended.",
   "shell.footer.dataSources": "Data sources",
+  "feedback.link": "Send feedback",
+  "feedback.prompt": "Something unclear, wrong or missing? Write to us by e-mail:",
+  "feedback.subject": "Feedback on Stadiomind, from {page}",
   "shell.moments.label": "Moments that matter",
   "shell.moments.live": {
     "one": "{count} live",
