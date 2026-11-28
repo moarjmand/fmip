@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from '@/components/ui/link';
 import type { TeamSummary } from '@fmip/contracts';
+import { FeedbackLink, feedbackAddress } from '@/components/feedback-link';
 import { TimeZoneField } from '@/components/time-zone-field';
 import { Translated } from '@/components/translated';
 import { DEFAULT_LOCALE, isLocale } from '@/i18n/locales';
@@ -64,7 +65,7 @@ export default async function WelcomePage({
   const next = typeof query.next === 'string' ? query.next : undefined;
   const search = typeof query.q === 'string' ? query.q : '';
   const cookie = await sessionCookieHeader();
-  const me = await fetchMe(cookie);
+  const [me, feedback] = await Promise.all([fetchMe(cookie), feedbackAddress()]);
   const signedIn = me !== null;
 
   let current: Current;
@@ -186,6 +187,8 @@ export default async function WelcomePage({
           </Button>
         </form>
       </div>
+      {/* Where a tester says what was unclear (T-1965, D-466); none without an address. */}
+      <FeedbackLink locale={locale} address={feedback} variant="line" testId="welcome-feedback" />
     </main>
   );
 }

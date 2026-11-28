@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as LanguageHold from '@/lib/language-hold';
 import { SiteFooter } from './site-footer';
 
@@ -26,6 +26,9 @@ vi.mock('@/lib/language-hold', async (original) => ({
   currentHolds: async () => holds,
 }));
 
+// The feedback link's request scope (T-1965): asked for before the variable is read.
+vi.mock('next/server', () => ({ connection: async () => undefined }));
+
 const LAYOUT = readFileSync(join(__dirname, '..', 'app', '[locale]', 'layout.tsx'), 'utf8');
 
 const draw = async (locale: string) => renderToStaticMarkup(await SiteFooter({ locale }));
@@ -41,6 +44,10 @@ const tag = (html: string, testId: string): string =>
 beforeEach(() => {
   pathname = '/en/scores';
   holds = new Map();
+  vi.stubEnv('SITE_CONTACT_EMAIL', '');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('the site footer', () => {
@@ -127,6 +134,21 @@ describe('the site footer', () => {
       expect(tag(strip, 'footer-rules'), locale).toContain(`href="/${locale}/rules"`);
       expect(strip.slice(0, strip.indexOf('</ul>')), locale).toContain(words);
     }
+  });
+
+  it('ends the strip on "Send feedback", an e-mail naming this page, only with an address (T-1965)', async () => {
+    expect(await draw('en')).not.toContain('footer-feedback');
+    vi.stubEnv('SITE_CONTACT_EMAIL', 'feedback@example.test');
+    const html = await draw('en');
+    const strip = html.slice(html.indexOf('data-testid="footer-legal"'));
+    expect(ids(strip, 'footer')).toEqual(['legal', 'rules', 'data', 'feedback']);
+    const subject = encodeURIComponent('Feedback on Stadiomind, from /en/scores');
+    expect(tag(strip, 'footer-feedback')).toBe(
+      `<a href="mailto:feedback@example.test?subject=${subject}" class="footer-link underline" data-testid="footer-feedback">`,
+    );
+    expect(strip).toContain('>Send feedback</a>');
+    pathname = '/fa/scores';
+    expect(await draw('fa')).toContain('>ارسال بازخورد</a>');
   });
 
   it('offers this page in each language, with test ids of its own', async () => {

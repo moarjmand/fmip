@@ -7,7 +7,7 @@ import type {
   RatingResponse,
 } from '@fmip/contracts';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * A new member's profile (T-1787, D-390; board P7-6), rendered whole with the
@@ -40,6 +40,9 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ refresh: () => undefined, push: () => undefined }),
 }));
+
+// The feedback link's request scope (T-1965): asked for before the variable is read.
+vi.mock('next/server', () => ({ connection: async () => undefined }));
 
 const { default: ProfilePage } = await import('./page');
 
@@ -126,6 +129,10 @@ function newMember(): void {
 beforeEach(() => {
   vi.clearAllMocks();
   newMember();
+  vi.stubEnv('SITE_CONTACT_EMAIL', '');
+});
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 const row = (html: string, testId: string): string =>
@@ -215,6 +222,17 @@ describe('the member’s own page', () => {
     expect(html).not.toContain('data-testid="settled-progress"');
   });
 
+  it('offers "Send feedback" to the contact mailbox when there is one, and nothing when not (T-1965)', async () => {
+    expect(await render()).not.toContain('feedback');
+    vi.stubEnv('SITE_CONTACT_EMAIL', 'feedback@example.test');
+    const html = await render();
+    expect(html).toContain('data-testid="profile-feedback-line"');
+    const subject = encodeURIComponent('Feedback on Stadiomind, from /en/u/new_member');
+    expect(html).toContain(`href="mailto:feedback@example.test?subject=${subject}"`);
+    expect(html).toContain('>Send feedback</a>');
+    expect(await render('fa')).toContain('>ارسال بازخورد</a>');
+  });
+
   it('is in Persian on /fa, names in bdi', async () => {
     const html = await render('fa');
     expect(html).toContain('گام‌های نخست شما');
@@ -265,6 +283,11 @@ describe('a visitor', () => {
   it('sees no bar from the floor on', async () => {
     api.fetchRating.mockResolvedValue(ok(rating(30)));
     expect(await render()).not.toContain('settled-progress');
+  });
+
+  it('sees no feedback link: it is on the member’s own page only (T-1965)', async () => {
+    vi.stubEnv('SITE_CONTACT_EMAIL', 'feedback@example.test');
+    expect(await render()).not.toContain('feedback');
   });
 
   it('sees favourites with names in bdi, as before', async () => {

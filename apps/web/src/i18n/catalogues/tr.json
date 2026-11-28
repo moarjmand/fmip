@@ -214,6 +214,21 @@
     "text": "",
     "status": "untranslated"
   },
+  "feedback.link": {
+    "source": "Send feedback",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feedback.prompt": {
+    "source": "Something unclear, wrong or missing? Write to us by e-mail:",
+    "text": "",
+    "status": "untranslated"
+  },
+  "feedback.subject": {
+    "source": "Feedback on Stadiomind, from {page}",
+    "text": "",
+    "status": "untranslated"
+  },
   "shell.moments.label": {
     "source": "Moments that matter",
     "text": "",
